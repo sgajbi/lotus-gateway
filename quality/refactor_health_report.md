@@ -636,24 +636,29 @@ The current performance workspace boundary slice moves detail-view orchestration
 `PerformanceWorkspaceService` surface. The blocking source-file threshold is ratcheted from 639 to
 632 lines, making `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py` the
 largest residual source-file hotspots.
-The current DPM router-group boundary slice moves DPM command-center, campaign, proof-pack,
+The prior DPM router-group boundary slice moved DPM command-center, campaign, proof-pack,
 construction, and wave router registration groups into `src/app/router_groups/dpm.py`, reducing
 `src/app/router_registry.py` from 632 to 294 script-counted lines while preserving concrete route
 registration order. The blocking source-file threshold remains 632 lines, with
 `src/app/services/risk_workspace_service.py` now the single source-file ceiling blocker.
+The current risk workspace cache-boundary slice moves cache-key construction and replay-time
+cache-status/correlation stamping into `src/app/services/risk_workspace_cache.py`, reducing
+`risk_workspace_service.py` below the source-file ceiling. The blocking source-file threshold is
+ratcheted from 632 to 630 lines, with `src/app/services/advisory_client_protocols.py` now the
+single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current DPM router-group boundary branch was created from clean `main`; no open PRs and no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused DPM router-group validation passed with 29 router-boundary and DPM command-center/wave contract tests; full local `make check` passed with 1,233 unit/contract tests, and refactor-threshold trials prove `max_source_file_lines=632` passes while `631` fails only on `src/app/services/risk_workspace_service.py` |
+| Branch hygiene | Healthy | Current risk workspace cache-boundary branch was created from clean `main`; no open PRs and no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Focused risk workspace cache-boundary validation passed with 54 risk workspace cache/service/boundary/threshold tests; full local `make check` passed with 1,236 unit/contract tests, and refactor-threshold trials prove `max_source_file_lines=630` passes while `629` fails only on `src/app/services/advisory_client_protocols.py` |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
-| Total coverage | Healthy | Full local `make ci` passed with 1,442 combined coverage tests and 94.33% total coverage |
-| Security audit | Governed | Current DPM router-group boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, or data-mesh behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch extracts DPM router registration groups into `src/app/router_groups/dpm.py`, reducing `router_registry.py` from 632 to 294 script-counted lines. The largest current source-file hotspot is now `src/app/services/risk_workspace_service.py` at 632 script-counted lines |
-| Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-dpm-router-boundary/live-validation-summary.json` records 94 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
-| Observability evidence | Healthy for this branch | Branch-specific companion pack `lotus-workbench/output/observability-live/20260619-083718/observability-evidence-manifest.json` captured canonical DNS, container inventory, readiness/API samples, metrics, logs, and screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and the manifest links to the canonical validation summary |
+| Total coverage | Healthy | Full local `make ci` passed with 1,445 combined coverage tests and 94.33% total coverage |
+| Security audit | Governed | Current risk workspace cache-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, or data-mesh behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch extracts risk workspace cache policy into `src/app/services/risk_workspace_cache.py`, reducing `risk_workspace_service.py` below the ceiling. The largest current source-file hotspot is now `src/app/services/advisory_client_protocols.py` at 630 script-counted lines |
+| Live canonical runtime | Pending for this branch | Latest canonical proof remains the prior DPM router-group slice evidence at `lotus-workbench/output/playwright/live-canonical-dpm-router-boundary/live-validation-summary.json`; this branch still needs a fresh live canonical rerun before demo-ready closure |
+| Observability evidence | Pending for this branch | Latest observability pack remains `lotus-workbench/output/observability-live/20260619-083718/observability-evidence-manifest.json`; this branch still needs fresh observability/log evidence before demo-ready closure |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -676,7 +681,8 @@ registration order. The blocking source-file threshold remains 632 lines, with
    contracts, holdings/book contracts, and liquidity response construction are now separately
    testable.
 3. Continue splitting `risk_workspace_service.py` only when future behavior change exposes a clear
-   orchestration seam; request contexts and risk response boundaries are now separately testable.
+   orchestration seam; request contexts, cache policy, and risk response boundaries are now
+   separately testable.
 4. Continue splitting platform capability normalization or orchestration helpers if future changes
    expand the extracted modules.
 5. Continue extracting performance workspace summary orchestration helpers behind stable response

@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 632
+2. Current enforced source-file threshold: no Python source file under `src/app` above 630
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=632` and `max_function_lines=49`.
+   `max_source_file_lines=630` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
@@ -93,27 +93,20 @@ Most recent local PR-grade evidence:
    coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
    Refactor-threshold trials prove `max_source_file_lines=632` passes while `631` fails on
    `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py`.
-8. Current DPM router-group boundary branch moves DPM command-center, campaign, proof-pack,
-   construction, and wave router registration groups into `src/app/router_groups/dpm.py`,
-   reducing `src/app/router_registry.py` from 632 to 294 script-counted lines while preserving
-   concrete route registration order. Focused validation passed with ruff check, ruff format
-   check, 29 router-boundary and DPM command-center/wave contract tests, and refactor-threshold
-   trials proving `max_source_file_lines=632` passes while `631` fails only on
-   `src/app/services/risk_workspace_service.py`. Full local `make check` passed with ruff, format
-   check over 770 files, monetary-float guard, refactor threshold gate, workflow action-runtime
-   baseline, mypy over 549 source files, OpenAPI smoke, and 1,233 unit/contract tests. Full local
-   `make ci` passed with migration contract smoke, 209 integration tests, 1,442 combined coverage
-   tests, 94.33% total coverage, and no known vulnerabilities after the governed
-   `PYSEC-2026-161` exception. Branch-specific live canonical validation passed after rebuilding
-   the Docker-backed Gateway and downstream stack:
-   `lotus-workbench/output/playwright/live-canonical-dpm-router-boundary/live-validation-summary.json`
-   records 94 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel
-   classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready
-   panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps. Companion observability evidence
-   at `lotus-workbench/output/observability-live/20260619-083718/observability-evidence-manifest.json`
-   records 13/13 DNS checks, 13/13 representative API checks, 4/4 metrics checks, 14 log artifacts,
-   and a validation-summary link. GitHub checks and post-merge wiki publication remain pending for
-   this branch.
+8. Current risk workspace cache-boundary branch moves cache-key construction and replay-time
+   cache-status/correlation stamping into `src/app/services/risk_workspace_cache.py`, reducing
+   `src/app/services/risk_workspace_service.py` below the current source-file ceiling while
+   preserving risk workspace response behavior. Focused validation passed with ruff check, ruff
+   format check, mypy over the touched risk workspace service modules, 54 risk workspace
+   cache/service/boundary/threshold tests, and refactor-threshold trials proving
+   `max_source_file_lines=630` passes while `629` fails only on
+   `src/app/services/advisory_client_protocols.py`. Full local `make check` passed with ruff,
+   format check over 772 files, monetary-float guard, refactor threshold gate, workflow
+   action-runtime baseline, mypy over 550 source files, OpenAPI smoke, and 1,236 unit/contract
+   tests. Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,445
+   combined coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
+   `PYSEC-2026-161` exception. GitHub checks, live canonical rerun, and post-merge wiki
+   publication remain pending for this branch.
 7. Current DPM command-center exception-summary boundary branch focused validation passed with
    ruff check, ruff format check, mypy over four touched DPM command-center service modules,
    74 focused DPM command-center service/router/boundary tests, and refactor-threshold trials

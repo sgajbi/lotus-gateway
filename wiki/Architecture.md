@@ -10,11 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/risk_workspace_service.py` as the
-  single largest residual source file at 632 script-counted lines after DPM router registration
-  groups moved from `src/app/router_registry.py` into `src/app/router_groups/dpm.py`; the blocking
-  source-file threshold remains ratcheted to 632 script-counted lines, and the repository
-  longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records risk workspace cache-key and cache-status policy
+  extracted from `src/app/services/risk_workspace_service.py` into
+  `src/app/services/risk_workspace_cache.py`; the blocking source-file threshold is ratcheted from
+  632 to 630 script-counted lines, with `src/app/services/advisory_client_protocols.py` now the
+  source-file ceiling blocker, and the repository longest-function baseline remains held at the
+  enforced 49-line AST span
 
 ## Route-family map
 
