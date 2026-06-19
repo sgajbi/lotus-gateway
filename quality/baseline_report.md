@@ -359,7 +359,15 @@ check over 772 files, monetary-float guard, refactor threshold gate, workflow ac
 baseline, mypy over 550 source files, OpenAPI smoke, and 1,236 unit/contract tests. Full local
 `make ci` passed with migration contract smoke, 209 integration tests, 1,445 combined coverage
 tests, 94.33% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
-exception. GitHub checks, live canonical rerun, and post-merge wiki publication remain pending for
+exception. Branch-specific live canonical validation passed after rebuilding the Docker-backed
+Gateway and downstream stack:
+`lotus-workbench/output/playwright/live-canonical-risk-workspace-cache-boundary/live-validation-summary.json`
+records 94 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications,
+28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43
+features validated, and 0 RFC36-43 gaps. Companion observability evidence at
+`lotus-workbench/output/observability-live/risk-workspace-cache-boundary-20260619/observability-evidence-manifest.json`
+records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14 log artifacts,
+and 5/5 observability screenshots. GitHub checks and post-merge wiki publication remain pending for
 this branch.
 
 ## Largest Source Files
