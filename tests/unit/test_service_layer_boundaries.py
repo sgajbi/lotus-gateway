@@ -172,6 +172,44 @@ def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
     }
 
 
+def test_advisory_protocols_are_split_by_route_family() -> None:
+    advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
+    tree = ast.parse(
+        advisory_protocols_path.read_text(encoding="utf-8"),
+        filename=str(advisory_protocols_path),
+    )
+    protocol_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+    imported_modules = _imported_modules(advisory_protocols_path)
+
+    assert protocol_names == set()
+    assert {
+        "app.services.advisor_cockpit_client_protocols",
+        "app.services.advisory_copilot_client_protocols",
+        "app.services.advisory_policy_client_protocols",
+        "app.services.advisory_workspace_client_protocols",
+        "app.services.bank_demo_proof_client_protocols",
+        "app.services.proposal_client_protocols",
+    }.issubset(imported_modules)
+
+
+def test_advisory_services_import_focused_protocol_families() -> None:
+    expected_protocol_imports = {
+        "advisor_cockpit_service.py": "app.services.advisor_cockpit_client_protocols",
+        "advisory_copilot_service.py": "app.services.advisory_copilot_client_protocols",
+        "advisory_policy_service.py": "app.services.advisory_policy_client_protocols",
+        "advisory_workspace_service.py": "app.services.advisory_workspace_client_protocols",
+        "bank_demo_proof_service.py": "app.services.bank_demo_proof_client_protocols",
+        "proposal_memo_service.py": "app.services.proposal_client_protocols",
+        "proposal_service.py": "app.services.proposal_client_protocols",
+        "proposal_transition_service.py": "app.services.proposal_client_protocols",
+    }
+
+    for service_file, expected_import in expected_protocol_imports.items():
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert expected_import in imports
+        assert "app.services.advisory_client_protocols" not in imports
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

@@ -892,6 +892,31 @@ records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14
 and 5/5 observability screenshots. GitHub checks and post-merge wiki publication remain pending
 for this branch.
 
+The current advisory protocol-boundary branch splits the mixed advisory client protocol surface
+into focused bank-demo proof, copilot, workspace, cockpit, policy, and proposal protocol modules.
+The public `app.services.advisory_client_protocols` facade remains for compatibility, while
+advisory services import their focused protocol families directly. The branch ratchets the
+blocking source-file threshold from 630 to 628 script-counted lines. Focused validation passed with
+ruff check, mypy over `src`, 67 protocol/service-boundary tests, and refactor-threshold trials
+proving `max_source_file_lines=628` passes while `627` fails only on
+`src/app/clients/dpm_wave_client.py`. Full local `make check` passed with ruff, format check over
+779 files, monetary-float guard, refactor threshold gate, workflow action-runtime baseline, mypy
+over 556 source files, OpenAPI smoke, and 1,239 unit/contract tests. Full local `make ci` passed
+with migration contract smoke, 209 integration tests, 1,448 combined coverage tests, 94.30% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
+checks and post-merge wiki publication remain pending for this branch. Branch-specific live
+canonical validation passed after rebuilding the Docker-backed Gateway and downstream stack, then
+rerunning after performance lineage materialization completed:
+`lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json`
+records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications,
+28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43
+features validated, and 0 RFC36-43 gaps. Companion observability evidence at
+`lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json`
+records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14 log artifacts,
+5/5 observability screenshots, Gateway correlation/request/trace IDs, 58 fan-out events, and 14
+audit events. Residual data-mesh limitation is not Gateway-owned: performance contribution source
+economics remains `SOURCE_LIMITED` for non-source-authored component P&L economics.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

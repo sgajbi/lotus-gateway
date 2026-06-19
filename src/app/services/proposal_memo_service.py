@@ -10,7 +10,7 @@ from app.contracts.proposals import (
     ProposalMemoReportPackageEnvelopeResponse,
     ProposalMemoReviewEnvelopeResponse,
 )
-from app.services.advisory_client_protocols import ProposalClient
+from app.services.proposal_client_protocols import ProposalClient
 from app.services.upstream_envelope import build_gateway_envelope
 
 

@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
-2. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
-3. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
-4. `src/app/services/foundation_service.py` at 618 script-counted lines,
-5. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines.
+1. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
+2. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
+3. `src/app/services/foundation_service.py` at 618 script-counted lines,
+4. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
+5. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -210,6 +210,11 @@ The current risk workspace cache-boundary slice moves cache-key construction and
 cache-status/correlation stamping into `src/app/services/risk_workspace_cache.py`, reducing
 `risk_workspace_service.py` below the source-file ceiling and ratcheting the blocking threshold to
 630 script-counted lines.
+The current advisory protocol-boundary slice splits bank-demo proof, copilot, workspace, cockpit,
+policy, and proposal protocol families out of `src/app/services/advisory_client_protocols.py`.
+The compatibility facade remains in place for existing imports, but advisory services now import
+their focused protocol families directly. The blocking threshold is ratcheted to 628
+script-counted lines, with `src/app/clients/dpm_wave_client.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

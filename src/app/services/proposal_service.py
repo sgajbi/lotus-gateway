@@ -23,7 +23,7 @@ from app.contracts.proposals import (
     ProposalWorkflowEventsData,
     ProposalWorkflowEventsEnvelopeResponse,
 )
-from app.services.advisory_client_protocols import ProposalClient
+from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_memo_service import ProposalMemoServiceMixin
 from app.services.proposal_transition_service import ProposalTransitionServiceMixin
 from app.services.upstream_envelope import (

@@ -370,19 +370,42 @@ records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14
 and 5/5 observability screenshots. GitHub checks and post-merge wiki publication remain pending for
 this branch.
 
+Current advisory protocol-boundary working-tree verification splits the mixed
+`src/app/services/advisory_client_protocols.py` surface into focused bank-demo proof, copilot,
+workspace, cockpit, policy, and proposal protocol modules while preserving the compatibility
+facade. Focused validation passed with ruff check, mypy over `src`, 67 protocol/service-boundary
+tests, and refactor-threshold trials proving `max_source_file_lines=628` passes while `627` fails
+only on `src/app/clients/dpm_wave_client.py`. Full local `make check` passed with ruff, format
+check over 779 files, monetary-float guard, refactor threshold gate, workflow action-runtime
+baseline, mypy over 556 source files, OpenAPI smoke, and 1,239 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,448 combined coverage
+tests, 94.30% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception. Branch-specific live canonical validation passed after rebuilding the Docker-backed
+Gateway and downstream stack, then rerunning after performance lineage materialization completed:
+`lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json`
+records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications,
+28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43
+features validated, and 0 RFC36-43 gaps. Companion observability evidence at
+`lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json`
+records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14 log artifacts,
+5/5 observability screenshots, Gateway correlation/request/trace IDs, 58 fan-out events, and 14
+audit events. Residual data-mesh limitation is not Gateway-owned: performance contribution source
+economics remains `SOURCE_LIMITED` for non-source-authored component P&L economics. GitHub checks
+and post-merge wiki publication remain pending for this branch.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 630 | `src/app/services/advisory_client_protocols.py` |
-| 2 | 628 | `src/app/clients/dpm_wave_client.py` |
-| 3 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 4 | 618 | `src/app/services/foundation_service.py` |
-| 5 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 6 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 7 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 8 | 589 | `src/app/services/portfolio_service.py` |
-| 9 | 575 | `src/app/observability/analytics_ui.py` |
+| 1 | 628 | `src/app/clients/dpm_wave_client.py` |
+| 2 | 623 | `src/app/clients/lotus_analytics_client.py` |
+| 3 | 618 | `src/app/services/foundation_service.py` |
+| 4 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 5 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 6 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 7 | 589 | `src/app/services/portfolio_service.py` |
+| 8 | 575 | `src/app/observability/analytics_ui.py` |
+| 9 | 572 | `src/app/contracts/risk_workspace_rolling.py` |
 | 10 | 567 | `src/app/contracts/dpm_waves.py` |
 
 ## Largest Functions

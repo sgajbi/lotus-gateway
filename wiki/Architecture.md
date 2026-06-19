@@ -10,12 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records risk workspace cache-key and cache-status policy
-  extracted from `src/app/services/risk_workspace_service.py` into
-  `src/app/services/risk_workspace_cache.py`; the blocking source-file threshold is ratcheted from
-  632 to 630 script-counted lines, with `src/app/services/advisory_client_protocols.py` now the
-  source-file ceiling blocker, and the repository longest-function baseline remains held at the
-  enforced 49-line AST span
+- current enterprise-hardening evidence records advisory client protocols split into focused
+  bank-demo proof, copilot, workspace, cockpit, policy, and proposal protocol modules behind the
+  existing compatibility facade; the blocking source-file threshold is ratcheted from 630 to 628
+  script-counted lines, with `src/app/clients/dpm_wave_client.py` now the source-file ceiling
+  blocker, and the repository longest-function baseline remains held at the enforced 49-line AST
+  span
 
 ## Route-family map
 
