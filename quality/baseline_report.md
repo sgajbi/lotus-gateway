@@ -529,7 +529,7 @@ upstream-client, proposal-service, proposal-router, wiki-governance, quality-art
 refactor-threshold tests. Full local `make check` passed with workflow governance, refactor
 thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262 unit/contract tests.
 
-Current Lotus Core simulation-session client verification moves simulation-session create, change,
+Previous Lotus Core simulation-session client verification moved simulation-session create, change,
 projected-position, and projected-summary route methods into
 `src/app/clients/lotus_core_simulation_client.py` while preserving the public
 `LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
@@ -538,20 +538,29 @@ threshold is ratcheted to `max_source_file_lines=525`. Focused validation passed
 Core client-boundary, upstream-client, Workbench router, quality-artifact, and refactor-threshold
 tests.
 
+Current performance attribution supportability verification moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. `performance_workspace_attribution.py`
+is reduced from 525 to 471 script-counted lines, the extracted supportability parser module is 65
+lines, and the blocking source-file threshold is ratcheted to `max_source_file_lines=522`.
+Focused validation passed with 56 performance attribution contract, parser, service,
+quality-artifact, and refactor-threshold tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 2 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 3 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 4 | 520 | `src/app/services/proposal_service.py` |
-| 5 | 515 | `src/app/services/workbench_service.py` |
-| 6 | 508 | `src/app/services/advisor_brief_source.py` |
-| 7 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 8 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 9 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 10 | 497 | `src/app/services/performance_workspace_service.py` |
+| 1 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 2 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 3 | 520 | `src/app/services/proposal_service.py` |
+| 4 | 515 | `src/app/services/workbench_service.py` |
+| 5 | 508 | `src/app/services/advisor_brief_source.py` |
+| 6 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 7 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 8 | 499 | `src/app/contracts/dpm_command_center.py` |
+| 9 | 497 | `src/app/services/performance_workspace_service.py` |
+| 10 | 493 | `src/app/services/performance_workspace_evidence.py` |
 
 ## Largest Functions
 

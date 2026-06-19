@@ -1090,7 +1090,7 @@ quality-artifact, and refactor-threshold tests. Full local `make check` passed w
 governance, refactor thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262
 unit/contract tests.
 
-The current Lotus Core simulation-session client boundary branch moves simulation-session create,
+The previous Lotus Core simulation-session client boundary branch moved simulation-session create,
 change, projected-position, and projected-summary route methods into
 `src/app/clients/lotus_core_simulation_client.py` while preserving the public
 `LotusCoreQueryClient` surface. It reduces `src/app/clients/lotus_core_query_client.py` from 535
@@ -1100,6 +1100,17 @@ the blocking source-file threshold from 535 to 525 script-counted lines. Focused
 with 232 Lotus Core client-boundary, upstream-client, Workbench router, quality-artifact, and refactor-threshold tests. Full local
 `make check` passed with workflow governance, refactor thresholds, mypy over 576 source files,
 OpenAPI smoke, and 1,263 unit/contract tests.
+
+The current performance attribution supportability boundary branch moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. It reduces
+`src/app/services/performance_workspace_attribution.py` from 525 to 471 script-counted lines, moves
+the largest residual source-file hotspot to `src/app/services/risk_workspace_rolling.py` at 522
+script-counted lines, and ratchets the blocking source-file threshold from 525 to 522
+script-counted lines. Focused validation passed with 56 performance attribution contract, parser,
+service, quality-artifact, and refactor-threshold tests. Full local `make check` passed with workflow governance, refactor thresholds,
+mypy over 577 source files, OpenAPI smoke, and 1,264 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

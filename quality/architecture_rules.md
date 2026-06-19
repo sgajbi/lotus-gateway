@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
-2. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
-3. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
-4. `src/app/services/proposal_service.py` at 520 script-counted lines,
-5. `src/app/services/workbench_service.py` at 515 script-counted lines.
+1. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
+2. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
+3. `src/app/services/proposal_service.py` at 520 script-counted lines,
+4. `src/app/services/workbench_service.py` at 515 script-counted lines,
+5. `src/app/services/advisor_brief_source.py` at 508 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -307,13 +307,20 @@ surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted l
 extracted memo mixin is 154 lines, and the blocking threshold is ratcheted from 536 to 535
 script-counted lines, with `src/app/clients/lotus_core_query_client.py` as the largest residual
 hotspot.
-The current Lotus Core simulation-session client slice moves simulation-session create, change,
+The previous Lotus Core simulation-session client slice moved simulation-session create, change,
 projected-position, and projected-summary route methods into
 `src/app/clients/lotus_core_simulation_client.py` while preserving the public
 `LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
 script-counted lines, the extracted simulation mixin is 78 lines, and the blocking threshold is
 ratcheted from 535 to 525 script-counted lines, with
 `src/app/services/performance_workspace_attribution.py` as the largest residual hotspot.
+The current performance attribution supportability slice moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. `performance_workspace_attribution.py`
+is reduced from 525 to 471 script-counted lines, the extracted parser module is 65 lines, and the
+blocking threshold is ratcheted from 525 to 522 script-counted lines, with
+`src/app/services/risk_workspace_rolling.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
