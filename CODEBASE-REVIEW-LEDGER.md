@@ -4,6 +4,29 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## Platform Capabilities Source-Result Extraction
+
+- Scope: behavior-preserving platform capabilities aggregation modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `PlatformCapabilitiesService` remains the experience-API aggregation
+  facade; upstream capability payloads and `app.contracts.platform_capabilities` remain the source
+  of truth, with normalization and shell descriptors already owned by focused platform capability
+  modules.
+- Change: moved primary-source result parsing, Lotus Core policy result parsing, optional-source
+  merge behavior, and upstream exception detail mapping into
+  `src/app/services/platform_capabilities_sources.py` while preserving
+  `get_platform_capabilities` response behavior.
+- Measured signal: `src/app/services/platform_capabilities_service.py` reduced from 427 to 326
+  lines; largest source file is now `src/app/contracts/risk_workspace_rolling.py` at 421 lines;
+  longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `427/49` to `421/49`; `421` passes
+  and `420` fails only on `src/app/contracts/risk_workspace_rolling.py`.
+- Tests: `tests/unit/test_platform_capabilities_service.py` preserves success, partial-failure,
+  policy, timeout, optional-risk, and contract behavior; `tests/unit/test_service_layer_boundaries.py`
+  pins source-result parsing ownership.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/contracts/risk_workspace_rolling.py` before changing code.
+
 ## Advisor-Brief Runtime Context Extraction
 
 - Scope: behavior-preserving advisor-brief service modularity and CI ratchet enforcement.

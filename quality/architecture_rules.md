@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/platform_capabilities_service.py` at 427 lines,
-2. `src/app/contracts/risk_workspace_rolling.py` at 421 lines,
-3. `src/app/services/performance_workspace_trend_service.py` at 415 lines,
-4. `src/app/contracts/risk_workspace_rolling.py` at 421 lines,
-5. `src/app/services/performance_workspace_trend_service.py` at 415 lines.
+1. `src/app/contracts/risk_workspace_rolling.py` at 421 lines,
+2. `src/app/services/performance_workspace_trend_service.py` at 415 lines,
+3. `src/app/contracts/dpm_waves.py` at 415 lines,
+4. `src/app/services/dpm_wave_ai_handoff.py` at 411 lines,
+5. `src/app/services/risk_workspace_attribution.py` at 408 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -420,7 +420,11 @@ service. Platform capability normalization, shell-bootstrap construction, worksp
 module-health classification, policy diagnostics, workflow flags, and input-mode normalization have
 been extracted to `src/app/services/platform_capabilities_normalization.py`, reducing
 `platform_capabilities_service.py` to 330 lines while keeping upstream orchestration, timeout
-handling, correlation propagation, and partial-failure collection in the service. Shell-bootstrap
+handling, correlation propagation, and partial-failure collection in the service. Source-result
+parsing has been further extracted to `src/app/services/platform_capabilities_sources.py`,
+reducing `platform_capabilities_service.py` from 427 to 326 lines while keeping policy payload
+classification and optional-source partial-failure behavior behind the service facade.
+Shell-bootstrap
 contract assembly and workspace descriptor state mapping have been further extracted to
 `src/app/services/platform_capabilities_shell.py`, reducing the capability normalization module to
 355 lines and keeping shell navigation evidence separately testable. Portfolio workspace-control

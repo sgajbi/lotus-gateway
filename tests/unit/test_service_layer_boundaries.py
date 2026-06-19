@@ -938,6 +938,22 @@ def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     assert shell_methods.isdisjoint(expected_descriptor_methods)
 
 
+def test_platform_capabilities_service_delegates_source_result_parsing() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_service.py")
+    source_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_sources.py")
+    expected_source_methods = {
+        "exception_detail",
+        "lotus_core_policy_from_result",
+        "merge_optional_capability_sources",
+        "merge_optional_source",
+        "payload_from_source_result",
+        "primary_sources_from_results",
+    }
+
+    assert expected_source_methods <= source_methods
+    assert service_methods.isdisjoint(expected_source_methods)
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
