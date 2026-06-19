@@ -4,7 +4,7 @@ from app.contracts.proposals import (
     ProposalStateTransitionData,
     ProposalStateTransitionEnvelopeResponse,
 )
-from app.services.advisory_client_protocols import ProposalClient
+from app.services.proposal_client_protocols import ProposalClient
 from app.services.upstream_envelope import build_typed_gateway_envelope
 
 

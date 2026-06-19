@@ -1,7 +1,7 @@
 from typing import Any
 
 from app.contracts.advisory_copilot import AdvisoryCopilotEnvelopeResponse
-from app.services.advisory_client_protocols import AdvisoryCopilotClient
+from app.services.advisory_copilot_client_protocols import AdvisoryCopilotClient
 from app.services.upstream_envelope import (
     ProductSafeServiceErrorConfig,
     build_gateway_envelope,

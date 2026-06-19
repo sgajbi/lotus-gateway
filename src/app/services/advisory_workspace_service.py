@@ -1,7 +1,7 @@
 from typing import Any
 
 from app.contracts.advisory_workspaces import AdvisoryWorkspaceEnvelopeResponse
-from app.services.advisory_client_protocols import AdvisoryWorkspaceClient
+from app.services.advisory_workspace_client_protocols import AdvisoryWorkspaceClient
 from app.services.upstream_envelope import (
     ProductSafeServiceErrorConfig,
     build_gateway_envelope,
