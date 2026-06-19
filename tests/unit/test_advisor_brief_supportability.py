@@ -3,11 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from advisor_brief_test_data import build_advisor_brief_workspace
 
+from app.contracts.advisor_brief import AdvisorBriefStatus
 from app.services.advisor_brief_supportability import (
+    build_advisor_brief_source_supportability,
     load_advisory_supportability,
     load_ai_surface_supportability,
     parse_ai_surface_supportability,
+    resolve_advisor_brief_source_status,
 )
 
 
@@ -134,6 +138,26 @@ class _AdvisorBriefAdviseClientStub:
             }
         )
         return self.status_code, self.payload
+
+
+def test_source_supportability_preserves_advisor_brief_readiness_rollup() -> None:
+    workspace = build_advisor_brief_workspace(attribution_state="partial")
+
+    supportability = build_advisor_brief_source_supportability(workspace=workspace)
+    status = resolve_advisor_brief_source_status(
+        workspace=workspace,
+        supportability=supportability,
+    )
+
+    assert [item.label for item in supportability] == [
+        "Portfolio",
+        "Return History",
+        "Contribution",
+        "Attribution",
+        "Advisor Brief",
+    ]
+    assert supportability[-1].value == "Partial"
+    assert status is AdvisorBriefStatus.PARTIAL
 
 
 @pytest.mark.asyncio

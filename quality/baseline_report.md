@@ -601,20 +601,29 @@ module is 269 lines, and the blocking source-file threshold is ratcheted to
 source-file ceiling blocker. Focused validation passed with 107 Workbench service and
 service-boundary tests; the agent quality evidence gate now tracks the executable 508/49 ratchet.
 
+Current advisor-brief source-supportability verification moves source readiness rollup and
+advisor-brief status resolution into `src/app/services/advisor_brief_supportability.py` while
+preserving the public `advisor_brief_source` context builder surface. `advisor_brief_source.py` is
+reduced from 508 to 429 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=504`, with `src/app/services/portfolio_transaction_summary.py` now the
+single source-file ceiling blocker. Focused validation passed with 64 advisor-brief source,
+supportability, service, and service-boundary tests; the agent quality evidence gate now tracks the
+executable 504/49 ratchet.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 508 | `src/app/services/advisor_brief_source.py` |
-| 2 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 3 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 4 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 5 | 497 | `src/app/services/performance_workspace_service.py` |
-| 6 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 7 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 8 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 9 | 480 | `src/app/contracts/dpm_waves.py` |
-| 10 | 479 | `src/app/services/dpm_wave_service.py` |
+| 1 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 2 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 3 | 499 | `src/app/contracts/dpm_command_center.py` |
+| 4 | 497 | `src/app/services/performance_workspace_service.py` |
+| 5 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 6 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 7 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 8 | 480 | `src/app/contracts/dpm_waves.py` |
+| 9 | 479 | `src/app/services/dpm_wave_service.py` |
+| 10 | 479 | `src/app/services/risk_workspace_drawdown.py` |
 
 ## Largest Functions
 

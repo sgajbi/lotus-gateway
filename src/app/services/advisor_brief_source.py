@@ -34,6 +34,10 @@ from app.services.advisor_brief_source_formatting import (
     format_advisor_brief_pct,
     normalize_advisor_brief_position_label,
 )
+from app.services.advisor_brief_supportability import (
+    build_advisor_brief_source_supportability,
+    resolve_advisor_brief_source_status,
+)
 
 __all__ = [
     "AdvisorBriefSourceContext",
@@ -66,13 +70,16 @@ def build_advisor_brief_source_context(
     selected_performance = (
         workspace.net_performance if detail_basis.upper() == "NET" else workspace.gross_performance
     )
-    supportability = _build_supportability(workspace=workspace)
+    supportability = build_advisor_brief_source_supportability(workspace=workspace)
     return AdvisorBriefSourceContext(
         workspace=workspace,
         selected_performance=selected_performance,
         source_refs=_build_source_refs(workspace=workspace),
         supportability=supportability,
-        status=_resolve_status(workspace=workspace, supportability=supportability),
+        status=resolve_advisor_brief_source_status(
+            workspace=workspace,
+            supportability=supportability,
+        ),
         summary=_build_source_summary(
             workspace=workspace,
             selected_performance=selected_performance,
@@ -420,89 +427,3 @@ def _source_metric(
         route=route,
         state=state,
     )
-
-
-def _build_supportability(
-    *,
-    workspace: PerformanceWorkspaceResponse,
-) -> list[AdvisorBriefSupportabilityItem]:
-    items = [
-        _to_supportability_item("Portfolio", workspace.capabilities.summary_kpis.state, None),
-        _to_supportability_item(
-            "Return History",
-            workspace.capabilities.return_path.state,
-            workspace.capabilities.return_path.reason,
-        ),
-        _to_supportability_item(
-            "Contribution",
-            workspace.capabilities.contribution_detail.state,
-            workspace.capabilities.contribution_detail.reason,
-        ),
-        _to_supportability_item(
-            "Attribution",
-            workspace.capabilities.attribution_detail.state,
-            workspace.capabilities.attribution_detail.reason,
-        ),
-    ]
-    items.append(_advisor_brief_supportability_item(source_items=items))
-    return items
-
-
-def _advisor_brief_supportability_item(
-    *,
-    source_items: list[AdvisorBriefSupportabilityItem],
-) -> AdvisorBriefSupportabilityItem:
-    value = "Ready"
-    tone = "success"
-    if any(item.tone == "danger" for item in source_items[:2]):
-        value = "Unavailable"
-        tone = "danger"
-    elif any(item.tone in {"warn", "danger"} for item in source_items):
-        value = "Partial"
-        tone = "warn"
-    return AdvisorBriefSupportabilityItem(
-        label="Advisor Brief",
-        value=value,
-        tone=tone,
-        reason=None,
-    )
-
-
-def _to_supportability_item(
-    label: str,
-    state: str,
-    reason: str | None,
-) -> AdvisorBriefSupportabilityItem:
-    normalized_state = state.strip().lower()
-    if normalized_state in {"ready", "supported"}:
-        return AdvisorBriefSupportabilityItem(
-            label=label,
-            value="Ready",
-            tone="success",
-            reason=reason,
-        )
-    if normalized_state == "partial":
-        return AdvisorBriefSupportabilityItem(
-            label=label,
-            value="Partial",
-            tone="warn",
-            reason=reason,
-        )
-    return AdvisorBriefSupportabilityItem(
-        label=label,
-        value="Unavailable",
-        tone="danger",
-        reason=reason,
-    )
-
-
-def _resolve_status(
-    *,
-    workspace: PerformanceWorkspaceResponse,
-    supportability: list[AdvisorBriefSupportabilityItem],
-) -> AdvisorBriefStatus:
-    if workspace.capabilities.summary_kpis.state == "unavailable":
-        return AdvisorBriefStatus.UNAVAILABLE
-    if any(item.tone in {"warn", "danger"} for item in supportability):
-        return AdvisorBriefStatus.PARTIAL
-    return AdvisorBriefStatus.READY
