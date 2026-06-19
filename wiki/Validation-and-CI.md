@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-452/49 ratchet, the current `src/app/clients/dpm_client.py` hotspot, and durable
+448/49 ratchet, the current `src/app/services/risk_workspace_requests.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
@@ -1350,6 +1350,16 @@ quality evidence gate now keeps the executable 452/49 ratchet and current hotspo
 synchronized. Full local `make check` passed with monetary-float governance at 152 findings/152
 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy over 599
 source files, OpenAPI smoke, and 1,290 unit/contract tests.
+
+The DPM outcome-review client route-family slice moves outcome-review upstream routes into
+`src/app/clients/dpm_outcome_review_client.py` while preserving the public `DpmClient` facade.
+It reduces `src/app/clients/dpm_client.py` below the blocking ceiling, moves the largest residual
+source-file hotspot to `src/app/services/risk_workspace_requests.py` at 448 lines, and ratchets
+the blocking source-file threshold from 452 to 448 lines. Focused validation includes DPM client
+boundary coverage, upstream-client route coverage, refactor-threshold, quality-baseline artifact,
+and agent quality evidence tests, with threshold trials proving 448 passes while 447 fails only on
+the risk workspace request hotspot; the agent quality evidence gate now keeps the executable
+448/49 ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

@@ -35,7 +35,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/dpm_client.py` at 452 lines,
+1. `src/app/services/risk_workspace_requests.py` at 448 lines,
 2. `src/app/services/risk_workspace_requests.py` at 448 lines,
 3. `src/app/services/advisor_brief_narrative.py` at 444 lines,
 4. `src/app/services/performance_workspace_horizon.py` at 441 lines,

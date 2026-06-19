@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 452/49 ratchet, the current largest hotspot
-   `src/app/clients/dpm_client.py`, and durable scorecard/context guidance in
+   keeps the executable 448/49 ratchet, the current largest hotspot
+   `src/app/services/risk_workspace_requests.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -69,12 +69,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 452
+2. Current enforced source-file threshold: no Python source file under `src/app` above 448
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=452` and `max_function_lines=49`.
+   `max_source_file_lines=448` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -84,9 +84,9 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 452/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 448/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/clients/dpm_client.py` as the 452-line hotspot.
+   `src/app/services/risk_workspace_requests.py` as the 448-line hotspot.
 8. Current performance attribution trend parser slice moves trend result parsing, period-payload
    selection, and row construction into `src/app/services/performance_workspace_attribution_trend.py`
    while preserving the public `performance_workspace_attribution` import surface. Focused
@@ -132,7 +132,14 @@ Most recent local PR-grade evidence:
    executable 452/49 ratchet. Full local `make check` passed with monetary-float governance at
    152 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence,
    mypy over 599 source files, OpenAPI smoke, and 1,290 unit/contract tests.
-11. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+12. Current DPM outcome-review client route-family slice moves outcome-review upstream routes into
+   `src/app/clients/dpm_outcome_review_client.py` while preserving the public `DpmClient` facade.
+   It reduces `src/app/clients/dpm_client.py` below the blocking ceiling, moves the largest
+   source-file hotspot to `src/app/services/risk_workspace_requests.py` at 448 lines, and ratchets
+   the blocking threshold from 452 to 448. Focused validation includes DPM client boundary coverage,
+   upstream-client route coverage, refactor-threshold, quality-baseline artifact, and agent quality
+   evidence checks; the agent quality evidence gate now tracks the executable 448/49 ratchet.
+13. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
 11. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`

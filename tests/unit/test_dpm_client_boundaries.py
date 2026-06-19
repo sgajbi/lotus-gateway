@@ -56,6 +56,27 @@ def test_proof_pack_routes_live_in_dedicated_client_mixin() -> None:
     assert not extracted_methods & dpm_client_methods
 
 
+def test_outcome_review_routes_live_in_dedicated_client_mixin() -> None:
+    dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
+    outcome_review_methods = _async_function_names(_CLIENT_ROOT / "dpm_outcome_review_client.py")
+
+    extracted_methods = {
+        "preview_outcome_review",
+        "create_outcome_review",
+        "list_outcome_reviews",
+        "get_outcome_review",
+        "refresh_outcome_review_sources",
+        "get_outcome_review_supportability",
+        "get_outcome_review_report_input",
+        "get_outcome_review_ai_evidence_input",
+        "get_run_outcome_review",
+        "list_wave_outcome_reviews",
+    }
+
+    assert extracted_methods <= outcome_review_methods
+    assert not extracted_methods & dpm_client_methods
+
+
 def test_wave_routes_live_in_dedicated_client_mixin() -> None:
     dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
     wave_methods = (
