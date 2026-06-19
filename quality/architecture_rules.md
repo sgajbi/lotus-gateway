@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/workspace_client_protocols.py` at 458 lines,
-2. `src/app/clients/dpm_client.py` at 452 lines,
-3. `src/app/services/risk_workspace_requests.py` at 448 lines,
-4. `src/app/services/advisor_brief_narrative.py` at 444 lines,
-5. `src/app/services/performance_workspace_horizon.py` at 441 lines.
+1. `src/app/clients/dpm_client.py` at 452 lines,
+2. `src/app/services/risk_workspace_requests.py` at 448 lines,
+3. `src/app/services/advisor_brief_narrative.py` at 444 lines,
+4. `src/app/services/performance_workspace_horizon.py` at 441 lines,
+5. `src/app/contracts/performance_attribution.py` at 440 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -381,6 +381,13 @@ into `src/app/services/portfolio_transaction_amounts.py` while preserving the ex
 462 to 201 script-counted lines, the extracted income module is 210 lines, the extracted amount
 helper module is 99 lines, and the blocking threshold is ratcheted from 462 to 458 script-counted
 lines, with `src/app/services/workspace_client_protocols.py` as the largest residual hotspot.
+The current portfolio client protocol-family slice moves `PortfolioCoreClient`,
+`PortfolioPerformanceClient`, and `PortfolioManageClient` into
+`src/app/services/portfolio_client_protocols.py` while preserving the existing
+`workspace_client_protocols` compatibility surface. `workspace_client_protocols.py` is reduced
+from 458 to 329 script-counted lines, the extracted portfolio protocol module is 141 lines, and
+the blocking threshold is ratcheted from 458 to 452 script-counted lines, with
+`src/app/clients/dpm_client.py` as the largest residual hotspot.
 The current risk rolling window-boundary slice moves rolling-window, metric-series,
 dependency-context, and window-length mapping into
 `src/app/services/risk_workspace_rolling_windows.py` while preserving the public rolling response

@@ -282,6 +282,48 @@ def test_dpm_wave_services_import_focused_protocol_family() -> None:
         assert "app.services.dpm_client_protocols" not in imports
 
 
+def test_portfolio_protocols_are_split_from_workspace_protocol_aggregator() -> None:
+    workspace_protocols_path = _SERVICE_ROOT / "workspace_client_protocols.py"
+    portfolio_protocols_path = _SERVICE_ROOT / "portfolio_client_protocols.py"
+    workspace_tree = ast.parse(
+        workspace_protocols_path.read_text(encoding="utf-8"),
+        filename=str(workspace_protocols_path),
+    )
+    portfolio_tree = ast.parse(
+        portfolio_protocols_path.read_text(encoding="utf-8"),
+        filename=str(portfolio_protocols_path),
+    )
+
+    workspace_protocol_names = {
+        node.name for node in ast.walk(workspace_tree) if isinstance(node, ast.ClassDef)
+    }
+    portfolio_protocol_names = {
+        node.name for node in ast.walk(portfolio_tree) if isinstance(node, ast.ClassDef)
+    }
+
+    assert {
+        "PortfolioCoreClient",
+        "PortfolioManageClient",
+        "PortfolioPerformanceClient",
+    }.isdisjoint(workspace_protocol_names)
+    assert portfolio_protocol_names == {
+        "PortfolioCoreClient",
+        "PortfolioManageClient",
+        "PortfolioPerformanceClient",
+    }
+
+
+def test_portfolio_services_import_focused_protocol_family() -> None:
+    for service_file in {
+        "portfolio_catalog_payloads.py",
+        "portfolio_service.py",
+        "portfolio_upstream_access.py",
+    }:
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert "app.services.portfolio_client_protocols" in imports
+        assert "app.services.workspace_client_protocols" not in imports
+
+
 def test_dpm_pm_operating_quality_summary_lives_in_focused_service_mixin() -> None:
     service_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_service.py")
     summary_service_methods = _function_names(

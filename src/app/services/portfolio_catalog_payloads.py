@@ -2,9 +2,9 @@ from typing import Any
 
 from app.config import settings
 from app.contracts.portfolio import PortfolioCatalogItem, PortfolioCatalogResponse
+from app.services.portfolio_client_protocols import PortfolioCoreClient
 from app.services.portfolio_upstream_payloads import require_payload
 from app.services.portfolio_workspace_payloads import resolve_portfolio_display_name
-from app.services.workspace_client_protocols import PortfolioCoreClient
 
 
 async def load_portfolio_catalog_response(

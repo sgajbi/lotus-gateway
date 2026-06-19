@@ -2,6 +2,11 @@ from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.portfolio_client_protocols import (
+    PortfolioCoreClient,
+    PortfolioManageClient,
+    PortfolioPerformanceClient,
+)
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionsRequestContext,
     portfolio_transactions_cache_key,
@@ -9,11 +14,6 @@ from app.services.portfolio_transaction_ledger import (
 )
 from app.services.portfolio_upstream_payloads import optional_payload
 from app.services.portfolio_workspace_payloads import optional_text
-from app.services.workspace_client_protocols import (
-    PortfolioCoreClient,
-    PortfolioManageClient,
-    PortfolioPerformanceClient,
-)
 
 UpstreamResult = tuple[int, dict[str, Any]]
 

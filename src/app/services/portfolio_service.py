@@ -15,6 +15,11 @@ from app.contracts.portfolio_transactions import PortfolioTransactionLedgerRespo
 from app.contracts.portfolio_workspace import PortfolioWorkspaceResponse
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_catalog_payloads import load_portfolio_catalog_response
+from app.services.portfolio_client_protocols import (
+    PortfolioCoreClient,
+    PortfolioManageClient,
+    PortfolioPerformanceClient,
+)
 from app.services.portfolio_holdings_service import PortfolioHoldingsServiceMixin
 from app.services.portfolio_insight_response import build_portfolio_insights_response
 from app.services.portfolio_readiness_insight_sources import (
@@ -55,11 +60,6 @@ from app.services.portfolio_workspace_sources import (
     PortfolioWorkspaceSourceResults,
     load_portfolio_workspace_analytics,
     load_portfolio_workspace_sources,
-)
-from app.services.workspace_client_protocols import (
-    PortfolioCoreClient,
-    PortfolioManageClient,
-    PortfolioPerformanceClient,
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
