@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-441/49 ratchet, the current `src/app/services/performance_workspace_horizon.py` hotspot, and durable
+440/49 ratchet, the current `src/app/contracts/performance_attribution.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
@@ -1383,6 +1383,19 @@ includes advisor-brief narrative/service, refactor-threshold, quality-baseline a
 quality evidence tests, with threshold trials proving 441 passes while 440 fails only on the
 performance workspace horizon hotspot; the agent quality evidence gate now keeps the executable
 441/49 ratchet and current hotspot guidance synchronized.
+
+The current performance horizon standard-window extraction moves MTD/QTD/YTD fetch and merge
+helpers into `src/app/services/performance_workspace_standard_horizon.py` while preserving the
+public horizon helper imports. It reduces `src/app/services/performance_workspace_horizon.py` from
+441 to 220 script-counted lines, creates a focused 246-line standard-horizon helper, moves the
+largest residual source-file hotspot to `src/app/contracts/performance_attribution.py` at 440
+lines, and ratchets the blocking source-file threshold from 441 to 440 lines. Focused validation
+includes horizon helper tests, touched-module mypy, refactor-threshold, quality-baseline artifact,
+and agent quality evidence tests, with threshold trials proving 440 passes while 439 fails only on
+the performance attribution contract hotspot. Full local `make check` passed with workflow
+governance, refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI
+smoke, and 1,293 unit/contract tests; the agent quality evidence gate now keeps the executable
+440/49 ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

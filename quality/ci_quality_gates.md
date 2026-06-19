@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 441/49 ratchet, the current largest hotspot
-   `src/app/services/performance_workspace_horizon.py`, and durable scorecard/context guidance in
+   keeps the executable 440/49 ratchet, the current largest hotspot
+   `src/app/contracts/performance_attribution.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -69,12 +69,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 441
+2. Current enforced source-file threshold: no Python source file under `src/app` above 440
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=441` and `max_function_lines=49`.
+   `max_source_file_lines=440` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -84,9 +84,9 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 441/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 440/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/performance_workspace_horizon.py` as the 441-line hotspot.
+   `src/app/contracts/performance_attribution.py` as the 440-line hotspot.
 8. Current performance attribution trend parser slice moves trend result parsing, period-payload
    selection, and row construction into `src/app/services/performance_workspace_attribution_trend.py`
    while preserving the public `performance_workspace_attribution` import surface. Focused
@@ -157,7 +157,18 @@ Most recent local PR-grade evidence:
    ratchets the blocking threshold from 444 to 441. Focused validation includes advisor-brief
    narrative/service, refactor-threshold, quality-baseline artifact, and agent quality evidence
    checks; the agent quality evidence gate now tracks the executable 441/49 ratchet.
-15. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+15. Current performance horizon standard-window extraction moves MTD/QTD/YTD fetch and merge
+   helpers into `src/app/services/performance_workspace_standard_horizon.py` while preserving the
+   public horizon helper imports. It reduces `src/app/services/performance_workspace_horizon.py`
+   from 441 to 220 lines, creates a focused 246-line standard-horizon helper, moves the largest
+   source-file hotspot to `src/app/contracts/performance_attribution.py` at 440 lines, and ratchets
+   the blocking threshold from 441 to 440. Focused validation includes horizon helper tests,
+   touched-module mypy, refactor-threshold pass/fail trials, quality-baseline artifact tests, and
+   agent quality evidence checks; full local `make check` passed with workflow governance,
+   refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI smoke, and
+   1,293 unit/contract tests; the agent quality evidence gate now tracks the executable 440/49
+   ratchet.
+16. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
 11. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`

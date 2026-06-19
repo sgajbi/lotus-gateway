@@ -55,6 +55,10 @@ The latest CI enforcement slice adds a blocking agent quality evidence gate thro
 `scripts/check_agent_quality_evidence.py`, keeping the executable 441/49 refactor ratchet,
 current `src/app/services/performance_workspace_horizon.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current performance horizon standard-window extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 440/49 refactor ratchet,
+current `src/app/contracts/performance_attribution.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -813,17 +817,29 @@ narrative/service, refactor-threshold, quality-baseline artifact, and agent qual
 tests, with refactor-threshold trials proving 441 passes while 440 fails only on the performance
 workspace horizon hotspot; the agent quality evidence gate now tracks the executable 441/49
 ratchet.
+Performance horizon standard-window fetch and merge helpers now live in
+`src/app/services/performance_workspace_standard_horizon.py`, preserving the public horizon helper
+imports while reducing `src/app/services/performance_workspace_horizon.py` from 441 to 220
+script-counted lines. The extracted standard-horizon helper is 246 lines, the largest source-file
+hotspot moves to `src/app/contracts/performance_attribution.py` at 440 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=440`. Focused validation includes
+horizon helper tests, touched-module mypy, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, with refactor-threshold trials proving 440 passes while 439 fails only on
+the performance attribution contract hotspot; full local `make check` passed with workflow
+governance, refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI
+smoke, and 1,293 unit/contract tests; the agent quality evidence gate now tracks the executable
+440/49 ratchet.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 441 | `src/app/services/performance_workspace_horizon.py` |
-| 2 | 440 | `src/app/contracts/performance_attribution.py` |
-| 3 | 438 | `src/app/services/advisor_brief_service.py` |
-| 4 | 437 | `src/app/services/performance_workspace_service.py` |
+| 1 | 440 | `src/app/contracts/performance_attribution.py` |
+| 2 | 438 | `src/app/services/advisor_brief_service.py` |
+| 3 | 437 | `src/app/services/performance_workspace_service.py` |
+| 4 | 432 | `src/app/services/risk_workspace_attribution.py` |
 | 5 | 432 | `src/app/services/risk_workspace_rolling.py` |
-| 6 | 432 | `src/app/services/risk_workspace_attribution.py` |
+| 6 | 431 | `src/app/contracts/proposals.py` |
 | 7 | 431 | `src/app/contracts/proposals.py` |
 | 8 | 429 | `src/app/services/advisor_brief_source.py` |
 | 9 | 427 | `src/app/services/platform_capabilities_service.py` |
