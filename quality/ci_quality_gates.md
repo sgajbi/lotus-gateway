@@ -18,9 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 471/49 ratchet, the current largest hotspot
-   `src/app/services/performance_workspace_attribution.py`, and durable scorecard/context guidance in
-   sync,
+   keeps the executable 465/49 ratchet, the current largest hotspot
+   `src/app/contracts/domain_products.py`, and durable scorecard/context guidance in sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
@@ -69,7 +68,7 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 471
+2. Current enforced source-file threshold: no Python source file under `src/app` above 465
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
@@ -84,19 +83,28 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 471/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 465/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/performance_workspace_attribution.py` as the 471-line hotspot.
-8. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+   `src/app/contracts/domain_products.py` as the 465-line hotspot.
+8. Current performance attribution trend parser slice moves trend result parsing, period-payload
+   selection, and row construction into `src/app/services/performance_workspace_attribution_trend.py`
+   while preserving the public `performance_workspace_attribution` import surface. Focused
+   validation passed with 22 performance attribution, refactor-threshold, quality-baseline
+   artifact, and agent quality evidence tests, mypy over touched performance attribution modules,
+   and refactor-threshold trials proving 465 passes while 464 fails only on
+   `src/app/contracts/domain_products.py`. Full local `make check` passed with monetary-float
+   governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent
+   quality evidence, mypy over 595 source files, OpenAPI smoke, and 1,286 unit/contract tests.
+9. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
-9. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+10. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-10. Current CI enforcement slice focused validation passed with 26 agent quality evidence,
+11. Current CI enforcement slice focused validation passed with 26 agent quality evidence,
    quality-baseline artifact, workflow-action runtime, and refactor-threshold tests. Full local
    `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
    over 579 source files, OpenAPI smoke, and 1,272 unit/contract tests.
-10. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+12. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
    `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.
@@ -741,7 +749,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/reporting_batches.py` is now the
-   largest file at 662 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/domain_products.py` is now the
+   largest file at 465 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

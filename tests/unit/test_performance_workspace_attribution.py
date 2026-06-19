@@ -398,3 +398,20 @@ def test_attribution_supportability_parsers_live_in_dedicated_module() -> None:
 
     assert extracted_methods <= supportability_methods
     assert not extracted_methods & attribution_methods
+
+
+def test_attribution_trend_parsers_live_in_dedicated_module() -> None:
+    attribution_methods = _function_names(_SERVICE_ROOT / "performance_workspace_attribution.py")
+    trend_methods = _function_names(_SERVICE_ROOT / "performance_workspace_attribution_trend.py")
+
+    extracted_methods = {
+        "build_attribution_trend_period_payload",
+        "build_attribution_trend_row",
+        "parse_attribution_trend_results",
+        "parse_single_attribution_trend_row",
+        "select_attribution_trend_period_payload",
+        "unpack_attribution_trend_payload",
+    }
+
+    assert extracted_methods <= trend_methods
+    assert not extracted_methods & attribution_methods
