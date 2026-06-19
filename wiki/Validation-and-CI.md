@@ -1278,6 +1278,20 @@ agent quality evidence gate now keeps the executable 476/49 ratchet and current 
 synchronized. Full local `make check` passed with workflow governance, refactor thresholds, agent
 quality evidence, mypy over 593 source files, OpenAPI smoke, and 1,284 unit/contract tests.
 
+The current portfolio position-book contract slice moves position-book response and row contracts
+into `src/app/contracts/portfolio_position_book.py` while preserving the public
+`app.contracts.portfolio_holdings` and `app.contracts.portfolio` import surfaces. It reduces
+`src/app/contracts/portfolio_holdings.py` from 476 to 286 lines, moves the largest residual
+source-file hotspot to `src/app/services/performance_workspace_attribution.py` at 471 lines, and
+ratchets the blocking source-file threshold from 476 to 471 lines. Focused validation passed with
+32 portfolio holdings contract, contract-boundary, refactor-threshold, quality-baseline artifact,
+and agent quality evidence tests, mypy over touched portfolio contract modules, and threshold
+trials proving 471 passes while 470 fails only on the performance workspace attribution hotspot;
+the agent quality evidence gate now keeps the executable 471/49 ratchet and current hotspot
+guidance synchronized. Full local `make check` passed with monetary-float governance at 152
+findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy
+over 594 source files, OpenAPI smoke, and 1,285 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

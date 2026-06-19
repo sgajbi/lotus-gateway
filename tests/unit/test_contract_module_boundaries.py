@@ -307,6 +307,20 @@ def test_portfolio_workspace_control_contracts_live_outside_workspace_facade() -
     assert portfolio_workspace_facade_classes.isdisjoint(expected_control_contracts)
 
 
+def test_portfolio_position_book_contracts_live_outside_holdings_facade() -> None:
+    portfolio_holdings_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_holdings.py")
+    position_book_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_position_book.py")
+
+    expected_position_book_contracts = {
+        "PortfolioPositionBookResponse",
+        "PortfolioPositionView",
+        "PortfolioTopPosition",
+    }
+
+    assert expected_position_book_contracts <= position_book_contract_classes
+    assert portfolio_holdings_facade_classes.isdisjoint(expected_position_book_contracts)
+
+
 def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
     reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
     materialization_contract_classes = _class_names(

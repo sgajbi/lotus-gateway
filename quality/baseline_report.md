@@ -710,20 +710,33 @@ contract hotspot; the agent quality evidence gate now tracks the executable 476/
 local `make check` passed with workflow governance, refactor thresholds, agent quality evidence,
 mypy over 593 source files, OpenAPI smoke, and 1,284 unit/contract tests.
 
+Current portfolio position-book contract verification moves position-book response and row
+contracts into `src/app/contracts/portfolio_position_book.py` while preserving the public
+`app.contracts.portfolio_holdings` and `app.contracts.portfolio` import surfaces. The largest
+source-file hotspot moves to `src/app/services/performance_workspace_attribution.py` at 471
+lines, and the blocking source-file threshold is ratcheted to `max_source_file_lines=471`.
+Focused validation passed with 32 portfolio holdings contract, contract-boundary,
+refactor-threshold, quality-baseline artifact, and agent quality evidence tests, mypy over touched portfolio contract
+modules, and refactor-threshold trials proving 471 passes while 470 fails only on the performance
+workspace attribution hotspot; the agent quality evidence gate now tracks the executable 471/49
+ratchet. Full local `make check` passed with monetary-float governance at 152 findings/152
+allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy over 594 source
+files, OpenAPI smoke, and 1,285 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 2 | 471 | `src/app/services/performance_workspace_attribution.py` |
-| 3 | 465 | `src/app/contracts/domain_products.py` |
-| 4 | 462 | `src/app/services/portfolio_transaction_summary.py` |
-| 5 | 458 | `src/app/services/workspace_client_protocols.py` |
-| 6 | 452 | `src/app/clients/dpm_client.py` |
-| 7 | 448 | `src/app/services/risk_workspace_requests.py` |
-| 8 | 444 | `src/app/services/advisor_brief_narrative.py` |
-| 9 | 441 | `src/app/services/performance_workspace_horizon.py` |
-| 10 | 440 | `src/app/contracts/performance_attribution.py` |
+| 1 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 2 | 465 | `src/app/contracts/domain_products.py` |
+| 3 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 4 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 5 | 452 | `src/app/clients/dpm_client.py` |
+| 6 | 448 | `src/app/services/risk_workspace_requests.py` |
+| 7 | 444 | `src/app/services/advisor_brief_narrative.py` |
+| 8 | 441 | `src/app/services/performance_workspace_horizon.py` |
+| 9 | 440 | `src/app/contracts/performance_attribution.py` |
+| 10 | 438 | `src/app/services/advisor_brief_service.py` |
 
 ## Largest Functions
 
