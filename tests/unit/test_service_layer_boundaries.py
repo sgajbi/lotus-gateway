@@ -827,6 +827,44 @@ def test_performance_workspace_service_delegates_trend_orchestration() -> None:
     assert local_trend_helpers == []
 
 
+def test_performance_workspace_trend_service_delegates_attribution_trend_orchestration() -> None:
+    trend_service_path = _SERVICE_ROOT / "performance_workspace_trend_service.py"
+    attribution_trend_service_path = (
+        _SERVICE_ROOT / "performance_workspace_attribution_trend_service.py"
+    )
+    trend_service_tree = ast.parse(
+        trend_service_path.read_text(encoding="utf-8"),
+        filename=str(trend_service_path),
+    )
+    attribution_trend_service_tree = ast.parse(
+        attribution_trend_service_path.read_text(encoding="utf-8"),
+        filename=str(attribution_trend_service_path),
+    )
+    attribution_trend_helpers = {
+        "get_performance_attribution_trend",
+        "_build_attribution_trend_request_context",
+        "_build_attribution_trend_response",
+        "_build_attribution_trend_rows",
+        "_build_attribution_trend_window_pairs",
+        "_fetch_attribution_trend_results",
+    }
+
+    local_trend_service_helpers = sorted(
+        node.name
+        for node in ast.walk(trend_service_tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name in attribution_trend_helpers
+    )
+    extracted_trend_helpers = {
+        node.name
+        for node in ast.walk(attribution_trend_service_tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert attribution_trend_helpers <= extracted_trend_helpers
+    assert local_trend_service_helpers == []
+
+
 def test_performance_workspace_service_delegates_detail_view_orchestration() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

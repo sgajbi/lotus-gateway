@@ -4,6 +4,31 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## Performance Workspace Attribution-Trend Service Extraction
+
+- Scope: behavior-preserving performance workspace trend-service modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `PerformanceWorkspaceService` composes focused mixins; horizon
+  comparison orchestration and attribution-trend orchestration previously shared
+  `performance_workspace_trend_service.py`, while context construction and attribution payload
+  parsing already lived in focused modules.
+- Change: moved attribution-trend request-context assembly, window construction, upstream
+  fan-out, and response assembly into
+  `src/app/services/performance_workspace_attribution_trend_service.py`; the existing
+  `PerformanceWorkspaceTrendServiceMixin` remains the compatibility mixin used by
+  `PerformanceWorkspaceService`.
+- Measured signal: `src/app/services/performance_workspace_trend_service.py` reduced from 415 to
+  223 lines; the extracted attribution-trend service mixin is 243 lines; largest source file is
+  now `src/app/services/dpm_wave_ai_handoff.py` at 411 lines; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `415/49` to `411/49`; `411` passes
+  and `410` fails only on `src/app/services/dpm_wave_ai_handoff.py`.
+- Tests: `tests/unit/test_performance_workspace_service.py` preserves horizon and attribution
+  trend response behavior; `tests/unit/test_performance_workspace_attribution.py` preserves
+  attribution trend payload parsing; `tests/unit/test_service_layer_boundaries.py` pins the new
+  attribution-trend orchestration module boundary.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/dpm_wave_ai_handoff.py` before changing code.
+
 ## DPM Wave AI Contract Extraction
 
 - Scope: behavior-preserving DPM wave contract modularity and CI evidence synchronization.

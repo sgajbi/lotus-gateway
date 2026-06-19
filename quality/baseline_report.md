@@ -83,6 +83,10 @@ The current risk rolling payload-example extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 415/49 refactor ratchet,
 current `src/app/services/performance_workspace_trend_service.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
+The current performance workspace attribution-trend service extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 411/49 refactor ratchet,
+current `src/app/services/dpm_wave_ai_handoff.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -890,35 +894,43 @@ The blocking source-file threshold remains `max_source_file_lines=415` because
 `src/app/services/performance_workspace_trend_service.py` is now the sole 415-line hotspot.
 Threshold trials prove 415 passes while 414 fails only on the performance workspace trend service.
 
+Current performance workspace attribution-trend service extraction reduces
+`src/app/services/performance_workspace_trend_service.py` from 415 to 223 script-counted lines by
+moving attribution-trend request-context assembly, window construction, upstream fan-out, and
+response assembly into `src/app/services/performance_workspace_attribution_trend_service.py`.
+The blocking source-file threshold is ratcheted to `max_source_file_lines=411` because
+`src/app/services/dpm_wave_ai_handoff.py` is now the sole 411-line hotspot. Threshold trials prove
+411 passes while 410 fails only on the DPM wave AI handoff service.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 415 | `src/app/services/performance_workspace_trend_service.py` |
-| 2 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
-| 3 | 408 | `src/app/services/risk_workspace_attribution.py` |
-| 4 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 1 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
+| 2 | 408 | `src/app/services/risk_workspace_attribution.py` |
+| 3 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 4 | 405 | `src/app/contracts/proposal_lifecycle.py` |
 | 5 | 405 | `src/app/services/proposal_service.py` |
-| 6 | 405 | `src/app/contracts/proposal_lifecycle.py` |
-| 7 | 404 | `src/app/services/platform_capabilities_normalization.py` |
-| 8 | 402 | `src/app/services/performance_workspace_contribution.py` |
-| 9 | 402 | `src/app/services/risk_workspace_service.py` |
-| 10 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 6 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 7 | 402 | `src/app/services/performance_workspace_contribution.py` |
+| 8 | 402 | `src/app/services/risk_workspace_service.py` |
+| 9 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 10 | 398 | `src/app/contracts/advisor_brief.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
-| 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_portfolio_query_client.py` |
-| 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
-| 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon_rows.py` |
-| 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
+| 1 | 49 | `load_workbench_overview_enrichment` | `src/app/services/workbench_overview_enrichment.py` |
+| 2 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
+| 3 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_portfolio_query_client.py` |
+| 4 | 48 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
+| 5 | 48 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 6 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 7 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 8 | 46 | `parse_core_snapshot` | `src/app/services/foundation_core_snapshot.py` |
+| 9 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_attribution_trend_service.py` |
+| 10 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon_rows.py` |
 
 ## Existing Blocking Gates
 
