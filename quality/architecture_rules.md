@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines,
-2. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
-3. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
-4. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
-5. `src/app/services/proposal_service.py` at 520 script-counted lines.
+1. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
+2. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
+3. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
+4. `src/app/services/proposal_service.py` at 520 script-counted lines,
+5. `src/app/services/workbench_service.py` at 515 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -300,13 +300,20 @@ Lotus AI workflow-pack execution, missing-score-run validation, and summary resp
 from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines, and the
 blocking threshold is ratcheted from 549 to 536 script-counted lines, with
 `src/app/clients/advise_proposal_client.py` as the largest residual hotspot.
-The current Advise proposal memo client slice moves proposal memo create/read/projection/review,
+The previous Advise proposal memo client slice moved proposal memo create/read/projection/review,
 report-package, AI-commentary, lineage, and replay-evidence route methods into
 `src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
 surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted lines, the
 extracted memo mixin is 154 lines, and the blocking threshold is ratcheted from 536 to 535
 script-counted lines, with `src/app/clients/lotus_core_query_client.py` as the largest residual
 hotspot.
+The current Lotus Core simulation-session client slice moves simulation-session create, change,
+projected-position, and projected-summary route methods into
+`src/app/clients/lotus_core_simulation_client.py` while preserving the public
+`LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
+script-counted lines, the extracted simulation mixin is 78 lines, and the blocking threshold is
+ratcheted from 535 to 525 script-counted lines, with
+`src/app/services/performance_workspace_attribution.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.lotus_core_lookup_client import LotusCoreLookupClientMixin
+from app.clients.lotus_core_simulation_client import LotusCoreSimulationClientMixin
 from app.clients.lotus_core_transaction_params import build_portfolio_transaction_query_params
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
@@ -9,7 +10,7 @@ from app.clients.upstream_headers import build_upstream_headers
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
 
-class LotusCoreQueryClient(LotusCoreLookupClientMixin):
+class LotusCoreQueryClient(LotusCoreLookupClientMixin, LotusCoreSimulationClientMixin):
     def __init__(
         self,
         base_url: str,
@@ -450,61 +451,6 @@ class LotusCoreQueryClient(LotusCoreLookupClientMixin):
             path="/instruments",
             correlation_id=correlation_id,
             params=params,
-        )
-
-    async def create_simulation_session(
-        self,
-        portfolio_id: str,
-        created_by: str | None,
-        ttl_hours: int,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        payload = {
-            "portfolio_id": portfolio_id,
-            "created_by": created_by,
-            "ttl_hours": ttl_hours,
-        }
-        return await self._post_control_plane_resource(
-            operation="core.simulation-sessions.create",
-            path="/simulation-sessions",
-            correlation_id=correlation_id,
-            payload=payload,
-        )
-
-    async def add_simulation_changes(
-        self,
-        session_id: str,
-        changes: list[dict[str, Any]],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        payload = {"changes": changes}
-        return await self._post_control_plane_resource(
-            operation="core.simulation-sessions.changes.add",
-            path=f"/simulation-sessions/{session_id}/changes",
-            correlation_id=correlation_id,
-            payload=payload,
-        )
-
-    async def get_projected_positions(
-        self,
-        session_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get_control_plane_resource(
-            operation="core.simulation-sessions.projected-positions.get",
-            path=f"/simulation-sessions/{session_id}/projected-positions",
-            correlation_id=correlation_id,
-        )
-
-    async def get_projected_summary(
-        self,
-        session_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get_control_plane_resource(
-            operation="core.simulation-sessions.projected-summary.get",
-            path=f"/simulation-sessions/{session_id}/projected-summary",
-            correlation_id=correlation_id,
         )
 
     async def _request(

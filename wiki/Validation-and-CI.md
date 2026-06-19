@@ -1078,7 +1078,7 @@ supportability, router, service-boundary, wiki, and quality-threshold tests. Cur
 `make check` passed with workflow governance, mypy over 574 source files, OpenAPI smoke, and
 1,261 unit/contract tests.
 
-The current Advise proposal memo client boundary branch moves proposal memo create/read,
+The previous Advise proposal memo client boundary branch moved proposal memo create/read,
 projection, review, report-package, AI-commentary, lineage, and replay-evidence route methods into
 `src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
 surface. It reduces `src/app/clients/advise_proposal_client.py` from 536 to 370 script-counted
@@ -1089,6 +1089,17 @@ Advise client-boundary, upstream-client, proposal-service, proposal-router, wiki
 quality-artifact, and refactor-threshold tests. Full local `make check` passed with workflow
 governance, refactor thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262
 unit/contract tests.
+
+The current Lotus Core simulation-session client boundary branch moves simulation-session create,
+change, projected-position, and projected-summary route methods into
+`src/app/clients/lotus_core_simulation_client.py` while preserving the public
+`LotusCoreQueryClient` surface. It reduces `src/app/clients/lotus_core_query_client.py` from 535
+to 481 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/performance_workspace_attribution.py` at 525 script-counted lines, and ratchets
+the blocking source-file threshold from 535 to 525 script-counted lines. Focused validation passed
+with 232 Lotus Core client-boundary, upstream-client, Workbench router, quality-artifact, and refactor-threshold tests. Full local
+`make check` passed with workflow governance, refactor thresholds, mypy over 576 source files,
+OpenAPI smoke, and 1,263 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

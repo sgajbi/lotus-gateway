@@ -22,3 +22,18 @@ def test_lotus_core_lookup_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= lookup_methods
     assert not extracted_methods & query_methods
+
+
+def test_lotus_core_simulation_routes_live_in_dedicated_client_mixin() -> None:
+    query_methods = _async_function_names(_CLIENT_ROOT / "lotus_core_query_client.py")
+    simulation_methods = _async_function_names(_CLIENT_ROOT / "lotus_core_simulation_client.py")
+
+    extracted_methods = {
+        "add_simulation_changes",
+        "create_simulation_session",
+        "get_projected_positions",
+        "get_projected_summary",
+    }
+
+    assert extracted_methods <= simulation_methods
+    assert not extracted_methods & query_methods
