@@ -10,6 +10,15 @@ from app.contracts.portfolio_holdings import (
     PortfolioPositionView,
     PortfolioTopPosition,
 )
+from app.contracts.portfolio_position_book import (
+    PortfolioPositionBookResponse as ExtractedPortfolioPositionBookResponse,
+)
+from app.contracts.portfolio_position_book import (
+    PortfolioPositionView as ExtractedPortfolioPositionView,
+)
+from app.contracts.portfolio_position_book import (
+    PortfolioTopPosition as ExtractedPortfolioTopPosition,
+)
 
 
 def test_portfolio_core_contracts_remain_compatibility_reexports() -> None:
@@ -26,6 +35,9 @@ def test_portfolio_holdings_contracts_remain_compatibility_reexports() -> None:
     assert portfolio.PortfolioPositionBookResponse is PortfolioPositionBookResponse
     assert portfolio.PortfolioPositionView is PortfolioPositionView
     assert portfolio.PortfolioTopPosition is PortfolioTopPosition
+    assert PortfolioPositionBookResponse is ExtractedPortfolioPositionBookResponse
+    assert PortfolioPositionView is ExtractedPortfolioPositionView
+    assert PortfolioTopPosition is ExtractedPortfolioTopPosition
 
 
 def test_portfolio_book_contract_accepts_extracted_core_and_holdings_models() -> None:

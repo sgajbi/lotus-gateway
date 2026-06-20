@@ -6,7 +6,10 @@ from app.contracts.advisor_brief import (
     AdvisorBriefAdvisorySupportability,
     AdvisorBriefAiSurfaceSupportability,
     AdvisorBriefAiSurfaceSupportabilityItem,
+    AdvisorBriefStatus,
+    AdvisorBriefSupportabilityItem,
 )
+from app.contracts.performance_workspace import PerformanceWorkspaceResponse
 from app.services.advisor_brief_client_protocols import (
     AdvisorBriefAdviseClient,
     AdvisorBriefAiClient,
@@ -37,6 +40,94 @@ async def load_advisory_supportability(
         degraded_dependency_count=_safe_int(supportability.get("degraded_dependency_count")),
         enabled_feature_count=_safe_int(supportability.get("enabled_feature_count")),
         ready_feature_count=_safe_int(supportability.get("ready_feature_count")),
+    )
+
+
+def build_advisor_brief_source_supportability(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+) -> list[AdvisorBriefSupportabilityItem]:
+    items = [
+        _to_source_supportability_item(
+            "Portfolio", workspace.capabilities.summary_kpis.state, None
+        ),
+        _to_source_supportability_item(
+            "Return History",
+            workspace.capabilities.return_path.state,
+            workspace.capabilities.return_path.reason,
+        ),
+        _to_source_supportability_item(
+            "Contribution",
+            workspace.capabilities.contribution_detail.state,
+            workspace.capabilities.contribution_detail.reason,
+        ),
+        _to_source_supportability_item(
+            "Attribution",
+            workspace.capabilities.attribution_detail.state,
+            workspace.capabilities.attribution_detail.reason,
+        ),
+    ]
+    items.append(_advisor_brief_source_supportability_item(source_items=items))
+    return items
+
+
+def resolve_advisor_brief_source_status(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    supportability: list[AdvisorBriefSupportabilityItem],
+) -> AdvisorBriefStatus:
+    if workspace.capabilities.summary_kpis.state == "unavailable":
+        return AdvisorBriefStatus.UNAVAILABLE
+    if any(item.tone in {"warn", "danger"} for item in supportability):
+        return AdvisorBriefStatus.PARTIAL
+    return AdvisorBriefStatus.READY
+
+
+def _advisor_brief_source_supportability_item(
+    *,
+    source_items: list[AdvisorBriefSupportabilityItem],
+) -> AdvisorBriefSupportabilityItem:
+    value = "Ready"
+    tone = "success"
+    if any(item.tone == "danger" for item in source_items[:2]):
+        value = "Unavailable"
+        tone = "danger"
+    elif any(item.tone in {"warn", "danger"} for item in source_items):
+        value = "Partial"
+        tone = "warn"
+    return AdvisorBriefSupportabilityItem(
+        label="Advisor Brief",
+        value=value,
+        tone=tone,
+        reason=None,
+    )
+
+
+def _to_source_supportability_item(
+    label: str,
+    state: str,
+    reason: str | None,
+) -> AdvisorBriefSupportabilityItem:
+    normalized_state = state.strip().lower()
+    if normalized_state in {"ready", "supported"}:
+        return AdvisorBriefSupportabilityItem(
+            label=label,
+            value="Ready",
+            tone="success",
+            reason=reason,
+        )
+    if normalized_state == "partial":
+        return AdvisorBriefSupportabilityItem(
+            label=label,
+            value="Partial",
+            tone="warn",
+            reason=reason,
+        )
+    return AdvisorBriefSupportabilityItem(
+        label=label,
+        value="Unavailable",
+        tone="danger",
+        reason=reason,
     )
 
 

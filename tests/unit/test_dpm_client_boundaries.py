@@ -56,15 +56,55 @@ def test_proof_pack_routes_live_in_dedicated_client_mixin() -> None:
     assert not extracted_methods & dpm_client_methods
 
 
-def test_wave_routes_live_in_dedicated_client_mixin() -> None:
+def test_outcome_review_routes_live_in_dedicated_client_mixin() -> None:
     dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
-    wave_methods = _async_function_names(_CLIENT_ROOT / "dpm_wave_client.py")
+    outcome_review_methods = _async_function_names(_CLIENT_ROOT / "dpm_outcome_review_client.py")
 
     extracted_methods = {
+        "preview_outcome_review",
+        "create_outcome_review",
+        "list_outcome_reviews",
+        "get_outcome_review",
+        "refresh_outcome_review_sources",
+        "get_outcome_review_supportability",
+        "get_outcome_review_report_input",
+        "get_outcome_review_ai_evidence_input",
+        "get_run_outcome_review",
+        "list_wave_outcome_reviews",
+    }
+
+    assert extracted_methods <= outcome_review_methods
+    assert not extracted_methods & dpm_client_methods
+
+
+def test_wave_routes_live_in_dedicated_client_mixin() -> None:
+    dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
+    wave_methods = (
+        _async_function_names(_CLIENT_ROOT / "dpm_wave_core_client.py")
+        | _async_function_names(_CLIENT_ROOT / "dpm_wave_campaign_definition_client.py")
+        | _async_function_names(_CLIENT_ROOT / "dpm_wave_campaign_workflow_client.py")
+    )
+    wave_facade_methods = _async_function_names(_CLIENT_ROOT / "dpm_wave_client.py")
+
+    core_methods = {
         "preview_wave",
         "create_wave",
         "list_waves",
         "get_wave",
+        "discover_campaigns",
+        "get_wave_items",
+        "source_check_wave",
+        "simulate_wave",
+        "select_wave_item",
+        "approve_wave",
+        "stage_wave",
+        "handoff_wave",
+        "cancel_wave",
+        "get_wave_proof_pack_posture",
+        "get_wave_supportability",
+        "get_wave_report_input",
+    }
+    campaign_definition_methods = {
         "put_campaign_definition",
         "list_campaign_definitions",
         "get_campaign_definition",
@@ -75,7 +115,8 @@ def test_wave_routes_live_in_dedicated_client_mixin() -> None:
         "launch_campaign_definition",
         "retire_campaign_definition",
         "supersede_campaign_definition",
-        "discover_campaigns",
+    }
+    campaign_workflow_methods = {
         "get_campaign_operating_queue",
         "get_campaign_approval_inbox",
         "get_campaign_workflow_board",
@@ -90,18 +131,16 @@ def test_wave_routes_live_in_dedicated_client_mixin() -> None:
         "transition_campaign_assignment_task",
         "list_campaign_maker_checker_controls",
         "create_campaign_maker_checker_control",
-        "get_wave_items",
-        "source_check_wave",
-        "simulate_wave",
-        "select_wave_item",
-        "approve_wave",
-        "stage_wave",
-        "handoff_wave",
-        "cancel_wave",
-        "get_wave_proof_pack_posture",
-        "get_wave_supportability",
-        "get_wave_report_input",
     }
+    extracted_methods = core_methods | campaign_definition_methods | campaign_workflow_methods
 
     assert extracted_methods <= wave_methods
+    assert core_methods <= _async_function_names(_CLIENT_ROOT / "dpm_wave_core_client.py")
+    assert campaign_definition_methods <= _async_function_names(
+        _CLIENT_ROOT / "dpm_wave_campaign_definition_client.py"
+    )
+    assert campaign_workflow_methods <= _async_function_names(
+        _CLIENT_ROOT / "dpm_wave_campaign_workflow_client.py"
+    )
+    assert wave_facade_methods == set()
     assert not extracted_methods & dpm_client_methods

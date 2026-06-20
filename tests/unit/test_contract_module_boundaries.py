@@ -9,6 +9,17 @@ def _class_names(path: Path) -> set[str]:
     return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
 
 
+def _assigned_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        names.update(target.id for target in targets if isinstance(target, ast.Name))
+    return names
+
+
 def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
     memo_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_memos.py")
@@ -29,6 +40,20 @@ def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
 
     assert expected_memo_contracts <= memo_contract_classes
     assert proposal_facade_classes.isdisjoint(expected_memo_contracts)
+
+
+def test_proposal_generation_contracts_live_outside_proposal_facade() -> None:
+    proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
+    generation_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_generation.py")
+
+    expected_generation_contracts = {
+        "ProposalSimulateRequest",
+        "ProposalSimulateResponse",
+        "ProposalSimulationData",
+    }
+
+    assert expected_generation_contracts <= generation_contract_classes
+    assert proposal_facade_classes.isdisjoint(expected_generation_contracts)
 
 
 def test_portfolio_liquidity_contracts_live_outside_portfolio_facade() -> None:
@@ -103,6 +128,111 @@ def test_dpm_pm_operating_quality_contracts_live_outside_dpm_command_center_faca
 
     assert expected_pm_quality_contracts <= pm_quality_contract_classes
     assert dpm_command_center_facade_classes.isdisjoint(expected_pm_quality_contracts)
+
+
+def test_dpm_portfolio_memory_contracts_live_outside_dpm_command_center_facade() -> None:
+    dpm_command_center_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_command_center.py")
+    portfolio_memory_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_portfolio_memory.py")
+
+    expected_portfolio_memory_contracts = {
+        "DpmPortfolioMemoryGatewayResponse",
+        "DpmPortfolioMemorySupportability",
+    }
+
+    assert expected_portfolio_memory_contracts <= portfolio_memory_contract_classes
+    assert dpm_command_center_facade_classes.isdisjoint(expected_portfolio_memory_contracts)
+
+
+def test_dpm_command_center_contracts_live_outside_dpm_command_center_facade() -> None:
+    dpm_command_center_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_command_center.py")
+    command_center_core_contract_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_command_center_core.py"
+    )
+    outcome_review_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_outcome_review.py")
+
+    expected_core_contracts = {
+        "DpmCommandCenterForwardRequest",
+        "DpmCommandCenterGatewayResponse",
+        "DpmCommandCenterResolveExceptionRequest",
+        "DpmCommandCenterSupportability",
+    }
+    expected_outcome_review_contracts = {
+        "DpmExceptionSummaryGatewayResponse",
+        "DpmExceptionSummaryRequest",
+        "DpmOutcomeReviewErrorDetail",
+        "DpmOutcomeReviewForwardRequest",
+        "DpmOutcomeReviewGatewayResponse",
+        "DpmOutcomeReviewNarrativeGatewayResponse",
+        "DpmOutcomeReviewNarrativeRequest",
+        "DpmOutcomeReviewRefreshRequest",
+        "DpmOutcomeReviewSupportability",
+    }
+
+    assert expected_core_contracts <= command_center_core_contract_classes
+    assert expected_outcome_review_contracts <= outcome_review_contract_classes
+    assert dpm_command_center_facade_classes.isdisjoint(expected_core_contracts)
+    assert dpm_command_center_facade_classes.isdisjoint(expected_outcome_review_contracts)
+
+
+def test_dpm_wave_campaign_definition_contracts_live_outside_dpm_waves_facade() -> None:
+    dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    campaign_definition_contract_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_wave_campaign_definitions.py"
+    )
+
+    expected_campaign_definition_contracts = {
+        "DpmCampaignDefinitionForwardRequest",
+        "DpmCampaignDefinitionGatewayResponse",
+        "DpmCampaignDefinitionLaunchRequest",
+        "DpmCampaignDefinitionLifecycleCommandRequest",
+    }
+
+    assert expected_campaign_definition_contracts <= campaign_definition_contract_classes
+    assert dpm_waves_facade_classes.isdisjoint(expected_campaign_definition_contracts)
+
+
+def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() -> None:
+    dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    campaign_workflow_contract_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_wave_campaign_workflow.py"
+    )
+
+    expected_campaign_workflow_contracts = {
+        "DpmCampaignWorkflowForwardRequest",
+        "DpmCampaignWorkflowGatewayResponse",
+    }
+
+    assert expected_campaign_workflow_contracts <= campaign_workflow_contract_classes
+    assert dpm_waves_facade_classes.isdisjoint(expected_campaign_workflow_contracts)
+
+
+def test_dpm_wave_ai_contracts_live_outside_dpm_waves_facade() -> None:
+    dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    wave_ai_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_wave_ai.py")
+    supportability_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_wave_supportability.py")
+
+    expected_wave_ai_contracts = {
+        "DpmOperationsHandoffSummaryGatewayResponse",
+        "DpmOperationsHandoffSummaryRequest",
+        "DpmWaveMemoGatewayResponse",
+        "DpmWaveMemoRequest",
+    }
+    expected_supportability_contracts = {"DpmWaveSupportability"}
+
+    assert expected_wave_ai_contracts <= wave_ai_contract_classes
+    assert expected_supportability_contracts <= supportability_contract_classes
+    assert dpm_waves_facade_classes.isdisjoint(expected_wave_ai_contracts)
+    assert dpm_waves_facade_classes.isdisjoint(expected_supportability_contracts)
+
+
+def test_risk_rolling_payload_example_lives_outside_contract_models() -> None:
+    rolling_contract_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_rolling.py")
+    rolling_example_assignments = _assigned_names(
+        _CONTRACT_ROOT / "risk_workspace_rolling_examples.py"
+    )
+
+    assert "RISK_ROLLING_PAYLOAD_EXAMPLE" in rolling_example_assignments
+    assert "RISK_ROLLING_PAYLOAD_EXAMPLE" not in rolling_contract_assignments
 
 
 def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:
@@ -216,6 +346,51 @@ def test_workbench_contracts_live_outside_workbench_facade() -> None:
     assert workbench_facade_classes == set()
 
 
+def test_portfolio_workspace_control_contracts_live_outside_workspace_facade() -> None:
+    portfolio_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace.py")
+    control_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace_controls.py")
+
+    expected_control_contracts = {
+        "PortfolioWorkspaceControlCapabilities",
+        "PortfolioWorkspaceHistoricalSnapshotCapability",
+        "PortfolioWorkspaceModuleCapability",
+        "PortfolioWorkspaceReportingCurrencyCapability",
+    }
+
+    assert expected_control_contracts <= control_contract_classes
+    assert portfolio_workspace_facade_classes.isdisjoint(expected_control_contracts)
+
+
+def test_portfolio_position_book_contracts_live_outside_holdings_facade() -> None:
+    portfolio_holdings_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_holdings.py")
+    position_book_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_position_book.py")
+
+    expected_position_book_contracts = {
+        "PortfolioPositionBookResponse",
+        "PortfolioPositionView",
+        "PortfolioTopPosition",
+    }
+
+    assert expected_position_book_contracts <= position_book_contract_classes
+    assert portfolio_holdings_facade_classes.isdisjoint(expected_position_book_contracts)
+
+
+def test_domain_product_trust_contracts_live_outside_domain_products_facade() -> None:
+    domain_products_facade_classes = _class_names(_CONTRACT_ROOT / "domain_products.py")
+    trust_contract_classes = _class_names(_CONTRACT_ROOT / "domain_product_trust.py")
+
+    expected_trust_contracts = {
+        "DomainProductLiveTrustCertification",
+        "DomainProductLiveTrustIssue",
+        "DomainProductLiveTrustSummary",
+        "DomainProductTrustCertificationData",
+        "DomainProductTrustCertificationResponse",
+    }
+
+    assert expected_trust_contracts <= trust_contract_classes
+    assert domain_products_facade_classes.isdisjoint(expected_trust_contracts)
+
+
 def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
     reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
     materialization_contract_classes = _class_names(
@@ -256,3 +431,20 @@ def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> No
     assert reporting_batches_facade_classes.isdisjoint(expected_materialization_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_worker_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_scheduler_contracts)
+
+
+def test_reporting_job_contracts_live_outside_reporting_facade() -> None:
+    reporting_facade_classes = _class_names(_CONTRACT_ROOT / "reporting.py")
+    reporting_job_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_jobs.py")
+
+    expected_reporting_job_contracts = {
+        "OutcomeReviewReportJobRequest",
+        "PortfolioReviewJobRequest",
+        "ReportJobErrorDetail",
+        "ReportJobErrorResponse",
+        "ReportJobHandleResponse",
+        "ReportJobStatusResponse",
+    }
+
+    assert expected_reporting_job_contracts <= reporting_job_contract_classes
+    assert reporting_facade_classes.isdisjoint(expected_reporting_job_contracts)

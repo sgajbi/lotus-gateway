@@ -51,6 +51,50 @@ The latest contribution slice split detail-vs-summary merge selection policy out
 contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
+The latest CI enforcement slice adds a blocking agent quality evidence gate through
+`scripts/check_agent_quality_evidence.py`, keeping the executable 441/49 refactor ratchet,
+current `src/app/services/performance_workspace_horizon.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current performance horizon standard-window extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 440/49 refactor ratchet,
+current `src/app/contracts/performance_attribution.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current performance attribution supportability contract extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 438/49 refactor ratchet,
+current `src/app/services/advisor_brief_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current advisor-brief runtime-context extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 437/49 refactor ratchet,
+current `src/app/services/performance_workspace_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current performance workspace summary-view extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 432/49 refactor ratchet,
+current `src/app/services/risk_workspace_attribution.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current advisor-brief source metric extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 427/49 refactor ratchet,
+current `src/app/services/platform_capabilities_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current platform capabilities source-result extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 421/49 refactor ratchet,
+current `src/app/contracts/risk_workspace_rolling.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current risk rolling payload-example extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 415/49 refactor ratchet,
+current `src/app/services/performance_workspace_trend_service.py` hotspot evidence, and durable scorecard/context guidance
+synchronized for future agent work.
+The previous performance workspace attribution-trend service extraction kept
+`scripts/check_agent_quality_evidence.py` aligned with the executable 411/49 refactor ratchet,
+current `src/app/services/dpm_wave_ai_handoff.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
+The previous DPM wave AI payload extraction kept `scripts/check_agent_quality_evidence.py` aligned
+with the executable 408/49 refactor ratchet, current
+`src/app/services/risk_workspace_attribution.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
+The current risk workspace attribution mapping extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 406/49 refactor ratchet,
+current `src/app/clients/advise_proposal_client.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -393,35 +437,524 @@ audit events. Residual data-mesh limitation is not Gateway-owned: performance co
 economics remains `SOURCE_LIMITED` for non-source-authored component P&L economics. GitHub checks
 and post-merge wiki publication remain pending for this branch.
 
+Current DPM wave client-boundary working-tree verification splits Manage rebalance-wave core,
+campaign-definition, and campaign-workflow route forwarding into focused client mixins while
+preserving the public `DpmWaveClientMixin` compatibility facade. Focused validation passed with
+ruff over touched files, 8 DPM client/threshold tests, and refactor-threshold proof at
+`max_source_file_lines=623`. Full local `make check` passed with workflow governance, mypy over
+560 source files, OpenAPI smoke, and 1,242 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,451 combined coverage tests, 94.30% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
+checks and post-merge wiki publication remain pending for this branch.
+
+Current analytics risk-client boundary working-tree verification splits risk calculate,
+concentration, drawdown, rolling metrics, and historical-attribution forwarding into
+`src/app/clients/lotus_analytics_risk_client.py` while preserving the public
+`LotusAnalyticsClient` surface. Local `make check` passed with workflow governance, mypy over
+561 source files, OpenAPI smoke, and 1,243 unit/contract tests.
+
+Current Foundation catalog-payload boundary working-tree verification splits portfolio catalog item
+parsing into `src/app/services/foundation_catalog_payloads.py` while preserving the public
+`FoundationService` surface. Focused validation passed with 26 Foundation catalog/service and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 562
+source files, OpenAPI smoke, and 1,245 unit/contract tests.
+
+Current Lotus Core lookup-client boundary working-tree verification splits portfolio, instrument,
+and currency lookup forwarding into `src/app/clients/lotus_core_lookup_client.py` while preserving
+the public `LotusCoreQueryClient` surface. Focused validation passed with 188 upstream/core client
+tests. Full local `make check` passed with workflow governance, mypy over 563 source files, OpenAPI
+smoke, and 1,246 unit/contract tests.
+
+Current DPM wave protocol-family working-tree verification splits `DpmWaveClient` into
+`src/app/services/dpm_wave_client_protocols.py` and updates DPM wave services to import the focused
+protocol module directly. Focused validation passed with 52 DPM wave/service-boundary tests; full
+local `make check` passed with workflow governance, mypy over 564 source files, OpenAPI smoke, and
+1,248 unit/contract tests.
+
+Current DPM portfolio-memory contract-family working-tree verification splits
+`DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
+`src/app/contracts/dpm_portfolio_memory.py` while preserving the public `dpm_command_center`
+compatibility facade. Focused validation passed with 67 contract/service/quality tests. Full local
+`make check` passed with workflow governance, mypy over 565 source files, OpenAPI smoke, and 1,249
+unit/contract tests.
+
+Current Foundation optional-workspace working-tree verification splits optional performance,
+rebalance, reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py` while preserving the public
+`FoundationService` API surface. Focused validation passed with 30 foundation/quality tests and
+the refactor threshold gate at `max_source_file_lines=589`. Full local `make check` passed with
+workflow governance, mypy over 566 source files, OpenAPI smoke, and 1,249 unit/contract tests.
+
+Current portfolio holdings-orchestration working-tree verification splits portfolio book,
+liquidity, projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py` while preserving the public `PortfolioService`
+method surface. `src/app/services/portfolio_service.py` is reduced from 589 to 314
+script-counted lines, the extracted mixin is 347 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=575`. Focused validation passed with 101
+portfolio/service-boundary/quality tests. Full local `make check` passed with workflow
+governance, mypy over 567 source files, OpenAPI smoke, and 1,250 unit/contract tests.
+
+Current analytics UI field-governance working-tree verification splits bounded analytics UI
+labels, forbidden fields, event vocabularies, and log/audit field validators into
+`src/app/observability/analytics_ui_fields.py` while preserving the public
+`app.observability.analytics_ui` import surface. `src/app/observability/analytics_ui.py` is
+reduced from 575 to 343 script-counted lines, the extracted field module is 255 lines, and the
+blocking source-file threshold is ratcheted to `max_source_file_lines=567`. Focused validation
+passed with 39 observability, analytics-diagnostics, and quality-threshold tests. Full local
+`make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and
+1,251 unit/contract tests.
+
+Current DPM wave campaign-definition contract working-tree verification splits campaign-definition
+request, launch, lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public
+`app.contracts.dpm_waves` import surface. `src/app/contracts/dpm_waves.py` is reduced from 567 to
+480 script-counted lines, the extracted contract module is 113 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=562`. Focused validation passed with
+46 DPM wave contract, service, contract-boundary, and quality-threshold tests. Full local
+`make check` passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and
+1,252 unit/contract tests.
+
+Current Workbench snapshot-context working-tree verification moves Core portfolio/snapshot fan-out,
+product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembly into
+`src/app/services/workbench_snapshot_context.py` while preserving the public `WorkbenchService`
+surface and existing private error-mapping compatibility shim. `src/app/services/workbench_service.py`
+is reduced from 562 to 515 script-counted lines, the extracted snapshot-context module is 79 lines,
+and the blocking source-file threshold is ratcheted to `max_source_file_lines=560`. Focused
+validation passed with 88 Workbench service, snapshot-context, factory, provider, wiki, and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 570
+source files, OpenAPI smoke, and 1,254 unit/contract tests.
+
+Current reporting job contract working-tree verification splits report-job request, error, handle,
+and status DTOs into `src/app/contracts/reporting_jobs.py` while preserving the public
+`app.contracts.reporting` import surface. `src/app/contracts/reporting.py` is reduced from 560 to
+355 script-counted lines, the extracted report-job contract module is 221 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=559`. Focused validation passed with
+59 reporting job contract, submission, query, batch compatibility, contract-boundary, reporting
+router, wiki, and quality-threshold tests. Full local `make check` passed with workflow governance,
+mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests.
+
+Current analytics performance client working-tree verification splits TWR, MWR, composite,
+contribution, attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. `src/app/clients/lotus_analytics_client.py` is reduced from 559 to
+290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=556`. Focused validation passed with
+210 analytics client, factory, upstream-client, composite-performance, platform-capabilities,
+wiki, and quality-threshold tests. Full local `make check` passed with workflow governance, mypy
+over 572 source files, OpenAPI smoke, and 1,259 unit/contract tests.
+
+Current risk workspace attribution service working-tree verification moves attribution request
+normalization, blocked-response handling, cache orchestration, upstream fan-out, and response
+mapping into `src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. `risk_workspace_service.py` is reduced from 556 to
+380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
+blocking source-file threshold is ratcheted to `max_source_file_lines=549`. Focused validation
+passed with 70 risk workspace service, service-boundary, service-factory, provider, wiki, and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 573
+source files, OpenAPI smoke, and 1,260 unit/contract tests.
+
+Current DPM PM operating-quality summary working-tree verification moves Manage score-run evidence
+loading, Lotus AI workflow-pack execution, missing-score-run validation, and summary response
+assembly into `src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the
+public `request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is
+reduced from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines,
+and the blocking source-file threshold is ratcheted to `max_source_file_lines=536`. Focused
+validation passed with 105 DPM command-center service, AI context, supportability, router,
+service-boundary, wiki, and quality-threshold tests. Full local `make check` passed with workflow
+governance, mypy over 574 source files, OpenAPI smoke, and 1,261 unit/contract tests.
+
+Previous Advise proposal memo client verification moved proposal memo create/read,
+projection, review, report-package, AI-commentary, lineage, and replay-evidence route methods into
+`src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
+surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted lines, the extracted
+memo mixin is 154 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=535`. Focused validation passed with 241 Advise client-boundary,
+upstream-client, proposal-service, proposal-router, wiki-governance, quality-artifact, and
+refactor-threshold tests. Full local `make check` passed with workflow governance, refactor
+thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262 unit/contract tests.
+
+Previous Lotus Core simulation-session client verification moved simulation-session create, change,
+projected-position, and projected-summary route methods into
+`src/app/clients/lotus_core_simulation_client.py` while preserving the public
+`LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
+script-counted lines, the extracted simulation mixin is 78 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=525`. Focused validation passed with 232 Lotus
+Core client-boundary, upstream-client, Workbench router, quality-artifact, and refactor-threshold
+tests.
+
+Current performance attribution supportability verification moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. `performance_workspace_attribution.py`
+is reduced from 525 to 471 script-counted lines, the extracted supportability parser module is 65
+lines, and the blocking source-file threshold is ratcheted to `max_source_file_lines=522`.
+Focused validation passed with 56 performance attribution contract, parser, service,
+quality-artifact, and refactor-threshold tests.
+
+Current risk rolling window-boundary verification moves rolling-window result mapping,
+metric-series point mapping, dependency-context validation, and rolling-window length normalization
+into `src/app/services/risk_workspace_rolling_windows.py` while preserving the existing
+`risk_workspace_rolling` response-mapping surface. `risk_workspace_rolling.py` is reduced below
+the source-file ceiling, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=521`. Focused validation passed with 33 risk rolling window, service,
+refactor-threshold, and quality-artifact tests.
+
+Current CI enforcement verification adds explicit blocking Quality Baseline `Enforce Workflow
+Governance` and `Enforce Agent Quality Evidence` steps, records
+`output/quality-baseline/workflow-governance.txt` and
+`output/quality-baseline/agent-quality-evidence.txt`, and extends artifact validation so both
+evidence files must exist before upload. This preserves the 521/49 refactor threshold posture
+while preventing GitHub Actions major, Node runtime opt-in, job-timeout governance, and
+future-agent quality guidance drift from becoming invisible report-only debt. Focused validation
+passed with 26 agent quality evidence, quality-baseline artifact, workflow-action runtime, and
+refactor-threshold tests; full local `make check` passed with workflow governance, refactor
+thresholds, agent quality evidence, mypy over 579 source files, OpenAPI smoke, and 1,272
+unit/contract tests.
+
+Current DPM outcome-review narrative boundary verification moves Manage-owned outcome-review AI
+evidence loading, Lotus AI workflow-pack execution, and narrative response composition into
+`src/app/services/dpm_command_center_outcome_narrative.py` while preserving the public
+`DpmCommandCenterService` method surface. `dpm_command_center_service.py` is reduced from 521 to
+396 script-counted lines, the extracted narrative module is 139 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=520`, with `src/app/services/proposal_service.py`
+now the single source-file ceiling blocker. Focused validation passed with 68 DPM command-center
+service and service-boundary tests, and full local `make check` passed with workflow governance,
+refactor thresholds, agent quality evidence, mypy over 579 source files, OpenAPI smoke, and 1,272
+unit/contract tests.
+
+Current proposal delivery-posture boundary verification moves proposal narrative review, report
+request, delivery summary/events, execution handoff, execution status, and execution update
+orchestration into `src/app/services/proposal_delivery_service.py` while preserving the public
+`ProposalService` method surface. `proposal_service.py` is reduced from 520 to 405
+script-counted lines, the extracted delivery module is 145 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=515`, with
+`src/app/services/workbench_service.py` now the single source-file ceiling blocker. Focused
+validation passed with 49 proposal service and service-boundary tests; the agent quality evidence
+gate now tracks the executable 515/49 ratchet.
+
+Current Workbench sandbox boundary verification moves simulation-session creation, sandbox change
+application, projected-state loading, and policy-feedback orchestration into
+`src/app/services/workbench_sandbox_service.py` while preserving the public `WorkbenchService`
+method surface. `workbench_service.py` is reduced from 515 to 277 lines, the extracted sandbox
+module is 269 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=508`, with `src/app/services/advisor_brief_source.py` now the single
+source-file ceiling blocker. Focused validation passed with 107 Workbench service and
+service-boundary tests; the agent quality evidence gate now tracks the executable 508/49 ratchet.
+
+Current advisor-brief source-supportability verification moves source readiness rollup and
+advisor-brief status resolution into `src/app/services/advisor_brief_supportability.py` while
+preserving the public `advisor_brief_source` context builder surface. `advisor_brief_source.py` is
+reduced from 508 to 429 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=504`, with `src/app/services/portfolio_transaction_summary.py` now the
+single source-file ceiling blocker. Focused validation passed with 64 advisor-brief source,
+supportability, service, and service-boundary tests; the agent quality evidence gate now tracks the
+executable 504/49 ratchet.
+
+Current portfolio transaction activity-summary verification moves activity bucket assembly into
+`src/app/services/portfolio_transaction_activity_summary.py` while keeping monetary amount
+normalization helpers in their existing governed allowlisted module and preserving the
+transaction-summary income/window helper surface. `portfolio_transaction_summary.py` is reduced from
+504 to 462 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=503`, with `src/app/contracts/portfolio_workspace.py` now the single
+source-file ceiling blocker. Focused validation passed with transaction-summary tests, mypy over
+touched transaction modules, and refactor-threshold trials proving 503 passes while 502 fails only
+on the portfolio workspace contract hotspot; the agent quality evidence gate now tracks the
+executable 503/49 ratchet.
+
+Current portfolio workspace controls contract verification moves historical snapshot and reporting
+currency control capability DTOs into `src/app/contracts/portfolio_workspace_controls.py` while
+preserving compatibility imports through `portfolio_workspace.py` and the portfolio facade.
+`portfolio_workspace.py` is reduced from 503 to 319 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=499`, with
+`src/app/contracts/dpm_command_center.py` now the single source-file ceiling blocker. Focused
+validation passed with portfolio workspace contract, contract-module-boundary, and portfolio
+OpenAPI contract tests, mypy over touched contract modules, and refactor-threshold trials proving
+499 passes while 498 fails only on the DPM command-center contract hotspot; the agent quality
+evidence gate now tracks the executable 499/49 ratchet.
+
+Previous DPM command-center contract verification moved core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py` while preserving the public
+`app.contracts.dpm_command_center` compatibility facade. `dpm_command_center.py` is reduced from
+499 to 63 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=497`, with `src/app/services/performance_workspace_service.py` now the
+single source-file ceiling blocker. Focused validation passed with DPM command-center contract and
+contract-module-boundary tests, mypy over touched contract modules, and refactor-threshold trials
+proving 497 passes while 496 fails only on the performance workspace service hotspot; the agent
+quality evidence gate tracked the executable 497/49 ratchet.
+
+Previous performance workspace evidence-service verification moved evidence artifact download and
+evidence-view orchestration into `src/app/services/performance_workspace_evidence_service.py` while
+preserving the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is
+reduced from 497 to 437 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=493`, with `src/app/services/performance_workspace_evidence.py` now the
+single source-file ceiling blocker. Focused validation passed with performance workspace service,
+performance workspace evidence, and service-layer boundary tests, mypy over touched service
+modules, and refactor-threshold trials proving 493 passes while 492 fails only on the performance
+workspace evidence hotspot; the agent quality evidence gate tracked the executable 493/49
+ratchet.
+
+Previous performance workspace evidence-response verification moves evidence-view response
+composition into `src/app/services/performance_workspace_evidence_response.py` and evidence
+request/fetch state into `src/app/services/performance_workspace_evidence_state.py` while
+preserving compatibility imports through `performance_workspace_evidence.py`. The largest
+source-file hotspot moved to `src/app/services/platform_capabilities_shell.py` at 488 lines, and
+the blocking source-file threshold was ratcheted to `max_source_file_lines=488`. Focused
+validation passed with performance workspace evidence, performance workspace service, and
+service-layer boundary tests, mypy over touched evidence modules, and refactor-threshold trials
+proving 488 passes while 487 fails only on the platform capabilities shell hotspot; the agent
+quality evidence gate tracked the executable 488/49 ratchet.
+
+Previous platform capabilities workspace-descriptor verification moves workspace descriptor policy,
+source-supportability override handling, workspace evidence/freshness/versioning/caching helpers,
+and descriptor state mapping into
+`src/app/services/platform_capabilities_workspace_descriptors.py` while preserving compatibility
+imports through `platform_capabilities_shell.py`. The largest source-file hotspot moves to
+`src/app/clients/lotus_core_query_client.py` at 481 lines, and the blocking source-file threshold
+was ratcheted to `max_source_file_lines=481`. Focused validation passed with platform capability
+shell, normalization, service, and service-layer boundary tests, mypy over touched capability
+modules, and refactor-threshold trials proving 481 passes while 480 fails only on the Lotus Core
+query-client hotspot; the agent quality evidence gate tracked the executable 481/49 ratchet.
+
+Current Lotus Core portfolio-query verification moves portfolio list/get, positions,
+transactions, cashflow projection, cash balances, assets-under-management query, and allocation
+query route forwarding into `src/app/clients/lotus_core_portfolio_query_client.py` while
+preserving the public `LotusCoreQueryClient` surface. The largest source-file hotspot moves to
+`src/app/contracts/dpm_waves.py` at 480 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=480`. Focused validation passed with 190 Lotus Core
+upstream-client, boundary, and factory tests, mypy over touched Lotus Core client modules, and
+refactor-threshold trials proving 480 passes while 479 fails only on the DPM waves contract
+hotspot; the agent quality evidence gate now tracks the executable 480/49 ratchet.
+
+Current DPM wave campaign-workflow contract verification moves campaign workflow/audit request
+and gateway response contracts into `src/app/contracts/dpm_wave_campaign_workflow.py` while
+preserving the public `app.contracts.dpm_waves` import surface. The largest source-file hotspots
+move to `src/app/services/risk_workspace_drawdown.py` and
+`src/app/services/dpm_wave_service.py` at 479 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=479`. Focused validation passed with 22 DPM wave contract
+and contract-boundary tests, mypy over touched DPM wave contract modules, and
+refactor-threshold trials proving 479 passes while 478 fails only on those two service hotspots;
+the agent quality evidence gate now tracks the executable 479/49 ratchet. Full local
+`make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+over 591 source files, OpenAPI smoke, and 1,282 unit/contract tests.
+
+Current DPM workflow and risk drawdown supportability verification moves campaign workflow/audit
+service methods into `src/app/services/dpm_wave_campaign_workflow.py` and drawdown supportability
+policy into `src/app/services/risk_workspace_drawdown_supportability.py` while preserving public
+service behavior. The largest source-file hotspot moves to
+`src/app/contracts/portfolio_holdings.py` at 476 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=476`. Focused validation passed with 43 DPM wave service,
+risk workspace service, and boundary tests, mypy over touched DPM/risk service modules, and
+refactor-threshold trials proving 476 passes while 475 fails only on the portfolio holdings
+contract hotspot; the agent quality evidence gate now tracks the executable 476/49 ratchet. Full
+local `make check` passed with workflow governance, refactor thresholds, agent quality evidence,
+mypy over 593 source files, OpenAPI smoke, and 1,284 unit/contract tests.
+
+Current portfolio position-book contract verification moves position-book response and row
+contracts into `src/app/contracts/portfolio_position_book.py` while preserving the public
+`app.contracts.portfolio_holdings` and `app.contracts.portfolio` import surfaces. The largest
+source-file hotspot moves to `src/app/services/performance_workspace_attribution.py` at 471
+lines, and the blocking source-file threshold is ratcheted to `max_source_file_lines=471`.
+Focused validation passed with 32 portfolio holdings contract, contract-boundary,
+refactor-threshold, quality-baseline artifact, and agent quality evidence tests, mypy over touched portfolio contract
+modules, and refactor-threshold trials proving 471 passes while 470 fails only on the performance
+workspace attribution hotspot; the agent quality evidence gate now tracks the executable 471/49
+ratchet. Full local `make check` passed with monetary-float governance at 152 findings/152
+allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy over 594 source
+files, OpenAPI smoke, and 1,285 unit/contract tests.
+
+Current performance attribution trend parser verification moves trend result parsing,
+period-payload selection, and trend row construction into
+`src/app/services/performance_workspace_attribution_trend.py` while preserving the public
+`performance_workspace_attribution` import surface. The largest source-file hotspot moves to
+`src/app/contracts/domain_products.py` at 465 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=465`. Focused validation passed with 22 performance
+attribution, refactor-threshold, quality-baseline artifact, and agent quality evidence tests, mypy over touched
+performance attribution modules, and refactor-threshold trials proving 465 passes while 464 fails
+only on the domain-products contract hotspot; the agent quality evidence gate now tracks the
+executable 465/49 ratchet. Full local `make check` passed with monetary-float governance at 152
+findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy
+over 595 source files, OpenAPI smoke, and 1,286 unit/contract tests.
+
+Current domain-product trust contract verification moves live-trust certification summary,
+per-product certification, issue, data, and response DTOs into
+`src/app/contracts/domain_product_trust.py` while preserving the public
+`app.contracts.domain_products` import surface. The largest source-file hotspot moves to
+`src/app/services/portfolio_transaction_summary.py` at 462 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=462`. Focused validation passed with 37
+domain-product contract, service, contract-boundary, refactor-threshold, and quality-baseline
+artifact tests, mypy over touched domain-product contract/service modules, and
+refactor-threshold trials proving 462 passes while 461 fails only on the portfolio transaction
+summary hotspot; the agent quality evidence gate now tracks the executable 462/49 ratchet. Full
+local `make check` passed with monetary-float governance at 152 findings/152 allowlisted,
+workflow governance, refactor thresholds, agent quality evidence, mypy over 596 source files,
+OpenAPI smoke, and 1,287 unit/contract tests.
+
+Current portfolio transaction income-summary verification moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+`portfolio_transaction_summary` import surface. `portfolio_transaction_summary.py` is reduced from
+462 to 201 lines, the extracted income module is 210 lines, the extracted amount helper module is
+99 lines, and the largest source-file hotspot moves to
+`src/app/services/workspace_client_protocols.py` at 458 lines. The blocking source-file threshold
+is ratcheted to `max_source_file_lines=458`. Focused validation passed with 21 portfolio
+transaction summary, refactor-threshold, quality-baseline artifact, and agent quality evidence
+tests, mypy over touched transaction summary modules, and refactor-threshold trials proving 458
+passes while 457 fails only on the workspace client protocol hotspot; the agent quality evidence
+gate now tracks the executable 458/49 ratchet. Full local `make check` passed with monetary-float
+governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent
+quality evidence, mypy over 598 source files, OpenAPI smoke, and 1,288 unit/contract tests.
+
+Current portfolio client protocol-family verification moves `PortfolioCoreClient`,
+`PortfolioPerformanceClient`, and `PortfolioManageClient` into
+`src/app/services/portfolio_client_protocols.py` while preserving the public
+`workspace_client_protocols` compatibility surface. `workspace_client_protocols.py` is reduced
+from 458 to 329 lines, the extracted portfolio protocol module is 140 lines, and the largest
+source-file hotspot moves to `src/app/clients/dpm_client.py` at 452 lines. The blocking
+source-file threshold is ratcheted to `max_source_file_lines=452`. Focused validation passed with
+99 portfolio service, portfolio catalog payload, service-boundary, refactor-threshold,
+quality-baseline artifact, and agent quality evidence tests, mypy over touched portfolio protocol
+and service modules, and refactor-threshold trials proving 452 passes while 451 fails only on the
+DPM client hotspot; the agent quality evidence gate now tracks the executable 452/49 ratchet. Full
+local `make check` passed with monetary-float governance at 152 findings/152 allowlisted, workflow
+governance, refactor thresholds, agent quality evidence, mypy over 599 source files, OpenAPI
+smoke, and 1,290 unit/contract tests.
+
+Current DPM outcome-review client verification moves outcome-review upstream routes into
+`src/app/clients/dpm_outcome_review_client.py` while preserving the public `DpmClient` facade.
+`dpm_client.py` is reduced below the blocking ceiling, the largest source-file hotspot moves to
+`src/app/services/risk_workspace_requests.py` at 448 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=448`. Focused validation includes DPM client boundary
+coverage, upstream-client route coverage, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, with refactor-threshold trials proving 448 passes while 447 fails only on
+the risk workspace request hotspot; the agent quality evidence gate now tracks the executable
+448/49 ratchet.
+
+Current risk workspace request-payload verification moves Lotus Risk stateful request payload
+construction and period/currency/detail-basis normalization into
+`src/app/services/risk_workspace_request_payloads.py` while preserving the public
+`risk_workspace_requests` compatibility surface. `risk_workspace_requests.py` is reduced from 448
+to 254 lines, the extracted payload module is 232 lines, the largest source-file hotspot moves to
+`src/app/services/advisor_brief_narrative.py` at 444 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=444`. Focused validation includes risk workspace request,
+service, cache, attribution, refactor-threshold, quality-baseline artifact, and agent quality
+evidence tests, with refactor-threshold trials proving 444 passes while 443 fails only on the
+advisor-brief narrative hotspot; the agent quality evidence gate now tracks the executable 444/49
+ratchet.
+
+Current advisor-brief AI output parsing verification moves structured-output parsing, evidence-ref
+parsing, source-surface inference, target-mode inference, and safe execution-detail extraction into
+`src/app/services/advisor_brief_ai_output.py` while preserving public advisor-brief narrative
+behavior. `advisor_brief_narrative.py` is reduced from 444 to 260 lines, the extracted AI output
+module is 205 lines, the largest source-file hotspot moves to
+`src/app/services/performance_workspace_horizon.py` at 441 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=441`. Focused validation includes advisor-brief
+narrative/service, refactor-threshold, quality-baseline artifact, and agent quality evidence
+tests, with refactor-threshold trials proving 441 passes while 440 fails only on the performance
+workspace horizon hotspot; the agent quality evidence gate now tracks the executable 441/49
+ratchet.
+Performance horizon standard-window fetch and merge helpers now live in
+`src/app/services/performance_workspace_standard_horizon.py`, preserving the public horizon helper
+imports while reducing `src/app/services/performance_workspace_horizon.py` from 441 to 220
+script-counted lines. The extracted standard-horizon helper is 246 lines, the largest source-file
+hotspot moves to `src/app/contracts/performance_attribution.py` at 440 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=440`. Focused validation includes
+horizon helper tests, touched-module mypy, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, with refactor-threshold trials proving 440 passes while 439 fails only on
+the performance attribution contract hotspot; full local `make check` passed with workflow
+governance, refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI
+smoke, and 1,293 unit/contract tests; the agent quality evidence gate now tracks the executable
+440/49 ratchet.
+Performance attribution supportability contract models now live in
+`src/app/contracts/performance_attribution_supportability.py`, preserving the public attribution
+and workspace compatibility imports while reducing `src/app/contracts/performance_attribution.py`
+from 440 to 361 script-counted lines. The extracted supportability contract module is 91 lines, the
+largest source-file hotspot moves to `src/app/services/advisor_brief_service.py` at 438 lines, and
+the blocking source-file threshold is ratcheted to `max_source_file_lines=438`. Focused validation
+includes performance attribution contract tests, touched-module mypy, refactor-threshold,
+quality-baseline artifact, and agent quality evidence tests, with refactor-threshold trials proving
+438 passes while 437 fails only on the advisor-brief service hotspot; full local `make check`
+passed with workflow governance, refactor thresholds, agent quality evidence, mypy over 604 source
+files, OpenAPI smoke, and 1,294 unit/contract tests; the agent quality evidence gate now tracks the
+executable 438/49 ratchet.
+
+Current platform capabilities source-result extraction reduces
+`src/app/services/platform_capabilities_service.py` from 427 to 326 script-counted lines. The
+extracted source-result helper is 112 lines, the largest source-file hotspot moves to
+`src/app/contracts/risk_workspace_rolling.py` at 421 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=421`. Focused validation includes platform capability
+service tests, service-boundary tests, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, with threshold trials proving 421 passes while 420 fails only on the risk
+workspace rolling contract hotspot.
+
+Current risk rolling payload-example extraction reduces
+`src/app/contracts/risk_workspace_rolling.py` from 421 to 337 script-counted lines. The extracted
+rolling example module is 88 lines, the largest source-file hotspot moves to
+`src/app/contracts/dpm_waves.py` at 415 lines, and the blocking source-file threshold is ratcheted
+to `max_source_file_lines=415`. Focused validation includes risk rolling contract tests,
+contract-boundary tests, refactor-threshold, quality-baseline artifact, and agent quality evidence
+tests, with threshold trials proving 415 passes while 414 fails on the DPM waves contract and
+performance workspace trend service hotspots.
+
+Current DPM wave AI contract extraction reduces `src/app/contracts/dpm_waves.py` from 415 to 177
+script-counted lines by moving supportability and AI handoff DTOs into focused contract modules.
+The blocking source-file threshold remains `max_source_file_lines=415` because
+`src/app/services/performance_workspace_trend_service.py` is now the sole 415-line hotspot.
+Threshold trials prove 415 passes while 414 fails only on the performance workspace trend service.
+
+Previous performance workspace attribution-trend service extraction reduced
+`src/app/services/performance_workspace_trend_service.py` from 415 to 223 script-counted lines by
+moving attribution-trend request-context assembly, window construction, upstream fan-out, and
+response assembly into `src/app/services/performance_workspace_attribution_trend_service.py`.
+The blocking source-file threshold was ratcheted to `max_source_file_lines=411` because
+`src/app/services/dpm_wave_ai_handoff.py` was the sole 411-line hotspot. Threshold trials proved
+411 passed while 410 failed only on the DPM wave AI handoff service.
+
+Previous DPM wave AI payload extraction reduced `src/app/services/dpm_wave_ai_handoff.py` from 411
+to 195 script-counted lines by moving wave report-input supportability extraction, source-reference
+construction, request/task payload construction, supportability guardrail payloads, and gateway
+response assembly into `src/app/services/dpm_wave_ai_payloads.py`. The blocking source-file
+threshold was ratcheted to `max_source_file_lines=408` because
+`src/app/services/risk_workspace_attribution.py` was the sole 408-line hotspot. Threshold trials
+proved 408 passed while 407 failed only on the risk workspace attribution service.
+
+Current risk workspace attribution mapping extraction reduces
+`src/app/services/risk_workspace_attribution.py` from 408 to 274 script-counted lines by moving
+upstream attribution period, set, contributor, quality-flag, and numeric coercion mapping into
+`src/app/services/risk_workspace_attribution_mapping.py`. The blocking source-file threshold is
+ratcheted to `max_source_file_lines=406` because
+`src/app/clients/advise_proposal_client.py` is now the sole 406-line hotspot. Threshold trials prove
+406 passes while 405 fails only on the Advise proposal client.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 628 | `src/app/clients/dpm_wave_client.py` |
-| 2 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 3 | 618 | `src/app/services/foundation_service.py` |
-| 4 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 5 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 6 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 7 | 589 | `src/app/services/portfolio_service.py` |
-| 8 | 575 | `src/app/observability/analytics_ui.py` |
-| 9 | 572 | `src/app/contracts/risk_workspace_rolling.py` |
-| 10 | 567 | `src/app/contracts/dpm_waves.py` |
+| 1 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 2 | 405 | `src/app/contracts/proposal_lifecycle.py` |
+| 3 | 405 | `src/app/services/proposal_service.py` |
+| 4 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 5 | 402 | `src/app/services/performance_workspace_contribution.py` |
+| 6 | 402 | `src/app/services/risk_workspace_service.py` |
+| 7 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 8 | 398 | `src/app/contracts/advisor_brief.py` |
+| 9 | 397 | `src/app/services/advisor_brief_service.py` |
+| 10 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
-| 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
-| 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
-| 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon_rows.py` |
-| 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
+| 1 | 49 | `load_workbench_overview_enrichment` | `src/app/services/workbench_overview_enrichment.py` |
+| 2 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
+| 3 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_portfolio_query_client.py` |
+| 4 | 48 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
+| 5 | 48 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 6 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 7 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 8 | 46 | `parse_core_snapshot` | `src/app/services/foundation_core_snapshot.py` |
+| 9 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_attribution_trend_service.py` |
+| 10 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon_rows.py` |
 
 ## Existing Blocking Gates
 
@@ -1207,7 +1740,8 @@ logs, and diagnostics lookup. Remaining baseline gaps:
 
 ## Next Gates
 
-1. Keep Quality Baseline workflow report-only.
+1. Keep Quality Baseline quality tools report-only while blocking refactor-threshold,
+   workflow-governance, and artifact-integrity failures.
 2. Classify baseline findings and false positives.
 3. Review uploaded quality log artifacts from GitHub Actions.
 4. Promote the OpenAPI operation-governance contract test through Feature Lane evidence.

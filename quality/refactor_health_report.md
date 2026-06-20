@@ -27,7 +27,12 @@ while preserving upstream orchestration, timeout handling, correlation propagati
 partial-failure collection in the service. Shell-bootstrap contract assembly and workspace
 descriptor state mapping have been extracted to `platform_capabilities_shell.py`, reducing
 `platform_capabilities_normalization.py` to 355 lines while keeping shell navigation evidence
-separately testable. Portfolio workspace-control capability construction has been extracted to
+separately testable. Platform capability source-result parsing has been extracted to
+`platform_capabilities_sources.py`, reducing `platform_capabilities_service.py` from 427 to 326
+lines while preserving upstream orchestration, timeout handling, correlation propagation, policy
+payload classification, and optional-source partial-failure behavior. The executable source-file
+ratchet is now 421/49, with `src/app/contracts/risk_workspace_rolling.py` as the current largest
+source-file hotspot. Portfolio workspace-control capability construction has been extracted to
 `portfolio_workspace_controls.py`, reducing `portfolio_service.py` to 2,839 lines and lowering the
 longest-function baseline to 172 lines. The performance horizon comparison parser has now been
 split into diagnostic, row-selection, row-construction, period-block, and date-resolution helpers,
@@ -652,30 +657,366 @@ while preserving the public `app.services.advisory_client_protocols` compatibili
 services now import focused protocol families directly. The blocking source-file threshold is
 ratcheted from 630 to 628 lines, with `src/app/clients/dpm_wave_client.py` now the single
 source-file ceiling blocker.
+The current DPM wave client-boundary slice splits Manage rebalance-wave core, campaign-definition,
+and campaign-workflow route forwarding into `dpm_wave_core_client.py`,
+`dpm_wave_campaign_definition_client.py`, and `dpm_wave_campaign_workflow_client.py` behind the
+public `DpmWaveClientMixin` compatibility facade. Public `DpmClient` behavior is preserved while
+`src/app/clients/dpm_wave_client.py` is reduced from 628 to 14 script-counted lines. The blocking
+source-file threshold is ratcheted from 628 to 623 lines, with
+`src/app/clients/lotus_analytics_client.py` now the single source-file ceiling blocker.
+The current analytics risk-client boundary slice splits risk calculate, concentration, drawdown,
+rolling metrics, and historical-attribution forwarding into
+`src/app/clients/lotus_analytics_risk_client.py` behind the public `LotusAnalyticsClient` surface.
+`src/app/clients/lotus_analytics_client.py` is reduced from 623 to 560 script-counted lines. The
+blocking source-file threshold is ratcheted from 623 to 618 lines, with
+`src/app/services/foundation_service.py` now the single source-file ceiling blocker.
+The current Foundation catalog-payload boundary slice splits portfolio catalog item parsing into
+`src/app/services/foundation_catalog_payloads.py` behind the public `FoundationService` surface.
+`src/app/services/foundation_service.py` is reduced from 618 to 591 script-counted lines. The
+blocking source-file threshold is ratcheted from 618 to 610 lines, with
+`src/app/clients/lotus_core_query_client.py` now the single source-file ceiling blocker.
+The current Lotus Core lookup-client boundary slice splits portfolio, instrument, and currency
+lookup forwarding into `src/app/clients/lotus_core_lookup_client.py` behind the public
+`LotusCoreQueryClient` surface. `src/app/clients/lotus_core_query_client.py` is reduced from 610 to
+535 script-counted lines. The blocking source-file threshold is ratcheted from 610 to 606 lines,
+with `src/app/services/dpm_client_protocols.py` now the single source-file ceiling blocker.
+The current DPM wave protocol-family boundary slice splits `DpmWaveClient` into
+`src/app/services/dpm_wave_client_protocols.py` and updates DPM wave services to import the focused
+protocol module directly. `src/app/services/dpm_client_protocols.py` is reduced from 606 to 322
+script-counted lines. The blocking source-file threshold is ratcheted from 606 to 595 lines, with
+`src/app/contracts/dpm_command_center.py` now the single source-file ceiling blocker.
+The current DPM portfolio-memory contract-family boundary slice moves
+`DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
+`src/app/contracts/dpm_portfolio_memory.py` while preserving the public `dpm_command_center`
+compatibility facade. `src/app/contracts/dpm_command_center.py` is reduced below the source-file
+ceiling. The blocking source-file threshold is ratcheted from 595 to 591 lines, with
+`src/app/services/foundation_service.py` now the single source-file ceiling blocker.
+The current Foundation optional-workspace boundary slice moves optional performance, rebalance,
+reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py`. `src/app/services/foundation_service.py` is
+reduced from 591 to 316 script-counted lines. The blocking source-file threshold is ratcheted from
+591 to 589 lines, with `src/app/services/portfolio_service.py` now the single source-file ceiling
+blocker.
+The current portfolio holdings-orchestration boundary slice moves portfolio book, liquidity,
+projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py` while preserving the public `PortfolioService`
+method surface. `src/app/services/portfolio_service.py` is reduced from 589 to 314 script-counted
+lines, the extracted mixin is 347 lines, and the blocking source-file threshold is ratcheted from
+589 to 575 lines, with `src/app/observability/analytics_ui.py` now the single source-file ceiling
+blocker.
+The current analytics UI field-governance boundary slice moves bounded analytics UI labels,
+forbidden fields, event vocabularies, and log/audit field validators into
+`src/app/observability/analytics_ui_fields.py` while preserving the public
+`app.observability.analytics_ui` import surface. `src/app/observability/analytics_ui.py` is
+reduced from 575 to 343 script-counted lines, the extracted field module is 255 lines, and the
+blocking source-file threshold is ratcheted from 575 to 567 lines, with
+`src/app/contracts/dpm_waves.py` now the single source-file ceiling blocker.
+The current DPM wave campaign-definition contract boundary slice moves campaign-definition
+request, launch, lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public
+`app.contracts.dpm_waves` import surface. `src/app/contracts/dpm_waves.py` is reduced from 567 to
+480 script-counted lines, the extracted contract module is 113 lines, and the blocking source-file
+threshold is ratcheted from 567 to 562 lines, with `src/app/services/workbench_service.py` now the
+single source-file ceiling blocker.
+The current Workbench snapshot-context boundary slice moves Core portfolio/snapshot fan-out,
+product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembly into
+`src/app/services/workbench_snapshot_context.py` while preserving the public `WorkbenchService`
+surface and its existing private error-mapping compatibility shim. `src/app/services/workbench_service.py`
+is reduced from 562 to 515 script-counted lines, the extracted snapshot-context module is 79 lines,
+and the blocking source-file threshold is ratcheted from 562 to 560 lines, with
+`src/app/contracts/reporting.py` now the single source-file ceiling blocker.
+The current reporting job contract boundary slice moves report-job request, error, handle, and
+status DTOs into `src/app/contracts/reporting_jobs.py` while preserving the public
+`app.contracts.reporting` import surface. `src/app/contracts/reporting.py` is reduced from 560 to
+355 script-counted lines, the extracted report-job contract module is 221 lines, and the blocking
+source-file threshold is ratcheted from 560 to 559 lines, with
+`src/app/clients/lotus_analytics_client.py` now the single source-file ceiling blocker.
+The current analytics performance client boundary slice moves TWR, MWR, composite, contribution,
+attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. `src/app/clients/lotus_analytics_client.py` is reduced from 559 to
+290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking
+source-file threshold is ratcheted from 559 to 556 lines, with
+`src/app/services/risk_workspace_service.py` now the single source-file ceiling blocker.
+The current risk workspace attribution service boundary slice moves attribution request
+normalization, blocked-response handling, cache orchestration, upstream fan-out, and response
+mapping into `src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. `risk_workspace_service.py` is reduced from 556 to
+380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
+blocking source-file threshold is ratcheted from 556 to 549 lines, with
+`src/app/services/dpm_pm_operating_quality_service.py` now the single source-file ceiling blocker.
+The current DPM PM operating-quality summary boundary slice moves Manage score-run evidence
+loading, Lotus AI workflow-pack execution, missing-score-run validation, and summary response
+assembly into `src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the
+public `request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is
+reduced from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines,
+and the blocking source-file threshold is ratcheted from 549 to 536 lines, with
+`src/app/clients/advise_proposal_client.py` now the single source-file ceiling blocker.
+The previous Advise proposal memo client boundary slice moved proposal memo create/read,
+projection, review, report-package, AI-commentary, lineage, and replay-evidence route methods into
+`src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
+surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted lines, the extracted
+memo mixin is 154 lines, and the blocking source-file threshold is ratcheted from 536 to 535 lines,
+with `src/app/clients/lotus_core_query_client.py` now the single source-file ceiling blocker.
+The previous Lotus Core simulation-session client boundary slice moved simulation-session create,
+change, projected-position, and projected-summary route methods into
+`src/app/clients/lotus_core_simulation_client.py` while preserving the public
+`LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
+script-counted lines, the extracted simulation mixin is 78 lines, and the blocking source-file
+threshold is ratcheted from 535 to 525 lines, with
+`src/app/services/performance_workspace_attribution.py` now the single source-file ceiling blocker.
+The current performance attribution supportability boundary slice moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. `performance_workspace_attribution.py`
+is reduced from 525 to 471 script-counted lines, the extracted parser module is 65 lines, and the
+blocking source-file threshold is ratcheted from 525 to 522 lines, with
+`src/app/services/risk_workspace_rolling.py` now the single source-file ceiling blocker.
+The current risk rolling window-boundary slice moves rolling-window, metric-series,
+dependency-context, and window-length mapping into
+`src/app/services/risk_workspace_rolling_windows.py`, moving the single source-file ceiling blocker
+to `src/app/services/dpm_command_center_service.py` at 521 script-counted lines. The blocking
+source-file threshold is ratcheted from 522 to 521 lines.
+The current DPM outcome-review narrative boundary slice moves Manage AI-evidence loading, Lotus AI
+workflow-pack execution, and narrative response composition into
+`src/app/services/dpm_command_center_outcome_narrative.py`, reducing
+`src/app/services/dpm_command_center_service.py` from 521 to 396 script-counted lines and moving
+the single source-file ceiling blocker to `src/app/services/proposal_service.py` at 520
+script-counted lines. The blocking source-file threshold is ratcheted from 521 to 520 lines.
+The current proposal delivery-posture boundary slice moves proposal narrative review, report
+request, delivery summary/events, execution handoff, execution status, and execution update
+orchestration into `src/app/services/proposal_delivery_service.py`, reducing
+`src/app/services/proposal_service.py` from 520 to 405 script-counted lines and moving the single
+source-file ceiling blocker to `src/app/services/workbench_service.py` at 515 script-counted lines.
+The blocking source-file threshold is ratcheted from 520 to 515 lines.
+The current Workbench sandbox boundary slice moves simulation-session creation, sandbox change
+application, projected-state loading, and policy-feedback orchestration into
+`src/app/services/workbench_sandbox_service.py`, reducing
+`src/app/services/workbench_service.py` from 515 to 277 lines and moving the single source-file
+ceiling blocker to `src/app/services/advisor_brief_source.py` at 508 lines. The blocking
+source-file threshold is ratcheted from 515 to 508 lines.
+The current advisor-brief source-supportability slice moves source readiness rollup and advisor-brief
+status resolution into `src/app/services/advisor_brief_supportability.py`, reducing
+`src/app/services/advisor_brief_source.py` from 508 to 429 lines and moving the single source-file
+ceiling blocker to `src/app/services/portfolio_transaction_summary.py` at 504 lines. The blocking
+source-file threshold is ratcheted from 508 to 504 lines.
+The current portfolio transaction activity-summary slice moves activity bucket assembly into
+`src/app/services/portfolio_transaction_activity_summary.py` while keeping monetary amount
+normalization helpers in their existing governed allowlisted module, reducing
+`src/app/services/portfolio_transaction_summary.py` from 504 to 462 lines and moving the single
+source-file ceiling blocker to `src/app/contracts/portfolio_workspace.py` at 503 lines. The
+blocking source-file threshold is ratcheted from 504 to 503 lines.
+The current portfolio workspace controls contract slice moves historical snapshot and reporting
+currency control capability DTOs into `src/app/contracts/portfolio_workspace_controls.py`, reducing
+`src/app/contracts/portfolio_workspace.py` from 503 to 319 lines and moving the single source-file
+ceiling blocker to `src/app/contracts/dpm_command_center.py` at 499 lines. The blocking source-file
+threshold is ratcheted from 503 to 499 lines.
+The current DPM command-center contract slice moves core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py`, reducing `src/app/contracts/dpm_command_center.py` from
+499 to 63 lines and moving the single source-file ceiling blocker to
+`src/app/services/performance_workspace_service.py` at 497 lines. The blocking source-file
+threshold is ratcheted from 499 to 497 lines.
+The current performance workspace evidence-service slice moves evidence artifact and evidence-view
+orchestration into `src/app/services/performance_workspace_evidence_service.py`, reducing
+`src/app/services/performance_workspace_service.py` from 497 to 437 lines and moving the single
+source-file ceiling blocker to `src/app/services/performance_workspace_evidence.py` at 493 lines.
+The blocking source-file threshold is ratcheted from 497 to 493 lines.
+The previous performance workspace evidence-response slice moves evidence-view response composition
+into `src/app/services/performance_workspace_evidence_response.py` and evidence request/fetch
+state into `src/app/services/performance_workspace_evidence_state.py`, moving the single
+source-file ceiling blocker to `src/app/services/platform_capabilities_shell.py` at 488 lines. The
+blocking source-file threshold was ratcheted from 493 to 488 lines.
+The previous platform capabilities workspace-descriptor slice moves workspace descriptor policy and
+state mapping into `src/app/services/platform_capabilities_workspace_descriptors.py`, reducing
+`src/app/services/platform_capabilities_shell.py` below the top-file list and moving the single
+source-file ceiling blocker to `src/app/clients/lotus_core_query_client.py` at 481 lines. The
+blocking source-file threshold was ratcheted from 488 to 481 lines.
+The current Lotus Core portfolio-query slice moves portfolio query/read route forwarding into
+`src/app/clients/lotus_core_portfolio_query_client.py` while preserving the public
+`LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 481 to below the
+top-file list, the extracted portfolio-query mixin is 227 lines, and the blocking source-file
+threshold is ratcheted from 481 to 480 lines with `src/app/contracts/dpm_waves.py` now the single
+source-file ceiling blocker.
+The current DPM wave campaign-workflow contract slice moves campaign workflow/audit request and
+gateway response contracts into `src/app/contracts/dpm_wave_campaign_workflow.py` while preserving
+the public `app.contracts.dpm_waves` import surface. `src/app/contracts/dpm_waves.py` is reduced
+below the top-file list, the extracted campaign-workflow contract module is 70 lines, and the
+blocking source-file threshold is ratcheted from 480 to 479 lines with
+`src/app/services/risk_workspace_drawdown.py` and `src/app/services/dpm_wave_service.py` now the
+source-file ceiling blockers.
+The current DPM workflow and risk drawdown supportability slice moves campaign workflow/audit
+service methods into `src/app/services/dpm_wave_campaign_workflow.py` and drawdown supportability
+policy into `src/app/services/risk_workspace_drawdown_supportability.py`. `dpm_wave_service.py`
+is reduced from 479 to 232 lines, `risk_workspace_drawdown.py` is reduced from 479 to 351 lines,
+and the blocking source-file threshold is ratcheted from 479 to 476 lines with
+`src/app/contracts/portfolio_holdings.py` now the source-file ceiling blocker.
+The current portfolio position-book contract slice moves position-book response and row contracts
+into `src/app/contracts/portfolio_position_book.py` while preserving the public
+`app.contracts.portfolio_holdings` and `app.contracts.portfolio` import surfaces.
+`portfolio_holdings.py` is reduced from 476 to 286 lines, the extracted position-book contract
+module is 210 lines, and the blocking source-file threshold is ratcheted from 476 to 471 lines
+with `src/app/services/performance_workspace_attribution.py` now the source-file ceiling blocker.
+The current performance attribution trend parser slice moves trend result parsing,
+period-payload selection, and trend row construction into
+`src/app/services/performance_workspace_attribution_trend.py` while preserving the public
+`performance_workspace_attribution` import surface. `performance_workspace_attribution.py` is
+reduced from 471 to 302 lines, the extracted trend parser module is 205 lines, and the blocking
+source-file threshold is ratcheted from 471 to 465 lines with
+`src/app/contracts/domain_products.py` now the source-file ceiling blocker.
+The current domain-product trust contract slice moves live-trust certification DTOs into
+`src/app/contracts/domain_product_trust.py` while preserving the public
+`app.contracts.domain_products` import surface. `domain_products.py` is reduced from 465 to 321
+lines, the extracted trust contract module is 163 lines, and the blocking source-file threshold is
+ratcheted from 465 to 462 lines with `src/app/services/portfolio_transaction_summary.py` now the
+source-file ceiling blocker.
+The current portfolio transaction income-summary slice moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+`portfolio_transaction_summary` import surface. `portfolio_transaction_summary.py` is reduced from
+462 to 201 lines, the extracted income module is 210 lines, the extracted amount helper module is
+99 lines, and the blocking source-file threshold is ratcheted from 462 to 458 lines with
+`src/app/services/workspace_client_protocols.py` now the source-file ceiling blocker.
+The current portfolio client protocol-family slice moves `PortfolioCoreClient`,
+`PortfolioPerformanceClient`, and `PortfolioManageClient` into
+`src/app/services/portfolio_client_protocols.py` while preserving the public
+`workspace_client_protocols` compatibility surface. `workspace_client_protocols.py` is reduced
+from 458 to 329 lines, the extracted portfolio protocol module is 140 lines, and the blocking
+source-file threshold is ratcheted from 458 to 452 lines with `src/app/clients/dpm_client.py` now
+the source-file ceiling blocker.
+The current DPM outcome-review client route-family slice moves outcome-review upstream routes into
+`src/app/clients/dpm_outcome_review_client.py` while preserving the public `DpmClient` facade.
+`dpm_client.py` is reduced below the blocking ceiling, the extracted outcome-review client module
+is focused on the outcome-review route family, and the blocking source-file threshold is ratcheted
+from 452 to 448 lines with `src/app/services/risk_workspace_requests.py` now the source-file
+ceiling blocker.
+The current risk workspace request-payload slice moves Lotus Risk stateful request payload
+construction, period normalization, detail-basis normalization, and reporting-currency
+normalization into `src/app/services/risk_workspace_request_payloads.py` while preserving the
+public `risk_workspace_requests` compatibility surface. `risk_workspace_requests.py` is reduced
+from 448 to 254 lines, the extracted payload module is 232 lines, and the blocking source-file
+threshold is ratcheted from 448 to 444 lines with `src/app/services/advisor_brief_narrative.py`
+now the source-file ceiling blocker.
+The current advisor-brief AI output parsing slice moves structured-output parsing, evidence-ref
+parsing, source-surface inference, target-mode inference, and safe execution-detail extraction into
+`src/app/services/advisor_brief_ai_output.py` while preserving public advisor-brief narrative
+behavior. `advisor_brief_narrative.py` is reduced from 444 to 260 lines, the extracted AI output
+module is 205 lines, and the blocking source-file threshold is ratcheted from 444 to 441 lines with
+`src/app/services/performance_workspace_horizon.py` now the source-file ceiling blocker.
+Performance horizon standard-window fetch and merge helpers now live in
+`src/app/services/performance_workspace_standard_horizon.py`, preserving public horizon helper
+imports while reducing `src/app/services/performance_workspace_horizon.py` from 441 to 220
+script-counted lines. The extracted standard-horizon helper is 246 lines, and the blocking
+source-file threshold is ratcheted from 441 to 440 lines with
+`src/app/contracts/performance_attribution.py` now the source-file ceiling blocker.
+Performance attribution supportability contract models now live in
+`src/app/contracts/performance_attribution_supportability.py`, preserving public attribution and
+workspace compatibility imports while reducing `src/app/contracts/performance_attribution.py` from
+440 to 361 script-counted lines. The extracted supportability contract module is 91 lines, and the
+blocking source-file threshold is ratcheted from 440 to 438 lines with
+`src/app/services/advisor_brief_service.py` now the source-file ceiling blocker.
+Advisor-brief runtime evidence loading now lives in
+`src/app/services/advisor_brief_runtime_context.py`, preserving public advisor-brief response and
+review-action behavior while reducing `src/app/services/advisor_brief_service.py` from 438 to 397
+script-counted lines. The extracted runtime-context module is 60 lines, and the blocking
+source-file threshold is ratcheted from 438 to 437 lines with
+`src/app/services/performance_workspace_service.py` now the source-file ceiling blocker.
+Performance workspace summary-view orchestration now lives in
+`src/app/services/performance_workspace_summary_views.py`, preserving public workspace response,
+summary, detail, and snapshot behavior while reducing
+`src/app/services/performance_workspace_service.py` from 437 to 355 script-counted lines. The
+extracted summary-view module is 95 lines, and the blocking source-file threshold is ratcheted
+from 437 to 432 lines with `src/app/services/risk_workspace_attribution.py` now the source-file
+ceiling blocker.
+Risk workspace rolling supportability construction now lives in
+`src/app/services/risk_workspace_rolling_supportability.py`, and shared source-calculation
+supportability evidence now lives in `src/app/services/risk_workspace_source_supportability.py`.
+This preserves risk rolling and attribution response behavior while reducing
+`src/app/services/risk_workspace_rolling.py` from 432 to 342 lines and
+`src/app/services/risk_workspace_attribution.py` from 432 to 408 lines. The blocking source-file
+threshold is ratcheted from 432 to 431 lines with `src/app/contracts/proposals.py` now the
+source-file ceiling blocker.
+Proposal generation contract DTOs now live in `src/app/contracts/proposal_generation.py` while the
+public `app.contracts.proposals` facade remains compatible. This preserves proposal simulation
+contract behavior while reducing `src/app/contracts/proposals.py` from 431 to 314 lines. The
+blocking source-file threshold is ratcheted from 431 to 429 lines with
+`src/app/services/advisor_brief_source.py` now the source-file ceiling blocker.
+Advisor-brief source metric construction now lives in
+`src/app/services/advisor_brief_source_metrics.py` while the public
+`build_advisor_brief_source_metrics` facade remains compatible. This preserves advisor-brief source
+metric behavior while reducing `src/app/services/advisor_brief_source.py` from 429 to 366 lines.
+The blocking source-file threshold is ratcheted from 429 to 427 lines with
+`src/app/services/platform_capabilities_service.py` now the source-file ceiling blocker.
+Platform capability source-result parsing now lives in
+`src/app/services/platform_capabilities_sources.py` while `PlatformCapabilitiesService` remains the
+experience-API aggregation facade. This preserves platform capability success, partial-failure,
+policy, timeout, and optional-risk behavior while reducing
+`src/app/services/platform_capabilities_service.py` from 427 to 326 lines. The blocking
+source-file threshold is ratcheted from 427 to 421 lines with
+`src/app/contracts/risk_workspace_rolling.py` now the source-file ceiling blocker.
+Risk rolling payload-example data now lives in
+`src/app/contracts/risk_workspace_rolling_examples.py` while `WorkbenchRiskRollingPayload` remains
+the Workbench-facing schema owner. This preserves rolling payload schema examples and compatibility
+example imports while reducing `src/app/contracts/risk_workspace_rolling.py` from 421 to 337
+lines. The blocking source-file threshold is ratcheted from 421 to 415 lines with
+`src/app/contracts/dpm_waves.py` and `src/app/services/performance_workspace_trend_service.py` now
+the tied source-file ceiling blockers.
+
+DPM wave AI contract extraction now moves supportability and AI handoff DTOs into
+`src/app/contracts/dpm_wave_supportability.py` and `src/app/contracts/dpm_wave_ai.py` while
+preserving the public `app.contracts.dpm_waves` import surface and OpenAPI schema names. This
+reduces `src/app/contracts/dpm_waves.py` from 415 to 177 lines. The blocking threshold remains
+415/49 because `src/app/services/performance_workspace_trend_service.py` is now the sole
+source-file ceiling blocker.
+
+Performance workspace attribution-trend service extraction now moves attribution-trend
+request-context assembly, window construction, upstream fan-out, and response assembly into
+`src/app/services/performance_workspace_attribution_trend_service.py` while preserving public
+`PerformanceWorkspaceService.get_performance_attribution_trend` behavior. This reduces
+`src/app/services/performance_workspace_trend_service.py` from 415 to 223 lines and ratchets the
+blocking threshold from 415/49 to 411/49 because `src/app/services/dpm_wave_ai_handoff.py` is now
+the sole source-file ceiling blocker.
+
+DPM wave AI payload extraction now moves wave report-input supportability extraction,
+source-reference construction, request/task payload construction, supportability guardrail
+payloads, and gateway response assembly into `src/app/services/dpm_wave_ai_payloads.py` while
+preserving public `DpmWaveService` behavior. This reduces
+`src/app/services/dpm_wave_ai_handoff.py` from 411 to 195 lines and ratchets the blocking threshold
+from 411/49 to 408/49 because `src/app/services/risk_workspace_attribution.py` is now the sole
+source-file ceiling blocker.
+
+Risk workspace attribution mapping extraction now moves upstream attribution period, set,
+contributor, quality-flag, and numeric coercion mapping into
+`src/app/services/risk_workspace_attribution_mapping.py` while preserving public
+`map_attribution_response` behavior. This reduces
+`src/app/services/risk_workspace_attribution.py` from 408 to 274 lines and ratchets the blocking
+threshold from 408/49 to 406/49 because `src/app/clients/advise_proposal_client.py` is now the sole
+source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current advisory protocol-boundary branch was created from clean `main`; stranded-truth reconciliation found no unmerged remote branches; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused advisory protocol-boundary validation passed with 67 protocol/service-boundary tests, ruff, mypy over `src`, and refactor-threshold trials proving `max_source_file_lines=628` passes while `627` fails only on `src/app/clients/dpm_wave_client.py`; full local `make check` passed with 1,239 unit/contract tests |
+| Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current risk workspace attribution mapping extraction focused validation includes risk workspace attribution, risk workspace controls, risk workspace service, service-boundary, refactor-threshold, and agent quality evidence checks, with refactor-threshold proof at `max_source_file_lines=406`; full local `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy over 617 source files, OpenAPI smoke, and 1,307 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
-| Total coverage | Healthy | Full local `make ci` passed with 1,448 combined coverage tests and 94.30% total coverage |
-| Security audit | Governed | Current advisory protocol-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits advisory client protocol families into focused modules and preserves a compatibility facade. The largest current source-file hotspot is now `src/app/clients/dpm_wave_client.py` at 628 script-counted lines |
+| Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
+| Security audit | Governed | Current portfolio transaction income-summary extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, data-mesh behavior, or runtime behavior changes; monetary-float governance remains flat at 152 findings/152 allowlisted after moving existing helper float conversions to focused transaction modules; prior full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits risk workspace attribution upstream-result mapping into a focused helper module while preserving public attribution response behavior. The largest current source-file hotspot is now `src/app/clients/advise_proposal_client.py` at 406 lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
-| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
+| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 406/49 ratchet and the current `src/app/clients/advise_proposal_client.py` hotspot evidence to stay synchronized with durable guidance |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
 ## Primary Refactor Backlog
 
-1. Continue splitting large contract modules and remaining upstream
-   clients around clear service and route-family boundaries.
-2. Continue splitting `portfolio_service.py` around clear source-readiness, workspace, insight,
-   book, and workflow adapters only when cohesive behavior-preserving seams remain.
+1. Continue splitting large contract modules, service modules, and remaining upstream clients
+   around clear ownership boundaries. The next source-file hotspot is
+   `src/app/clients/advise_proposal_client.py`.
+2. Continue splitting remaining large observability, contract, service, or client modules around
+   cohesive behavior-preserving seams.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context
    loading, transaction page loading, book response assembly, transaction-ledger payload loading,
    workspace source gathering, position-book mapping,
@@ -710,15 +1051,20 @@ source-file ceiling blocker.
 
 ## Quality-Gate Roadmap
 
-1. Report-only workflow uploads quality logs for baseline classification.
+1. Quality Baseline uploads quality logs for baseline classification after blocking refactor
+   threshold, workflow-governance, agent quality evidence, and artifact-integrity checks pass.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 662 script-counted lines,
+   - no Python source file under `src/app` above 406 lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
-3. Then enforce no-new-regression thresholds for:
+3. The blocking agent quality evidence gate runs `scripts/check_agent_quality_evidence.py` to
+   make future agent slices ratchet the 406/49 thresholds when the current largest file or
+   function improves, and to keep `src/app/clients/advise_proposal_client.py` hotspot
+   evidence truthful in scorecard/context docs.
+4. Then enforce no-new-regression thresholds for:
    - ruff/mypy,
    - coverage,
    - import-linter,
    - OpenAPI spectral warnings,
    - `pip-audit` and high-confidence `bandit` findings.
-4. Enterprise-readiness gates should require docs, API, security, observability, and architecture
+5. Enterprise-readiness gates should require docs, API, security, observability, and architecture
    scorecard sections to be green before release promotion.

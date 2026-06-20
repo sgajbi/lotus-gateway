@@ -2,7 +2,9 @@ from pathlib import Path
 
 from scripts.check_workflow_action_runtime import (
     ACTION_MAJOR_BASELINE,
+    MAX_JOB_TIMEOUT_MINUTES,
     find_workflow_action_runtime_violations,
+    find_workflow_job_timeout_violations,
     find_workflow_node24_opt_in_violations,
     normalize_uses_value,
 )
@@ -103,6 +105,75 @@ def test_workflow_node24_opt_in_ignores_workflows_without_governed_actions(
     assert violations == ()
 
 
+def test_workflow_job_timeout_accepts_bounded_jobs(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "\n".join(
+            [
+                "jobs:",
+                "  test:",
+                "    runs-on: ubuntu-latest",
+                "    timeout-minutes: 10",
+                "    steps:",
+                "      - run: echo ok",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    violations = find_workflow_job_timeout_violations([workflow])
+
+    assert violations == ()
+
+
+def test_workflow_job_timeout_reports_missing_timeout(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "\n".join(
+            [
+                "jobs:",
+                "  test:",
+                "    runs-on: ubuntu-latest",
+                "    steps:",
+                "      - run: echo ok",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    violations = find_workflow_job_timeout_violations([workflow])
+
+    assert len(violations) == 1
+    assert violations[0].job_id == "test"
+    assert violations[0].reason == "missing"
+
+
+def test_workflow_job_timeout_reports_unbounded_timeout(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "\n".join(
+            [
+                "jobs:",
+                "  test:",
+                "    runs-on: ubuntu-latest",
+                f"    timeout-minutes: {MAX_JOB_TIMEOUT_MINUTES + 1}",
+                "    steps:",
+                "      - run: echo ok",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    violations = find_workflow_job_timeout_violations([workflow])
+
+    assert len(violations) == 1
+    assert violations[0].job_id == "test"
+    assert (
+        violations[0].reason
+        == f"{MAX_JOB_TIMEOUT_MINUTES + 1} outside 1..{MAX_JOB_TIMEOUT_MINUTES}"
+    )
+
+
 def test_workflow_action_runtime_reports_deprecated_major(tmp_path: Path) -> None:
     workflow = tmp_path / "workflow.yml"
     workflow.write_text(
@@ -179,6 +250,7 @@ def test_gateway_workflows_match_platform_action_runtime_baseline() -> None:
     }
     assert find_workflow_action_runtime_violations([REPO_ROOT / ".github" / "workflows"]) == ()
     assert find_workflow_node24_opt_in_violations([REPO_ROOT / ".github" / "workflows"]) == ()
+    assert find_workflow_job_timeout_violations([REPO_ROOT / ".github" / "workflows"]) == ()
 
 
 def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None:

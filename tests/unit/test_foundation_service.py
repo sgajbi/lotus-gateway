@@ -2,6 +2,13 @@ import pytest
 from fastapi import HTTPException
 
 from app.services.foundation_service import FoundationService
+from app.services.foundation_workspace_optional import (
+    build_foundation_workflow_cues,
+    parse_performance_result,
+    parse_rebalance_result,
+    parse_reporting_result,
+    unpack_optional_upstream,
+)
 
 
 class _StubLotusCoreQueryClient:
@@ -594,34 +601,10 @@ async def test_foundation_workspace_handles_invalid_optional_upstream_payloads()
 
 @pytest.mark.asyncio
 async def test_foundation_workspace_records_optional_upstream_exception():
-    service = FoundationService(
-        lotus_core_query_client=_StubLotusCoreQueryClient(
-            list_payload={"items": []},
-            portfolio_payload={"portfolio_id": "PF_1001", "portfolio_name": "Alpha Growth"},
-            snapshot_payload={
-                "portfolio_id": "PF_1001",
-                "as_of_date": "2026-03-25",
-                "sections": {
-                    "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
-                    "portfolio_totals": {
-                        "baseline_total_market_value_base": 500.0,
-                        "baseline_total_cash_base": 50.0,
-                    },
-                    "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
-                },
-            },
-        ),
-        analytics_client=_StubAnalyticsClient(
-            200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.2}}}
-        ),
-        dpm_client=_StubDpmClient(200, {"items": []}),
-        reporting_client=_StubReportingClient(200, {"rows": []}),
-    )
-
     warnings: list[str] = []
     partial_failures = []
 
-    response = service._parse_reporting_result(
+    response = parse_reporting_result(
         result=RuntimeError("report exploded"),
         warnings=warnings,
         partial_failures=partial_failures,
@@ -730,27 +713,17 @@ async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
 
 
 def test_foundation_parses_optional_result_edge_cases():
-    service = FoundationService(
-        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
-        analytics_client=_StubAnalyticsClient(200, {}),
-        dpm_client=_StubDpmClient(200, {}),
-        reporting_client=_StubReportingClient(200, {}),
-    )
-
     warnings: list[str] = []
     partial_failures = []
     assert (
-        service._parse_performance_result(
-            (200, {"resultsByPeriod": {}}), warnings, partial_failures
-        )
-        is None
+        parse_performance_result((200, {"resultsByPeriod": {}}), warnings, partial_failures) is None
     )
     assert warnings == []
 
     warnings = []
     partial_failures = []
     assert (
-        service._parse_performance_result(
+        parse_performance_result(
             (200, {"resultsByPeriod": {"QTD": []}}),
             warnings,
             partial_failures,
@@ -761,7 +734,7 @@ def test_foundation_parses_optional_result_edge_cases():
 
     warnings = []
     partial_failures = []
-    rebalance = service._parse_rebalance_result(
+    rebalance = parse_rebalance_result(
         (200, {"items": ["bad-row"]}),
         warnings,
         partial_failures,
@@ -771,7 +744,7 @@ def test_foundation_parses_optional_result_edge_cases():
 
     warnings = []
     partial_failures = []
-    status_code, payload = service._unpack_optional_upstream(
+    status_code, payload = unpack_optional_upstream(
         result="invalid-response",
         source_service="lotus-manage",
         unavailable_warning="FOUNDATION_REBALANCE_UNAVAILABLE",
@@ -785,7 +758,7 @@ def test_foundation_parses_optional_result_edge_cases():
 
     warnings = []
     partial_failures = []
-    status_code, payload = service._unpack_optional_upstream(
+    status_code, payload = unpack_optional_upstream(
         result=(503, {"detail": "service down"}),
         source_service="lotus-report",
         unavailable_warning="FOUNDATION_REPORTING_UNAVAILABLE",
@@ -799,13 +772,6 @@ def test_foundation_parses_optional_result_edge_cases():
 
 
 def test_foundation_builds_workflow_cues():
-    service = FoundationService(
-        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
-        analytics_client=_StubAnalyticsClient(200, {}),
-        dpm_client=_StubDpmClient(200, {}),
-        reporting_client=_StubReportingClient(200, {}),
-    )
-
-    cues = service._build_workflow_cues("PF_1001")
+    cues = build_foundation_workflow_cues("PF_1001")
     assert [cue.key for cue in cues] == ["performance", "risk", "proposal"]
     assert cues[0].href == "/app/performance?portfolioId=PF_1001"

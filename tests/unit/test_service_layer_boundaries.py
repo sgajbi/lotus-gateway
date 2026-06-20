@@ -30,6 +30,15 @@ def _imported_modules(path: Path) -> set[str]:
     return imports
 
 
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
 def test_only_service_factories_import_concrete_clients() -> None:
     offenders = {
         path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
@@ -145,6 +154,36 @@ def test_dpm_command_center_service_delegates_exception_summary_handoff() -> Non
     assert "DpmCommandCenterExceptionSummaryMixin" in base_names
 
 
+def test_dpm_command_center_service_delegates_outcome_narrative_handoff() -> None:
+    path = _SERVICE_ROOT / "dpm_command_center_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "request_outcome_review_ai_narrative",
+            "_build_outcome_review_narrative_context",
+            "_execute_outcome_review_narrative_pack",
+        }
+    )
+    command_center_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "DpmCommandCenterService"
+    ]
+    base_names = {
+        base.id
+        for service_class in command_center_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "DpmCommandCenterOutcomeNarrativeMixin" in base_names
+
+
 def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
     advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
     advisor_brief_protocols_path = _SERVICE_ROOT / "advisor_brief_client_protocols.py"
@@ -210,6 +249,98 @@ def test_advisory_services_import_focused_protocol_families() -> None:
         assert "app.services.advisory_client_protocols" not in imports
 
 
+def test_dpm_wave_protocol_is_split_from_shared_protocol_aggregator() -> None:
+    dpm_protocols_path = _SERVICE_ROOT / "dpm_client_protocols.py"
+    dpm_wave_protocols_path = _SERVICE_ROOT / "dpm_wave_client_protocols.py"
+    dpm_tree = ast.parse(
+        dpm_protocols_path.read_text(encoding="utf-8"),
+        filename=str(dpm_protocols_path),
+    )
+    dpm_wave_tree = ast.parse(
+        dpm_wave_protocols_path.read_text(encoding="utf-8"),
+        filename=str(dpm_wave_protocols_path),
+    )
+
+    dpm_protocol_names = {
+        node.name for node in ast.walk(dpm_tree) if isinstance(node, ast.ClassDef)
+    }
+    dpm_wave_protocol_names = {
+        node.name for node in ast.walk(dpm_wave_tree) if isinstance(node, ast.ClassDef)
+    }
+    assert "DpmWaveClient" not in dpm_protocol_names
+    assert dpm_wave_protocol_names == {"DpmWaveClient"}
+
+
+def test_dpm_wave_services_import_focused_protocol_family() -> None:
+    for service_file in {
+        "dpm_wave_ai_handoff.py",
+        "dpm_wave_campaign_definitions.py",
+        "dpm_wave_service.py",
+    }:
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert "app.services.dpm_wave_client_protocols" in imports
+        assert "app.services.dpm_client_protocols" not in imports
+
+
+def test_portfolio_protocols_are_split_from_workspace_protocol_aggregator() -> None:
+    workspace_protocols_path = _SERVICE_ROOT / "workspace_client_protocols.py"
+    portfolio_protocols_path = _SERVICE_ROOT / "portfolio_client_protocols.py"
+    workspace_tree = ast.parse(
+        workspace_protocols_path.read_text(encoding="utf-8"),
+        filename=str(workspace_protocols_path),
+    )
+    portfolio_tree = ast.parse(
+        portfolio_protocols_path.read_text(encoding="utf-8"),
+        filename=str(portfolio_protocols_path),
+    )
+
+    workspace_protocol_names = {
+        node.name for node in ast.walk(workspace_tree) if isinstance(node, ast.ClassDef)
+    }
+    portfolio_protocol_names = {
+        node.name for node in ast.walk(portfolio_tree) if isinstance(node, ast.ClassDef)
+    }
+
+    assert {
+        "PortfolioCoreClient",
+        "PortfolioManageClient",
+        "PortfolioPerformanceClient",
+    }.isdisjoint(workspace_protocol_names)
+    assert portfolio_protocol_names == {
+        "PortfolioCoreClient",
+        "PortfolioManageClient",
+        "PortfolioPerformanceClient",
+    }
+
+
+def test_portfolio_services_import_focused_protocol_family() -> None:
+    for service_file in {
+        "portfolio_catalog_payloads.py",
+        "portfolio_service.py",
+        "portfolio_upstream_access.py",
+    }:
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert "app.services.portfolio_client_protocols" in imports
+        assert "app.services.workspace_client_protocols" not in imports
+
+
+def test_dpm_pm_operating_quality_summary_lives_in_focused_service_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_service.py")
+    summary_service_methods = _function_names(
+        _SERVICE_ROOT / "dpm_pm_operating_quality_summary_service.py"
+    )
+    summary_methods = {
+        "request_pm_operating_quality_summary",
+        "_compose_pm_operating_quality_summary_response",
+        "_execute_pm_operating_quality_summary_workflow",
+        "_load_pm_operating_quality_summary_context",
+        "_require_pm_operating_quality_score_run",
+    }
+
+    assert summary_methods <= summary_service_methods
+    assert not summary_methods & service_methods
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -234,6 +365,23 @@ def test_risk_workspace_service_delegates_cache_policy() -> None:
     )
 
     assert private_cache_helpers == []
+
+
+def test_risk_workspace_attribution_orchestration_lives_in_focused_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "risk_workspace_service.py")
+    attribution_service_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_attribution_service.py"
+    )
+    attribution_orchestration_methods = {
+        "get_attribution",
+        "_blocked_risk_attribution_response",
+        "_cached_attribution_response",
+        "_load_attribution_response",
+        "_risk_attribution_request_context",
+    }
+
+    assert attribution_orchestration_methods <= attribution_service_methods
+    assert not attribution_orchestration_methods & service_methods
 
 
 def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None:
@@ -270,6 +418,14 @@ def test_advisor_brief_service_delegates_supportability_runtime_mapping() -> Non
     assert supportability_helpers == []
 
 
+def test_advisor_brief_runtime_context_owns_runtime_evidence_loading() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "advisor_brief_service.py")
+    runtime_context_methods = _function_names(_SERVICE_ROOT / "advisor_brief_runtime_context.py")
+
+    assert "load_advisor_brief_runtime_context" in runtime_context_methods
+    assert "_load_advisor_brief_runtime_context" not in service_methods
+
+
 def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -289,6 +445,16 @@ def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     )
 
     assert source_helpers == []
+
+
+def test_advisor_brief_source_delegates_source_metric_construction() -> None:
+    source_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source.py")
+    metric_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source_metrics.py")
+
+    assert "build_return_source_metrics" in metric_methods
+    assert "_source_metric" in metric_methods
+    assert "_build_return_source_metrics" not in source_methods
+    assert "_source_metric" not in source_methods
 
 
 def test_proposal_service_delegates_lifecycle_transitions() -> None:
@@ -321,6 +487,73 @@ def test_proposal_service_delegates_lifecycle_transitions() -> None:
 
     assert delegated_methods == []
     assert "ProposalTransitionServiceMixin" in base_names
+
+
+def test_proposal_service_delegates_delivery_posture_routes() -> None:
+    path = _SERVICE_ROOT / "proposal_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "create_execution_handoff",
+            "create_report_request",
+            "get_delivery_events",
+            "get_delivery_summary",
+            "get_execution_status",
+            "record_execution_update",
+            "review_proposal_narrative",
+        }
+    )
+    proposal_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "ProposalService"
+    ]
+    base_names = {
+        base.id
+        for service_class in proposal_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "ProposalDeliveryServiceMixin" in base_names
+
+
+def test_workbench_service_delegates_sandbox_orchestration() -> None:
+    path = _SERVICE_ROOT / "workbench_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "_apply_sandbox_changes_payload",
+            "_build_sandbox_policy_state",
+            "_evaluate_policy_feedback",
+            "_load_projected_state",
+            "apply_sandbox_changes",
+            "create_sandbox_session",
+        }
+    )
+    workbench_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "WorkbenchService"
+    ]
+    base_names = {
+        base.id
+        for service_class in workbench_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "WorkbenchSandboxServiceMixin" in base_names
 
 
 def test_portfolio_service_delegates_readiness_and_insight_source_loading() -> None:
@@ -482,6 +715,42 @@ def test_portfolio_service_delegates_workflow_orchestration() -> None:
     assert "PortfolioWorkflowServiceMixin" in base_names
 
 
+def test_portfolio_service_delegates_holdings_orchestration() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_portfolio_book",
+            "_load_portfolio_book_source_results",
+            "get_portfolio_liquidity",
+            "_load_portfolio_liquidity_payloads",
+            "get_portfolio_projected_cashflow",
+            "get_portfolio_allocations",
+            "_load_portfolio_allocation_payloads",
+            "get_portfolio_positions",
+            "_load_position_book_payloads",
+        }
+    )
+    portfolio_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PortfolioService"
+    ]
+    base_names = {
+        base.id
+        for service_class in portfolio_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "PortfolioHoldingsServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_workspace_component_parsing() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -558,6 +827,44 @@ def test_performance_workspace_service_delegates_trend_orchestration() -> None:
     assert local_trend_helpers == []
 
 
+def test_performance_workspace_trend_service_delegates_attribution_trend_orchestration() -> None:
+    trend_service_path = _SERVICE_ROOT / "performance_workspace_trend_service.py"
+    attribution_trend_service_path = (
+        _SERVICE_ROOT / "performance_workspace_attribution_trend_service.py"
+    )
+    trend_service_tree = ast.parse(
+        trend_service_path.read_text(encoding="utf-8"),
+        filename=str(trend_service_path),
+    )
+    attribution_trend_service_tree = ast.parse(
+        attribution_trend_service_path.read_text(encoding="utf-8"),
+        filename=str(attribution_trend_service_path),
+    )
+    attribution_trend_helpers = {
+        "get_performance_attribution_trend",
+        "_build_attribution_trend_request_context",
+        "_build_attribution_trend_response",
+        "_build_attribution_trend_rows",
+        "_build_attribution_trend_window_pairs",
+        "_fetch_attribution_trend_results",
+    }
+
+    local_trend_service_helpers = sorted(
+        node.name
+        for node in ast.walk(trend_service_tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name in attribution_trend_helpers
+    )
+    extracted_trend_helpers = {
+        node.name
+        for node in ast.walk(attribution_trend_service_tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert attribution_trend_helpers <= extracted_trend_helpers
+    assert local_trend_service_helpers == []
+
+
 def test_performance_workspace_service_delegates_detail_view_orchestration() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -577,6 +884,128 @@ def test_performance_workspace_service_delegates_detail_view_orchestration() -> 
     )
 
     assert local_detail_helpers == []
+
+
+def test_performance_workspace_service_delegates_summary_view_orchestration() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "performance_workspace_service.py")
+    summary_view_methods = _function_names(_SERVICE_ROOT / "performance_workspace_summary_views.py")
+
+    assert "build_workspace_summary_views" in summary_view_methods
+    assert "fetch_workspace_summary_view_result" in summary_view_methods
+    assert "_build_workspace_summary_views" not in service_methods
+    assert "_fetch_workspace_summary_view_result" not in service_methods
+
+
+def test_performance_workspace_service_delegates_evidence_orchestration() -> None:
+    path = _SERVICE_ROOT / "performance_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_evidence_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "get_performance_evidence_artifact",
+            "_build_evidence_view",
+            "_fetch_evidence_view_state",
+        }
+    )
+    service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PerformanceWorkspaceService"
+    ]
+    base_names = {
+        base.id
+        for service_class in service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert local_evidence_helpers == []
+    assert "PerformanceWorkspaceEvidenceServiceMixin" in base_names
+
+
+def test_performance_workspace_evidence_delegates_response_composition() -> None:
+    evidence_facade_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence.py")
+    response_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence_response.py")
+    expected_response_methods = {
+        "build_performance_evidence_view",
+        "build_source_supportability",
+        "resolve_evidence_reason",
+        "resolve_evidence_state",
+        "resolve_evidence_view_response",
+    }
+
+    assert expected_response_methods <= response_methods
+    assert evidence_facade_methods.isdisjoint(expected_response_methods)
+
+
+def test_risk_workspace_mappers_delegate_source_supportability() -> None:
+    source_supportability_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_source_supportability.py"
+    )
+    rolling_methods = _function_names(_SERVICE_ROOT / "risk_workspace_rolling.py")
+    attribution_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution.py")
+
+    assert "append_source_calculation_supportability" in source_supportability_methods
+    assert "_append_source_calculation_supportability" not in rolling_methods
+    assert "_append_source_calculation_supportability" not in attribution_methods
+
+
+def test_risk_workspace_attribution_delegates_period_mapping() -> None:
+    attribution_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution.py")
+    mapping_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution_mapping.py")
+    expected_mapping_methods = {
+        "map_attribution_period_results",
+        "_map_attribution_period_result",
+        "_map_attribution_sets",
+        "_map_attribution_set",
+        "_map_attribution_contributors",
+        "_safe_float",
+    }
+
+    assert expected_mapping_methods <= mapping_methods
+    assert attribution_methods.isdisjoint(expected_mapping_methods)
+
+
+def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
+    shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
+    descriptor_methods = _function_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    expected_descriptor_methods = {
+        "apply_source_supportability",
+        "build_workspace_descriptor",
+        "build_workspace_descriptor_from_spec",
+        "source_supportability",
+        "workspace_caching",
+        "workspace_descriptor_state",
+        "workspace_descriptors",
+        "workspace_evidence",
+        "workspace_freshness",
+        "workspace_supportability",
+        "workspace_versioning",
+    }
+
+    assert expected_descriptor_methods <= descriptor_methods
+    assert shell_methods.isdisjoint(expected_descriptor_methods)
+
+
+def test_platform_capabilities_service_delegates_source_result_parsing() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_service.py")
+    source_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_sources.py")
+    expected_source_methods = {
+        "exception_detail",
+        "lotus_core_policy_from_result",
+        "merge_optional_capability_sources",
+        "merge_optional_source",
+        "payload_from_source_result",
+        "primary_sources_from_results",
+    }
+
+    assert expected_source_methods <= source_methods
+    assert service_methods.isdisjoint(expected_source_methods)
 
 
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:

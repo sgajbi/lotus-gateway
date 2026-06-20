@@ -64,6 +64,17 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
         encoding="utf-8"
     )
 
+    assert "Enforce Refactored Source Thresholds" in workflow
+    assert "python scripts/check_refactor_quality_thresholds.py \\" in workflow
+    assert "--max-source-file-lines 406" in workflow
+    assert "--max-function-lines 49" in workflow
+    assert "output/quality-baseline/refactor-thresholds.txt" in workflow
+    assert "Enforce Workflow Governance" in workflow
+    assert "python scripts/check_workflow_action_runtime.py \\" in workflow
+    assert "output/quality-baseline/workflow-governance.txt" in workflow
+    assert "Enforce Agent Quality Evidence" in workflow
+    assert "python scripts/check_agent_quality_evidence.py \\" in workflow
+    assert "output/quality-baseline/agent-quality-evidence.txt" in workflow
     assert "Validate Quality Baseline Artifact Set" in workflow
     assert "python scripts/check_quality_baseline_artifacts.py" in workflow
     assert "if-no-files-found: error" in workflow

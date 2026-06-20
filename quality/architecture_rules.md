@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
-2. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
-3. `src/app/services/foundation_service.py` at 618 script-counted lines,
-4. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
-5. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines.
+1. `src/app/clients/advise_proposal_client.py` at 406 lines,
+2. `src/app/contracts/proposal_lifecycle.py` at 405 lines,
+3. `src/app/services/proposal_service.py` at 405 lines,
+4. `src/app/services/platform_capabilities_normalization.py` at 404 lines,
+5. `src/app/services/performance_workspace_contribution.py` at 402 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -215,6 +215,184 @@ policy, and proposal protocol families out of `src/app/services/advisory_client_
 The compatibility facade remains in place for existing imports, but advisory services now import
 their focused protocol families directly. The blocking threshold is ratcheted to 628
 script-counted lines, with `src/app/clients/dpm_wave_client.py` as the largest residual hotspot.
+The current DPM wave client-boundary slice splits Manage rebalance-wave core, campaign-definition,
+and campaign-workflow route forwarding into focused client mixins behind the existing
+`DpmWaveClientMixin` compatibility facade. The blocking threshold is ratcheted to 623
+script-counted lines, with `src/app/clients/lotus_analytics_client.py` as the largest residual
+hotspot.
+The current analytics risk-client boundary slice moves risk calculate, concentration, drawdown,
+rolling metrics, and historical-attribution forwarding into `lotus_analytics_risk_client.py`
+behind the public `LotusAnalyticsClient` surface. The blocking threshold is ratcheted to 618
+script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
+hotspot.
+The current Foundation catalog-payload boundary slice moves portfolio catalog item parsing into
+`foundation_catalog_payloads.py` while preserving the `FoundationService` API surface. The
+blocking threshold is ratcheted to 610 script-counted lines, with
+`src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
+The current Lotus Core lookup-client boundary slice moves portfolio, instrument, and currency
+lookup forwarding into `lotus_core_lookup_client.py` while preserving the public
+`LotusCoreQueryClient` surface. The blocking threshold is ratcheted to 606 script-counted lines,
+with `src/app/services/dpm_client_protocols.py` as the largest residual hotspot.
+The current DPM wave protocol-family boundary slice moves `DpmWaveClient` into
+`dpm_wave_client_protocols.py` and updates DPM wave services to import the focused protocol module
+directly. The blocking threshold is ratcheted to 595 script-counted lines, with
+`src/app/contracts/dpm_command_center.py` as the largest residual hotspot.
+The current DPM portfolio-memory contract-family boundary slice moves
+`DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
+`src/app/contracts/dpm_portfolio_memory.py` while preserving the public
+`dpm_command_center` compatibility facade. The blocking threshold is ratcheted from 595 to 591
+script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
+hotspot.
+The current Foundation optional-workspace boundary slice moves optional performance, rebalance,
+reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py`. `FoundationService` is reduced from 591 to
+316 script-counted lines and stays focused on source loading and response orchestration. The
+blocking threshold is ratcheted from 591 to 589 script-counted lines, with
+`src/app/services/portfolio_service.py` as the largest residual hotspot.
+The current portfolio holdings-orchestration boundary slice moves portfolio book, liquidity,
+projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py`. `PortfolioService` is reduced from 589 to 314
+script-counted lines, the extracted mixin is 347 lines, and the blocking threshold is ratcheted
+from 589 to 575 script-counted lines, with `src/app/observability/analytics_ui.py` as the largest
+residual hotspot.
+The current analytics UI field-governance boundary slice moves bounded analytics UI labels,
+forbidden fields, event vocabularies, and log/audit field validators into
+`src/app/observability/analytics_ui_fields.py` while preserving the public
+`app.observability.analytics_ui` import surface. `src/app/observability/analytics_ui.py` is reduced
+from 575 to 343 script-counted lines, and the blocking threshold is ratcheted from 575 to 567
+script-counted lines, with `src/app/contracts/dpm_waves.py` as the largest residual hotspot.
+The current DPM wave campaign-definition contract slice moves campaign-definition request, launch,
+lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public `dpm_waves`
+compatibility facade. `src/app/contracts/dpm_waves.py` is reduced from 567 to 480 script-counted
+lines, and the blocking threshold is ratcheted from 567 to 562 script-counted lines, with
+`src/app/services/workbench_service.py` as the largest residual hotspot.
+The current Workbench snapshot-context slice moves Core portfolio/snapshot fan-out,
+product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembly into
+`src/app/services/workbench_snapshot_context.py` while preserving the public `WorkbenchService`
+surface. `src/app/services/workbench_service.py` is reduced from 562 to 515 script-counted lines,
+and the blocking threshold is ratcheted from 562 to 560 script-counted lines, with
+`src/app/contracts/reporting.py` as the largest residual hotspot.
+The current Workbench sandbox boundary slice moves simulation-session creation, sandbox change
+application, projected-state loading, and policy-feedback orchestration into
+`src/app/services/workbench_sandbox_service.py` while preserving the public `WorkbenchService`
+surface. `src/app/services/workbench_service.py` is reduced from 515 to 277 lines, and the blocking
+threshold is ratcheted from 515 to 508 lines, with
+`src/app/services/advisor_brief_source.py` as the largest residual hotspot.
+The current advisor-brief source-supportability slice moves source readiness rollup and
+advisor-brief status resolution into `src/app/services/advisor_brief_supportability.py` while
+preserving the public `advisor_brief_source` context builder surface.
+`src/app/services/advisor_brief_source.py` is reduced from 508 to 429 lines, and the blocking
+threshold is ratcheted from 508 to 504 lines, with
+`src/app/services/portfolio_transaction_summary.py` as the largest residual hotspot.
+The current portfolio transaction activity-summary slice moves activity bucket assembly into
+`src/app/services/portfolio_transaction_activity_summary.py` while keeping monetary amount
+normalization helpers in their existing governed allowlisted module.
+`portfolio_transaction_summary.py` is reduced from 504 to 462 lines, and the blocking threshold is
+ratcheted from 504 to 503 lines, with
+`src/app/contracts/portfolio_workspace.py` as the largest residual hotspot.
+The current portfolio workspace controls contract slice moves workspace control capability DTOs into
+`src/app/contracts/portfolio_workspace_controls.py` while preserving compatibility imports through
+`portfolio_workspace.py` and the portfolio facade. `portfolio_workspace.py` is reduced from 503 to
+319 lines, and the blocking threshold is ratcheted from 503 to 499 lines, with
+`src/app/contracts/dpm_command_center.py` as the largest residual hotspot.
+The current DPM command-center contract slice moves core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py` while preserving compatibility imports through
+`dpm_command_center.py`. `dpm_command_center.py` is reduced from 499 to 63 lines, and the blocking
+threshold is ratcheted from 499 to 497 lines, with
+`src/app/services/performance_workspace_service.py` as the largest residual hotspot.
+The current performance workspace evidence-service slice moves evidence artifact and evidence-view
+orchestration into `src/app/services/performance_workspace_evidence_service.py` while preserving
+the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is reduced
+from 497 to 437 lines, and the blocking threshold is ratcheted from 497 to 493 lines, with
+`src/app/services/performance_workspace_evidence.py` as the largest residual hotspot.
+The previous performance workspace evidence-response slice moves evidence-view response composition
+into `src/app/services/performance_workspace_evidence_response.py` and evidence request/fetch
+state into `src/app/services/performance_workspace_evidence_state.py` while preserving the public
+`performance_workspace_evidence.py` import surface. `performance_workspace_evidence.py` is reduced
+from 493 to below the top-file list, and the blocking threshold is ratcheted from 493 to 488 lines,
+with `src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
+The current reporting job contract slice moves report-job request, error, handle, and status DTOs
+into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
+import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,
+the extracted contract module is 221 lines, and the blocking threshold is ratcheted from 560 to
+559 script-counted lines, with `src/app/clients/lotus_analytics_client.py` as the largest residual
+hotspot.
+The current analytics performance client slice moves TWR, MWR, composite, contribution,
+attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. `src/app/clients/lotus_analytics_client.py` is reduced from 559 to
+290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking threshold
+is ratcheted from 559 to 556 script-counted lines, with
+`src/app/services/risk_workspace_service.py` as the largest residual hotspot.
+The current risk workspace attribution service slice moves attribution request normalization,
+blocked-response handling, cache orchestration, upstream fan-out, and response mapping into
+`src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. `risk_workspace_service.py` is reduced from 556 to
+380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
+blocking threshold is ratcheted from 556 to 549 script-counted lines, with
+`src/app/services/dpm_pm_operating_quality_service.py` as the largest residual hotspot.
+The current DPM PM operating-quality summary slice moves Manage score-run evidence loading,
+Lotus AI workflow-pack execution, missing-score-run validation, and summary response assembly into
+`src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the public
+`request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is reduced
+from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines, and the
+blocking threshold is ratcheted from 549 to 536 script-counted lines, with
+`src/app/clients/advise_proposal_client.py` as the largest residual hotspot.
+The previous Advise proposal memo client slice moved proposal memo create/read/projection/review,
+report-package, AI-commentary, lineage, and replay-evidence route methods into
+`src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
+surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted lines, the
+extracted memo mixin is 154 lines, and the blocking threshold is ratcheted from 536 to 535
+script-counted lines, with `src/app/clients/lotus_core_query_client.py` as the largest residual
+hotspot.
+The previous Lotus Core simulation-session client slice moved simulation-session create, change,
+projected-position, and projected-summary route methods into
+`src/app/clients/lotus_core_simulation_client.py` while preserving the public
+`LotusCoreQueryClient` surface. `lotus_core_query_client.py` is reduced from 535 to 481
+script-counted lines, the extracted simulation mixin is 78 lines, and the blocking threshold is
+ratcheted from 535 to 525 script-counted lines, with
+`src/app/services/performance_workspace_attribution.py` as the largest residual hotspot.
+The current performance attribution supportability slice moves attribution reason,
+residual-materiality, and supportability-evidence parsers into
+`src/app/services/performance_workspace_attribution_supportability.py` while preserving the
+existing `performance_workspace_attribution` import surface. `performance_workspace_attribution.py`
+is reduced from 525 to 471 script-counted lines, the extracted parser module is 65 lines, and the
+blocking threshold is ratcheted from 525 to 522 script-counted lines, with
+`src/app/services/risk_workspace_rolling.py` as the largest residual hotspot.
+The current performance attribution trend parser slice moves trend result parsing,
+period-payload selection, and row construction into
+`src/app/services/performance_workspace_attribution_trend.py` while preserving the existing
+`performance_workspace_attribution` import surface. `performance_workspace_attribution.py` is
+reduced from 471 to 302 script-counted lines, the extracted trend parser module is 205 lines, and
+the blocking threshold is ratcheted from 471 to 465 script-counted lines, with
+`src/app/contracts/domain_products.py` as the largest residual hotspot.
+The current domain-product trust contract slice moves live-trust certification DTOs into
+`src/app/contracts/domain_product_trust.py` while preserving the existing
+`app.contracts.domain_products` import surface. `domain_products.py` is reduced from 465 to 321
+script-counted lines, the extracted trust contract module is 163 lines, and the blocking
+threshold is ratcheted from 465 to 462 script-counted lines, with
+`src/app/services/portfolio_transaction_summary.py` as the largest residual hotspot.
+The current portfolio transaction income-summary slice moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the existing
+`portfolio_transaction_summary` import surface. `portfolio_transaction_summary.py` is reduced from
+462 to 201 script-counted lines, the extracted income module is 210 lines, the extracted amount
+helper module is 99 lines, and the blocking threshold is ratcheted from 462 to 458 script-counted
+lines, with `src/app/services/workspace_client_protocols.py` as the largest residual hotspot.
+The current portfolio client protocol-family slice moves `PortfolioCoreClient`,
+`PortfolioPerformanceClient`, and `PortfolioManageClient` into
+`src/app/services/portfolio_client_protocols.py` while preserving the existing
+`workspace_client_protocols` compatibility surface. `workspace_client_protocols.py` is reduced
+from 458 to 329 script-counted lines, the extracted portfolio protocol module is 141 lines, and
+the blocking threshold is ratcheted from 458 to 452 script-counted lines, with
+`src/app/clients/dpm_client.py` as the largest residual hotspot.
+The current risk rolling window-boundary slice moves rolling-window, metric-series,
+dependency-context, and window-length mapping into
+`src/app/services/risk_workspace_rolling_windows.py` while preserving the public rolling response
+mapper. The blocking threshold is ratcheted from 522 to 521 script-counted lines, with
+`src/app/services/dpm_command_center_service.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
@@ -242,7 +420,11 @@ service. Platform capability normalization, shell-bootstrap construction, worksp
 module-health classification, policy diagnostics, workflow flags, and input-mode normalization have
 been extracted to `src/app/services/platform_capabilities_normalization.py`, reducing
 `platform_capabilities_service.py` to 330 lines while keeping upstream orchestration, timeout
-handling, correlation propagation, and partial-failure collection in the service. Shell-bootstrap
+handling, correlation propagation, and partial-failure collection in the service. Source-result
+parsing has been further extracted to `src/app/services/platform_capabilities_sources.py`,
+reducing `platform_capabilities_service.py` from 427 to 326 lines while keeping policy payload
+classification and optional-source partial-failure behavior behind the service facade.
+Shell-bootstrap
 contract assembly and workspace descriptor state mapping have been further extracted to
 `src/app/services/platform_capabilities_shell.py`, reducing the capability normalization module to
 355 lines and keeping shell navigation evidence separately testable. Portfolio workspace-control

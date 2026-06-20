@@ -1,4 +1,6 @@
+import ast
 from datetime import date
+from pathlib import Path
 
 from app.services.performance_workspace_attribution import (
     build_detail_attribution_summary,
@@ -9,6 +11,17 @@ from app.services.performance_workspace_attribution import (
     parse_attribution_supportability_evidence,
     parse_attribution_trend_results,
 )
+
+_SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+
+
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+    }
 
 
 def test_build_workspace_attribution_summary_maps_embedded_payload():
@@ -369,3 +382,36 @@ def test_attribution_parsers_fail_closed_for_invalid_payloads():
     assert parse_attribution_residual_materiality([]) is None
     assert parse_attribution_residual_materiality({"absolute_residual": 0.1}) is None
     assert parse_attribution_supportability_evidence([]) is None
+
+
+def test_attribution_supportability_parsers_live_in_dedicated_module() -> None:
+    attribution_methods = _function_names(_SERVICE_ROOT / "performance_workspace_attribution.py")
+    supportability_methods = _function_names(
+        _SERVICE_ROOT / "performance_workspace_attribution_supportability.py"
+    )
+
+    extracted_methods = {
+        "parse_attribution_reasons",
+        "parse_attribution_residual_materiality",
+        "parse_attribution_supportability_evidence",
+    }
+
+    assert extracted_methods <= supportability_methods
+    assert not extracted_methods & attribution_methods
+
+
+def test_attribution_trend_parsers_live_in_dedicated_module() -> None:
+    attribution_methods = _function_names(_SERVICE_ROOT / "performance_workspace_attribution.py")
+    trend_methods = _function_names(_SERVICE_ROOT / "performance_workspace_attribution_trend.py")
+
+    extracted_methods = {
+        "build_attribution_trend_period_payload",
+        "build_attribution_trend_row",
+        "parse_attribution_trend_results",
+        "parse_single_attribution_trend_row",
+        "select_attribution_trend_period_payload",
+        "unpack_attribution_trend_payload",
+    }
+
+    assert extracted_methods <= trend_methods
+    assert not extracted_methods & attribution_methods

@@ -16,16 +16,20 @@ The current local and PR-grade blocking gates are:
 3. refactor quality thresholds blocking new growth above the current largest-file and
    longest-function baselines,
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
-   workflow-level Node 24 JavaScript action opt-in,
-5. `mypy` over `src`,
-6. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+   workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
+5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
+   keeps the executable 406/49 ratchet, the current largest hotspot
+   `src/app/clients/advise_proposal_client.py`, and durable scorecard/context guidance in
+   sync,
+6. `mypy` over `src`,
+7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-7. migration contract smoke,
-8. unit and contract tests,
-9. integration tests,
-10. coverage with an 84% floor,
-11. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-12. Docker build and local Docker parity in the PR Merge Gate.
+8. migration contract smoke,
+9. unit and contract tests,
+10. integration tests,
+11. coverage with an 84% floor,
+12. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+13. Docker build and local Docker parity in the PR Merge Gate.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
 lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
@@ -43,9 +47,12 @@ Report-only quality checks should remain advisory until findings are classified:
 6. import-linter architecture contracts,
 7. documentation and observability scorecard gaps.
 
-The report-only workflow now enforces evidence capture itself: the expected quality-baseline log
-files and generated OpenAPI artifact must exist before upload. Tool findings remain report-only;
-missing or unusable evidence is treated as a CI measurement defect.
+The quality-baseline workflow now enforces the already-remediated source-size, function-size,
+workflow-governance, and agent quality evidence thresholds before running report-only tools. It
+also enforces evidence capture itself: the expected quality-baseline log files,
+workflow-governance proof, agent-quality-evidence proof, and generated OpenAPI artifact must exist
+before upload. Tool findings remain report-only; missing or unusable evidence is treated as a CI
+measurement defect.
 
 ## Progressive Enforcement Plan
 
@@ -62,15 +69,228 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 628
+2. Current enforced source-file threshold: no Python source file under `src/app` above 406
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=628` and `max_function_lines=49`.
-5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+   `max_source_file_lines=406` and `max_function_lines=49`.
+5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
+   window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
+   source-file ceiling to 521 script-counted lines with
+   `src/app/services/dpm_command_center_service.py` now the largest residual hotspot.
+6. Quality Baseline now runs blocking `Enforce Refactored Source Thresholds` and
+   `Enforce Workflow Governance` steps, capturing both
+   `output/quality-baseline/refactor-thresholds.txt` and
+   `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
+7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
+   `scripts/check_agent_quality_evidence.py`, proving the executable 406/49 ratchet still matches
+   current source truth and that durable scorecard/context guidance names
+   `src/app/clients/advise_proposal_client.py` as the 406-line hotspot.
+8. Current risk workspace attribution mapping extraction moves upstream attribution period, set,
+   contributor, quality-flag, and numeric coercion mapping into
+   `src/app/services/risk_workspace_attribution_mapping.py` while preserving public
+   `map_attribution_response` behavior. It reduces
+   `src/app/services/risk_workspace_attribution.py` from 408 to 274 lines and ratchets the
+   blocking threshold from 408/49 to 406/49 because
+   `src/app/clients/advise_proposal_client.py` is now the sole 406-line hotspot; threshold trials
+   prove 406 passes while 405 fails only on that file. Focused validation includes risk workspace
+   attribution, risk workspace service, service-boundary, refactor-threshold, and agent quality
+   evidence checks.
+9. Previous DPM wave AI payload extraction moved wave report-input supportability extraction,
+   source-reference construction, request/task payload construction, supportability guardrail
+   payloads, and gateway response assembly into `src/app/services/dpm_wave_ai_payloads.py` while
+   preserving public `DpmWaveService` behavior. It reduces
+   `src/app/services/dpm_wave_ai_handoff.py` from 411 to 195 lines and ratchets the blocking
+   threshold from 411/49 to 408/49 because `src/app/services/risk_workspace_attribution.py` is now
+   the sole 408-line hotspot; threshold trials prove 408 passes while 407 fails only on that file.
+   Focused validation includes DPM wave service, DPM wave contract, service-boundary,
+   refactor-threshold, and agent quality evidence checks.
+10. Previous performance workspace attribution-trend service extraction moved attribution-trend
+   request-context assembly, window construction, upstream fan-out, and response assembly into
+   `src/app/services/performance_workspace_attribution_trend_service.py` while preserving public
+   `PerformanceWorkspaceService.get_performance_attribution_trend` behavior. It reduces
+   `src/app/services/performance_workspace_trend_service.py` from 415 to 223 lines and ratchets the
+   blocking threshold from 415/49 to 411/49 because
+   `src/app/services/dpm_wave_ai_handoff.py` is now the sole 411-line hotspot; threshold trials
+   prove 411 passes while 410 fails only on that file. Focused validation includes performance
+   workspace service, performance attribution, service-boundary, refactor-threshold, and agent
+   quality evidence checks.
+11. Current DPM wave AI contract extraction moves supportability and AI handoff DTOs into
+   `src/app/contracts/dpm_wave_supportability.py` and `src/app/contracts/dpm_wave_ai.py` while
+   preserving public `app.contracts.dpm_waves` imports and OpenAPI schema names. It reduces
+   `src/app/contracts/dpm_waves.py` from 415 to 177 lines. The blocking threshold remains 415/49
+   because `src/app/services/performance_workspace_trend_service.py` is now the sole 415-line
+   hotspot; threshold trials prove 415 passes while 414 fails only on that file. Focused validation
+   includes DPM wave contract, DPM wave service, contract-boundary, refactor-threshold, and agent
+   quality evidence checks.
+12. Current risk rolling payload-example extraction moves the large rolling OpenAPI payload example
+   into `src/app/contracts/risk_workspace_rolling_examples.py` while preserving
+   `WorkbenchRiskRollingPayload` schema behavior and the compatibility example alias. It reduces
+   `src/app/contracts/risk_workspace_rolling.py` from 421 to 337 lines, moves the largest
+   source-file hotspot to `src/app/contracts/dpm_waves.py` at 415 lines, and ratchets the blocking
+   source-file threshold from 421 to 415. Focused validation includes risk rolling contract,
+   contract-boundary, refactor-threshold, quality-baseline artifact, and agent quality evidence
+   tests, with threshold trials proving 415 passes while 414 fails on
+   `src/app/contracts/dpm_waves.py` and `src/app/services/performance_workspace_trend_service.py`.
+13. Current platform capabilities source-result extraction moves upstream capability result
+   classification into `src/app/services/platform_capabilities_sources.py` while preserving public
+   `get_platform_capabilities` behavior. It reduces
+   `src/app/services/platform_capabilities_service.py` from 427 to 326 lines, moves the largest
+   source-file hotspot to `src/app/contracts/risk_workspace_rolling.py` at 421 lines, and ratchets
+   the blocking source-file threshold from 427 to 421. Focused validation includes platform
+   capability service, service-boundary, refactor-threshold, quality-baseline artifact, and agent
+   quality evidence tests, with threshold trials proving 421 passes while 420 fails only on
+   `src/app/contracts/risk_workspace_rolling.py`.
+10. Current advisor-brief source metric extraction moves return-source metric construction into
+   `src/app/services/advisor_brief_source_metrics.py` while preserving public
+   `build_advisor_brief_source_metrics` behavior. It reduces
+   `src/app/services/advisor_brief_source.py` from 429 to 366 lines, moves the largest
+   source-file hotspot to `src/app/services/platform_capabilities_service.py` at 427 lines, and
+   ratchets the blocking source-file threshold from 429 to 427. Focused validation includes
+   advisor-brief source, service-boundary, refactor-threshold, quality-baseline artifact, and
+   agent quality evidence tests, with threshold trials proving 427 passes while 426 fails only on
+   `src/app/services/platform_capabilities_service.py`.
+9. Current proposal generation contract extraction moves simulation request, response, and data
+   contracts into `src/app/contracts/proposal_generation.py` while preserving public
+   `app.contracts.proposals` imports. It reduces `src/app/contracts/proposals.py` from 431 to 314
+   lines, moves the largest source-file hotspot to `src/app/services/advisor_brief_source.py` at
+   429 lines, and ratchets the blocking source-file threshold from 431 to 429. Focused validation
+   includes proposal contract, contract-module boundary, refactor-threshold,
+   quality-baseline artifact, and agent quality evidence tests, with threshold trials proving 429
+   passes while 428 fails only on `src/app/services/advisor_brief_source.py`.
+9. Current risk workspace supportability extraction moves rolling supportability construction and
+   shared source-calculation supportability into `risk_workspace_rolling_supportability.py` and
+   `risk_workspace_source_supportability.py` while preserving rolling and attribution response
+   behavior. It reduces `src/app/services/risk_workspace_rolling.py` from 432 to 342 lines and
+   `src/app/services/risk_workspace_attribution.py` from 432 to 408 lines, moves the largest
+   source-file hotspot to `src/app/contracts/proposals.py` at 431 lines, and ratchets the
+   blocking source-file threshold from 432 to 431. Focused validation includes risk workspace
+   service, rolling-window, rolling-supportability, service-boundary, refactor-threshold,
+   quality-baseline artifact, and agent quality evidence tests, with threshold trials proving 431
+   passes while 430 fails only on `src/app/contracts/proposals.py`.
+9. Current performance workspace summary-view extraction moves summary fetch, parse, and detail-view
+   fan-out orchestration into `src/app/services/performance_workspace_summary_views.py` while
+   preserving the public `PerformanceWorkspaceService` response behavior. It reduces
+   `src/app/services/performance_workspace_service.py` from 437 to 355 lines, moves the largest
+   source-file hotspot to `src/app/services/risk_workspace_attribution.py` at 432 lines, and
+   ratchets the blocking source-file threshold from 437 to 432. Focused validation includes
+   performance workspace service, service-boundary, refactor-threshold, quality-baseline artifact,
+   and agent quality evidence tests, with threshold trials proving 432 passes while 431 fails only
+   on `src/app/services/risk_workspace_attribution.py` and
+   `src/app/services/risk_workspace_rolling.py`.
+9. Current advisor-brief runtime-context extraction moves runtime evidence loading into
+   `src/app/services/advisor_brief_runtime_context.py` while preserving the public
+   `AdvisorBriefService` response and review-action behavior. It reduces
+   `src/app/services/advisor_brief_service.py` from 438 to 397 lines, moves the largest
+   source-file hotspot to `src/app/services/performance_workspace_service.py` at 437 lines,
+   and ratchets the blocking source-file threshold from 438 to 437. Focused validation includes
+   advisor-brief service, service-boundary, refactor-threshold, quality-baseline artifact, and
+   agent quality evidence tests, with threshold trials proving 437 passes while 436 fails only on
+   `src/app/services/performance_workspace_service.py`.
+8. Current performance attribution trend parser slice moves trend result parsing, period-payload
+   selection, and row construction into `src/app/services/performance_workspace_attribution_trend.py`
+   while preserving the public `performance_workspace_attribution` import surface. Focused
+   validation passed with 22 performance attribution, refactor-threshold, quality-baseline
+   artifact, and agent quality evidence tests, mypy over touched performance attribution modules,
+   and refactor-threshold trials proving 465 passes while 464 fails only on
+   `src/app/contracts/domain_products.py`. Full local `make check` passed with monetary-float
+   governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent
+   quality evidence, mypy over 595 source files, OpenAPI smoke, and 1,286 unit/contract tests.
+9. Current domain-product trust contract slice moves live-trust certification DTOs into
+   `src/app/contracts/domain_product_trust.py` while preserving the public
+   `app.contracts.domain_products` import surface. Focused validation passed with 37
+   domain-product contract, service, contract-boundary, refactor-threshold, and quality-baseline
+   artifact tests, mypy over touched domain-product contract/service modules, and
+   refactor-threshold trials proving 462 passes while 461 fails only on
+   `src/app/services/portfolio_transaction_summary.py`. Full local `make check` passed with
+   monetary-float governance at 152 findings/152 allowlisted, workflow governance, refactor
+   thresholds, agent quality evidence, mypy over 596 source files, OpenAPI smoke, and 1,287
+   unit/contract tests.
+10. Current portfolio transaction income-summary slice moves income summary construction into
+   `src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+   into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+   `portfolio_transaction_summary` import surface. It reduces
+   `src/app/services/portfolio_transaction_summary.py` from 462 to 201 lines, moves the largest
+   source-file hotspot to `src/app/services/workspace_client_protocols.py` at 458 lines, and
+   ratchets the blocking threshold from 462 to 458. Focused validation passed with 21 portfolio
+   transaction summary, refactor-threshold, quality-baseline artifact, and agent quality evidence
+   tests, touched-module mypy, and refactor-threshold trials proving 458 passes while 457 fails
+   only on the workspace client protocol hotspot; the agent quality evidence gate now tracks the
+   executable 458/49 ratchet. Full local `make check` passed with monetary-float governance at
+   152 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence,
+   mypy over 598 source files, OpenAPI smoke, and 1,288 unit/contract tests.
+11. Current portfolio client protocol-family slice moves `PortfolioCoreClient`,
+   `PortfolioPerformanceClient`, and `PortfolioManageClient` into
+   `src/app/services/portfolio_client_protocols.py` while preserving the public
+   `workspace_client_protocols` compatibility surface. It reduces
+   `src/app/services/workspace_client_protocols.py` from 458 to 329 lines, moves the largest
+   source-file hotspot to `src/app/clients/dpm_client.py` at 452 lines, and ratchets the blocking
+   threshold from 458 to 452. Focused validation passed with 99 portfolio service, portfolio
+   catalog payload, service-boundary, refactor-threshold, quality-baseline artifact, and agent
+   quality evidence tests, touched-module mypy, and refactor-threshold trials proving 452 passes
+   while 451 fails only on the DPM client hotspot; the agent quality evidence gate now tracks the
+   executable 452/49 ratchet. Full local `make check` passed with monetary-float governance at
+   152 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence,
+   mypy over 599 source files, OpenAPI smoke, and 1,290 unit/contract tests.
+12. Current DPM outcome-review client route-family slice moves outcome-review upstream routes into
+   `src/app/clients/dpm_outcome_review_client.py` while preserving the public `DpmClient` facade.
+   It reduces `src/app/clients/dpm_client.py` below the blocking ceiling, moves the largest
+   source-file hotspot to `src/app/services/risk_workspace_requests.py` at 448 lines, and ratchets
+   the blocking threshold from 452 to 448. Focused validation includes DPM client boundary coverage,
+   upstream-client route coverage, refactor-threshold, quality-baseline artifact, and agent quality
+   evidence checks; the agent quality evidence gate now tracks the executable 448/49 ratchet.
+13. Current risk workspace request-payload slice moves Lotus Risk stateful request payload
+   construction and period/currency/detail-basis normalization into
+   `src/app/services/risk_workspace_request_payloads.py` while preserving the public
+   `risk_workspace_requests` compatibility surface. It reduces
+   `src/app/services/risk_workspace_requests.py` from 448 to 254 lines, moves the largest
+   source-file hotspot to `src/app/services/advisor_brief_narrative.py` at 444 lines, and ratchets
+   the blocking threshold from 448 to 444. Focused validation includes risk workspace request,
+   service, cache, attribution, refactor-threshold, quality-baseline artifact, and agent quality
+   evidence checks; the agent quality evidence gate now tracks the executable 444/49 ratchet.
+14. Current advisor-brief AI output parsing slice moves structured-output parsing, evidence-ref
+   parsing, source-surface inference, and safe execution-detail extraction into
+   `src/app/services/advisor_brief_ai_output.py` while preserving the public
+   `advisor_brief_narrative` behavior. It reduces
+   `src/app/services/advisor_brief_narrative.py` from 444 to 260 lines, moves the largest
+   source-file hotspot to `src/app/services/performance_workspace_horizon.py` at 441 lines, and
+   ratchets the blocking threshold from 444 to 441. Focused validation includes advisor-brief
+   narrative/service, refactor-threshold, quality-baseline artifact, and agent quality evidence
+   checks; the agent quality evidence gate now tracks the executable 441/49 ratchet.
+15. Current performance horizon standard-window extraction moves MTD/QTD/YTD fetch and merge
+   helpers into `src/app/services/performance_workspace_standard_horizon.py` while preserving the
+   public horizon helper imports. It reduces `src/app/services/performance_workspace_horizon.py`
+   from 441 to 220 lines, creates a focused 246-line standard-horizon helper, moves the largest
+   source-file hotspot to `src/app/contracts/performance_attribution.py` at 440 lines, and ratchets
+   the blocking threshold from 441 to 440. Focused validation includes horizon helper tests,
+   touched-module mypy, refactor-threshold pass/fail trials, quality-baseline artifact tests, and
+   agent quality evidence checks; full local `make check` passed with workflow governance,
+   refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI smoke, and
+   1,293 unit/contract tests; the agent quality evidence gate now tracks the executable 440/49
+   ratchet.
+16. Current performance attribution supportability contract extraction moves source-owned reason,
+   residual materiality, and evidence contracts into
+   `src/app/contracts/performance_attribution_supportability.py` while preserving the public
+   `app.contracts.performance_attribution` and `app.contracts.performance_workspace` import
+   surfaces. It reduces `src/app/contracts/performance_attribution.py` from 440 to 361 lines,
+   moves the largest source-file hotspot to `src/app/services/advisor_brief_service.py` at 438
+   lines, and ratchets the blocking threshold from 440 to 438. Focused validation includes
+   performance attribution contract tests, touched-module mypy, refactor-threshold pass/fail
+   trials, quality-baseline artifact tests, and agent quality evidence checks; full local
+   `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+   over 604 source files, OpenAPI smoke, and 1,294 unit/contract tests; the agent quality evidence
+   gate now tracks the executable 438/49 ratchet.
+17. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+   minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
+   timeouts in `make lint`.
+11. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+12. Current CI enforcement slice focused validation passed with 26 agent quality evidence,
+   quality-baseline artifact, workflow-action runtime, and refactor-threshold tests. Full local
+   `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+   over 579 source files, OpenAPI smoke, and 1,272 unit/contract tests.
+13. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
    `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.
@@ -81,7 +301,7 @@ Most recent local PR-grade evidence:
    unit/contract tests, and full local `make ci` passed with 209 integration tests, 1,436 combined
    coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
-7. Current performance workspace boundary branch moves detail-view orchestration into
+11. Current performance workspace boundary branch moves detail-view orchestration into
    `src/app/services/performance_workspace_detail_views.py`, preserving the public
    `PerformanceWorkspaceService` surface while reducing
    `src/app/services/performance_workspace_service.py` below the previous top-file ceiling.
@@ -708,13 +928,14 @@ Most recent local PR-grade evidence:
 
 ## Next Tightening Candidates
 
-1. Keep the quality baseline tool findings report-only while findings are classified; keep artifact
-   presence and OpenAPI artifact validity enforced so evidence gaps are visible.
+1. Keep the quality baseline tool findings report-only while findings are classified; keep
+   refactor-threshold, workflow-governance, artifact presence, and OpenAPI artifact validity
+   enforced so evidence gaps are visible.
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/reporting_batches.py` is now the
-   largest file at 662 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/clients/dpm_client.py` is now the largest
+   file at 452 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

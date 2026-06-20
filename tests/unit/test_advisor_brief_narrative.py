@@ -1,3 +1,6 @@
+import ast
+from pathlib import Path
+
 from advisor_brief_test_data import build_advisor_brief_workspace
 
 from app.contracts.advisor_brief import AdvisorBriefStatus
@@ -8,6 +11,36 @@ from app.services.advisor_brief_narrative import (
     safe_advisor_brief_error_detail,
 )
 from app.services.advisor_brief_source import build_advisor_brief_source_context
+
+_SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+
+
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+
+
+def test_ai_output_parsers_live_in_dedicated_module() -> None:
+    narrative_functions = _function_names(_SERVICE_ROOT / "advisor_brief_narrative.py")
+    output_functions = _function_names(_SERVICE_ROOT / "advisor_brief_ai_output.py")
+
+    extracted_functions = {
+        "extract_ai_summary",
+        "extract_ai_talking_points",
+        "extract_ai_risks",
+        "extract_ai_recommended_actions",
+        "safe_execution_detail",
+    }
+    private_parser_functions = {
+        "_parse_ai_narrative_item",
+        "_parse_ai_evidence_ref",
+        "_infer_source_surface",
+    }
+
+    assert extracted_functions <= output_functions
+    assert private_parser_functions <= output_functions
+    assert not extracted_functions & narrative_functions
+    assert not private_parser_functions & narrative_functions
 
 
 def test_build_advisor_brief_ai_task_request_preserves_source_fact_bundle() -> None:
