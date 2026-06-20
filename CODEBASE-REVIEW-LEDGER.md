@@ -1,8 +1,30 @@
 # Codebase Review Ledger
 
-Date: 2026-06-19
+Date: 2026-06-20
 Repository: `lotus-gateway`
-Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
+Branch: `feature/gateway-demo-certification-reporting`
+
+## Gateway Demo Certification Report-Only Command
+
+- Scope: app-level demo-readiness evidence command and report-only CI wiring.
+- Existing owner pattern: Gateway owns product-facing FastAPI route composition; Lotus Core,
+  Performance, Manage, and Advise remain source truth for portfolio data, performance figures,
+  DPM supportability, and policy feedback.
+- Change: added `scripts/certify_demo_readiness.py` and `make demo-certification`; the command
+  uses deterministic synthetic upstream fixtures through real Gateway routes and writes
+  `output/demo-certification/gateway-demo-certification.json`.
+- Measured signal: current local command passed 24 assertions across five Gateway API calls:
+  readiness, Workbench overview, portfolio-360 projected state, sandbox create, and sandbox apply
+  policy feedback for `PB_SG_GLOBAL_BAL_001`.
+- CI posture: Quality Baseline now runs the command with `continue-on-error: true`, captures
+  `output/quality-baseline/demo-certification.txt`, and uploads `output/demo-certification/` as
+  report-only evidence. It is not a blocking gate until repeated runs prove deterministic,
+  low-noise behavior and an exception policy.
+- Tests: `tests/unit/test_demo_readiness_certification.py` validates machine-readable evidence,
+  canonical figures, endpoint count, and report-only posture; quality-baseline artifact tests pin
+  CI wiring.
+- Follow-up: review repeated Quality Baseline artifacts before considering Feature Lane or PR Merge
+  Gate promotion.
 
 ## Risk Workspace Attribution Mapping Extraction
 

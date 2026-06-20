@@ -76,5 +76,9 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "python scripts/check_agent_quality_evidence.py \\" in workflow
     assert "output/quality-baseline/agent-quality-evidence.txt" in workflow
     assert "Validate Quality Baseline Artifact Set" in workflow
+    assert "Demo Certification Baseline" in workflow
+    assert "make demo-certification" in workflow
+    assert "output/quality-baseline/demo-certification.txt" in workflow
+    assert "output/demo-certification/" in workflow
     assert "python scripts/check_quality_baseline_artifacts.py" in workflow
     assert "if-no-files-found: error" in workflow
