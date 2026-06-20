@@ -998,7 +998,7 @@ source-file ceiling blocker.
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current risk workspace attribution mapping extraction focused validation includes risk workspace attribution, risk workspace controls, risk workspace service, service-boundary, refactor-threshold, and agent quality evidence checks, with refactor-threshold proof at `max_source_file_lines=406`; full local `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy over 617 source files, OpenAPI smoke, and 1,307 unit/contract tests |
+| Unit/contract coverage | Healthy | Current Gateway demo certification focused validation includes demo certification evidence and quality-baseline artifact tests; full local `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy over 617 source files, OpenAPI smoke, and 1,308 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current portfolio transaction income-summary extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, data-mesh behavior, or runtime behavior changes; monetary-float governance remains flat at 152 findings/152 allowlisted after moving existing helper float conversions to focused transaction modules; prior full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
@@ -1009,6 +1009,7 @@ source-file ceiling blocker.
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 406/49 ratchet and the current `src/app/clients/advise_proposal_client.py` hotspot evidence to stay synchronized with durable guidance |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
+| Demo certification | New report-only evidence | `make demo-certification` calls real Gateway FastAPI routes with deterministic synthetic upstream fixtures and writes `output/demo-certification/gateway-demo-certification.json`; current local evidence passed 24 assertions across readiness, Workbench overview, portfolio-360 projected state, and sandbox policy feedback for `PB_SG_GLOBAL_BAL_001`. It remains report-only until repeated CI runs prove deterministic, low-noise behavior and policy-backed exception handling |
 
 ## Primary Refactor Backlog
 
@@ -1066,5 +1067,7 @@ source-file ceiling blocker.
    - import-linter,
    - OpenAPI spectral warnings,
    - `pip-audit` and high-confidence `bandit` findings.
-5. Enterprise-readiness gates should require docs, API, security, observability, and architecture
+5. Keep Gateway demo certification report-only until repeated Quality Baseline runs prove stable
+   deterministic evidence and a remediation/exception policy is documented.
+6. Enterprise-readiness gates should require docs, API, security, observability, and architecture
    scorecard sections to be green before release promotion.

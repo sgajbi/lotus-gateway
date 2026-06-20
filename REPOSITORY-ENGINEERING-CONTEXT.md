@@ -213,8 +213,12 @@ Important validation expectations:
    `scripts/check_agent_quality_evidence.py`; it keeps the executable 406/49 refactor ratchet, the
    current `src/app/clients/advise_proposal_client.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
-6. Docker parity matters because the gateway is a live integration boundary,
-7. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+6. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
+   FastAPI routes with deterministic synthetic upstream fixtures, writes
+   `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
+   Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
+7. Docker parity matters because the gateway is a live integration boundary,
+8. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository

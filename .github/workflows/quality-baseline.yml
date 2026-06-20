@@ -120,6 +120,13 @@ jobs:
           PY
           spectral lint openapi.json --ruleset .spectral.yaml 2>&1 | tee output/quality-baseline/spectral.txt
 
+      - name: Demo Certification Baseline
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p output/quality-baseline output/demo-certification
+          make demo-certification 2>&1 | tee output/quality-baseline/demo-certification.txt
+
       - name: Validate Quality Baseline Artifact Set
         run: python scripts/check_quality_baseline_artifacts.py
 
@@ -130,5 +137,6 @@ jobs:
           name: quality-baseline
           path: |
             output/quality-baseline/
+            output/demo-certification/
             openapi.json
           if-no-files-found: error

@@ -45,7 +45,9 @@ Report-only quality checks should remain advisory until findings are classified:
 4. static security scanning beyond dependency vulnerabilities,
 5. OpenAPI Spectral warnings,
 6. import-linter architecture contracts,
-7. documentation and observability scorecard gaps.
+7. documentation and observability scorecard gaps,
+8. Gateway demo certification until repeated Quality Baseline runs prove deterministic, low-noise
+   behavior and a remediation/exception policy is approved.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
 workflow-governance, and agent quality evidence thresholds before running report-only tools. It
@@ -53,6 +55,13 @@ also enforces evidence capture itself: the expected quality-baseline log files,
 workflow-governance proof, agent-quality-evidence proof, and generated OpenAPI artifact must exist
 before upload. Tool findings remain report-only; missing or unusable evidence is treated as a CI
 measurement defect.
+
+The Gateway demo certification command is now repo-native through `make demo-certification`. It
+writes `output/demo-certification/gateway-demo-certification.json` and is run in Quality Baseline
+with `continue-on-error: true`, capturing `output/quality-baseline/demo-certification.txt`.
+Promotion to a blocking Feature Lane or PR Merge Gate step is explicitly deferred until
+`lotus-ci-enforcement-governance` intake proves stability, false-positive behavior, lane placement,
+and exception policy.
 
 ## Progressive Enforcement Plan
 
@@ -87,7 +96,13 @@ Most recent local PR-grade evidence:
    `scripts/check_agent_quality_evidence.py`, proving the executable 406/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
    `src/app/clients/advise_proposal_client.py` as the 406-line hotspot.
-8. Current risk workspace attribution mapping extraction moves upstream attribution period, set,
+8. Current Gateway demo certification slice adds `make demo-certification`, which calls five real
+   Gateway FastAPI endpoints with deterministic synthetic upstream fixtures and writes
+   `output/demo-certification/gateway-demo-certification.json`. The current local run passed 24
+   assertions over readiness, Workbench overview, portfolio-360 projected state, and sandbox
+   policy feedback for `PB_SG_GLOBAL_BAL_001`; CI wiring is report-only and captures
+   `output/quality-baseline/demo-certification.txt`.
+9. Current risk workspace attribution mapping extraction moves upstream attribution period, set,
    contributor, quality-flag, and numeric coercion mapping into
    `src/app/services/risk_workspace_attribution_mapping.py` while preserving public
    `map_attribution_response` behavior. It reduces
@@ -97,7 +112,7 @@ Most recent local PR-grade evidence:
    prove 406 passes while 405 fails only on that file. Focused validation includes risk workspace
    attribution, risk workspace service, service-boundary, refactor-threshold, and agent quality
    evidence checks.
-9. Previous DPM wave AI payload extraction moved wave report-input supportability extraction,
+10. Previous DPM wave AI payload extraction moved wave report-input supportability extraction,
    source-reference construction, request/task payload construction, supportability guardrail
    payloads, and gateway response assembly into `src/app/services/dpm_wave_ai_payloads.py` while
    preserving public `DpmWaveService` behavior. It reduces

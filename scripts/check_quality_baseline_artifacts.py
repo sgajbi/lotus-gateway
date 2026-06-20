@@ -20,6 +20,7 @@ EXPECTED_BASELINE_LOGS = (
     "security.txt",
     "interrogate.txt",
     "spectral.txt",
+    "demo-certification.txt",
 )
 
 

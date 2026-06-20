@@ -53,6 +53,9 @@ durable scorecard/context guidance synchronized for future agent development. It
 - import-boundary contracts through `import-linter`
 - docstring baseline through `interrogate`
 - OpenAPI governance through Spectral and `.spectral.yaml`
+- Gateway demo certification through `make demo-certification`, currently report-only, writing
+  `output/demo-certification/gateway-demo-certification.json` and
+  `output/quality-baseline/demo-certification.txt`
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
 findings, prove the blocking no-regression checks, then promote only agreed additional checks into
