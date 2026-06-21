@@ -1013,6 +1013,12 @@ reducing `src/app/services/platform_capabilities_normalization.py` from 404 to 1
 ratchets the blocking threshold from 404/49 to 402/49 because
 `src/app/services/performance_workspace_contribution.py` and
 `src/app/services/risk_workspace_service.py` are now the tied source-file ceiling blockers.
+Performance contribution payload mapping now moves contribution level, row, position,
+smoothing-evidence, and source-economics payload mapping into
+`src/app/services/performance_workspace_contribution_payloads.py`, reducing
+`src/app/services/performance_workspace_contribution.py` from 402 to 227 lines while preserving
+Lotus Performance source-truth payload handling. The blocking threshold remains 402/49 because
+`src/app/services/risk_workspace_service.py` is now the single source-file ceiling blocker.
 
 ## Health Signals
 
@@ -1023,12 +1029,12 @@ ratchets the blocking threshold from 404/49 to 402/49 because
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current portfolio transaction income-summary extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, data-mesh behavior, or runtime behavior changes; monetary-float governance remains flat at 152 findings/152 allowlisted after moving existing helper float conversions to focused transaction modules; prior full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits platform capability feature/workflow flag interpretation into a focused module while preserving normalized capability response behavior. The largest current source-file hotspots are `src/app/services/performance_workspace_contribution.py` and `src/app/services/risk_workspace_service.py` at 402 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits performance contribution payload mapping into a focused module while preserving contribution summary/detail response behavior. The largest current source-file hotspot is `src/app/services/risk_workspace_service.py` at 402 lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
-| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 402/49 ratchet and the current `src/app/services/performance_workspace_contribution.py` hotspot evidence to stay synchronized with durable guidance |
+| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 402/49 ratchet and the current `src/app/services/risk_workspace_service.py` hotspot evidence to stay synchronized with durable guidance |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 | Demo certification | New report-only evidence | `make demo-certification` calls real Gateway FastAPI routes with deterministic synthetic upstream fixtures and writes `output/demo-certification/gateway-demo-certification.json`; current local evidence passed 24 assertions across readiness, Workbench overview, portfolio-360 projected state, and sandbox policy feedback for `PB_SG_GLOBAL_BAL_001`. It remains report-only until repeated CI runs prove deterministic, low-noise behavior and policy-backed exception handling |
 
@@ -1036,7 +1042,6 @@ ratchets the blocking threshold from 404/49 to 402/49 because
 
 1. Continue splitting large contract modules, service modules, and remaining upstream clients
    around clear ownership boundaries. The next source-file hotspot is
-   `src/app/services/performance_workspace_contribution.py`, tied with
    `src/app/services/risk_workspace_service.py`.
 2. Continue splitting remaining large observability, contract, service, or client modules around
    cohesive behavior-preserving seams.
@@ -1081,7 +1086,7 @@ ratchets the blocking threshold from 404/49 to 402/49 because
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. The blocking agent quality evidence gate runs `scripts/check_agent_quality_evidence.py` to
    make future agent slices ratchet the 402/49 thresholds when the current largest file or
-   function improves, and to keep `src/app/services/performance_workspace_contribution.py` hotspot
+   function improves, and to keep `src/app/services/risk_workspace_service.py` hotspot
    evidence truthful in scorecard/context docs.
 4. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

@@ -978,6 +978,24 @@ def test_performance_workspace_evidence_delegates_response_composition() -> None
     assert evidence_facade_methods.isdisjoint(expected_response_methods)
 
 
+def test_performance_contribution_delegates_payload_mapping() -> None:
+    contribution_methods = _function_names(_SERVICE_ROOT / "performance_workspace_contribution.py")
+    payload_methods = _function_names(
+        _SERVICE_ROOT / "performance_workspace_contribution_payloads.py"
+    )
+    expected_payload_methods = {
+        "build_contribution_rows",
+        "build_detail_contribution_levels",
+        "build_position_rows",
+        "build_workspace_contribution_levels",
+        "parse_contribution_smoothing_evidence",
+        "parse_contribution_source_economics_evidence",
+    }
+
+    assert expected_payload_methods <= payload_methods
+    assert contribution_methods.isdisjoint(expected_payload_methods)
+
+
 def test_risk_workspace_mappers_delegate_source_supportability() -> None:
     source_supportability_methods = _function_names(
         _SERVICE_ROOT / "risk_workspace_source_supportability.py"

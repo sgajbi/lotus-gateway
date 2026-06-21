@@ -19,7 +19,7 @@ The current local and PR-grade blocking gates are:
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
    keeps the executable 402/49 ratchet, the current largest hotspot
-   `src/app/services/performance_workspace_contribution.py`, and durable scorecard/context guidance in
+   `src/app/services/risk_workspace_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -95,7 +95,7 @@ Most recent local PR-grade evidence:
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
    `scripts/check_agent_quality_evidence.py`, proving the executable 402/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/performance_workspace_contribution.py` as a 402-line hotspot.
+   `src/app/services/risk_workspace_service.py` as the current 402-line hotspot.
 8. Current Gateway demo certification slice adds `make demo-certification`, which calls five real
    Gateway FastAPI endpoints with deterministic synthetic upstream fixtures and writes
    `output/demo-certification/gateway-demo-certification.json`. The current local run passed 24
@@ -122,7 +122,17 @@ Most recent local PR-grade evidence:
    the tied 405-line hotspots; threshold trials prove 405 passes while 404 fails only on those
    two files. Focused validation includes Advise client-boundary, refactor-threshold,
    quality-baseline artifact, and agent quality evidence checks.
-11. Current platform capability feature and workflow flag extraction moves source capability
+11. Current performance contribution payload mapping extraction moves contribution level, row,
+   position, smoothing-evidence, and source-economics payload mapping into
+   `src/app/services/performance_workspace_contribution_payloads.py` while preserving
+   contribution summary/detail assembly and Lotus Performance source-truth payload handling. It
+   reduces `src/app/services/performance_workspace_contribution.py` from 402 to 227 lines while
+   keeping the blocking threshold at 402/49 because
+   `src/app/services/risk_workspace_service.py` is now the sole 402-line hotspot; threshold trials
+   prove 402 passes while 401 fails only on that file. Focused validation includes performance
+   contribution, performance workspace service, service-boundary, refactor-threshold, and agent
+   quality evidence checks.
+12. Current platform capability feature and workflow flag extraction moves source capability
    feature-key and workflow-key interpretation into
    `src/app/services/platform_capabilities_feature_flags.py` while preserving normalized
    capability response behavior and shell bootstrap assembly. It reduces
@@ -133,7 +143,7 @@ Most recent local PR-grade evidence:
    trials prove 402 passes while 401 fails only on those two files. Focused validation includes
    platform capability normalization, platform capability service, service-boundary,
    refactor-threshold, quality-baseline artifact, and agent quality evidence checks.
-12. Current proposal lifecycle contract and query-service extraction moves proposal lifecycle
+13. Current proposal lifecycle contract and query-service extraction moves proposal lifecycle
    summary, workflow, lineage, and envelope DTOs into focused contract modules and moves
    workflow-events, approvals, and lineage query orchestration into
    `src/app/services/proposal_lifecycle_query_service.py` while preserving compatibility imports
