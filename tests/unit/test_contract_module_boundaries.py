@@ -283,28 +283,48 @@ def test_advisor_brief_item_contracts_live_outside_advisor_brief_facade() -> Non
 
 def test_proposal_lifecycle_contracts_live_outside_proposals_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
-    lifecycle_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle.py")
+    lifecycle_facade_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle.py")
+    summary_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle_summary.py")
+    workflow_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle_workflow.py")
+    lineage_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle_lineage.py")
+    envelope_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle_envelopes.py")
 
-    expected_lifecycle_contracts = {
+    expected_summary_contracts = {
+        "ProposalSummaryData",
+        "ProposalVersionData",
+    }
+    expected_workflow_contracts = {
         "ProposalApprovalsData",
-        "ProposalApprovalsEnvelopeResponse",
         "ProposalApprovalRecordData",
+        "ProposalWorkflowEventData",
+        "ProposalWorkflowEventsData",
+    }
+    expected_lineage_contracts = {
+        "ProposalLineageData",
+        "ProposalVersionLineageItemData",
+    }
+    expected_envelope_contracts = {
+        "ProposalApprovalsEnvelopeResponse",
         "ProposalCreateData",
         "ProposalCreateEnvelopeResponse",
-        "ProposalLineageData",
         "ProposalLineageEnvelopeResponse",
         "ProposalStateTransitionData",
         "ProposalStateTransitionEnvelopeResponse",
-        "ProposalSummaryData",
-        "ProposalVersionData",
         "ProposalVersionEnvelopeResponse",
-        "ProposalVersionLineageItemData",
-        "ProposalWorkflowEventData",
-        "ProposalWorkflowEventsData",
         "ProposalWorkflowEventsEnvelopeResponse",
     }
+    expected_lifecycle_contracts = (
+        expected_summary_contracts
+        | expected_workflow_contracts
+        | expected_lineage_contracts
+        | expected_envelope_contracts
+    )
 
-    assert expected_lifecycle_contracts <= lifecycle_contract_classes
+    assert expected_summary_contracts <= summary_contract_classes
+    assert expected_workflow_contracts <= workflow_contract_classes
+    assert expected_lineage_contracts <= lineage_contract_classes
+    assert expected_envelope_contracts <= envelope_contract_classes
+    assert lifecycle_facade_classes.isdisjoint(expected_lifecycle_contracts)
     assert proposal_facade_classes.isdisjoint(expected_lifecycle_contracts)
 
 

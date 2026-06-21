@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 405/49 ratchet, the current largest hotspot
-   `src/app/contracts/proposal_lifecycle.py`, and durable scorecard/context guidance in
+   keeps the executable 404/49 ratchet, the current largest hotspot
+   `src/app/services/platform_capabilities_normalization.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -78,12 +78,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 405
+2. Current enforced source-file threshold: no Python source file under `src/app` above 404
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=405` and `max_function_lines=49`.
+   `max_source_file_lines=404` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -93,9 +93,9 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 405/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 404/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/contracts/proposal_lifecycle.py` as a 405-line hotspot.
+   `src/app/services/platform_capabilities_normalization.py` as a 404-line hotspot.
 8. Current Gateway demo certification slice adds `make demo-certification`, which calls five real
    Gateway FastAPI endpoints with deterministic synthetic upstream fixtures and writes
    `output/demo-certification/gateway-demo-certification.json`. The current local run passed 24
@@ -121,6 +121,17 @@ Most recent local PR-grade evidence:
    `src/app/contracts/proposal_lifecycle.py` and `src/app/services/proposal_service.py` are now
    the tied 405-line hotspots; threshold trials prove 405 passes while 404 fails only on those
    two files. Focused validation includes Advise client-boundary, refactor-threshold,
+   quality-baseline artifact, and agent quality evidence checks.
+11. Current proposal lifecycle contract and query-service extraction moves proposal lifecycle
+   summary, workflow, lineage, and envelope DTOs into focused contract modules and moves
+   workflow-events, approvals, and lineage query orchestration into
+   `src/app/services/proposal_lifecycle_query_service.py` while preserving compatibility imports
+   and proposal route behavior. It reduces `src/app/contracts/proposal_lifecycle.py` from 405 to
+   21 lines and `src/app/services/proposal_service.py` from 405 to 324 lines, ratcheting the
+   blocking threshold from 405/49 to 404/49 because
+   `src/app/services/platform_capabilities_normalization.py` is now the sole 404-line hotspot;
+   threshold trials prove 404 passes while 403 fails only on that file. Focused validation
+   includes proposal contract, contract-boundary, service-boundary, refactor-threshold,
    quality-baseline artifact, and agent quality evidence checks.
 11. Previous DPM wave AI payload extraction moved wave report-input supportability extraction,
    source-reference construction, request/task payload construction, supportability guardrail

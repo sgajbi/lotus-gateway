@@ -928,6 +928,18 @@ ratchet because
 `src/app/contracts/proposal_lifecycle.py` and `src/app/services/proposal_service.py` are the tied
 405-line hotspots. Threshold trials prove 405 passes while 404 fails only on those two files.
 
+Current proposal lifecycle contract and query-service extraction reduces
+`src/app/contracts/proposal_lifecycle.py` from 405 to 21 script-counted lines by moving summary,
+workflow, lineage, and envelope DTOs into focused lifecycle contract modules, and reduces
+`src/app/services/proposal_service.py` from 405 to 324 script-counted lines by moving workflow
+events, approvals, and lineage query orchestration into
+`src/app/services/proposal_lifecycle_query_service.py`. The blocking source-file threshold is
+ratcheted to `max_source_file_lines=404` and the executable 404/49 ratchet because
+`src/app/services/platform_capabilities_normalization.py` is now the single 404-line hotspot.
+Threshold trials prove 404 passes while 403 fails only on that file. The agent quality evidence
+gate `scripts/check_agent_quality_evidence.py` keeps this executable ratchet and hotspot evidence
+synchronized with durable scorecard/context guidance.
+
 Previous risk workspace attribution mapping extraction reduces
 `src/app/services/risk_workspace_attribution.py` from 408 to 274 script-counted lines by moving
 upstream attribution period, set, contributor, quality-flag, and numeric coercion mapping into
@@ -940,16 +952,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 405 | `src/app/contracts/proposal_lifecycle.py` |
-| 2 | 405 | `src/app/services/proposal_service.py` |
-| 3 | 404 | `src/app/services/platform_capabilities_normalization.py` |
-| 4 | 402 | `src/app/services/performance_workspace_contribution.py` |
-| 5 | 402 | `src/app/services/risk_workspace_service.py` |
-| 6 | 399 | `src/app/services/dpm_proof_pack_service.py` |
-| 7 | 398 | `src/app/contracts/advisor_brief.py` |
-| 8 | 397 | `src/app/services/advisor_brief_service.py` |
-| 9 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
-| 10 | 396 | `src/app/services/dpm_command_center_service.py` |
+| 1 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 2 | 402 | `src/app/services/risk_workspace_service.py` |
+| 3 | 402 | `src/app/services/performance_workspace_contribution.py` |
+| 4 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 5 | 398 | `src/app/contracts/advisor_brief.py` |
+| 6 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 7 | 397 | `src/app/services/advisor_brief_service.py` |
+| 8 | 396 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 10 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
 
 ## Largest Functions
 

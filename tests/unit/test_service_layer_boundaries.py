@@ -238,6 +238,7 @@ def test_advisory_services_import_focused_protocol_families() -> None:
         "advisory_policy_service.py": "app.services.advisory_policy_client_protocols",
         "advisory_workspace_service.py": "app.services.advisory_workspace_client_protocols",
         "bank_demo_proof_service.py": "app.services.bank_demo_proof_client_protocols",
+        "proposal_lifecycle_query_service.py": "app.services.proposal_client_protocols",
         "proposal_memo_service.py": "app.services.proposal_client_protocols",
         "proposal_service.py": "app.services.proposal_client_protocols",
         "proposal_transition_service.py": "app.services.proposal_client_protocols",
@@ -487,6 +488,42 @@ def test_proposal_service_delegates_lifecycle_transitions() -> None:
 
     assert delegated_methods == []
     assert "ProposalTransitionServiceMixin" in base_names
+
+
+def test_proposal_service_delegates_lifecycle_queries() -> None:
+    path = _SERVICE_ROOT / "proposal_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_approvals",
+            "get_proposal_lineage",
+            "get_workflow_events",
+        }
+    )
+    proposal_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "ProposalService"
+    ]
+    base_names = {
+        base.id
+        for service_class in proposal_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+    lifecycle_query_methods = _function_names(_SERVICE_ROOT / "proposal_lifecycle_query_service.py")
+
+    assert delegated_methods == []
+    assert {
+        "get_approvals",
+        "get_proposal_lineage",
+        "get_workflow_events",
+    } <= lifecycle_query_methods
+    assert "ProposalLifecycleQueryServiceMixin" in base_names
 
 
 def test_proposal_service_delegates_delivery_posture_routes() -> None:
