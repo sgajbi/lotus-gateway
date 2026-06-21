@@ -8,21 +8,21 @@ from app.contracts.platform_capabilities import (
     PlatformCapabilitiesNormalized,
     PlatformCapabilitiesResponse,
 )
+from app.services.platform_capabilities_feature_flags import (
+    feature_enabled as _normalized_feature_enabled,
+)
+from app.services.platform_capabilities_feature_flags import (
+    workflow_enabled as _normalized_workflow_enabled,
+)
 from app.services.platform_capabilities_normalization import (
     PRIMARY_CAPABILITY_SOURCES,
     build_normalized_capabilities,
-)
-from app.services.platform_capabilities_normalization import (
-    feature_enabled as _normalized_feature_enabled,
 )
 from app.services.platform_capabilities_normalization import (
     module_health as _normalized_module_health,
 )
 from app.services.platform_capabilities_normalization import (
     payload_value as _normalized_payload_value,
-)
-from app.services.platform_capabilities_normalization import (
-    workflow_enabled as _normalized_workflow_enabled,
 )
 from app.services.platform_capabilities_sources import (
     lotus_core_policy_from_result,

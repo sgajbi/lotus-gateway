@@ -1045,6 +1045,31 @@ def test_platform_capabilities_service_delegates_source_result_parsing() -> None
     assert service_methods.isdisjoint(expected_source_methods)
 
 
+def test_platform_capabilities_normalization_delegates_feature_and_workflow_flags() -> None:
+    normalization_methods = _function_names(
+        _SERVICE_ROOT / "platform_capabilities_normalization.py"
+    )
+    flag_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_feature_flags.py")
+    expected_flag_methods = {
+        "advise_lifecycle_enabled",
+        "any_feature_enabled",
+        "any_workflow_enabled",
+        "core_intake_enabled",
+        "core_snapshot_enabled",
+        "feature_enabled",
+        "feature_enablement",
+        "manage_support_enabled",
+        "performance_analytics_enabled",
+        "reporting_enabled",
+        "risk_analytics_enabled",
+        "workflow_enabled",
+        "workflow_flags",
+    }
+
+    assert expected_flag_methods <= flag_methods
+    assert normalization_methods.isdisjoint(expected_flag_methods)
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

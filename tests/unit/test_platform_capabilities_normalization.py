@@ -1,11 +1,13 @@
 from typing import Any
 
 from app.contracts.platform_capabilities import CapabilitySourceError
+from app.services.platform_capabilities_feature_flags import (
+    feature_enabled,
+    workflow_enabled,
+)
 from app.services.platform_capabilities_normalization import (
     build_normalized_capabilities,
-    feature_enabled,
     module_health,
-    workflow_enabled,
 )
 
 
