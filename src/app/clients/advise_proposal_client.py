@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.clients.advise_proposal_memo_client import AdviseProposalMemoClientMixin
+from app.clients.advise_proposal_delivery_client import AdviseProposalDeliveryClientMixin
 
 
-class AdviseProposalClientMixin(AdviseProposalMemoClientMixin):
+class AdviseProposalClientMixin(AdviseProposalDeliveryClientMixin):
     async def simulate_proposal(
         self,
         body: dict[str, Any],
@@ -290,83 +290,6 @@ class AdviseProposalClientMixin(AdviseProposalMemoClientMixin):
             body=body,
             headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.narrative.review",
-        )
-
-    async def create_report_request(
-        self,
-        proposal_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/proposals/{proposal_id}/report-requests",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.proposals.report-requests.create",
-        )
-
-    async def create_execution_handoff(
-        self,
-        proposal_id: str,
-        body: dict[str, Any],
-        idempotency_key: str | None,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/proposals/{proposal_id}/execution-handoffs",
-            body=body,
-            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
-            operation="advise.advisory.proposals.execution-handoffs.create",
-        )
-
-    async def get_delivery_summary(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/proposals/{proposal_id}/delivery-summary",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.proposals.delivery-summary",
-        )
-
-    async def get_delivery_events(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/proposals/{proposal_id}/delivery-events",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.proposals.delivery-events",
-        )
-
-    async def get_execution_status(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/proposals/{proposal_id}/execution-status",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.proposals.execution-status",
-        )
-
-    async def record_execution_update(
-        self,
-        proposal_id: str,
-        body: dict[str, Any],
-        idempotency_key: str | None,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/proposals/{proposal_id}/execution-updates",
-            body=body,
-            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
-            operation="advise.advisory.proposals.execution-updates.record",
         )
 
     def _headers(
