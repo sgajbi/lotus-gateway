@@ -33,7 +33,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
             "policyVersion": "lotus-manage-default-v1",
             "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
             "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
-            "supportedInputModes": ["pas_ref", "inline_bundle"],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
 
     async def _ras(*args, **kwargs):
@@ -43,7 +43,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
             "policyVersion": "lotus-report-default-v1",
             "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
             "workflows": [{"workflow_key": "portfolio_reporting", "enabled": True}],
-            "supportedInputModes": ["pas_ref"],
+            "supportedInputModes": ["portfolio_id"],
         }
 
     async def _pas_policy(*args, **kwargs):
@@ -314,7 +314,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
             "policyVersion": "lotus-manage-default-v1",
             "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
             "workflows": [],
-            "supportedInputModes": ["pas_ref", "inline_bundle"],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
 
     async def _ras(*args, **kwargs):
@@ -324,7 +324,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
             "policyVersion": "lotus-report-default-v1",
             "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
             "workflows": [],
-            "supportedInputModes": ["pas_ref"],
+            "supportedInputModes": ["portfolio_id"],
         }
 
     async def _pas_policy(*args, **kwargs):
