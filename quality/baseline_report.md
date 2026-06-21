@@ -95,9 +95,9 @@ The current risk workspace attribution mapping extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 406/49 refactor ratchet,
 current `src/app/clients/advise_proposal_client.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
-The current performance contribution payload mapping extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 402/49 refactor ratchet,
-current `src/app/services/risk_workspace_service.py` hotspot evidence, and durable
+The current risk workspace response-loading extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 399/49 refactor ratchet,
+current `src/app/services/dpm_proof_pack_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -953,6 +953,16 @@ prove 402 passes while 401 fails only on that file. The agent quality evidence g
 `scripts/check_agent_quality_evidence.py` keeps this executable ratchet and hotspot evidence
 synchronized with durable scorecard/context guidance.
 
+Current risk workspace response-loading extraction reduces
+`src/app/services/risk_workspace_service.py` from 402 to 222 script-counted lines by moving
+summary, concentration, drawdown, rolling, and rolling-Sharpe fallback upstream response loading
+into `src/app/services/risk_workspace_response_loading.py`. The blocking source-file threshold is
+ratcheted to `max_source_file_lines=399` and the executable 399/49 ratchet because
+`src/app/services/dpm_proof_pack_service.py` is now the sole 399-line hotspot. Threshold trials
+prove 399 passes while 398 fails only on that file. The agent quality evidence gate
+`scripts/check_agent_quality_evidence.py` keeps this executable ratchet and hotspot evidence
+synchronized with durable scorecard/context guidance.
+
 Previous risk workspace attribution mapping extraction reduces
 `src/app/services/risk_workspace_attribution.py` from 408 to 274 script-counted lines by moving
 upstream attribution period, set, contributor, quality-flag, and numeric coercion mapping into
@@ -965,16 +975,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 402 | `src/app/services/risk_workspace_service.py` |
-| 2 | 399 | `src/app/services/dpm_proof_pack_service.py` |
-| 3 | 398 | `src/app/contracts/advisor_brief.py` |
-| 4 | 397 | `src/app/services/advisor_brief_service.py` |
-| 5 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
-| 6 | 396 | `src/app/services/dpm_command_center_service.py` |
-| 7 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 8 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 9 | 381 | `src/app/services/portfolio_workflow.py` |
-| 10 | 379 | `src/app/contracts/risk_workspace_examples.py` |
+| 1 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 2 | 398 | `src/app/contracts/advisor_brief.py` |
+| 3 | 397 | `src/app/services/advisor_brief_service.py` |
+| 4 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 5 | 396 | `src/app/services/dpm_command_center_service.py` |
+| 6 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 7 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 8 | 381 | `src/app/services/portfolio_workflow.py` |
+| 9 | 379 | `src/app/contracts/risk_workspace_examples.py` |
+| 10 | 376 | `src/app/contracts/workbench_sandbox.py` |
 
 ## Largest Functions
 

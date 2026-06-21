@@ -2,7 +2,33 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-performance-contribution-boundary`
+Branch: `feature/gateway-risk-workspace-service-boundary`
+
+## Risk Workspace Response Loading Extraction
+
+- Scope: behavior-preserving risk workspace service modularity and CI ratchet enforcement.
+- Existing owner pattern: `RiskWorkspaceService` remains the public Workbench risk facade and owns
+  cache, correlation, and cache-status stamping; request construction, response mapping,
+  unavailable envelopes, cache keys, source supportability, and attribution orchestration are
+  already delegated to focused modules.
+- Change: moved summary, concentration, drawdown, rolling, and rolling-Sharpe fallback upstream
+  response loading into `src/app/services/risk_workspace_response_loading.py`; preserved Lotus
+  Risk source-truth methodology handling, unavailable envelope mapping, cache keys, and public
+  service behavior.
+- Measured signal: `src/app/services/risk_workspace_service.py` is reduced from 402 to 222 lines
+  and the extracted response-loading module is 222 lines. The blocking source-file threshold
+  ratchets from `402/49` to `399/49` because the current largest source file is now
+  `src/app/services/dpm_proof_pack_service.py`; longest function remains 49 lines.
+- CI enforcement: `399` passes and `398` fails only on
+  `src/app/services/dpm_proof_pack_service.py`; no allowlist or exception is introduced.
+- Tests: `tests/unit/test_risk_workspace_service.py` preserves summary, concentration, drawdown,
+  rolling, cache, supportability, malformed-success, unavailable, and Sharpe fallback behavior;
+  `tests/unit/test_service_layer_boundaries.py` pins response-loading ownership outside the public
+  risk service facade; refactor-threshold and agent-quality evidence gates pin the 399/49 ratchet.
+- Integration review: no upstream or downstream Lotus defect was identified; Gateway still calls
+  the same Lotus Risk APIs and preserves source-owned calculation/supportability semantics.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/dpm_proof_pack_service.py` before changing code.
 
 ## Performance Contribution Payload Mapping Extraction
 
