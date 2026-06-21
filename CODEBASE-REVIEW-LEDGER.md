@@ -1,8 +1,34 @@
 # Codebase Review Ledger
 
-Date: 2026-06-20
+Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-demo-certification-reporting`
+Branch: `feature/gateway-advise-proposal-delivery-client`
+
+## Advise Proposal Delivery Client Extraction
+
+- Scope: behavior-preserving Advise proposal upstream-client modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `AdviseClient` remains the concrete Lotus Advise HTTP client and public
+  service-facing surface; proposal route-family methods live in focused mixins under
+  `src/app/clients/advise_*_client.py`; `lotus-advise` remains source truth for proposal delivery,
+  report-request, execution handoff, execution status, and delivery-event semantics.
+- Change: moved report-request, delivery-summary, delivery-event, execution-handoff,
+  execution-status, and execution-update route forwarding into
+  `src/app/clients/advise_proposal_delivery_client.py`; `AdviseProposalClientMixin` now inherits
+  that focused mixin, preserving the public `AdviseClient` method surface.
+- Measured signal: `src/app/clients/advise_proposal_client.py` is reduced below the prior
+  406-line ceiling; largest current source-file hotspots are now
+  `src/app/contracts/proposal_lifecycle.py` and `src/app/services/proposal_service.py` at 405
+  lines; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `406/49` to `405/49`; `405` passes
+  and `404` fails only on `src/app/contracts/proposal_lifecycle.py` and
+  `src/app/services/proposal_service.py`.
+- Tests: `tests/unit/test_advise_client_boundaries.py` pins proposal delivery route-family
+  ownership outside the core proposal client mixin while preserving the inherited `AdviseClient`
+  surface; refactor-threshold, quality-baseline artifact, and agent-quality evidence tests pin the
+  ratchet.
+- Follow-up: next measured modularity slice should inspect `src/app/contracts/proposal_lifecycle.py`
+  and `src/app/services/proposal_service.py` before changing code.
 
 ## Gateway Demo Certification Report-Only Command
 

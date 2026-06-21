@@ -77,17 +77,12 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
     proposal_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_client.py")
 
     extracted_methods = {
-        "create_execution_handoff",
         "create_proposal",
         "create_proposal_artifact",
         "create_proposal_async",
         "create_proposal_version",
         "create_proposal_version_async",
-        "create_report_request",
         "get_approvals",
-        "get_delivery_events",
-        "get_delivery_summary",
-        "get_execution_status",
         "get_proposal",
         "get_proposal_idempotency_record",
         "get_proposal_lineage",
@@ -100,7 +95,6 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "get_workflow_events",
         "list_proposals",
         "record_approval",
-        "record_execution_update",
         "regenerate_proposal_narrative",
         "review_proposal_narrative",
         "simulate_proposal",
@@ -109,6 +103,23 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= proposal_methods
     assert not extracted_methods & advise_client_methods
+
+
+def test_advisory_proposal_delivery_routes_live_in_dedicated_client_mixin() -> None:
+    proposal_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_client.py")
+    delivery_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_delivery_client.py")
+
+    extracted_methods = {
+        "create_execution_handoff",
+        "create_report_request",
+        "get_delivery_events",
+        "get_delivery_summary",
+        "get_execution_status",
+        "record_execution_update",
+    }
+
+    assert extracted_methods <= delivery_methods
+    assert not extracted_methods & proposal_methods
 
 
 def test_advisory_proposal_memo_routes_live_in_dedicated_client_mixin() -> None:

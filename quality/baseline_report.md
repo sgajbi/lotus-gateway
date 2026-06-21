@@ -918,7 +918,17 @@ threshold was ratcheted to `max_source_file_lines=408` because
 `src/app/services/risk_workspace_attribution.py` was the sole 408-line hotspot. Threshold trials
 proved 408 passed while 407 failed only on the risk workspace attribution service.
 
-Current risk workspace attribution mapping extraction reduces
+Current Advise proposal delivery client extraction reduces
+`src/app/clients/advise_proposal_client.py` below the prior 406-line ceiling by moving
+report-request, delivery-summary, delivery-event, execution-handoff, execution-status, and
+execution-update upstream routes into `src/app/clients/advise_proposal_delivery_client.py`.
+The public `AdviseClient` method surface is preserved through mixin inheritance. The blocking
+source-file threshold is ratcheted to `max_source_file_lines=405` and the executable 405/49
+ratchet because
+`src/app/contracts/proposal_lifecycle.py` and `src/app/services/proposal_service.py` are the tied
+405-line hotspots. Threshold trials prove 405 passes while 404 fails only on those two files.
+
+Previous risk workspace attribution mapping extraction reduces
 `src/app/services/risk_workspace_attribution.py` from 408 to 274 script-counted lines by moving
 upstream attribution period, set, contributor, quality-flag, and numeric coercion mapping into
 `src/app/services/risk_workspace_attribution_mapping.py`. The blocking source-file threshold is
@@ -930,16 +940,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 406 | `src/app/clients/advise_proposal_client.py` |
-| 2 | 405 | `src/app/contracts/proposal_lifecycle.py` |
-| 3 | 405 | `src/app/services/proposal_service.py` |
-| 4 | 404 | `src/app/services/platform_capabilities_normalization.py` |
-| 5 | 402 | `src/app/services/performance_workspace_contribution.py` |
-| 6 | 402 | `src/app/services/risk_workspace_service.py` |
-| 7 | 399 | `src/app/services/dpm_proof_pack_service.py` |
-| 8 | 398 | `src/app/contracts/advisor_brief.py` |
-| 9 | 397 | `src/app/services/advisor_brief_service.py` |
-| 10 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 1 | 405 | `src/app/contracts/proposal_lifecycle.py` |
+| 2 | 405 | `src/app/services/proposal_service.py` |
+| 3 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 4 | 402 | `src/app/services/performance_workspace_contribution.py` |
+| 5 | 402 | `src/app/services/risk_workspace_service.py` |
+| 6 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 7 | 398 | `src/app/contracts/advisor_brief.py` |
+| 8 | 397 | `src/app/services/advisor_brief_service.py` |
+| 9 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 10 | 396 | `src/app/services/dpm_command_center_service.py` |
 
 ## Largest Functions
 
