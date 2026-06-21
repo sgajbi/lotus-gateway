@@ -2,7 +2,36 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-proposal-lifecycle-contract-modularity`
+Branch: `feature/gateway-platform-capabilities-normalization-boundary`
+
+## Platform Capability Feature And Workflow Flag Extraction
+
+- Scope: behavior-preserving platform capability normalization modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `PlatformCapabilitiesService` remains the upstream capability fan-out
+  orchestrator; `platform_capabilities_sources.py` parses upstream result envelopes;
+  `platform_capabilities_normalization.py` assembles the normalized BFF response; Gateway preserves
+  upstream capability and partial-readiness truth without becoming the domain source of truth.
+- Change: moved source capability feature-key and workflow-key interpretation into
+  `src/app/services/platform_capabilities_feature_flags.py`; preserved normalized response shape,
+  shell bootstrap construction, and service helper behavior.
+- Measured signal: `src/app/services/platform_capabilities_normalization.py` is reduced from 404
+  to 192 lines. The current largest source-file ceiling is now 402 lines, first reported by the
+  agent quality evidence gate as `src/app/services/performance_workspace_contribution.py`; longest
+  function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `404/49` to `402/49`; `402` passes
+  and `401` fails only on `src/app/services/performance_workspace_contribution.py` and
+  `src/app/services/risk_workspace_service.py`.
+- Tests: `tests/unit/test_platform_capabilities_normalization.py` preserves source-backed
+  normalized capability behavior and malformed upstream-shape handling;
+  `tests/unit/test_platform_capabilities_service.py` preserves service behavior;
+  `tests/unit/test_service_layer_boundaries.py` pins feature/workflow flag ownership outside the
+  normalized response assembler.
+- Integration review: no upstream or downstream Lotus defect was identified; Gateway still
+  consumes and preserves the same upstream capability payloads.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/performance_workspace_contribution.py` and
+  `src/app/services/risk_workspace_service.py` before changing code.
 
 ## Proposal Lifecycle Contract And Query-Service Extraction
 
