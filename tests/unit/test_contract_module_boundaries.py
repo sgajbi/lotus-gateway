@@ -281,6 +281,14 @@ def test_advisor_brief_item_contracts_live_outside_advisor_brief_facade() -> Non
     assert advisor_brief_facade_classes.isdisjoint(expected_supportability_contracts)
 
 
+def test_advisor_brief_response_example_lives_outside_contract_model() -> None:
+    advisor_brief_assignments = _assigned_names(_CONTRACT_ROOT / "advisor_brief.py")
+    example_assignments = _assigned_names(_CONTRACT_ROOT / "advisor_brief_examples.py")
+
+    assert "ADVISOR_BRIEF_RESPONSE_EXAMPLE" in example_assignments
+    assert "ADVISOR_BRIEF_RESPONSE_EXAMPLE" not in advisor_brief_assignments
+
+
 def test_proposal_lifecycle_contracts_live_outside_proposals_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
     lifecycle_facade_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle.py")
