@@ -416,3 +416,29 @@ Branch: `feature/gateway-dpm-proof-pack-service-boundary`
   `tests/unit/test_service_layer_boundaries.py` pins source metric construction ownership.
 - Follow-up: next measured modularity slice should inspect
   `src/app/services/platform_capabilities_service.py` before changing code.
+
+## Advisor-Brief Response Example Boundary Extraction
+
+- Scope: behavior-preserving Advisor Brief contract modularity and CI ratchet enforcement.
+- Existing owner pattern: `app.contracts.advisor_brief` remains the compatibility facade for
+  Workbench-facing Advisor Brief DTO imports; focused item, supportability, workflow, and example
+  modules own bulky contract families while Gateway remains the BFF response contract owner.
+- Source of truth: Gateway owns the Advisor Brief response schema; source data remains upstream in
+  `lotus-performance`, `lotus-ai`, and `lotus-advise`.
+- Change: moved the static `AdvisorBriefResponse` OpenAPI example into
+  `src/app/contracts/advisor_brief_examples.py` while preserving model field definitions,
+  compatibility imports, and OpenAPI example content.
+- Measured signal: `src/app/contracts/advisor_brief.py` reduced from 398 to 207 lines; largest
+  source files are now `src/app/services/advisor_brief_service.py` and
+  `src/app/services/risk_workspace_attribution_controls.py` at 397 lines; longest function remains
+  49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `398/49` to `397/49`; `397` passes
+  and `396` fails on the tied 397-line service/control hotspots.
+- Tests: `tests/unit/test_contract_module_boundaries.py` pins example ownership outside the
+  response model, and `tests/integration/test_workbench_router.py` preserves Advisor Brief OpenAPI
+  contract behavior.
+- Integration review: no upstream or downstream API route, payload, workflow-pack call, or
+  response semantic changed; no cross-repo GitHub issue is warranted from this slice.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/advisor_brief_service.py` or
+  `src/app/services/risk_workspace_attribution_controls.py` before changing code.
