@@ -99,6 +99,10 @@ The current risk workspace response-loading extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 399/49 refactor ratchet,
 current `src/app/services/dpm_proof_pack_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current DPM proof-pack supportability extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 398/49 refactor ratchet,
+current `src/app/contracts/advisor_brief.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -963,6 +967,16 @@ prove 399 passes while 398 fails only on that file. The agent quality evidence g
 `scripts/check_agent_quality_evidence.py` keeps this executable ratchet and hotspot evidence
 synchronized with durable scorecard/context guidance.
 
+Current DPM proof-pack supportability extraction reduces
+`src/app/services/dpm_proof_pack_service.py` from 399 to 315 script-counted lines by moving
+Manage proof-pack supportability derivation into
+`src/app/services/dpm_proof_pack_supportability.py`. The blocking source-file threshold is
+ratcheted to `max_source_file_lines=398` and the executable 398/49 ratchet because
+`src/app/contracts/advisor_brief.py` is now the sole 398-line hotspot. Threshold trials prove 398
+passes while 397 fails only on that file. The agent quality evidence gate
+`scripts/check_agent_quality_evidence.py` keeps this executable ratchet and hotspot evidence
+synchronized with durable scorecard/context guidance.
+
 Previous risk workspace attribution mapping extraction reduces
 `src/app/services/risk_workspace_attribution.py` from 408 to 274 script-counted lines by moving
 upstream attribution period, set, contributor, quality-flag, and numeric coercion mapping into
@@ -975,16 +989,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 399 | `src/app/services/dpm_proof_pack_service.py` |
-| 2 | 398 | `src/app/contracts/advisor_brief.py` |
-| 3 | 397 | `src/app/services/advisor_brief_service.py` |
-| 4 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
-| 5 | 396 | `src/app/services/dpm_command_center_service.py` |
-| 6 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 7 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 8 | 381 | `src/app/services/portfolio_workflow.py` |
-| 9 | 379 | `src/app/contracts/risk_workspace_examples.py` |
-| 10 | 376 | `src/app/contracts/workbench_sandbox.py` |
+| 1 | 398 | `src/app/contracts/advisor_brief.py` |
+| 2 | 397 | `src/app/services/advisor_brief_service.py` |
+| 3 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 4 | 396 | `src/app/services/dpm_command_center_service.py` |
+| 5 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 6 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 7 | 381 | `src/app/services/portfolio_workflow.py` |
+| 8 | 379 | `src/app/contracts/risk_workspace_examples.py` |
+| 9 | 376 | `src/app/contracts/workbench_sandbox.py` |
+| 10 | 375 | `src/app/observability/analytics_ui.py` |
 
 ## Largest Functions
 

@@ -1039,6 +1039,22 @@ def test_risk_workspace_service_delegates_response_loading() -> None:
     assert service_methods.isdisjoint(expected_response_loading_methods)
 
 
+def test_dpm_proof_pack_service_delegates_supportability_mapping() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_proof_pack_service.py")
+    supportability_methods = _function_names(_SERVICE_ROOT / "dpm_proof_pack_supportability.py")
+    expected_supportability_methods = {
+        "build_dpm_proof_pack_supportability",
+        "_proof_pack_payload",
+        "_proof_pack_state",
+        "_reason_codes_from_payload",
+        "_section_state_counts",
+        "_sections",
+    }
+
+    assert expected_supportability_methods <= supportability_methods
+    assert service_methods.isdisjoint(expected_supportability_methods)
+
+
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
     descriptor_methods = _function_names(
