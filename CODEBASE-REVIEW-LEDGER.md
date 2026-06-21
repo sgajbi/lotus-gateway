@@ -2,7 +2,35 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-risk-workspace-service-boundary`
+Branch: `feature/gateway-dpm-proof-pack-service-boundary`
+
+## DPM Proof-Pack Supportability Mapping Extraction
+
+- Scope: behavior-preserving DPM proof-pack service modularity and CI ratchet enforcement.
+- Existing owner pattern: `DpmProofPackService` remains the product-facing Gateway facade for
+  Manage-owned RFC-0040 proof-pack routes; `lotus-manage` remains source truth for proof-pack
+  identifiers, section states, reason codes, content hashes, report input, and AI evidence input;
+  `lotus-ai` remains the governed workflow-pack execution authority for PM memo support output.
+- Change: moved Manage proof-pack supportability derivation into
+  `src/app/services/dpm_proof_pack_supportability.py`; preserved proof-pack generation, lookup,
+  Markdown, report-input, AI-evidence-input, product-safe Manage error mapping, and Lotus AI PM
+  memo handoff behavior.
+- Measured signal: `src/app/services/dpm_proof_pack_service.py` is reduced from 399 to 315 lines
+  and the extracted supportability module is 90 lines. The blocking source-file threshold ratchets
+  from `399/49` to `398/49` because the current largest source file is now
+  `src/app/contracts/advisor_brief.py`; longest function remains 49 lines.
+- CI enforcement: `398` passes and `397` fails only on
+  `src/app/contracts/advisor_brief.py`; no allowlist or exception is introduced.
+- Tests: `tests/unit/test_dpm_proof_pack_service.py` preserves Manage payload passthrough,
+  supportability, Markdown, handoff input, Lotus AI memo, and product-safe upstream error
+  behavior; `tests/unit/test_service_layer_boundaries.py` pins supportability mapping ownership
+  outside the public proof-pack facade; refactor-threshold and agent-quality evidence gates pin
+  the 398/49 ratchet.
+- Integration review: no upstream or downstream Lotus defect was identified; Gateway still calls
+  the same Manage and Lotus AI APIs and preserves source-owned proof-pack and memo-support
+  semantics.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/contracts/advisor_brief.py` before changing code.
 
 ## Risk Workspace Response Loading Extraction
 
