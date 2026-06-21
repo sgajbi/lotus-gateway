@@ -2,7 +2,32 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-advise-proposal-delivery-client`
+Branch: `feature/gateway-proposal-lifecycle-contract-modularity`
+
+## Proposal Lifecycle Contract And Query-Service Extraction
+
+- Scope: behavior-preserving proposal lifecycle contract/service modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `app.contracts.proposals` remains the Workbench-facing compatibility
+  facade; `proposal_lifecycle.py` remains a compatibility import surface; `ProposalService`
+  composes focused mixins for lifecycle transitions, lifecycle queries, memo, and delivery
+  posture; `lotus-advise` remains source truth for proposal lifecycle, workflow event, approval,
+  lineage, and immutable-version semantics.
+- Change: split proposal lifecycle DTOs into focused summary, workflow, lineage, and envelope
+  modules; moved workflow-events, approvals, and lineage query orchestration into
+  `src/app/services/proposal_lifecycle_query_service.py`; preserved existing imports, OpenAPI
+  component names, router behavior, and typed envelope mapping.
+- Measured signal: `src/app/contracts/proposal_lifecycle.py` is reduced from 405 to 21 lines and
+  `src/app/services/proposal_service.py` is reduced from 405 to 324 lines. Current largest source
+  file is `src/app/services/platform_capabilities_normalization.py` at 404 lines; longest function
+  remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `405/49` to `404/49`; `404` passes
+  and `403` fails only on `src/app/services/platform_capabilities_normalization.py`.
+- Tests: `tests/unit/test_contract_module_boundaries.py` pins focused lifecycle contract ownership;
+  `tests/unit/test_service_layer_boundaries.py` pins lifecycle query ownership outside
+  `ProposalService`; proposal contract tests preserve schema shape and compatibility imports.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/platform_capabilities_normalization.py` before changing code.
 
 ## Advise Proposal Delivery Client Extraction
 

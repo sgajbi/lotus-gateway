@@ -1,26 +1,21 @@
 from typing import Any
 
 from app.contracts.proposals import (
-    ProposalApprovalsData,
-    ProposalApprovalsEnvelopeResponse,
     ProposalCreateData,
     ProposalCreateEnvelopeResponse,
     ProposalDetailData,
     ProposalDetailEnvelopeResponse,
     ProposalEnvelopeResponse,
-    ProposalLineageData,
-    ProposalLineageEnvelopeResponse,
     ProposalListData,
     ProposalListEnvelopeResponse,
     ProposalSimulateResponse,
     ProposalSimulationData,
     ProposalVersionData,
     ProposalVersionEnvelopeResponse,
-    ProposalWorkflowEventsData,
-    ProposalWorkflowEventsEnvelopeResponse,
 )
 from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_delivery_service import ProposalDeliveryServiceMixin
+from app.services.proposal_lifecycle_query_service import ProposalLifecycleQueryServiceMixin
 from app.services.proposal_memo_service import ProposalMemoServiceMixin
 from app.services.proposal_transition_service import ProposalTransitionServiceMixin
 from app.services.upstream_envelope import (
@@ -30,28 +25,9 @@ from app.services.upstream_envelope import (
 )
 
 
-def _normalize_proposal_context_payload(
-    upstream_payload: dict[str, Any],
-    *,
-    proposal_id: str,
-) -> dict[str, Any]:
-    if upstream_payload.get("proposal_id"):
-        return upstream_payload
-
-    proposal = upstream_payload.get("proposal")
-    if not isinstance(proposal, dict):
-        return upstream_payload
-
-    normalized = dict(upstream_payload)
-    normalized["proposal_id"] = proposal.get("proposal_id") or proposal_id
-    normalized["current_state"] = upstream_payload.get("current_state") or proposal.get(
-        "current_state"
-    )
-    return normalized
-
-
 class ProposalService(
     ProposalTransitionServiceMixin,
+    ProposalLifecycleQueryServiceMixin,
     ProposalMemoServiceMixin,
     ProposalDeliveryServiceMixin,
 ):
@@ -260,63 +236,6 @@ class ProposalService(
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._opaque_envelope(correlation_id, upstream_payload)
-
-    async def get_workflow_events(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> ProposalWorkflowEventsEnvelopeResponse:
-        upstream_status, upstream_payload = await self._advise_client.get_workflow_events(
-            proposal_id=proposal_id,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
-            ProposalWorkflowEventsEnvelopeResponse,
-            ProposalWorkflowEventsData,
-            correlation_id=correlation_id,
-            upstream_payload=_normalize_proposal_context_payload(
-                upstream_payload,
-                proposal_id=proposal_id,
-            ),
-        )
-
-    async def get_approvals(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> ProposalApprovalsEnvelopeResponse:
-        upstream_status, upstream_payload = await self._advise_client.get_approvals(
-            proposal_id=proposal_id,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
-            ProposalApprovalsEnvelopeResponse,
-            ProposalApprovalsData,
-            correlation_id=correlation_id,
-            upstream_payload=_normalize_proposal_context_payload(
-                upstream_payload,
-                proposal_id=proposal_id,
-            ),
-        )
-
-    async def get_proposal_lineage(
-        self,
-        proposal_id: str,
-        correlation_id: str,
-    ) -> ProposalLineageEnvelopeResponse:
-        upstream_status, upstream_payload = await self._advise_client.get_proposal_lineage(
-            proposal_id=proposal_id,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
-            ProposalLineageEnvelopeResponse,
-            ProposalLineageData,
-            correlation_id=correlation_id,
-            upstream_payload=upstream_payload,
-        )
 
     async def get_proposal_version_replay_evidence(
         self,

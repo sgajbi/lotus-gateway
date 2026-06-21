@@ -35,11 +35,17 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/proposal_lifecycle.py` at 405 lines,
-2. `src/app/services/proposal_service.py` at 405 lines,
-3. `src/app/services/platform_capabilities_normalization.py` at 404 lines,
-4. `src/app/services/performance_workspace_contribution.py` at 402 lines,
-5. `src/app/services/risk_workspace_service.py` at 402 lines.
+1. `src/app/services/platform_capabilities_normalization.py` at 404 lines,
+2. `src/app/services/performance_workspace_contribution.py` at 402 lines,
+3. `src/app/services/risk_workspace_service.py` at 402 lines,
+4. `src/app/services/dpm_proof_pack_service.py` at 399 lines,
+5. `src/app/contracts/advisor_brief.py` at 398 lines.
+
+`src/app/contracts/proposal_lifecycle.py` is reduced from 405 to 21 lines after summary,
+workflow, lineage, and envelope DTOs moved into focused lifecycle contract modules.
+
+`src/app/services/proposal_service.py` is reduced from 405 to 324 lines after lifecycle query
+orchestration moved into `src/app/services/proposal_lifecycle_query_service.py`.
 
 `src/app/clients/advise_proposal_client.py` is reduced below the previous 406-line ceiling after
 proposal delivery, report-request, and execution route forwarding moved into
