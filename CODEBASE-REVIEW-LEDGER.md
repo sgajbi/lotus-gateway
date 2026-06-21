@@ -2,7 +2,42 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-dpm-proof-pack-service-boundary`
+Branch: `fix/gateway-issue-129-report-capability-query-params`
+
+## Capability Contract Issue Triage
+
+- Scope: GitHub issue triage for open Gateway integration-contract findings affecting platform
+  capability composition, reporting capabilities, proposal upstream ownership, and foundation
+  cash totals.
+- Existing owner pattern: Gateway owns the BFF composition contract and public camelCase
+  `/api/v1/platform/capabilities` API; source services own their direct integration capability
+  contracts. Gateway must call source-owned capability endpoints with source-owned query
+  vocabulary while preserving the public BFF shape for Workbench consumers.
+- Change: updated `ReportingClient.get_capabilities()` and direct e2e source-service healthchecks
+  to use canonical `consumer_system` and `tenant_id` query parameters; refreshed Manage and Report
+  platform-capability fixtures from retired `pas_ref` terminology to current `portfolio_id`
+  input-mode terminology.
+- Measured signal: stale camelCase direct source-service capability calls are removed from
+  `ReportingClient` and `docker-compose.e2e.yml`; Manage and Report capability fixtures now
+  preserve current downstream vocabulary while Core, Performance, and Risk legacy compatibility
+  coverage remains explicit.
+- Tests: `python -m pytest tests/unit/test_upstream_clients.py
+  tests/unit/test_platform_capabilities_service.py
+  tests/integration/test_platform_capabilities_router.py tests/e2e/test_workflow_journeys.py
+  tests/contract/test_platform_capabilities_contract.py -q` passed with 209 tests;
+  `python -m pytest tests/unit/test_foundation_service.py tests/integration/test_foundation_router.py
+  tests/contract/test_foundation_contract.py -q` passed with 23 tests; `python -m ruff check` on
+  touched Python files and `python -m mypy src\app\clients\reporting_client.py` passed.
+- Issue disposition evidence: #129 is valid and fixed in this slice; #130 and #131 are valid
+  fixture-drift issues fixed in this slice; #128, #132, and #134 are resolved in current code with
+  existing tests and search evidence; #182 remains open until current canonical QA proves whether a
+  Gateway-owned or downstream-owned defect still exists.
+- Integration review: no current downstream issue is warranted for the fixed capability contract
+  drift because Gateway now sends the source-owned vocabulary and preserves downstream
+  `portfolio_id` capability terminology; open downstream issues should be created only from fresh
+  failing integration evidence.
+- Follow-up: after merge, close resolved issues with the PR/test evidence and leave #182 open or
+  file a downstream issue only if current canonical QA reproduces a non-Gateway defect.
 
 ## DPM Proof-Pack Supportability Mapping Extraction
 

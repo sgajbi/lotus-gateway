@@ -3538,8 +3538,8 @@ async def test_reporting_client_summary_and_review_routes():
     assert review_payload["portfolio_id"] == "P1"
     assert _FakeAsyncClient.calls[0]["url"] == "http://ras/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {
-        "consumerSystem": "lotus-gateway",
-        "tenantId": "default",
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "default",
     }
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-7"
     assert _FakeAsyncClient.calls[1]["url"] == "http://ras/reports/portfolios/P1/summary"

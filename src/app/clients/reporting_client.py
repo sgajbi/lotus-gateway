@@ -47,7 +47,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/integration/capabilities"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="report.integration.capabilities",

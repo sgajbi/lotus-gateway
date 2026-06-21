@@ -49,7 +49,7 @@ def test_platform_capabilities_router_success(monkeypatch):
                 {"key": "dpm.support.run_apis", "enabled": True},
             ],
             "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
-            "supportedInputModes": ["pas_ref", "inline_bundle"],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
 
     async def _ras(*args, **kwargs):
@@ -62,7 +62,7 @@ def test_platform_capabilities_router_success(monkeypatch):
                 {"key": "ras.reporting.portfolio_review", "enabled": True},
             ],
             "workflows": [{"workflow_key": "portfolio_reporting", "enabled": True}],
-            "supportedInputModes": ["pas_ref"],
+            "supportedInputModes": ["portfolio_id"],
         }
 
     async def _pas_policy(*args, **kwargs):

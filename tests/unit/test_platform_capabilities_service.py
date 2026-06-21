@@ -166,7 +166,7 @@ async def test_platform_capabilities_all_sources_success():
             {
                 "sourceService": "lotus_manage",
                 "policyVersion": "manage-tenant-a-v2",
-                "supportedInputModes": ["pas_ref"],
+                "supportedInputModes": ["portfolio_id"],
                 "features": [{"key": "dpm.support.run_apis", "enabled": True}],
                 "workflows": [],
             },
@@ -209,7 +209,7 @@ async def test_platform_capabilities_all_sources_success():
             {
                 "sourceService": "lotus-report",
                 "policyVersion": "ras-tenant-a-v1",
-                "supportedInputModes": ["pas_ref"],
+                "supportedInputModes": ["portfolio_id"],
                 "features": [
                     {"key": "ras.reporting.portfolio_summary", "enabled": True},
                     {"key": "ras.reporting.portfolio_review", "enabled": True},
@@ -868,7 +868,7 @@ async def test_platform_capabilities_keeps_advise_and_manage_capabilities_separa
         {
             "sourceService": "lotus_manage_split",
             "policyVersion": "manage-split-v2",
-            "supportedInputModes": ["inline_bundle", "pas_ref"],
+            "supportedInputModes": ["inline_bundle", "portfolio_id"],
             "features": [
                 {"key": "dpm.support.run_apis", "enabled": True},
             ],
@@ -919,7 +919,7 @@ async def test_platform_capabilities_keeps_advise_and_manage_capabilities_separa
     ]
     assert lotus_advise["policyVersion"] == "advise-v2"
     assert lotus_manage["policyVersion"] == "manage-split-v2"
-    assert lotus_manage["supportedInputModes"] == ["inline_bundle", "pas_ref"]
+    assert lotus_manage["supportedInputModes"] == ["inline_bundle", "portfolio_id"]
     assert lotus_manage["features"] == [{"key": "dpm.support.run_apis", "enabled": True}]
     assert lotus_manage["workflows"] == []
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
