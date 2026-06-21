@@ -1,8 +1,10 @@
 # Architecture Rules
 
 This document records the baseline architecture rules for the `lotus-gateway` enterprise
-hardening program. The first implementation phase is report-only; later phases should fail only
-new regressions, then enforce agreed thresholds.
+hardening program. The program now uses progressive enforcement: classified refactor thresholds,
+workflow governance, and agent quality evidence are blocking no-regression gates, while broader
+architecture and quality signals remain report-only until findings, thresholds, exceptions, and CI
+lane placement are governed.
 
 ## Layering
 
@@ -600,7 +602,8 @@ surface and Lotus Core transaction request behavior. The current longest functio
 ## Progressive Enforcement
 
 1. Phase 1: report-only quality baseline.
-2. Phase 2: fail only new architecture regressions.
-3. Phase 3: enforce thresholds for largest modules, function length, complexity, and import rules.
+2. Phase 2: fail only classified no-new-regression signals.
+3. Phase 3: enforce thresholds for largest modules, function length, complexity, and import rules
+   after the signal is deterministic and low-noise.
 4. Phase 4: enterprise-readiness gate requiring architecture, API, security, observability, and
    docs scorecard targets to pass.

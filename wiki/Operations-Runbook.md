@@ -1,11 +1,16 @@
 # Operations Runbook
 
+This page summarizes everyday operational checks. Use
+[docs/operations-runbook.md](../docs/operations-runbook.md) for the root runbook and
+[Troubleshooting](Troubleshooting) for failure triage.
+
 ## Important operational checks
 
 - confirm canonical gateway identity is `gateway.dev.lotus` before product validation
 - if Windows startup looks healthy but routes fail, verify `--app-dir src`
 - treat partial-failure and supportability signals as contract data, not as noise to suppress
 - use repo-native gates before inventing custom checks
+- preserve support references and bounded degraded reasons when escalating incidents
 - use [docs/operations-runbook.md](../docs/operations-runbook.md),
   [docs/observability.md](../docs/observability.md), and
   [docs/security.md](../docs/security.md) as the consolidated root-doc entry points for
@@ -92,6 +97,15 @@ curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-p
   -H "X-Region: APAC" \
   -H "X-Role: support-operator"
 ```
+
+## Demo certification probe
+
+```powershell
+make demo-certification
+```
+
+Use the generated `output/demo-certification/gateway-demo-certification.json` as Gateway API
+evidence. It is not a replacement for populated Workbench browser proof.
 
 ## Key references
 

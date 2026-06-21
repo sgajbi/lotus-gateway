@@ -1,5 +1,9 @@
 # Security and Governance
 
+Gateway is a high-sensitivity boundary because it sits between Workbench and domain-authoritative
+services. Security posture must be expressed through implemented controls, tests, CI gates, and
+operator evidence rather than broad readiness claims.
+
 ## Current governance
 
 - RFC-0007
@@ -21,10 +25,16 @@
 
 - OpenAPI contract proof is active
 - migration smoke, monetary-float guard, and security audit remain active
+- refactor quality thresholds, workflow action-runtime governance, and agent quality evidence
+  governance are active through `make lint`
 - monetary-float approvals are matched in a line-shift tolerant way, so routine formatting changes
   do not force import-order suppressions or approval churn
 - Docker parity matters because this is a live integration boundary
 - gateway must not smuggle domain logic out of authoritative upstream services
+- archive document retrieval must remain Gateway-first and caller-context governed; Workbench
+  should not bypass Gateway to call `lotus-archive`
+- AI handoffs must use governed `lotus-ai` workflow-pack execution seams and must not expose raw
+  prompts, model output, or unsupported generated advice
 
 ## Operational discipline
 
@@ -36,3 +46,16 @@
   sent as another verb
 - keep gateway contracts product-oriented instead of accreting thin pass-through clutter
 - document endpoint-specific parameter conventions explicitly when they differ by route family
+
+## Sensitive data rules
+
+Do not put these values in metric labels, support tickets, screenshots, demo notes, or generated
+evidence unless a governed artifact explicitly allows it:
+
+1. client names or account identifiers,
+2. portfolio, holding, transaction, session, upload, or document identifiers as metric labels,
+3. request bodies, response bodies, raw prompts, model output, or raw entitlement failures,
+4. trace IDs and correlation IDs as metric labels.
+
+Use support references, bounded state/reason codes, source service, route family, status class, and
+operator guidance instead.

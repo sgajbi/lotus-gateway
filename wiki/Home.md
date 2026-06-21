@@ -2,10 +2,16 @@
 
 `lotus-gateway` is the Lotus experience API and product-facing composition boundary.
 
+It is the API contract that `lotus-workbench` should consume for product surfaces. It composes
+domain-service responses into product-safe payloads, but it does not become the authority for
+portfolio, performance, risk, advisory, DPM, reporting, archive, or AI truth.
+
 ## Start here
 
 - Repo entrypoint: [README.md](../README.md)
 - Repo context: [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
+- Demo pack and claim control:
+  [docs/demo/README.md](../docs/demo/README.md)
 - Experience-API blueprint:
   [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
 - Upstream contract-family map:
@@ -23,6 +29,19 @@
   bank-demo proof, reporting, portfolio, and intake/lookups
 - still replacing thin pass-through patterns with cleaner experience-API contracts
 
+## Audience paths
+
+- Business and demo reviewers:
+  [Overview](Overview), [Supported Features](Supported-Features), [API Surface](API-Surface), and
+  [Roadmap](Roadmap)
+- Operators and support:
+  [Getting Started](Getting-Started), [Operations Runbook](Operations-Runbook),
+  [Troubleshooting](Troubleshooting), and [Integrations](Integrations)
+- Engineers and agents:
+  [Architecture](Architecture), [Development Workflow](Development-Workflow),
+  [Validation and CI](Validation-and-CI), [RFC Index](RFC-Index), and
+  [Security and Governance](Security-and-Governance)
+
 ## Most important commands
 
 - `make install`
@@ -30,6 +49,7 @@
 - `make ci`
 - `make ci-local-docker`
 - `make run-canonical`
+- `make demo-certification`
 
 ## Navigation
 

@@ -44,7 +44,7 @@ Docker parity is required because gateway is a live integration boundary.
 
 ## Quality Baseline
 
-The report-only quality workflow installs optional quality tooling and runs:
+The Quality Baseline workflow installs optional quality tooling and runs:
 
 1. ruff,
 2. mypy,
@@ -58,7 +58,25 @@ The report-only quality workflow installs optional quality tooling and runs:
 10. interrogate,
 11. spectral.
 
-The workflow is intentionally `continue-on-error` during baseline classification.
+It is no longer purely report-only. It blocks the promoted no-regression checks for refactor
+thresholds, workflow action-runtime governance, agent quality evidence, and required artifact
+presence, while keeping broader advisory tools report-only until false positives, thresholds,
+exception policy, and lane placement are clear.
+
+Demo certification evidence is also generated from the repo-native command:
+
+```powershell
+make demo-certification
+```
+
+The command writes:
+
+```text
+output/demo-certification/gateway-demo-certification.json
+```
+
+Use it as Gateway API evidence only. Full populated Workbench proof still requires the governed
+Workbench canonical runtime and platform QA evidence.
 
 ## Incident Notes
 

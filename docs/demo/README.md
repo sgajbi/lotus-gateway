@@ -1,11 +1,29 @@
 # Advisor Experience API Demo Pack
 
+This pack helps presenters and engineers demonstrate the Gateway experience API without
+overclaiming ownership or product readiness.
+
 ## Goal
 
 Run deterministic lotus-gateway demos for:
 
 1. the split benchmark-aware performance workstation contracts, and
 2. proposal creation plus approval-chain actions.
+
+## Demo-Safe Positioning
+
+Use this concise talk track:
+
+1. `lotus-gateway` is the governed Workbench-facing API boundary.
+2. It composes product-ready payloads while preserving upstream source authority.
+3. It exposes supportability, partial-readiness, degraded, unavailable, and permission-blocked
+   states instead of hiding upstream posture.
+4. It can certify deterministic Gateway route behavior through `make demo-certification`.
+5. Full populated Workbench demo readiness, screenshots, and buyer-facing evidence packs require
+   the canonical Workbench runtime and platform QA evidence after the Gateway route checks pass.
+
+Do not claim that Gateway alone owns portfolio source data, performance/risk calculations,
+advisory policy truth, DPM workflow state, report rendering, archive retention, or AI model output.
 
 ## Prerequisites
 
@@ -43,6 +61,18 @@ through real Gateway FastAPI routes and asserts canonical product figures for
 
 Do not treat this command as full live front-office certification. Full populated Workbench proof
 still uses the governed `lotus-workbench` canonical runtime and platform QA evidence.
+
+## Evidence To Keep
+
+For a demo rehearsal or PR evidence package, keep:
+
+1. the `make demo-certification` command output,
+2. `output/demo-certification/gateway-demo-certification.json`,
+3. any local or GitHub `make check` / `make ci` evidence used for the slice,
+4. Workbench canonical runtime evidence when the demo includes UI screenshots or populated panels.
+
+Do not paste raw client, account, holding, prompt, model-output, document, entitlement, trace, or
+correlation payloads into demo notes.
 
 ## Performance Contract Demo
 

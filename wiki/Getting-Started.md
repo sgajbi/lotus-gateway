@@ -1,5 +1,15 @@
 # Getting Started
 
+This page is for a new engineer, operator, or demo-prep reviewer who needs a working Gateway
+process and a few high-signal probes.
+
+## Prerequisites
+
+1. Python dependencies available for the repo.
+2. `make` available in the shell.
+3. Optional platform ingress when using `http://gateway.dev.lotus`.
+4. Sibling `lotus-platform` generated artifacts when testing domain-product discovery.
+
 ## Install
 
 ```bash
@@ -16,6 +26,9 @@ Canonical identities:
 
 - cross-app and product validation: `http://gateway.dev.lotus`
 - direct process debugging: `http://127.0.0.1:8111`
+
+`make run-canonical` uses `uvicorn app.main:app --reload --app-dir src --host 0.0.0.0 --port 8111`.
+The `--app-dir src` flag is part of the supported startup contract.
 
 ## First checks
 
@@ -38,9 +51,27 @@ runtime mounts these platform artifact directories read-only at `/lotus-platform
 `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH` when a
 runtime image mounts those artifacts elsewhere.
 
+## Demo readiness smoke
+
+Run the deterministic app-level Gateway certification before using Gateway claims in a demo:
+
+```bash
+make demo-certification
+```
+
+The command writes:
+
+```text
+output/demo-certification/gateway-demo-certification.json
+```
+
+This is Gateway API evidence only. UI screenshots and populated Workbench demo claims still need
+the governed Workbench runtime and platform QA evidence.
+
 ## First docs to read
 
 - [README.md](../README.md)
 - [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
+- [docs/demo/README.md](../docs/demo/README.md)
 - [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
 - [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
