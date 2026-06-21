@@ -1024,6 +1024,21 @@ def test_risk_workspace_attribution_delegates_period_mapping() -> None:
     assert attribution_methods.isdisjoint(expected_mapping_methods)
 
 
+def test_risk_workspace_service_delegates_response_loading() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "risk_workspace_service.py")
+    response_loading_methods = _function_names(_SERVICE_ROOT / "risk_workspace_response_loading.py")
+    expected_response_loading_methods = {
+        "load_concentration_response",
+        "load_drawdown_response",
+        "load_rolling_response",
+        "load_summary_response",
+        "post_rolling_metrics",
+    }
+
+    assert expected_response_loading_methods <= response_loading_methods
+    assert service_methods.isdisjoint(expected_response_loading_methods)
+
+
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
     descriptor_methods = _function_names(
