@@ -211,7 +211,7 @@ Important validation expectations:
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
    `scripts/check_agent_quality_evidence.py`; it keeps the executable 402/49 refactor ratchet, the
-   current `src/app/services/performance_workspace_contribution.py` hotspot, and durable
+   current `src/app/services/risk_workspace_service.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes

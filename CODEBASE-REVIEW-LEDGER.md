@@ -2,7 +2,36 @@
 
 Date: 2026-06-21
 Repository: `lotus-gateway`
-Branch: `feature/gateway-platform-capabilities-normalization-boundary`
+Branch: `feature/gateway-performance-contribution-boundary`
+
+## Performance Contribution Payload Mapping Extraction
+
+- Scope: behavior-preserving performance contribution payload modularity and quality evidence
+  synchronization.
+- Existing owner pattern: `PerformanceWorkspaceService` orchestrates Workbench performance reads
+  through typed client protocols; `performance_workspace_contribution.py` remains the
+  contribution summary facade; `lotus-performance` remains source truth for contribution,
+  smoothing, and source-economics evidence.
+- Change: moved contribution level, row, position, smoothing-evidence, and source-economics
+  payload mapping into `src/app/services/performance_workspace_contribution_payloads.py`;
+  preserved summary/detail contribution assembly, merge behavior, and upstream error handling.
+- Measured signal: `src/app/services/performance_workspace_contribution.py` is reduced from 402
+  to 227 lines and the extracted payload module is 190 lines. The current largest source-file
+  ceiling remains 402 lines, now reported by the agent quality evidence gate as
+  `src/app/services/risk_workspace_service.py`; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold remains `402/49`; `402` passes and `401` fails
+  only on `src/app/services/risk_workspace_service.py`, so this slice updates durable
+  agent-quality evidence instead of claiming an artificial ratchet.
+- Tests: `tests/unit/test_performance_workspace_contribution.py` preserves contribution payload
+  shape, smoothing evidence, source-economics evidence, and merge semantics;
+  `tests/unit/test_performance_workspace_service.py` preserves service orchestration;
+  `tests/unit/test_service_layer_boundaries.py` pins payload mapping ownership outside the
+  contribution facade.
+- Integration review: no upstream or downstream Lotus defect was identified; Gateway still
+  consumes and preserves the same Lotus Performance contribution payloads without recomputing
+  methodology truth.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/risk_workspace_service.py` before changing code.
 
 ## Platform Capability Feature And Workflow Flag Extraction
 

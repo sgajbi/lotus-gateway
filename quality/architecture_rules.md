@@ -35,10 +35,14 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_contribution.py` at 402 lines,
-2. `src/app/services/risk_workspace_service.py` at 402 lines,
-3. `src/app/services/dpm_proof_pack_service.py` at 399 lines,
-4. `src/app/contracts/advisor_brief.py` at 398 lines.
+1. `src/app/services/risk_workspace_service.py` at 402 lines,
+2. `src/app/services/dpm_proof_pack_service.py` at 399 lines,
+3. `src/app/contracts/advisor_brief.py` at 398 lines,
+4. `src/app/services/advisor_brief_service.py` at 397 lines.
+
+`src/app/services/performance_workspace_contribution.py` is reduced from 402 to 227 lines after
+contribution level, row, position, smoothing-evidence, and source-economics payload mapping moved
+into `src/app/services/performance_workspace_contribution_payloads.py`.
 
 `src/app/services/platform_capabilities_normalization.py` is reduced from 404 to 192 lines after
 source capability feature-key and workflow-key interpretation moved into
