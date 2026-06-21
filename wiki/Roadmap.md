@@ -4,12 +4,18 @@
 
 - active experience API for `lotus-workbench`
 - foundation, workbench, reporting, proposal, and platform capability contracts are live
+- domain-product discovery, archive retrieval, analytics diagnostics, bank-demo proof, advisor
+  cockpit, advisory policy, DPM command-center, report job, and report batch route families are
+  active where listed in [Supported Features](Supported-Features) and [API Surface](API-Surface)
 
 ## Intentional limitations
 
 - some thin pass-through and transitional route shapes still exist
 - parameter conventions are not fully uniform across all route families
 - gateway is not the authority for upstream domain methodology
+- full populated Workbench demo readiness is not claimed by Gateway alone
+- route existence does not imply a client-ready business claim unless the route is documented,
+  tested, and supported by owning upstream evidence
 
 ## Next priorities
 
@@ -46,3 +52,18 @@
    compensation, conduct-enforcement, approval, client-contact, OMS, or execution decisions.
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents
+5. continue promoting deterministic, low-noise evidence into blocking CI only after the quality
+   baseline and governance policy prove the signal is stable
+6. keep README, wiki, demo docs, context, and quality scorecards synchronized whenever route
+   support, startup, CI, or integration truth changes
+
+## Demo roadmap
+
+1. Gateway API certification:
+   implementation-backed through `make demo-certification` with deterministic synthetic upstream
+   fixtures.
+2. Populated Workbench proof:
+   owned by the governed Workbench canonical runtime and platform QA evidence.
+3. Client-facing evidence pack:
+   only claim after API, UI, calculation, security, observability, and screenshot evidence are all
+   current and reviewed.

@@ -3,6 +3,10 @@
 Experience API and composition boundary for Lotus product clients, primarily
 `lotus-workbench`.
 
+`lotus-gateway` is the place where product-facing API contracts are composed, stabilized, and made
+safe for front-office use. It is not a portfolio book, performance engine, risk engine, advisory
+workflow system, reporting engine, archive, or AI authority.
+
 Repository-local engineering context:
 [REPOSITORY-ENGINEERING-CONTEXT.md](REPOSITORY-ENGINEERING-CONTEXT.md)
 
@@ -34,6 +38,43 @@ It is responsible for:
 
 It does not own portfolio domain truth, analytics methodology, reporting methodology, advisory
 workflow truth, management workflow truth, or AI output truth. Those remain upstream.
+
+## Current Implementation-Backed Story
+
+For demos, onboarding, and buyer-facing technical review, describe the current Gateway posture this
+way:
+
+1. Gateway is the governed API boundary consumed by Workbench.
+2. Gateway preserves upstream authority and supportability rather than recomputing domain truth.
+3. Gateway has implementation-backed route families for foundation/workbench, platform
+   capabilities, domain-product discovery, portfolio, performance/risk workbench reads, proposals,
+   advisory policy, advisor cockpit, bank-demo proof, DPM command center, reporting, report
+   batches, archive metadata/download, and analytics diagnostics.
+4. Gateway exposes bounded degraded, partial, unavailable, and permission-blocked states where the
+   UI and operators need them.
+5. Gateway does not by itself certify full product demo readiness. Populated Workbench proof,
+   screenshots, and end-to-end demo claims still require the governed Workbench canonical runtime
+   and platform QA evidence.
+
+Use [docs/demo/README.md](docs/demo/README.md) and [wiki/Supported-Features.md](wiki/Supported-Features.md)
+as the claim-controlled demo entrypoints.
+
+## Audience Guide
+
+- Business, demo, and client-facing reviewers:
+  start with [wiki/Supported-Features.md](wiki/Supported-Features.md),
+  [wiki/Overview.md](wiki/Overview.md), and [docs/demo/README.md](docs/demo/README.md).
+- Engineers changing routes or contracts:
+  start with this README, [REPOSITORY-ENGINEERING-CONTEXT.md](REPOSITORY-ENGINEERING-CONTEXT.md),
+  [wiki/API-Surface.md](wiki/API-Surface.md), and
+  [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md).
+- Operators and support teams:
+  start with [wiki/Operations-Runbook.md](wiki/Operations-Runbook.md),
+  [wiki/Troubleshooting.md](wiki/Troubleshooting.md), and [docs/operations-runbook.md](docs/operations-runbook.md).
+- Security, governance, and procurement reviewers:
+  start with [wiki/Security-and-Governance.md](wiki/Security-and-Governance.md),
+  [quality/quality_scorecard.md](quality/quality_scorecard.md), and
+  [docs/security.md](docs/security.md).
 
 ## Ownership And Boundaries
 
@@ -417,12 +458,16 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
 ## Documentation Map
 
+- claim-controlled demo pack:
+  [docs/demo/README.md](docs/demo/README.md)
+- current implementation-backed feature matrix:
+  [wiki/Supported-Features.md](wiki/Supported-Features.md)
+- copy-paste API examples:
+  [wiki/API-Surface.md](wiki/API-Surface.md)
 - architecture direction:
   [docs/documentation/experience-api-foundation-blueprint.md](docs/documentation/experience-api-foundation-blueprint.md)
 - upstream integration governance:
   [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
-- demo material:
-  [docs/demo/README.md](docs/demo/README.md)
 - RFC inventory:
   [docs/rfcs/README.md](docs/rfcs/README.md)
 - wiki home:
