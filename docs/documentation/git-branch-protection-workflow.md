@@ -8,6 +8,8 @@ This repository follows protected branch rules on `main`.
 - Create a feature branch for all changes.
 - Open PRs to `main`.
 - Merge only after CI is green.
+- Use rebase merge only; do not use merge commits or squash for governed Lotus Gateway PRs.
+- Delete the feature branch after merge.
 
 ## Daily Flow
 
@@ -21,7 +23,7 @@ git commit -m "type: short summary"
 git push -u origin feat/<short-change-name>
 gh pr create --fill --base main --head feat/<short-change-name>
 gh pr checks <PR_NUMBER> --watch
-gh pr merge <PR_NUMBER> --merge --delete-branch
+gh pr merge <PR_NUMBER> --rebase --delete-branch
 git checkout main
 git pull origin main
 ```

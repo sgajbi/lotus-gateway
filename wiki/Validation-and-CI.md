@@ -24,6 +24,13 @@
 - `make ci-local-docker`
   Docker parity for the integration boundary
 
+## PR auto-merge posture
+
+PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
+`LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
+available, the helper emits a warning and exits successfully so an authorized human or release actor
+can perform the rebase merge without leaving a false red CI check.
+
 ## What the gates protect
 
 - workbench-facing contract integrity

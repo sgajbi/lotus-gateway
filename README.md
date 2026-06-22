@@ -317,6 +317,11 @@ Repo-native gate mapping:
 - `make ci-local-docker`
   Docker parity for the live integration boundary
 
+PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
+`LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
+available, the helper emits a warning and exits successfully so an authorized human or release actor
+can perform the rebase merge without leaving a false red CI check.
+
 The Quality Baseline workflow is intentionally report-only. It publishes complexity,
 maintainability, dead-code, dependency, security, import-boundary, documentation, coverage, and
 OpenAPI governance evidence without weakening the existing blocking lanes. Promote individual

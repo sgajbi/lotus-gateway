@@ -11,4 +11,10 @@ Canonical standard:
 3. Keep PR checks fast and meaningful (blocking).
 4. Run heavier checks in scheduled/manual/mainline tiers.
 5. Merge only with green required checks.
-6. Always finish with `local = remote = main`.
+6. Use rebase merge and delete the feature branch after merge.
+7. Always finish with `local = remote = main`.
+
+PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
+`LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
+available, the helper emits a warning and exits successfully so an authorized human or release actor
+can perform the rebase merge without leaving a false red CI check.

@@ -218,12 +218,16 @@ Important validation expectations:
    `scripts/check_agent_quality_evidence.py`; it keeps the executable 397/49 refactor ratchet, the
    current `src/app/services/advisor_brief_service.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
-6. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
+6. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
+   `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
+   with a warning when the token is absent so an authorized human or release actor can perform the
+   rebase merge without leaving a false red helper check,
+7. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
-7. Docker parity matters because the gateway is a live integration boundary,
-8. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+8. Docker parity matters because the gateway is a live integration boundary,
+9. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository
