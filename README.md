@@ -49,7 +49,7 @@ way:
 3. Gateway has implementation-backed route families for foundation/workbench, platform
    capabilities, domain-product discovery, portfolio, performance/risk workbench reads, proposals,
    advisory policy, advisor cockpit, bank-demo proof, DPM command center, reporting, report
-   batches, archive metadata/download, and analytics diagnostics.
+   batches, archive metadata/download, idea review/candidate reads, and analytics diagnostics.
 4. Gateway exposes bounded degraded, partial, unavailable, and permission-blocked states where the
    UI and operators need them.
 5. Gateway does not by itself certify full product demo readiness. Populated Workbench proof,
@@ -102,6 +102,8 @@ It depends on:
   job initiation/lifecycle/search, and RFC-0104 batch materialization/status/control/operator-run APIs
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
+- `lotus-idea`
+  opportunity intelligence review queues and source-safe candidate detail
 - `lotus-ai`
   evidence-grounded advisor-brief support, outcome-review narrative support, DPM exception-summary
   support, proof-pack PM memo support, wave PM memo support, and operations handoff support through
@@ -124,9 +126,11 @@ Boundary rules that matter:
    reporting, intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
-4. The repository is still moving from thin pass-through behavior toward cleaner experience-API
+4. Idea review queue and candidate detail routes are active as source-preserving read facades over
+   `lotus-idea`; Gateway does not rank, generate, enrich, or promote ideas locally.
+5. The repository is still moving from thin pass-through behavior toward cleaner experience-API
    contracts.
-5. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
+6. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
    `app` package and yield a misleading health-only process.
 
 ## Architecture At A Glance
@@ -206,6 +210,9 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/report-batch-schedules`, `/api/v1/report-batch-schedules:run-due`
 - `archived documents`
   `/api/v1/documents/{document_id}`, `/api/v1/documents/{document_id}/download`
+- `ideas`
+  `/api/v1/ideas/review-queues/advisor`,
+  `/api/v1/ideas/candidates/{candidate_id}`
 - platform surfaces
   `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -343,7 +350,10 @@ Important current parameter conventions:
 10. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
-11. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
+11. idea review queue and candidate detail routes forward `X-Caller-Subject`, `X-Caller-Roles`,
+   and `X-Caller-Capabilities` to `lotus-idea`; Gateway preserves `supportedFeaturePromoted=false`
+   and does not rank, score, enrich, or certify idea candidates locally
+12. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
    action routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,
    `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit posture for
@@ -425,7 +435,7 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   `lotus-workbench`
 - key upstreams:
   `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
-  `lotus-archive`, `lotus-ai`
+  `lotus-archive`, `lotus-idea`, `lotus-ai`
 - downstream ownership rule:
   proposal routes call `lotus-advise` `/advisory/proposals/*`, including reviewed narrative
   posture, report-request, and delivery-posture routes; Gateway does not generate narrative,
@@ -445,6 +455,10 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 - discovery rule:
   gateway may expose the platform-generated domain-product catalog and dependency graph, but the
   producer and consumer declarations remain governed outside gateway
+- idea publication rule:
+  gateway may expose product-facing reads over `lotus-idea`, but `lotus-idea` remains the
+  opportunity intelligence, queue ranking, candidate lifecycle, evidence, conversion, and
+  supported-feature authority
 
 ## Operations And Runtime Posture
 

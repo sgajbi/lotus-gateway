@@ -57,6 +57,16 @@
 3. dependency graph,
 4. live trust certification discovery.
 
+## Ideas
+
+1. advisor idea review queue read through `/api/v1/ideas/review-queues/advisor`,
+2. source-safe idea candidate detail read through `/api/v1/ideas/candidates/{candidate_id}`.
+
+These routes are implementation-backed Gateway publication for `lotus-idea` read surfaces only.
+Gateway preserves `lotus-idea` ranking, source signal identifiers, source references,
+durable-storage posture, and `supportedFeaturePromoted=false`; it does not generate, rank, enrich,
+or certify ideas locally.
+
 ## Boundaries
 
 Supported does not mean gateway owns source truth. Domain authority remains with the upstream

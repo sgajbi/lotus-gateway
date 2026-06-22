@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
     render_service_base_url: str = Field(default="http://render.dev.lotus")
     archive_service_base_url: str = Field(default="http://archive.dev.lotus")
+    idea_service_base_url: str = Field(default="http://idea.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
     upstream_timeout_seconds: float = Field(default=3.0)
     platform_capabilities_source_timeout_seconds: float = Field(default=5.0)
@@ -82,6 +83,7 @@ class Settings(BaseSettings):
         "reporting_aggregation_base_url",
         "render_service_base_url",
         "archive_service_base_url",
+        "idea_service_base_url",
         "management_service_base_url",
         mode="before",
     )

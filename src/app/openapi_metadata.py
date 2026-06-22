@@ -20,6 +20,13 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         "description": ("Gateway-facing archived document metadata and controlled download APIs."),
     },
     {
+        "name": "Ideas",
+        "description": (
+            "Gateway-facing opportunity intelligence and idea lifecycle read APIs backed by "
+            "lotus-idea source authority."
+        ),
+    },
+    {
         "name": "Analytics Diagnostics",
         "description": (
             "Protected operator analytics UI diagnostics lookup with bounded audit posture."

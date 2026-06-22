@@ -79,7 +79,12 @@ Current repository posture:
    product-facing boundary over `lotus-archive`,
 7. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-8. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
+8. idea review queue and candidate detail read routes are active under
+   `/api/v1/ideas/review-queues/advisor` and `/api/v1/ideas/candidates/{candidate_id}`; Gateway
+   preserves `lotus-idea` ranking, source refs, durable-storage posture, and
+   `supportedFeaturePromoted=false` without generating, ranking, enriching, certifying, or
+   promoting ideas locally,
+9. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
 9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
 10. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
     `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as
@@ -156,7 +161,7 @@ Runtime model:
 1. FastAPI experience API,
 2. consumed primarily by `lotus-workbench`,
 3. depends on `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`,
-   `lotus-report`, `lotus-archive`, and `lotus-ai`.
+   `lotus-report`, `lotus-archive`, `lotus-idea`, and `lotus-ai`.
 
 Boundary rules:
 
@@ -246,12 +251,15 @@ Most relevant current governance:
 7. archive retrieval uses `ARCHIVE_SERVICE_BASE_URL` and forwards archive-specific caller context
    as `lotus-gateway`; direct Workbench-to-archive access is not part of the supported product
    boundary,
-8. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
+8. idea publication uses `IDEA_SERVICE_BASE_URL`, forwards `X-Caller-Subject`,
+   `X-Caller-Roles`, `X-Caller-Capabilities`, and correlation context to `lotus-idea`, and maps
+   unsafe upstream failures to product-safe Gateway errors,
+9. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
    under the sibling `lotus-platform/generated/` directory, and live trust certification defaults to
    `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
    deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,
    `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH`.
-9. report batch gateway routes are an RFC-0104 API/operator boundary only; Workbench batch UI,
+10. report batch gateway routes are an RFC-0104 API/operator boundary only; Workbench batch UI,
    RFC-0105 replay/dashboard operations, and RFC-0106 entitlement certification remain separate
    implementation scopes until explicitly delivered and proven.
 10. RFC-0042 outcome-review Gateway routes are active under

@@ -47,6 +47,8 @@
 - `GET /api/v1/report-batch-schedules` and `POST /api/v1/report-batch-schedules:run-due`
 - `GET /api/v1/documents/{document_id}`
 - `GET /api/v1/documents/{document_id}/download`
+- `GET /api/v1/ideas/review-queues/advisor`
+- `GET /api/v1/ideas/candidates/{candidate_id}`
 - `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -241,6 +243,11 @@
   `lotus-workbench` must not call `lotus-archive` directly
 - archived document routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Booking-Center-Code` and `X-Role` are forwarded as caller context
+- idea review queue and candidate detail reads are gateway-first under `/api/v1/ideas/*`;
+  Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`, and correlation
+  context to `lotus-idea`, preserves source-owned ranking, source signal identifiers, source refs,
+  durable-storage posture, and `supportedFeaturePromoted=false`, and does not generate, rank,
+  enrich, certify, or promote idea candidates locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
   routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Caller-Application`, `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit
@@ -622,6 +629,24 @@ curl "http://127.0.0.1:8111/api/v1/documents/doc_example/download" \
   -H "X-Booking-Center-Code: SG" \
   -H "X-Role: advisor" \
   --output portfolio-review.pdf
+```
+
+Advisor idea review queue:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z" \
+  -H "X-Caller-Subject: advisor-123" \
+  -H "X-Caller-Roles: advisor" \
+  -H "X-Caller-Capabilities: idea.review.queue.read"
+```
+
+Idea candidate detail:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7" \
+  -H "X-Caller-Subject: advisor-123" \
+  -H "X-Caller-Roles: advisor" \
+  -H "X-Caller-Capabilities: idea.candidate.detail.read"
 ```
 
 Analytics diagnostics protected lookup:

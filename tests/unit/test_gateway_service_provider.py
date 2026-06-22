@@ -3,6 +3,7 @@ from app.services.gateway_service_provider import (
     composite_performance_service,
     domain_product_catalog_service,
     foundation_service,
+    idea_service,
     intake_service,
     source_product_service,
 )
@@ -25,6 +26,10 @@ def test_gateway_service_provider_wires_smaller_route_services(monkeypatch) -> N
         "app.services.lotus_core_client_factory.settings.portfolio_data_ingestion_base_url",
         "http://core-ingestion-provider:8000",
     )
+    monkeypatch.setattr(
+        "app.services.idea_client_factory.settings.idea_service_base_url",
+        "http://idea-provider:8000",
+    )
 
     assert archive_document_service()._archive_client._base_url == "http://archive-provider:8000"
     assert (
@@ -44,6 +49,7 @@ def test_gateway_service_provider_wires_smaller_route_services(monkeypatch) -> N
         intake_service()._lotus_core_ingestion_client._base_url
         == "http://core-ingestion-provider:8000"
     )
+    assert idea_service()._idea_client._base_url == "http://idea-provider:8000"
 
 
 def test_gateway_service_provider_reuses_services_for_unchanged_signature(monkeypatch) -> None:
