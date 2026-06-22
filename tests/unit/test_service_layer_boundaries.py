@@ -8,6 +8,7 @@ _CLIENT_FACTORY_FILES = {
     "analytics_client_factory.py",
     "archive_client_factory.py",
     "dpm_service_factory.py",
+    "idea_client_factory.py",
     "lotus_core_client_factory.py",
     "reporting_client_factory.py",
 }

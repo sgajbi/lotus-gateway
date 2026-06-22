@@ -33,6 +33,7 @@ def test_router_registry_mounts_representative_gateway_route_families() -> None:
     assert "/api/v1/dpm/command-center" in routes
     assert "/api/v1/report-batches/{batch_id}" in routes
     assert "/api/v1/documents/{document_id}" in routes
+    assert "/api/v1/ideas/review-queues/advisor" in routes
 
 
 def test_advisory_router_group_keeps_proposal_routes_together() -> None:

@@ -39,6 +39,8 @@
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
+- `lotus-idea`
+  opportunity intelligence advisor review queue and source-safe candidate detail read APIs
 - `lotus-ai`
   evidence-grounded advisor brief narration, DPM exception-summary support, proof-pack PM memo
   support, wave PM memo support, and outcome-review narrative support through explicit
@@ -63,6 +65,8 @@
   `http://report.dev.lotus`
 - `lotus-archive`
   `http://archive.dev.lotus`
+- `lotus-idea`
+  `http://idea.dev.lotus`
 - `lotus-ai`
   `http://ai.dev.lotus`
 
@@ -81,8 +85,10 @@
 6. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
 7. archived document retrieval is product-facing only through gateway document routes; Workbench
    does not call `lotus-archive` directly
-8. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise` or
-   `lotus-manage` directly for proposal or management workflow data
+8. idea review queue and candidate detail retrieval are product-facing only through gateway idea
+   routes; Workbench must not call `lotus-idea` directly for these read surfaces
+9. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise`,
+   `lotus-manage`, or `lotus-idea` directly for proposal, management, or idea workflow data
 9. RFC-0023 advisory narrative posture remains `lotus-advise` truth. Gateway exposes reviewed
    narrative, report-request, delivery-summary, and delivery-event routes for Workbench and
    preserves Advise-owned source hashes, review state, policy/guardrail/disclosure posture,
@@ -201,3 +207,10 @@
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from
     manage `/api/v1/rebalance/supportability/summary`; run posture comes from
     `/api/v1/rebalance/runs`.
+19. Lotus Idea opportunity intelligence remains `lotus-idea` truth. Gateway realization exposes
+    `/api/v1/ideas/review-queues/advisor` and `/api/v1/ideas/candidates/{candidate_id}` for
+    product clients, forwards Idea caller context and correlation context, and preserves
+    `lotus-idea` ranking, source signal identifiers, source references, durable-storage posture,
+    and `supportedFeaturePromoted=false`. Gateway does not generate ideas, rank candidates,
+    enrich evidence, grant downstream authority, certify data-product posture, or promote the
+    feature locally.

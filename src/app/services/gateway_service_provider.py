@@ -18,6 +18,8 @@ from app.services.foundation_service_factory import (
     build_foundation_service,
     foundation_service_signature,
 )
+from app.services.idea_service import IdeaService
+from app.services.idea_service_factory import build_idea_service, idea_service_signature
 from app.services.intake_service import IntakeService
 from app.services.intake_service_factory import build_intake_service, intake_service_signature
 from app.services.service_provider_cache import resolve_cached_service
@@ -39,6 +41,8 @@ _FOUNDATION_SERVICE: FoundationService | None = None
 _FOUNDATION_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _INTAKE_SERVICE: IntakeService | None = None
 _INTAKE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_IDEA_SERVICE: IdeaService | None = None
+_IDEA_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
 
 def archive_document_service() -> ArchiveDocumentService:
@@ -116,4 +120,17 @@ def intake_service() -> IntakeService:
     )
     _INTAKE_SERVICE = service
     _INTAKE_SERVICE_SIGNATURE = signature
+    return service
+
+
+def idea_service() -> IdeaService:
+    global _IDEA_SERVICE, _IDEA_SERVICE_SIGNATURE
+    service, signature = resolve_cached_service(
+        _IDEA_SERVICE,
+        _IDEA_SERVICE_SIGNATURE,
+        idea_service_signature(),
+        build_idea_service,
+    )
+    _IDEA_SERVICE = service
+    _IDEA_SERVICE_SIGNATURE = signature
     return service

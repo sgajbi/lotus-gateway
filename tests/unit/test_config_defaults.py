@@ -22,6 +22,7 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
     assert settings.reporting_aggregation_base_url == "http://report.dev.lotus"
     assert settings.archive_service_base_url == "http://archive.dev.lotus"
+    assert settings.idea_service_base_url == "http://idea.dev.lotus"
     assert settings.management_service_base_url == "http://manage.dev.lotus"
     assert Path(settings.domain_product_catalog_path).parts[-3:] == (
         "lotus-platform",
