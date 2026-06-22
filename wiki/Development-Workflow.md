@@ -7,6 +7,7 @@
 - use PR-first delivery
 - keep commits small and scoped to one real improvement area
 - preserve behavior unless a change is intentional, tested, and documented
+- merge with rebase only and delete the feature branch after merge
 
 ## Repo-native commands
 
@@ -38,6 +39,13 @@
 ```powershell
 ..\lotus-platform\automation\Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway
 ```
+
+## Merge hygiene
+
+PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
+`LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
+available, the helper emits a warning and exits successfully so an authorized human or release actor
+can perform the rebase merge without leaving a false red CI check.
 
 ## Engineering guardrails
 
