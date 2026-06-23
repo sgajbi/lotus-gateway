@@ -81,7 +81,7 @@ Current repository posture:
    active under `/api/v1/domain-products`,
 8. idea review queue and candidate detail read routes are active under
    `/api/v1/ideas/review-queues/advisor` and `/api/v1/ideas/candidates/{candidate_id}`; Gateway
-   forwards entitlement-scope headers for advisor queue reads, preserves `lotus-idea` ranking,
+   forwards entitlement-scope headers for both idea read routes, preserves `lotus-idea` ranking,
    source refs, durable-storage posture, and
    `supportedFeaturePromoted=false` without generating, ranking, enriching, certifying, or
    promoting ideas locally,
@@ -257,7 +257,7 @@ Most relevant current governance:
    as `lotus-gateway`; direct Workbench-to-archive access is not part of the supported product
    boundary,
 8. idea publication uses `IDEA_SERVICE_BASE_URL`, forwards `X-Caller-Subject`,
-   `X-Caller-Roles`, `X-Caller-Capabilities`, queue entitlement-scope headers where applicable,
+   `X-Caller-Roles`, `X-Caller-Capabilities`, entitlement-scope headers for published idea reads,
    and correlation context to `lotus-idea`, and maps unsafe upstream failures to product-safe
    Gateway errors,
 9. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts

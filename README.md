@@ -356,9 +356,9 @@ Important current parameter conventions:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
 11. idea review queue and candidate detail routes forward `X-Caller-Subject`, `X-Caller-Roles`,
-   and `X-Caller-Capabilities` to `lotus-idea`; the advisor queue route also forwards
-   `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`, and
-   `X-Caller-Client-Ids` for `lotus-idea` entitlement-scope enforcement. Gateway preserves
+   `X-Caller-Capabilities`, `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`,
+   `X-Caller-Portfolio-Ids`, and `X-Caller-Client-Ids` to `lotus-idea` for
+   entitlement-scope enforcement. Gateway preserves
    `supportedFeaturePromoted=false` and does not rank, score, enrich, or certify idea candidates
    locally
 12. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
