@@ -9,6 +9,10 @@ def _headers() -> dict[str, str]:
         "X-Caller-Subject": "advisor-123",
         "X-Caller-Roles": "advisor",
         "X-Caller-Capabilities": "idea.review.queue.read,idea.candidate.detail.read",
+        "X-Caller-Tenant-Ids": "tenant-private-bank-sg",
+        "X-Caller-Book-Ids": "book-advisor-001",
+        "X-Caller-Portfolio-Ids": "PB_SG_GLOBAL_BAL_001",
+        "X-Caller-Client-Ids": "client-001",
         "X-Correlation-Id": "corr-idea-router",
     }
 
@@ -47,6 +51,10 @@ def test_idea_review_queue_route_preserves_source_payload_and_context(monkeypatc
             "X-Caller-Subject": "advisor-123",
             "X-Caller-Roles": "advisor",
             "X-Caller-Capabilities": "idea.review.queue.read,idea.candidate.detail.read",
+            "X-Caller-Tenant-Ids": "tenant-private-bank-sg",
+            "X-Caller-Book-Ids": "book-advisor-001",
+            "X-Caller-Portfolio-Ids": "PB_SG_GLOBAL_BAL_001",
+            "X-Caller-Client-Ids": "client-001",
         },
         "correlation_id": "corr-idea-router",
     }
