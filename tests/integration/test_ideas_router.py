@@ -61,7 +61,12 @@ def test_idea_review_queue_route_preserves_source_payload_and_context(monkeypatc
 
 
 def test_idea_candidate_detail_route_preserves_source_refs_without_enrichment(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
     async def _detail(self, *, candidate_id, caller_headers, correlation_id):
+        captured["candidate_id"] = candidate_id
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
         payload = dict(IDEA_CANDIDATE_DETAIL_EXAMPLE)
         payload["candidate"] = dict(payload["candidate"])
         payload["candidate"]["candidateId"] = candidate_id
@@ -86,6 +91,19 @@ def test_idea_candidate_detail_route_preserves_source_refs_without_enrichment(mo
     assert body["supportedFeaturePromoted"] is False
     assert "gatewayScore" not in str(body)
     assert "grantsDownstreamAuthority" not in str(body)
+    assert captured == {
+        "candidate_id": "idea_high_cash_8d57adbf52f7f5a7",
+        "caller_headers": {
+            "X-Caller-Subject": "advisor-123",
+            "X-Caller-Roles": "advisor",
+            "X-Caller-Capabilities": "idea.review.queue.read,idea.candidate.detail.read",
+            "X-Caller-Tenant-Ids": "tenant-private-bank-sg",
+            "X-Caller-Book-Ids": "book-advisor-001",
+            "X-Caller-Portfolio-Ids": "PB_SG_GLOBAL_BAL_001",
+            "X-Caller-Client-Ids": "client-001",
+        },
+        "correlation_id": "corr-idea-router",
+    }
 
 
 def test_idea_route_blocks_source_supported_feature_promotion(monkeypatch) -> None:
