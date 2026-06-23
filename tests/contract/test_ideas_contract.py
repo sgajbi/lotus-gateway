@@ -16,13 +16,21 @@ def test_ideas_openapi_contract_registered() -> None:
     assert "lotus-idea" in queue_operation["description"]
     assert "does not rank" in queue_operation["description"]
     queue_parameter_names = {parameter["name"] for parameter in queue_operation["parameters"]}
+    detail_parameter_names = {parameter["name"] for parameter in detail_operation["parameters"]}
     assert {
         "X-Caller-Tenant-Ids",
         "X-Caller-Book-Ids",
         "X-Caller-Portfolio-Ids",
         "X-Caller-Client-Ids",
     }.issubset(queue_parameter_names)
+    assert {
+        "X-Caller-Tenant-Ids",
+        "X-Caller-Book-Ids",
+        "X-Caller-Portfolio-Ids",
+        "X-Caller-Client-Ids",
+    }.issubset(detail_parameter_names)
     assert "does not enrich" in detail_operation["description"]
+    assert "entitlement-scope" in detail_operation["description"]
     assert queue_operation["responses"]["403"]["description"]
     assert queue_operation["responses"]["502"]["description"]
     assert detail_operation["responses"]["404"]["description"]

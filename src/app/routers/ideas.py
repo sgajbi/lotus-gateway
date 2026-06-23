@@ -107,7 +107,8 @@ async def get_advisor_idea_review_queue(
         "Returns source-safe idea candidate detail by forwarding to lotus-idea. Gateway preserves "
         "lotus-idea candidate lifecycle, redacted evidence, source references, review, feedback, "
         "conversion, report-evidence, audit, durable-storage, and supported-feature posture; it "
-        "does not enrich, re-score, or grant downstream authority locally."
+        "also forwards caller entitlement-scope headers for lotus-idea fail-closed access checks. "
+        "It does not enrich, re-score, or grant downstream authority locally."
     ),
     openapi_extra={
         "responses": {
@@ -137,6 +138,13 @@ async def get_idea_candidate_detail(
         str | None,
         Header(alias="X-Caller-Capabilities"),
     ] = None,
+    x_caller_tenant_ids: Annotated[str | None, Header(alias="X-Caller-Tenant-Ids")] = None,
+    x_caller_book_ids: Annotated[str | None, Header(alias="X-Caller-Book-Ids")] = None,
+    x_caller_portfolio_ids: Annotated[
+        str | None,
+        Header(alias="X-Caller-Portfolio-Ids"),
+    ] = None,
+    x_caller_client_ids: Annotated[str | None, Header(alias="X-Caller-Client-Ids")] = None,
 ) -> IdeaGatewayCandidateDetailResponse:
     return await _get_idea_candidate_detail(
         candidate_id=candidate_id,
@@ -144,5 +152,9 @@ async def get_idea_candidate_detail(
             subject=x_caller_subject,
             roles=x_caller_roles,
             capabilities=x_caller_capabilities,
+            tenant_ids=x_caller_tenant_ids,
+            book_ids=x_caller_book_ids,
+            portfolio_ids=x_caller_portfolio_ids,
+            client_ids=x_caller_client_ids,
         ),
     )
