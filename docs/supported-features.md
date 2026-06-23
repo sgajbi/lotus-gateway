@@ -64,8 +64,8 @@
 
 These routes are implementation-backed Gateway publication for `lotus-idea` read surfaces only.
 Gateway preserves `lotus-idea` ranking, source signal identifiers, source references,
-durable-storage posture, and `supportedFeaturePromoted=false`; it does not generate, rank, enrich,
-or certify ideas locally.
+durable-storage posture, caller entitlement-scope forwarding for the advisor queue, and
+`supportedFeaturePromoted=false`; it does not generate, rank, enrich, or certify ideas locally.
 
 ## Boundaries
 

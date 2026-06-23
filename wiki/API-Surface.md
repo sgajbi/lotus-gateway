@@ -245,9 +245,11 @@
   `X-Booking-Center-Code` and `X-Role` are forwarded as caller context
 - idea review queue and candidate detail reads are gateway-first under `/api/v1/ideas/*`;
   Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`, and correlation
-  context to `lotus-idea`, preserves source-owned ranking, source signal identifiers, source refs,
-  durable-storage posture, and `supportedFeaturePromoted=false`, and does not generate, rank,
-  enrich, certify, or promote idea candidates locally
+  context to `lotus-idea`; the advisor queue route also forwards `X-Caller-Tenant-Ids`,
+  `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`, and `X-Caller-Client-Ids` for
+  `lotus-idea` entitlement-scope enforcement. Gateway preserves source-owned ranking, source
+  signal identifiers, source refs, durable-storage posture, and `supportedFeaturePromoted=false`,
+  and does not generate, rank, enrich, certify, or promote idea candidates locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
   routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Caller-Application`, `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit
@@ -637,7 +639,11 @@ Advisor idea review queue:
 curl "http://127.0.0.1:8111/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z" \
   -H "X-Caller-Subject: advisor-123" \
   -H "X-Caller-Roles: advisor" \
-  -H "X-Caller-Capabilities: idea.review.queue.read"
+  -H "X-Caller-Capabilities: idea.review.queue.read" \
+  -H "X-Caller-Tenant-Ids: tenant-private-bank-sg" \
+  -H "X-Caller-Book-Ids: book-advisor-001" \
+  -H "X-Caller-Portfolio-Ids: PB_SG_GLOBAL_BAL_001" \
+  -H "X-Caller-Client-Ids: client-001"
 ```
 
 Idea candidate detail:

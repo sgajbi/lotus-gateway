@@ -209,8 +209,9 @@
     `/api/v1/rebalance/runs`.
 19. Lotus Idea opportunity intelligence remains `lotus-idea` truth. Gateway realization exposes
     `/api/v1/ideas/review-queues/advisor` and `/api/v1/ideas/candidates/{candidate_id}` for
-    product clients, forwards Idea caller context and correlation context, and preserves
-    `lotus-idea` ranking, source signal identifiers, source references, durable-storage posture,
-    and `supportedFeaturePromoted=false`. Gateway does not generate ideas, rank candidates,
+    product clients, forwards Idea caller context, advisor queue entitlement-scope headers, and
+    correlation context, and preserves `lotus-idea` ranking, source signal identifiers, source
+    references, durable-storage posture, and `supportedFeaturePromoted=false`. Gateway does not
+    generate ideas, rank candidates,
     enrich evidence, grant downstream authority, certify data-product posture, or promote the
     feature locally.

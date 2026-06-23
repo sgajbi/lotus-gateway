@@ -113,7 +113,7 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    configuration and materialization authority.
 7. Idea review queue and candidate detail reads are exposed through gateway-owned
    `/api/v1/ideas/*` routes while preserving `lotus-idea` as the ranking, lifecycle, evidence,
-   conversion, and supported-feature authority.
+   conversion, entitlement-scope enforcement, and supported-feature authority.
 
 ## Gap Register
 
