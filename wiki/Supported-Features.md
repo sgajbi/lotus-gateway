@@ -25,10 +25,10 @@ Supported routes:
 
 Boundary:
 
-1. Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`, and correlation
-   context to `lotus-idea`; advisor queue reads also forward `X-Caller-Tenant-Ids`,
-   `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`, and `X-Caller-Client-Ids` for
-   `lotus-idea` entitlement-scope enforcement.
+1. Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
+   `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,
+   `X-Caller-Client-Ids`, and correlation context to `lotus-idea` for
+   `lotus-idea` entitlement-scope enforcement on published idea reads.
 2. Gateway does not generate ideas, rank candidates, enrich evidence, certify data-product posture,
    grant downstream authority, or promote `supportedFeaturePromoted`.
 3. Workbench idea UI, mutation routes, data-product certification, and full supported-feature
