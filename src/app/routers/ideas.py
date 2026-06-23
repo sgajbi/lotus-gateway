@@ -46,8 +46,8 @@ async def _get_idea_candidate_detail(
     description=(
         "Returns the product-facing advisor idea review queue by forwarding to lotus-idea. "
         "Gateway preserves lotus-idea ranking, candidate identity, source signal identifiers, "
-        "durable-storage posture, and supported-feature promotion state; it does not rank, "
-        "generate, or certify idea candidates locally."
+        "caller entitlement scope, durable-storage posture, and supported-feature promotion "
+        "state; it does not rank, generate, or certify idea candidates locally."
     ),
     openapi_extra={
         "responses": {
@@ -77,6 +77,13 @@ async def get_advisor_idea_review_queue(
         str | None,
         Header(alias="X-Caller-Capabilities"),
     ] = None,
+    x_caller_tenant_ids: Annotated[str | None, Header(alias="X-Caller-Tenant-Ids")] = None,
+    x_caller_book_ids: Annotated[str | None, Header(alias="X-Caller-Book-Ids")] = None,
+    x_caller_portfolio_ids: Annotated[
+        str | None,
+        Header(alias="X-Caller-Portfolio-Ids"),
+    ] = None,
+    x_caller_client_ids: Annotated[str | None, Header(alias="X-Caller-Client-Ids")] = None,
 ) -> IdeaGatewayReviewQueueResponse:
     return await _get_advisor_idea_review_queue(
         evaluated_at_utc=evaluated_at_utc,
@@ -84,6 +91,10 @@ async def get_advisor_idea_review_queue(
             subject=x_caller_subject,
             roles=x_caller_roles,
             capabilities=x_caller_capabilities,
+            tenant_ids=x_caller_tenant_ids,
+            book_ids=x_caller_book_ids,
+            portfolio_ids=x_caller_portfolio_ids,
+            client_ids=x_caller_client_ids,
         ),
     )
 
