@@ -486,7 +486,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: outcome-review-or_20260415_001" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-1" \
-  -d "{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}"
+  -d "{\"body\":{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}}"
 ```
 
 DPM outcome-review supportability:
