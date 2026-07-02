@@ -9,12 +9,8 @@ from app.contracts.dpm_command_center import (
 from app.services import dpm_command_center_supportability
 from app.services.ai_client_protocols import LotusAiWorkflowClient
 from app.services.dpm_client_protocols import DpmCommandCenterClient
-from app.services.dpm_command_center_exception_summary import (
-    DpmCommandCenterExceptionSummaryMixin,
-)
-from app.services.dpm_command_center_outcome_narrative import (
-    DpmCommandCenterOutcomeNarrativeMixin,
-)
+from app.services.dpm_command_center_exception_summary import DpmCommandCenterExceptionSummaryMixin
+from app.services.dpm_command_center_outcome_narrative import DpmCommandCenterOutcomeNarrativeMixin
 from app.services.dpm_pm_operating_quality_service import DpmPmOperatingQualityServiceMixin
 from app.services.upstream_envelope import build_product_safe_upstream_status_gateway_envelope
 
