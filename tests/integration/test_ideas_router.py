@@ -60,6 +60,42 @@ def test_idea_review_queue_route_preserves_source_payload_and_context(monkeypatc
     }
 
 
+def test_idea_review_queue_route_allows_active_queue_without_evaluation_time(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _queue(self, *, evaluated_at_utc, caller_headers, correlation_id):
+        captured["evaluated_at_utc"] = evaluated_at_utc
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
+        payload = dict(IDEA_REVIEW_QUEUE_EXAMPLE)
+        payload["sourceAuthority"] = "lotus-idea"
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.get_advisor_review_queue",
+        _queue,
+    )
+
+    response = TestClient(app).get(
+        "/api/v1/ideas/review-queues/advisor",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["sourceAuthority"] == "lotus-idea"
+    assert captured["evaluated_at_utc"] is None
+    assert captured["caller_headers"] == {
+        "X-Caller-Subject": "advisor-123",
+        "X-Caller-Roles": "advisor",
+        "X-Caller-Capabilities": "idea.review.queue.read,idea.candidate.detail.read",
+        "X-Caller-Tenant-Ids": "tenant-private-bank-sg",
+        "X-Caller-Book-Ids": "book-advisor-001",
+        "X-Caller-Portfolio-Ids": "PB_SG_GLOBAL_BAL_001",
+        "X-Caller-Client-Ids": "client-001",
+    }
+    assert captured["correlation_id"] == "corr-idea-router"
+
+
 def test_idea_candidate_detail_route_preserves_source_refs_without_enrichment(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

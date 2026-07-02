@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Header
 
 from app.contracts.dpm_command_center import (
     DpmOutcomeReviewForwardRequest,
@@ -18,9 +20,11 @@ router = APIRouter(
 async def _create_outcome_review(
     *,
     request: DpmOutcomeReviewForwardRequest,
+    idempotency_key: str,
 ) -> DpmOutcomeReviewGatewayResponse:
     return await dpm_command_center_service().create_outcome_review(
         body=request.body,
+        idempotency_key=idempotency_key,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -38,7 +42,15 @@ async def _create_outcome_review(
 )
 async def create_outcome_review(
     request: DpmOutcomeReviewForwardRequest,
+    idempotency_key: Annotated[
+        str,
+        Header(
+            alias="Idempotency-Key",
+            description="Caller-supplied idempotency key forwarded unchanged to lotus-manage.",
+        ),
+    ],
 ) -> DpmOutcomeReviewGatewayResponse:
     return await _create_outcome_review(
         request=request,
+        idempotency_key=idempotency_key,
     )

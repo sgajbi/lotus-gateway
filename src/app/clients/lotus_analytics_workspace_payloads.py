@@ -32,6 +32,7 @@ def build_workspace_summary_payload(
         payload["report_ccy"] = reporting_currency
     if report_start_date:
         payload["report_start_date"] = report_start_date
+        payload["performance_start_date"] = report_start_date
     if benchmark_id:
         payload["benchmark"] = _workspace_summary_benchmark(benchmark_id)
     return payload

@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/v1/ideas", tags=["Ideas"])
 
 async def _get_advisor_idea_review_queue(
     *,
-    evaluated_at_utc: str,
+    evaluated_at_utc: str | None,
     caller_headers: IdeaCallerHeaders,
 ) -> IdeaGatewayReviewQueueResponse:
     return await idea_service().get_advisor_review_queue(
@@ -64,13 +64,16 @@ async def _get_idea_candidate_detail(
 )
 async def get_advisor_idea_review_queue(
     evaluated_at_utc: Annotated[
-        str,
+        str | None,
         Query(
             alias="evaluatedAtUtc",
-            description="Timezone-aware evaluation instant forwarded to lotus-idea.",
+            description=(
+                "Optional timezone-aware evaluation instant forwarded to lotus-idea. "
+                "When omitted, lotus-idea returns its governed active advisor queue snapshot."
+            ),
             examples=["2026-06-21T10:10:00Z"],
         ),
-    ],
+    ] = None,
     x_caller_subject: Annotated[str | None, Header(alias="X-Caller-Subject")] = None,
     x_caller_roles: Annotated[str | None, Header(alias="X-Caller-Roles")] = None,
     x_caller_capabilities: Annotated[

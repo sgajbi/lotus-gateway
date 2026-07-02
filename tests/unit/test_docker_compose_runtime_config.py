@@ -18,6 +18,9 @@ def test_gateway_compose_mounts_domain_product_artifacts_read_only() -> None:
         "/lotus-platform/output/trust-certification/"
         "domain-product-live-trust-certification.json}"
     ) in compose_text
+    assert (
+        "IDEA_SERVICE_BASE_URL=${IDEA_SERVICE_BASE_URL:-http://host.docker.internal:8330}"
+    ) in compose_text
     assert "../lotus-platform/generated:/lotus-platform/generated:ro" in compose_text
     assert (
         "../lotus-platform/output/trust-certification:/lotus-platform/output/trust-certification:ro"

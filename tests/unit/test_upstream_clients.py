@@ -12,6 +12,7 @@ from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.lotus_core_transaction_params import build_portfolio_transaction_query_params
+from app.clients.lotus_idea_client import LotusIdeaClient
 from app.clients.reporting_client import ReportingClient
 from app.middleware.correlation import trace_id_var
 
@@ -116,6 +117,41 @@ def _fanout_records(records, *, service: str):
         in {"gateway.analytics.fanout.completed", "gateway.analytics.fanout.degraded"}
         and record.extra_fields["service"] == service
     ]
+
+
+@pytest.mark.asyncio
+async def test_lotus_idea_client_omits_active_queue_timestamp_when_not_supplied():
+    client = LotusIdeaClient(base_url="http://lotus-idea", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceAuthority": "lotus-idea"})
+
+    status_code, payload = await client.get_advisor_review_queue(
+        evaluated_at_utc=None,
+        caller_headers={"X-Caller-Subject": "advisor-123"},
+        correlation_id="corr-idea-active",
+    )
+
+    assert status_code == 200
+    assert payload == {"sourceAuthority": "lotus-idea"}
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-idea/api/v1/review-queues/advisor"
+    assert _FakeAsyncClient.calls[0]["params"] == {}
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Caller-Subject"] == "advisor-123"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-idea-active"
+
+
+@pytest.mark.asyncio
+async def test_lotus_idea_client_forwards_explicit_queue_timestamp():
+    client = LotusIdeaClient(base_url="http://lotus-idea", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceAuthority": "lotus-idea"})
+
+    await client.get_advisor_review_queue(
+        evaluated_at_utc="2026-06-21T10:10:00Z",
+        caller_headers={},
+        correlation_id="corr-idea-explicit",
+    )
+
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "evaluatedAtUtc": "2026-06-21T10:10:00Z",
+    }
 
 
 @pytest.mark.asyncio
@@ -2562,7 +2598,11 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         ),
         (
             "create_outcome_review",
-            {"body": {"rebalance_run_id": "rr_1"}, "correlation_id": "corr-5"},
+            {
+                "body": {"rebalance_run_id": "rr_1"},
+                "idempotency_key": "idem-outcome-review-1",
+                "correlation_id": "corr-5",
+            },
             "http://dpm/api/v1/rebalance/outcome-reviews",
         ),
         (
