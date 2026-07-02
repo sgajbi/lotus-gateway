@@ -232,10 +232,12 @@ class DpmCommandCenterService(
     async def create_outcome_review(
         self,
         body: dict[str, Any],
+        idempotency_key: str,
         correlation_id: str,
     ) -> DpmOutcomeReviewGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.create_outcome_review(
             body=body,
+            idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)

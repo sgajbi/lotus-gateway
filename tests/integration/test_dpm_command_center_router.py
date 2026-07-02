@@ -883,9 +883,12 @@ def test_dpm_command_center_pm_quality_summary_invocation_routes_preserve_manage
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_create_outcome_review(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_create_outcome_review(  # noqa: ANN001
+        self, body, idempotency_key, correlation_id
+    ):
         _ = self
         captured["body"] = body
+        captured["idempotency_key"] = idempotency_key
         captured["correlation_id"] = correlation_id
         return 200, {
             "outcome_review_id": "or_1",
@@ -909,13 +912,17 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
     response = client.post(
         "/api/v1/dpm/command-center/outcome-reviews",
         json={"body": {"rebalance_run_id": "rr_1", "proof_pack_id": "ppack_1"}},
-        headers={"X-Correlation-Id": "corr-router-1"},
+        headers={
+            "Idempotency-Key": "idem-router-outcome-1",
+            "X-Correlation-Id": "corr-router-1",
+        },
     )
 
     assert response.status_code == 200
     payload = response.json()
     assert captured == {
         "body": {"rebalance_run_id": "rr_1", "proof_pack_id": "ppack_1"},
+        "idempotency_key": "idem-router-outcome-1",
         "correlation_id": "corr-router-1",
     }
     assert payload["correlation_id"] == "corr-router-1"

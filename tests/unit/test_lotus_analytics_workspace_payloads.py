@@ -16,6 +16,7 @@ def test_build_workspace_summary_payload_uses_explicit_period_and_dedupes_freque
     assert payload["input_mode"] == "stateful"
     assert payload["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
     assert payload["report_start_date"] == "2026-01-01"
+    assert payload["performance_start_date"] == "2026-01-01"
     assert payload["report_ccy"] == "USD"
     assert payload["periods"] == [
         {"period": "EXPLICIT", "frequencies": ["monthly", "quarterly", "yearly"]}
@@ -47,3 +48,4 @@ def test_build_workspace_summary_payload_preserves_caller_periods() -> None:
     assert "benchmark" not in payload
     assert "report_ccy" not in payload
     assert "report_start_date" not in payload
+    assert "performance_start_date" not in payload

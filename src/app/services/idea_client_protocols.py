@@ -5,7 +5,7 @@ class IdeaClient(Protocol):
     async def get_advisor_review_queue(
         self,
         *,
-        evaluated_at_utc: str,
+        evaluated_at_utc: str | None,
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...

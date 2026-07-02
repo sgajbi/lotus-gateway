@@ -136,6 +136,7 @@ class DpmCommandCenterClient(Protocol):
     async def create_outcome_review(
         self,
         body: dict[str, Any],
+        idempotency_key: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
