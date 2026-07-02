@@ -36,11 +36,7 @@ class LotusIdeaClient:
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            params=(
-                {"evaluatedAtUtc": evaluated_at_utc}
-                if evaluated_at_utc is not None
-                else {}
-            ),
+            params=({"evaluatedAtUtc": evaluated_at_utc} if evaluated_at_utc is not None else {}),
             headers=self._idea_headers(caller_headers, correlation_id),
         )
 
