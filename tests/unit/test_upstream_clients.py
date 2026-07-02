@@ -2272,7 +2272,11 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         ),
         (
             client.create_outcome_review,
-            {"body": {"rebalance_run_id": "rr_1"}, "correlation_id": "corr-rfc36-canonical"},
+            {
+                "body": {"rebalance_run_id": "rr_1"},
+                "idempotency_key": "idem-outcome-review-canonical",
+                "correlation_id": "corr-rfc36-canonical",
+            },
         ),
         (
             client.list_outcome_reviews,
