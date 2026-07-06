@@ -18,6 +18,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
   IMAGE_TAG: ${{ github.sha }}
+  SYFT_IMAGE: anchore/syft:v1.42.3
+  TRIVY_IMAGE: aquasec/trivy:0.72.0
 
 jobs:
   workflow-lint:
@@ -127,7 +129,7 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
-      - uses: sigstore/cosign-installer@v3
+      - uses: sigstore/cosign-installer@v4.1.0
       - name: Build image
         run: |
           mkdir -p output/container-security
@@ -157,14 +159,14 @@ jobs:
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${PWD}/output/container-security:/output" \
-            anchore/syft:latest "${IMAGE_NAME}:${IMAGE_TAG}" \
+            "${SYFT_IMAGE}" "${IMAGE_NAME}:${IMAGE_TAG}" \
             -o spdx-json=/output/sbom.spdx.json
       - name: Vulnerability Scan
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${PWD}/output/container-security:/output" \
-            aquasec/trivy:latest image \
+            "${TRIVY_IMAGE}" image \
             --severity HIGH,CRITICAL \
             --exit-code 1 \
             --format json \
