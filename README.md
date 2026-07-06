@@ -219,15 +219,16 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
 Key code areas:
 
 - `src/app/routers/`
-  public HTTP route families
+  public HTTP route families; see [src/app/routers/README.md](src/app/routers/README.md)
 - `src/app/services/`
-  gateway composition, partial-readiness handling, and upstream orchestration
+  gateway composition, partial-readiness handling, and upstream orchestration; see
+  [src/app/services/README.md](src/app/services/README.md)
 - `src/app/contracts/`
-  workbench-facing gateway contracts
+  workbench-facing gateway contracts; see [src/app/contracts/README.md](src/app/contracts/README.md)
 - `src/app/clients/`
-  upstream client integrations
+  upstream client integrations; see [src/app/clients/README.md](src/app/clients/README.md)
 - `docs/documentation/`
-  experience-API architecture and implementation guidance
+  experience-API architecture and implementation guidance; see [docs/README.md](docs/README.md)
 - `docs/standards/`
   ownership, migration, durability, and RFC-0082 integration guidance
 
@@ -235,6 +236,8 @@ Key code areas:
 
 - `src/app/main.py`
   FastAPI entrypoint and router registration
+- `src/app/`
+  application package boundary; see [src/app/README.md](src/app/README.md)
 - `src/app/routers/`
   gateway route families by product surface
 - `src/app/services/`
@@ -242,13 +245,15 @@ Key code areas:
 - `src/app/contracts/`
   workbench-facing response and request contracts
 - `tests/contract/`
-  contract proof for workbench-facing surfaces
+  contract proof for workbench-facing surfaces; see [tests/README.md](tests/README.md)
 - `tests/integration/`
   composed behavior checks
 - `tests/e2e/`
   workflow and live integration checks
 - `scripts/`
-  quality gates, migration checks, and canonical startup helpers
+  quality gates, migration checks, and canonical startup helpers; see [scripts/README.md](scripts/README.md)
+- `quality/`
+  quality baseline and enterprise-readiness scorecards; see [quality/README.md](quality/README.md)
 - `wiki/`
   canonical authored source for GitHub wiki publication
 
