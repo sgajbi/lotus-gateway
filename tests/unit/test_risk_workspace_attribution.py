@@ -106,4 +106,5 @@ def test_unavailable_attribution_preserves_product_safe_upstream_failure() -> No
     assert response.state == "unavailable"
     assert response.payload is not None
     assert response.partial_failures[0].error_code == "HTTP_503"
-    assert response.partial_failures[0].detail == "risk attribution unavailable"
+    assert response.partial_failures[0].source_service == "lotus-risk"
+    assert response.partial_failures[0].detail == "risk request failed"

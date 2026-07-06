@@ -8,6 +8,8 @@ from app.contracts.risk_workspace import (
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.upstream_envelope import safe_upstream_detail
 
+RISK_SOURCE_SERVICE = "lotus-risk"
+
 
 def risk_upstream_failure(
     *,
@@ -17,10 +19,10 @@ def risk_upstream_failure(
     detail = (
         safe_upstream_detail(upstream_payload, default_detail="risk request failed")
         if isinstance(upstream_payload, dict)
-        else str(upstream_payload)
+        else "risk request failed"
     )
     return WorkbenchPartialFailure(
-        source_service="risk",
+        source_service=RISK_SOURCE_SERVICE,
         error_code=f"HTTP_{upstream_status}",
         detail=detail,
     )
@@ -36,7 +38,7 @@ def unavailable_risk_service_supportability(
             label="Risk service",
             state="unavailable",
             reason=reason,
-            source_service="lotus-risk",
+            source_service=RISK_SOURCE_SERVICE,
         )
     ]
 

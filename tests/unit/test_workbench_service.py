@@ -784,6 +784,6 @@ async def test_workbench_analytics_response():
     assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
     assert any(
-        failure.source_service == "risk" and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
+        failure.source_service == "lotus-risk" and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
         for failure in response.partial_failures
     )

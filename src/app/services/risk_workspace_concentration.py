@@ -18,6 +18,7 @@ from app.contracts.risk_workspace_concentration import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
+    RISK_SOURCE_SERVICE,
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
@@ -143,7 +144,7 @@ def malformed_concentration(
         warnings=["RISK_CONCENTRATION_CONTRACT_INVALID"],
         partial_failures=[
             WorkbenchPartialFailure(
-                source_service="risk",
+                source_service=RISK_SOURCE_SERVICE,
                 error_code="MALFORMED_RISK_CONCENTRATION",
                 detail=detail,
             )

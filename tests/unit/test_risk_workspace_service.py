@@ -561,7 +561,8 @@ async def test_risk_summary_returns_unavailable_envelope_on_upstream_failure() -
     assert response.state == "unavailable"
     assert response.payload is None
     assert response.partial_failures[0].error_code == "HTTP_503"
-    assert response.partial_failures[0].detail == "risk unavailable"
+    assert response.partial_failures[0].source_service == "lotus-risk"
+    assert response.partial_failures[0].detail == "risk request failed"
 
 
 @pytest.mark.asyncio
@@ -727,7 +728,8 @@ async def test_risk_drawdown_returns_unavailable_envelope_on_upstream_failure() 
     assert response.state == "unavailable"
     assert response.payload is None
     assert response.partial_failures[0].error_code == "HTTP_503"
-    assert response.partial_failures[0].detail == "drawdown unavailable"
+    assert response.partial_failures[0].source_service == "lotus-risk"
+    assert response.partial_failures[0].detail == "risk request failed"
 
 
 @pytest.mark.asyncio
