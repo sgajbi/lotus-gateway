@@ -277,3 +277,50 @@ def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None
         "  ci-local-docker:\n    name: Main Releasability / CI Local Docker Parity\n"
         "    needs: [integration, coverage]"
     ) in workflow
+
+
+def test_main_releasability_retains_release_and_container_evidence() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "main-releasability.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for fragment in (
+        "name: main-releasability-release-evidence",
+        "output/main-releasability/",
+        "output/demo-certification/",
+        "openapi.json",
+        "python scripts/check_main_release_evidence.py",
+        "name: main-container-release-evidence",
+        "anchore/syft:latest",
+        "aquasec/trivy:latest",
+        "sigstore/cosign-installer@v3",
+        "cosign sign --yes",
+        "cosign attest --yes",
+        "python scripts/write_container_release_manifest.py",
+        "python scripts/check_container_release_evidence.py",
+    ):
+        assert fragment in workflow
+
+    assert 'docker push "${IMAGE_NAME}:${IMAGE_TAG}"' in workflow
+    assert "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" in workflow
+
+
+def test_pr_merge_gate_builds_sha_tagged_scanned_unsigned_container_evidence() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "pr-merge-gate.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for fragment in (
+        "IMAGE_TAG: ${{ github.sha }}",
+        '-t "${IMAGE_NAME}:${IMAGE_TAG}"',
+        '--build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}"',
+        "anchore/syft:latest",
+        "aquasec/trivy:latest",
+        "python scripts/write_container_release_manifest.py",
+        "python scripts/check_container_release_evidence.py --allow-unsigned",
+        "name: pr-container-release-evidence",
+    ):
+        assert fragment in workflow
+
+    assert "docker push" not in workflow
+    assert "PR images are not pushed or signed" in workflow

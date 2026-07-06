@@ -46,6 +46,29 @@ can perform the rebase merge without leaving a false red CI check.
   `actions/upload-artifact@v7`
 - Workflow-level Node 24 JavaScript action runtime opt-in through
   `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
+- main release evidence retention for coverage, workflow governance, agent quality, security,
+  OpenAPI, and demo-certification artifacts
+- container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
+  release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
+  provenance attestation
+
+## Container release evidence
+
+PR Merge Gate builds `ghcr.io/<owner>/lotus-gateway:${{ github.sha }}` locally, also tags
+`lotus-gateway:ci-test` for Docker parity, generates an SBOM with Syft, runs a Trivy HIGH/CRITICAL
+image scan, writes `output/container-security/image-release-manifest.json`, validates it with
+`scripts/check_container_release_evidence.py --allow-unsigned`, and uploads
+`pr-container-release-evidence`. PR images are not pushed or signed.
+
+Main Releasability builds the same Git-SHA tag, pushes it to GHCR from CI, captures the digest,
+signs the digest-pinned image with cosign, creates a provenance attestation, validates the same
+manifest without `--allow-unsigned`, and uploads `main-container-release-evidence`. Kubernetes
+deployment promotion must use the manifest `image.digest_ref`; do not deploy mutable tags.
+
+The `/version` endpoint exposes the same non-secret build metadata stamped into the image:
+Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and version. Build
+metadata ARG/ENV values are explicitly non-secret; credentials are not passed through Docker build
+args or runtime environment metadata.
 
 ## Quality baseline lane
 

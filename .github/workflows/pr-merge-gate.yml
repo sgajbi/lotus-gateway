@@ -14,6 +14,8 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   workflow-lint:
@@ -94,7 +96,67 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build image
-        run: docker build -t lotus-gateway:ci-test .
+        run: |
+          mkdir -p output/container-security
+          BUILD_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "LOTUS_BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
+          docker build \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -t lotus-gateway:ci-test \
+            --build-arg LOTUS_APP_VERSION=0.1.0 \
+            --build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}" \
+            --build-arg LOTUS_GIT_BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" \
+            --build-arg LOTUS_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
+            --build-arg LOTUS_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --build-arg LOTUS_IMAGE_DIGEST=unknown \
+            --build-arg LOTUS_CI_RUN_ID="${GITHUB_RUN_ID}" \
+            .
+          IMAGE_DIGEST="$(docker image inspect --format='{{.Id}}' "${IMAGE_NAME}:${IMAGE_TAG}")"
+          echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"
+      - name: Generate SBOM
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${PWD}/output/container-security:/output" \
+            anchore/syft:latest "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -o spdx-json=/output/sbom.spdx.json
+      - name: Vulnerability Scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${PWD}/output/container-security:/output" \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format json \
+            --output /output/trivy-image-scan.json \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+      - name: Record PR Signing Posture
+        run: |
+          echo "PR images are not pushed or signed; main releasability signs the promoted digest." \
+            > output/container-security/cosign-signature.txt
+          echo "PR images are not pushed or attested; main releasability attests the promoted digest." \
+            > output/container-security/provenance-attestation.txt
+      - name: Write Container Release Manifest
+        run: |
+          python scripts/write_container_release_manifest.py \
+            --image-name "${IMAGE_NAME}" \
+            --image-tag "${IMAGE_TAG}" \
+            --image-digest "${LOTUS_IMAGE_DIGEST}" \
+            --git-commit-sha "${GITHUB_SHA}" \
+            --git-branch "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" \
+            --build-timestamp "${LOTUS_BUILD_TIMESTAMP}" \
+            --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --ci-run-id "${GITHUB_RUN_ID}"
+      - name: Validate Container Release Evidence
+        run: python scripts/check_container_release_evidence.py --allow-unsigned
+      - name: Upload Container Release Evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-container-release-evidence
+          path: output/container-security/
+          if-no-files-found: error
 
   ci-local-docker:
     name: PR Merge Gate / CI Local Docker Parity

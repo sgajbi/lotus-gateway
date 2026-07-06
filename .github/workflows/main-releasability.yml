@@ -11,9 +11,13 @@ concurrency:
 
 permissions:
   contents: read
+  packages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   workflow-lint:
@@ -84,26 +88,128 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
       - name: Coverage
-        run: make test-coverage
-      - name: Upload Coverage Artifacts
+        run: |
+          mkdir -p output/main-releasability
+          make test-coverage 2>&1 | tee output/main-releasability/coverage.txt
+      - name: Generate Main Release Evidence
+        run: |
+          mkdir -p output/main-releasability output/demo-certification
+          python scripts/check_workflow_action_runtime.py \
+            2>&1 | tee output/main-releasability/workflow-governance.txt
+          python scripts/check_agent_quality_evidence.py \
+            2>&1 | tee output/main-releasability/agent-quality-evidence.txt
+          make security-audit 2>&1 | tee output/main-releasability/security.txt
+          python - <<'PY' > openapi.json
+          import json
+          from app.main import app
+          print(json.dumps(app.openapi(), indent=2))
+          PY
+          make demo-certification 2>&1 | tee output/main-releasability/demo-certification.txt
+      - name: Validate Main Release Evidence
+        run: python scripts/check_main_release_evidence.py
+      - name: Upload Main Release Evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: main-releasability-coverage-report
+          name: main-releasability-release-evidence
           path: |
             .coverage
+            openapi.json
+            output/main-releasability/
+            output/demo-certification/
           include-hidden-files: true
-          if-no-files-found: warn
+          if-no-files-found: error
 
   docker-build:
     name: Main Releasability / Validate Docker Build
     needs: [integration, coverage]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+      - uses: sigstore/cosign-installer@v3
       - name: Build image
-        run: docker build -t lotus-gateway:ci-test .
+        run: |
+          mkdir -p output/container-security
+          BUILD_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "LOTUS_BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
+          docker build \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -t lotus-gateway:ci-test \
+            --build-arg LOTUS_APP_VERSION=0.1.0 \
+            --build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}" \
+            --build-arg LOTUS_GIT_BRANCH="${GITHUB_REF_NAME}" \
+            --build-arg LOTUS_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
+            --build-arg LOTUS_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --build-arg LOTUS_IMAGE_DIGEST=unknown \
+            --build-arg LOTUS_CI_RUN_ID="${GITHUB_RUN_ID}" \
+            .
+      - name: Push image from CI
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          IMAGE_DIGEST="$(docker buildx imagetools inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"
+          echo "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_ENV"
+      - name: Generate SBOM
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${PWD}/output/container-security:/output" \
+            anchore/syft:latest "${IMAGE_NAME}:${IMAGE_TAG}" \
+            -o spdx-json=/output/sbom.spdx.json
+      - name: Vulnerability Scan
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${PWD}/output/container-security:/output" \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format json \
+            --output /output/trivy-image-scan.json \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+      - name: Sign image
+        run: cosign sign --yes "${LOTUS_IMAGE_REF}" | tee output/container-security/cosign-signature.txt
+      - name: Attest provenance
+        run: |
+          cat > output/container-security/provenance-predicate.json <<EOF
+          {
+            "service": "lotus-gateway",
+            "git_commit_sha": "${GITHUB_SHA}",
+            "git_branch": "${GITHUB_REF_NAME}",
+            "build_timestamp": "${LOTUS_BUILD_TIMESTAMP}",
+            "repo_url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
+            "ci_run_id": "${GITHUB_RUN_ID}",
+            "image_digest": "${LOTUS_IMAGE_DIGEST}",
+            "sbom": "output/container-security/sbom.spdx.json"
+          }
+          EOF
+          cosign attest --yes \
+            --predicate output/container-security/provenance-predicate.json \
+            --type slsaprovenance \
+            "${LOTUS_IMAGE_REF}" | tee output/container-security/provenance-attestation.txt
+      - name: Write Container Release Manifest
+        run: |
+          python scripts/write_container_release_manifest.py \
+            --image-name "${IMAGE_NAME}" \
+            --image-tag "${IMAGE_TAG}" \
+            --image-digest "${LOTUS_IMAGE_DIGEST}" \
+            --git-commit-sha "${GITHUB_SHA}" \
+            --git-branch "${GITHUB_REF_NAME}" \
+            --build-timestamp "${LOTUS_BUILD_TIMESTAMP}" \
+            --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --ci-run-id "${GITHUB_RUN_ID}"
+      - name: Validate Container Release Evidence
+        run: python scripts/check_container_release_evidence.py
+      - name: Upload Container Release Evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: main-container-release-evidence
+          path: output/container-security/
+          if-no-files-found: error
 
   ci-local-docker:
     name: Main Releasability / CI Local Docker Parity

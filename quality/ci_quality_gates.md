@@ -29,11 +29,21 @@ The current local and PR-grade blocking gates are:
 10. integration tests,
 11. coverage with an 84% floor,
 12. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-13. Docker build and local Docker parity in the PR Merge Gate.
+13. Docker build and local Docker parity in the PR Merge Gate,
+14. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
+    labels, SBOM generation, Trivy image scan, release manifest generation, and artifact upload,
+15. main-only CI image promotion controls: GHCR push by CI, digest capture, cosign signing,
+    provenance attestation, and Kubernetes deployment reference by digest.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
 lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
 merge barrier still requires all PR-grade proof.
+
+The Main Releasability Gate retains `main-releasability-release-evidence`, including coverage log,
+workflow-governance proof, agent-quality proof, dependency/security proof, generated OpenAPI,
+demo-certification evidence, and `output/demo-certification/`. It also retains
+`main-container-release-evidence`, including SBOM, vulnerability scan, image release manifest,
+signature output, and provenance attestation for the digest-pinned promoted image.
 
 ## Report-Only Gates
 
