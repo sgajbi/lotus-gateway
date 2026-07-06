@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 class _FlakyAsyncClient:
@@ -347,6 +348,10 @@ async def test_request_with_retry_wraps_non_json_payload(monkeypatch):
 
     assert status == 500
     assert payload == {"detail": "plain-text-error"}
+    assert (
+        safe_upstream_detail(payload, default_detail="upstream request failed")
+        == "upstream request failed"
+    )
 
 
 @pytest.mark.asyncio
