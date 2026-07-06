@@ -18,6 +18,8 @@ from app.observability.analytics_ui_fields import (
     ANALYTICS_UI_SEVERITY_LEVELS,
     ANALYTICS_UI_STATE_VOCABULARY,
     ANALYTICS_UI_TRACE_ATTRIBUTES,
+    GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES,
+    GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS,
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
@@ -70,24 +72,6 @@ GATEWAY_ANALYTICS_UI_METRIC_FAMILIES = (
 
 GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS = ("operation", "service", "status_class")
 GATEWAY_ANALYTICS_DEGRADED_LABELS = ("operation", "service", "reason")
-GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY = frozenset(
-    {
-        "source_supportability_partial",
-        "source_supportability_degraded",
-        "upstream_warning",
-        "partial_failure_code",
-        "upstream_unavailable",
-        "upstream_error",
-        "unknown",
-    }
-)
-_GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES = {
-    "upstream-unavailable": "upstream_unavailable",
-    "upstream_unavailable": "upstream_unavailable",
-    "upstream-error": "upstream_error",
-    "upstream_error": "upstream_error",
-}
-
 GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS = {
     "lotus_gateway_analytics_fanout_duration_seconds": GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
     "lotus_gateway_analytics_degraded_total": GATEWAY_ANALYTICS_DEGRADED_LABELS,
@@ -398,4 +382,4 @@ def _bounded_gateway_analytics_degraded_reason(value: object) -> str:
     normalized = _safe_dimension(str(value or "unknown"), default="unknown")
     if normalized in GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY:
         return normalized
-    return _GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES.get(normalized, "unknown")
+    return GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES.get(normalized, "unknown")
