@@ -597,11 +597,11 @@ async def test_risk_drawdown_uses_stateful_request_and_keeps_underwater_out_of_f
     service = RiskWorkspaceService(client, cache_ttl_seconds=60)
 
     response = await service.get_drawdown(
-        portfolio_id="PF_1",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         period="YTD",
         detail_basis="NET",
-        benchmark_code="BMK_1",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         as_of_date="2026-04-04",
         reporting_currency="USD",
         include_underwater_series=False,
@@ -609,21 +609,22 @@ async def test_risk_drawdown_uses_stateful_request_and_keeps_underwater_out_of_f
 
     request = client.drawdown_calls[0]["payload"]
     assert request["input_mode"] == "stateful"
-    assert request["stateful_input"]["portfolio_id"] == "PF_1"
+    assert request["stateful_input"]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
     assert request["stateful_input"]["benchmark_policy"] == {
         "include_benchmark": True,
         "missing_benchmark_policy": "IGNORE",
     }
     assert request["analysis_options"]["include_underwater_series"] is False
-    assert response.state == "partial"
+    assert response.state == "ready"
     assert response.payload is not None
+    assert response.partial_failures == []
     assert response.payload.periods[0].summary is not None
     assert response.payload.periods[0].underwater_series is None
     assert response.payload.periods[0].episodes[0].episode_id == "dd_0001"
     assert {item.key: item.state for item in response.supportability} == {
         "portfolio_returns": "ready",
         "benchmark_relative_drawdown": "ready",
-        "underwater_series": "partial",
+        "underwater_series": "ready",
     }
 
 

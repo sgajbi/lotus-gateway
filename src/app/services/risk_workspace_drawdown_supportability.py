@@ -31,7 +31,7 @@ def initial_drawdown_period_supportability(
     include_underwater_series: bool,
 ) -> DrawdownPeriodSupportability:
     underwater_state: RiskSupportabilityState = (
-        "partial" if not include_underwater_series else "unavailable"
+        "ready" if not include_underwater_series else "unavailable"
     )
     underwater_reason = (
         "Underwater series is available on demand and is not included in first paint."

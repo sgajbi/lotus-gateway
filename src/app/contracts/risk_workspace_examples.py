@@ -232,9 +232,9 @@ _RISK_DRAWDOWN_RESPONSE_EXAMPLE: dict[str, Any] = {
         {
             "key": "underwater_series",
             "label": "Underwater series",
-            "state": "partial",
+            "state": "ready",
             "reason": (
-                "Underwater path detail is only returned when the drawer request asks for it."
+                "Underwater path detail is only returned when the drawdown request asks for it."
             ),
             "source_service": "lotus-risk",
         },
