@@ -15,6 +15,8 @@
 
 Gateway reads platform-generated catalog, dependency graph, and live trust certification artifacts. It does not own domain-product declarations, trust telemetry, access policy, SLO policy, evidence policy, maturity matrix, or operating reports.
 
+Catalog responses preserve platform provenance fields including `governedByRfcs`, `sourceManifestPath`, and `sourceDeclarationDirectory`. Dependency-graph responses preserve `governedByRfcs` and the source catalog reference. These fields are sourced from the generated platform artifacts; Gateway does not derive replacement provenance locally.
+
 ## Operating rule
 
-Gateway must preserve platform product IDs, producer repositories, approved consumers, dependency edges, and degraded trust states exactly. If platform evidence is unavailable, gateway should return explicit unavailable/degraded posture rather than inventing trust.
+Gateway must preserve platform product IDs, producer repositories, approved consumers, dependency edges, artifact provenance, and degraded trust states exactly. If platform evidence is unavailable or invalid, Gateway returns bounded product-safe reason text such as `live_trust_certification_unavailable` or a generic artifact-unavailable detail; configured filesystem paths remain operator diagnostics, not product-facing API payloads.

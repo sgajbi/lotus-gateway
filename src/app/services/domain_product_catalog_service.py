@@ -119,18 +119,17 @@ class DomainProductCatalogService:
             return self._trust_unavailable_response(
                 consumer_system=consumer_system,
                 correlation_id=correlation_id,
-                reason=(
-                    "Platform live trust certification artifact is unavailable: "
-                    f"{self._live_trust_certification_path}"
-                ),
+                reason="live_trust_certification_unavailable",
             )
 
         certification = self._load_json_object(self._live_trust_certification_path)
         summary = certification.get("summary")
         if not isinstance(summary, dict) or not isinstance(summary.get("certification_state"), str):
             raise DomainProductCatalogUnavailable(
-                "Platform domain-product artifact failed gateway contract validation: "
-                f"{self._live_trust_certification_path}"
+                _artifact_error_message(
+                    self._live_trust_certification_path,
+                    failure="contract validation failed",
+                )
             )
         trust_posture = summary["certification_state"]
         return self._validate_response(
@@ -176,16 +175,16 @@ class DomainProductCatalogService:
                 payload = json.load(handle)
         except OSError as exc:
             raise DomainProductCatalogUnavailable(
-                f"Platform domain-product artifact is unavailable: {path}"
+                _artifact_error_message(path, failure="is unavailable")
             ) from exc
         except json.JSONDecodeError as exc:
             raise DomainProductCatalogUnavailable(
-                f"Platform domain-product artifact is not valid JSON: {path}"
+                _artifact_error_message(path, failure="is not valid JSON")
             ) from exc
 
         if not isinstance(payload, dict):
             raise DomainProductCatalogUnavailable(
-                f"Platform domain-product artifact must be a JSON object: {path}"
+                _artifact_error_message(path, failure="must be a JSON object")
             )
 
         return cast(dict[str, Any], payload)
@@ -200,5 +199,18 @@ class DomainProductCatalogService:
             return model_type.model_validate(payload)
         except ValidationError as exc:
             raise DomainProductCatalogUnavailable(
-                f"Platform domain-product artifact failed gateway contract validation: {path}"
+                _artifact_error_message(path, failure="failed gateway contract validation")
             ) from exc
+
+
+def _artifact_error_message(path: Path, *, failure: str) -> str:
+    return f"Platform {_artifact_label(path)} artifact {failure}."
+
+
+def _artifact_label(path: Path) -> str:
+    name = path.name.lower()
+    if "graph" in name:
+        return "domain-product dependency graph"
+    if "trust" in name or "certification" in name:
+        return "live trust certification"
+    return "domain-product catalog"

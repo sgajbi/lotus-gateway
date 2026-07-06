@@ -202,6 +202,14 @@ class DomainProductCatalogData(BaseModel):
         alias="sourceManifestPath",
         description="Platform source manifest that governed catalog aggregation.",
     )
+    governed_by_rfcs: list[str] = Field(
+        alias="governedByRfcs",
+        description="Platform RFCs that govern catalog generation and publication.",
+    )
+    source_declaration_directory: str = Field(
+        alias="sourceDeclarationDirectory",
+        description="Platform declaration directory aggregated into this catalog artifact.",
+    )
     source_manifest: dict[str, Any] = Field(
         alias="sourceManifest",
         description="Source manifest snapshot included by the platform artifact.",
@@ -304,6 +312,10 @@ class DomainProductGraphData(BaseModel):
     source_catalog: str = Field(
         alias="sourceCatalog",
         description="Source catalog artifact used to generate the dependency graph.",
+    )
+    governed_by_rfcs: list[str] = Field(
+        alias="governedByRfcs",
+        description="Platform RFCs that govern dependency graph generation and publication.",
     )
     node_count: int = Field(alias="nodeCount", description="Number of graph nodes.")
     edge_count: int = Field(alias="edgeCount", description="Number of graph edges.")

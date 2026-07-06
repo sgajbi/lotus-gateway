@@ -23,6 +23,8 @@ def _catalog_response(consumer_system: str, correlation_id: str) -> DomainProduc
                 "contractVersion": "1.0.0",
                 "generatedAtUtc": "2026-04-19T00:00:00Z",
                 "sourceManifestPath": "platform-contracts/domain-data-products/source.v1.json",
+                "governedByRfcs": ["RFC-0084", "RFC-0086"],
+                "sourceDeclarationDirectory": "platform-contracts/domain-data-products",
                 "sourceManifest": {"repositories": []},
                 "productCount": 1,
                 "dependencyCount": 0,
@@ -104,6 +106,7 @@ class _FakeDomainProductService:
                     "contractVersion": "1.0.0",
                     "generatedAtUtc": "2026-04-19T00:00:00Z",
                     "sourceCatalog": "domain-product-catalog.json",
+                    "governedByRfcs": ["RFC-0084", "RFC-0086"],
                     "nodeCount": 2,
                     "edgeCount": 1,
                     "nodes": [
@@ -207,6 +210,8 @@ def test_domain_product_catalog_router_preserves_consumer_and_correlation(monkey
     assert data["correlationId"] == "corr-domain-router-1"
     assert data["products"][0]["productId"] == "lotus-core:PortfolioStateSnapshot:v1"
     assert data["products"][0]["approvedConsumers"] == ["lotus-gateway"]
+    assert data["governedByRfcs"] == ["RFC-0084", "RFC-0086"]
+    assert data["sourceDeclarationDirectory"] == "platform-contracts/domain-data-products"
 
 
 def test_domain_product_detail_router_returns_full_identity_lookup(monkeypatch):
@@ -257,6 +262,7 @@ def test_domain_product_graph_router_exposes_dependency_relationships(monkeypatc
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["contractId"] == "lotus-domain-product-dependency-graph"
+    assert data["governedByRfcs"] == ["RFC-0084", "RFC-0086"]
     assert data["nodes"][0]["nodeId"] == "repo:lotus-gateway"
     assert data["edges"][0]["edgeType"] == "approves_consumer"
 
@@ -287,7 +293,9 @@ def test_domain_product_trust_router_exposes_certified_platform_posture(monkeypa
 def test_domain_product_router_reports_platform_artifact_unavailable(monkeypatch):
     class _UnavailableService:
         async def get_catalog(self, *, consumer_system: str, correlation_id: str):
-            raise DomainProductCatalogUnavailable("catalog artifact missing")
+            raise DomainProductCatalogUnavailable(
+                "Platform domain-product catalog artifact is unavailable."
+            )
 
     monkeypatch.setattr(
         "app.routers.domain_product_catalog.domain_product_catalog_service",
@@ -298,4 +306,26 @@ def test_domain_product_router_reports_platform_artifact_unavailable(monkeypatch
     response = client.get("/api/v1/domain-products/catalog")
 
     assert response.status_code == 503
-    assert response.json()["detail"] == "catalog artifact missing"
+    assert response.json()["detail"] == "Platform domain-product catalog artifact is unavailable."
+
+
+def test_domain_product_router_failure_detail_is_path_safe(monkeypatch):
+    class _UnavailableService:
+        async def get_catalog(self, *, consumer_system: str, correlation_id: str):
+            raise DomainProductCatalogUnavailable(
+                "Platform domain-product catalog artifact is unavailable."
+            )
+
+    monkeypatch.setattr(
+        "app.routers.domain_product_catalog.domain_product_catalog_service",
+        lambda: _UnavailableService(),
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/domain-products/catalog")
+
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert "C:\\Users" not in detail
+    assert "/lotus-platform/" not in detail
+    assert "domain-product-catalog.json" not in detail
