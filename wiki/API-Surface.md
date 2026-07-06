@@ -252,6 +252,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `lotus-workbench` must not call `lotus-archive` directly
 - archived document routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Booking-Center-Code` and `X-Role` are forwarded as caller context
+- archived document metadata and download enforce tenant and region parity against archive
+  metadata before returning metadata or streaming binary content. Broader portfolio, client, and
+  advisor entitlement remains upstream authorization truth; Gateway must not claim fuller document
+  entitlement enforcement until that source is wired and tested.
 - idea review queue and candidate detail reads are gateway-first under `/api/v1/ideas/*`;
   Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
   `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,

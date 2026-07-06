@@ -179,6 +179,80 @@ async def test_archive_document_service_returns_safe_download_payload() -> None:
         "x-document-checksum": "abc123",
     }
     assert "x-internal-storage-location" not in download.headers
+    assert archive_client.metadata_calls == [
+        {
+            "document_id": "doc_1",
+            "caller_headers": _caller_headers(),
+            "correlation_id": "corr-download",
+            "current": False,
+        }
+    ]
+    assert archive_client.download_calls == [
+        {
+            "document_id": "doc_1",
+            "caller_headers": _caller_headers(),
+            "correlation_id": "corr-download",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "metadata_overrides",
+    [
+        {"tenant_id": "tenant-eu"},
+        {"region": "EMEA"},
+        {"tenant_id": None},
+        {"region": ""},
+    ],
+)
+async def test_archive_document_service_rejects_metadata_scope_mismatch(
+    metadata_overrides: dict[str, object],
+) -> None:
+    archive_client = _ArchiveClient(metadata_payload=_archive_payload(**metadata_overrides))
+    service = ArchiveDocumentService(
+        archive_client=archive_client,
+        contract_version="contract-test",
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_document_metadata(
+            document_id="doc_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-scope",
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == {
+        "code": "document_access_unauthorized",
+        "message": "Caller is not authorized to access this archived document.",
+    }
+    assert "tenant-eu" not in str(exc_info.value.detail)
+    assert "EMEA" not in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_archive_document_service_does_not_download_after_scope_mismatch() -> None:
+    archive_client = _ArchiveClient(metadata_payload=_archive_payload(tenant_id="tenant-eu"))
+    service = ArchiveDocumentService(
+        archive_client=archive_client,
+        contract_version="contract-test",
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.download_document(
+            document_id="doc_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-download-scope",
+        )
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == {
+        "code": "document_access_unauthorized",
+        "message": "Caller is not authorized to access this archived document.",
+    }
+    assert len(archive_client.metadata_calls) == 1
+    assert archive_client.download_calls == []
 
 
 @pytest.mark.asyncio
@@ -225,8 +299,8 @@ async def test_archive_document_service_maps_archive_errors_without_leaking_payl
     code: str,
 ) -> None:
     archive_client = _ArchiveClient(
-        metadata_status=upstream_status,
-        metadata_payload=upstream_payload,
+        metadata_status=200 if downloading else upstream_status,
+        metadata_payload=_archive_payload() if downloading else upstream_payload,
         download_status=upstream_status,
         download_content=b"unsafe binary",
         download_error=upstream_payload,

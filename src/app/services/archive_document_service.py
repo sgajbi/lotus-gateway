@@ -34,17 +34,11 @@ class ArchiveDocumentService:
         correlation_id: str,
         current: bool = False,
     ) -> ArchivedDocumentMetadataResponse:
-        status_code, payload = await self._archive_client.get_document_metadata(
+        return await self._authorized_document_metadata(
             document_id=document_id,
             caller_headers=caller_headers,
             correlation_id=correlation_id,
             current=current,
-        )
-        self._raise_archive_error(status_code, payload, downloading=False)
-        return ArchivedDocumentMetadataResponse.from_archive_payload(
-            payload,
-            correlation_id=correlation_id,
-            contract_version=self._contract_version,
         )
 
     async def download_document(
@@ -54,6 +48,12 @@ class ArchiveDocumentService:
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> ArchivedDocumentDownload:
+        await self._authorized_document_metadata(
+            document_id=document_id,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            current=False,
+        )
         (
             status_code,
             content,
@@ -80,6 +80,29 @@ class ArchiveDocumentService:
             media_type=response_headers.get("content-type", "application/octet-stream"),
             headers=headers,
         )
+
+    async def _authorized_document_metadata(
+        self,
+        *,
+        document_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        current: bool,
+    ) -> ArchivedDocumentMetadataResponse:
+        status_code, payload = await self._archive_client.get_document_metadata(
+            document_id=document_id,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            current=current,
+        )
+        self._raise_archive_error(status_code, payload, downloading=False)
+        metadata = ArchivedDocumentMetadataResponse.from_archive_payload(
+            payload,
+            correlation_id=correlation_id,
+            contract_version=self._contract_version,
+        )
+        self._raise_scope_error_if_unauthorized(metadata, caller_headers)
+        return metadata
 
     def _archive_error_code(self, payload: dict[str, Any]) -> str | None:
         error = payload.get("error")
@@ -111,11 +134,7 @@ class ArchiveDocumentService:
         error_code: str | None,
     ) -> ArchiveErrorSpec | None:
         if status_code == status.HTTP_403_FORBIDDEN:
-            return (
-                status.HTTP_403_FORBIDDEN,
-                "document_access_unauthorized",
-                "Caller is not authorized to access this archived document.",
-            )
+            return _DOCUMENT_ACCESS_UNAUTHORIZED
         if status_code == status.HTTP_404_NOT_FOUND and error_code == "document_not_found":
             return (
                 status.HTTP_404_NOT_FOUND,
@@ -155,3 +174,31 @@ class ArchiveDocumentService:
             status_code=status_code,
             detail={"code": code, "message": message},
         )
+
+    def _raise_scope_error_if_unauthorized(
+        self,
+        metadata: ArchivedDocumentMetadataResponse,
+        caller_headers: dict[str, str],
+    ) -> None:
+        caller_tenant = _normalized_scope_value(caller_headers.get("X-Tenant-Id"))
+        caller_region = _normalized_scope_value(caller_headers.get("X-Region"))
+        document_tenant = _normalized_scope_value(metadata.tenant_id)
+        document_region = _normalized_scope_value(metadata.region)
+        if not caller_tenant or not document_tenant or caller_tenant != document_tenant:
+            raise self._archive_http_exception(_DOCUMENT_ACCESS_UNAUTHORIZED)
+        if not caller_region or not document_region or caller_region != document_region:
+            raise self._archive_http_exception(_DOCUMENT_ACCESS_UNAUTHORIZED)
+
+
+_DOCUMENT_ACCESS_UNAUTHORIZED: ArchiveErrorSpec = (
+    status.HTTP_403_FORBIDDEN,
+    "document_access_unauthorized",
+    "Caller is not authorized to access this archived document.",
+)
+
+
+def _normalized_scope_value(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().lower()
+    return normalized or None

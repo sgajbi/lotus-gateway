@@ -63,6 +63,10 @@ def _headers():
     }
 
 
+async def _metadata_ok(self, *, document_id, caller_headers, correlation_id, current=False):
+    return 200, _archive_payload(document_id=document_id)
+
+
 def test_archive_document_metadata_route_forwards_context(monkeypatch):
     captured: dict[str, object] = {}
 
@@ -179,6 +183,33 @@ def test_archive_document_route_maps_not_found_and_unauthorized(monkeypatch):
     assert unauthorized.json()["detail"]["code"] == "document_access_unauthorized"
 
 
+def test_archive_document_metadata_route_rejects_scope_mismatch(monkeypatch):
+    async def _metadata(self, *, document_id, caller_headers, correlation_id, current=False):
+        return 200, _archive_payload(
+            document_id=document_id,
+            tenant_id="tenant-eu",
+            region="EMEA",
+        )
+
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.get_document_metadata",
+        _metadata,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/documents/doc_cross_scope", headers=_headers())
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["detail"] == {
+        "code": "document_access_unauthorized",
+        "message": "Caller is not authorized to access this archived document.",
+    }
+    assert "tenant-eu" not in response.text
+    assert "EMEA" not in response.text
+    assert "PB_SG_GLOBAL_BAL_001" not in response.text
+
+
 def test_archive_document_download_route_preserves_binary_headers(monkeypatch):
     async def _download(self, *, document_id, caller_headers, correlation_id):
         return (
@@ -193,6 +224,10 @@ def test_archive_document_download_route_preserves_binary_headers(monkeypatch):
             {},
         )
 
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.get_document_metadata",
+        _metadata_ok,
+    )
     monkeypatch.setattr(
         "app.clients.archive_client.ArchiveClient.download_document",
         _download,
@@ -209,6 +244,33 @@ def test_archive_document_download_route_preserves_binary_headers(monkeypatch):
     assert response.headers["x-document-checksum"] == "abc123"
 
 
+def test_archive_document_download_route_rejects_scope_mismatch_before_binary(monkeypatch):
+    download_calls: list[str] = []
+
+    async def _metadata(self, *, document_id, caller_headers, correlation_id, current=False):
+        return 200, _archive_payload(document_id=document_id, region="EMEA")
+
+    async def _download(self, *, document_id, caller_headers, correlation_id):
+        download_calls.append(document_id)
+        return 200, b"%PDF-1.4", {"content-type": "application/pdf"}, {}
+
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.get_document_metadata",
+        _metadata,
+    )
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.download_document",
+        _download,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/documents/doc_cross_region/download", headers=_headers())
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "document_access_unauthorized"
+    assert download_calls == []
+
+
 def test_archive_document_download_failures_are_product_safe(monkeypatch):
     async def _missing_binary(self, *, document_id, caller_headers, correlation_id):
         return 404, b"", {}, {"error": {"code": "document_binary_missing"}}
@@ -216,6 +278,10 @@ def test_archive_document_download_failures_are_product_safe(monkeypatch):
     async def _unsafe_failure(self, *, document_id, caller_headers, correlation_id):
         return 500, b"postgres traceback", {}, {"detail": "postgres traceback archive.internal"}
 
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.get_document_metadata",
+        _metadata_ok,
+    )
     monkeypatch.setattr(
         "app.clients.archive_client.ArchiveClient.download_document",
         _missing_binary,
@@ -239,6 +305,10 @@ def test_archive_document_download_failures_are_product_safe(monkeypatch):
 
 def test_archive_document_download_maps_controlled_archive_failures(monkeypatch):
     client = TestClient(app)
+    monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.get_document_metadata",
+        _metadata_ok,
+    )
 
     cases = [
         (
