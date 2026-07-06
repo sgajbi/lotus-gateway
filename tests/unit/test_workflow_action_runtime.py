@@ -295,8 +295,11 @@ def test_main_releasability_retains_release_and_container_evidence() -> None:
         "TRIVY_IMAGE: aquasec/trivy:0.72.0",
         "--ignore-unfixed",
         "sigstore/cosign-installer@v4.1.0",
-        "cosign sign --yes",
+        'set -o pipefail\n          cosign sign --yes "${LOTUS_IMAGE_REF}"',
+        '"builder":',
+        '"buildType": "https://github.com/sgajbi/lotus-gateway/.github/workflows/main-releasability.yml"',
         "cosign attest --yes",
+        "2>&1 | tee output/container-security/provenance-attestation.txt",
         "python scripts/write_container_release_manifest.py",
         "python scripts/check_container_release_evidence.py",
     ):
