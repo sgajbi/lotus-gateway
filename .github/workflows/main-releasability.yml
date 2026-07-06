@@ -173,25 +173,67 @@ jobs:
           echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"
           echo "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_ENV"
       - name: Sign image
-        run: cosign sign --yes "${LOTUS_IMAGE_REF}" | tee output/container-security/cosign-signature.txt
+        run: |
+          set -o pipefail
+          cosign sign --yes "${LOTUS_IMAGE_REF}" \
+            2>&1 | tee output/container-security/cosign-signature.txt
       - name: Attest provenance
         run: |
+          set -o pipefail
+          IMAGE_DIGEST_SHA="${LOTUS_IMAGE_DIGEST#sha256:}"
           cat > output/container-security/provenance-predicate.json <<EOF
           {
-            "service": "lotus-gateway",
-            "git_commit_sha": "${GITHUB_SHA}",
-            "git_branch": "${GITHUB_REF_NAME}",
-            "build_timestamp": "${LOTUS_BUILD_TIMESTAMP}",
-            "repo_url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
-            "ci_run_id": "${GITHUB_RUN_ID}",
-            "image_digest": "${LOTUS_IMAGE_DIGEST}",
-            "sbom": "output/container-security/sbom.spdx.json"
+            "builder": {
+              "id": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            },
+            "buildType": "https://github.com/sgajbi/lotus-gateway/.github/workflows/main-releasability.yml",
+            "invocation": {
+              "configSource": {
+                "uri": "git+${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
+                "digest": {
+                  "sha1": "${GITHUB_SHA}"
+                },
+                "entryPoint": ".github/workflows/main-releasability.yml"
+              },
+              "parameters": {
+                "service": "lotus-gateway",
+                "git_branch": "${GITHUB_REF_NAME}",
+                "ci_run_id": "${GITHUB_RUN_ID}",
+                "image_digest": "${LOTUS_IMAGE_DIGEST}",
+                "sbom": "output/container-security/sbom.spdx.json"
+              }
+            },
+            "metadata": {
+              "buildInvocationID": "${GITHUB_RUN_ID}",
+              "buildStartedOn": "${LOTUS_BUILD_TIMESTAMP}",
+              "completeness": {
+                "parameters": true,
+                "environment": true,
+                "materials": true
+              },
+              "reproducible": false
+            },
+            "materials": [
+              {
+                "uri": "git+${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
+                "digest": {
+                  "sha1": "${GITHUB_SHA}"
+                }
+              },
+              {
+                "uri": "${IMAGE_NAME}",
+                "digest": {
+                  "sha256": "${IMAGE_DIGEST_SHA}"
+                }
+              }
+            ]
           }
           EOF
           cosign attest --yes \
             --predicate output/container-security/provenance-predicate.json \
             --type slsaprovenance \
-            "${LOTUS_IMAGE_REF}" | tee output/container-security/provenance-attestation.txt
+            "${LOTUS_IMAGE_REF}" \
+            2>&1 | tee output/container-security/provenance-attestation.txt
       - name: Write Container Release Manifest
         run: |
           python scripts/write_container_release_manifest.py \
