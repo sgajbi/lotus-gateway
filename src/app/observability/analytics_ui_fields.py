@@ -82,6 +82,24 @@ ANALYTICS_UI_AUDIT_EVENT_TYPES = frozenset(
     }
 )
 
+GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY = frozenset(
+    {
+        "source_supportability_partial",
+        "source_supportability_degraded",
+        "upstream_warning",
+        "partial_failure_code",
+        "upstream_unavailable",
+        "upstream_error",
+        "unknown",
+    }
+)
+GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES = {
+    "upstream-unavailable": "upstream_unavailable",
+    "upstream_unavailable": "upstream_unavailable",
+    "upstream-error": "upstream_error",
+    "upstream_error": "upstream_error",
+}
+
 GATEWAY_ANALYTICS_UI_LOG_EVENTS = (
     "gateway.analytics.fanout.completed",
     "gateway.analytics.fanout.degraded",
