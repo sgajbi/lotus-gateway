@@ -326,7 +326,7 @@ async def test_dpm_proof_pack_pm_memo_preserves_lotus_ai_error() -> None:
         "source_service": "lotus-ai",
         "upstream_status": 422,
         "error_code": "AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
-        "detail": "PROOF_PACK_PM_MEMO_GUARDRAIL_BLOCKED: missing content_hash",
+        "detail": "lotus-ai proof-pack PM memo request failed",
     }
 
 
@@ -346,7 +346,7 @@ async def test_dpm_proof_pack_forwards_manage_errors_as_product_safe_detail() ->
         "source_service": "lotus-manage",
         "upstream_status": 503,
         "error_code": "MANAGE_PROOF_PACK_UPSTREAM_ERROR",
-        "detail": "upstream communication failure: TimeoutException",
+        "detail": "lotus-manage proof-pack request failed",
     }
 
 

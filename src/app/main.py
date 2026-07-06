@@ -114,6 +114,11 @@ async def health_ready(response: Response) -> dict[str, str]:
     description=(
         "Returns the non-secret build and image metadata stamped into the Gateway runtime image."
     ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "The gateway could not render build metadata.",
+        },
+    },
 )
 async def version() -> dict[str, str]:
     return gateway_build_metadata()

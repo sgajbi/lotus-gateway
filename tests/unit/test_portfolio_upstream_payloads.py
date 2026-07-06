@@ -33,7 +33,7 @@ def test_raise_on_upstream_client_error_preserves_client_status_with_safe_detail
         )
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "lotus-core readiness unavailable: portfolio not found"
+    assert exc_info.value.detail == "lotus-core readiness unavailable: upstream request failed"
 
 
 def test_optional_payload_records_partial_failure_for_unavailable_source() -> None:

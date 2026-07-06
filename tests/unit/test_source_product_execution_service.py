@@ -105,5 +105,5 @@ async def test_source_product_execution_service_maps_core_errors(
         "source_service": "lotus-core",
         "upstream_status": upstream_status,
         "error_code": "UPSTREAM_SERVICE_ERROR",
-        "detail": "core error",
+        "detail": "Upstream service request failed.",
     }

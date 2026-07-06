@@ -277,4 +277,4 @@ async def test_reporting_portfolio_service_maps_upstream_errors(
     assert "Private Client" not in str(exc_info.value.detail)
     assert "secret-token" not in str(exc_info.value.detail)
     if operation == "summary":
-        assert str(exc_info.value.detail).endswith("SUMMARY_UNAVAILABLE: summary unavailable")
+        assert str(exc_info.value.detail).endswith("SUMMARY_UNAVAILABLE")

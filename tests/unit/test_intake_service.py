@@ -141,7 +141,7 @@ async def test_intake_service_raises_upstream_error():
             "source_service": "lotus-core",
             "upstream_status": 400,
             "error_code": "LOTUS_CORE_INTAKE_UPSTREAM_ERROR",
-            "detail": "bad request",
+            "detail": "lotus-core intake request failed.",
         }
     else:
         raise AssertionError("Expected HTTPException")

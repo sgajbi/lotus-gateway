@@ -208,7 +208,7 @@ def test_parse_contribution_result_bounds_http_failure_detail():
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-performance"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "CONTRIBUTION_UNAVAILABLE: contribution unavailable"
+    assert partial_failures[0].detail == "CONTRIBUTION_UNAVAILABLE"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 

@@ -2144,7 +2144,7 @@ async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == (
-        "lotus-core portfolio readiness rejected the request: as_of_date must be YYYY-MM-DD"
+        "lotus-core portfolio readiness rejected the request: upstream request failed"
     )
     assert "Private Client" not in str(exc_info.value.detail)
     assert "secret-token" not in str(exc_info.value.detail)
@@ -2176,9 +2176,7 @@ async def test_portfolio_readiness_unavailable_error_excludes_raw_upstream_paylo
         )
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == (
-        "lotus-core portfolio unavailable: CORE_UNAVAILABLE: Portfolio source unavailable."
-    )
+    assert exc_info.value.detail == "lotus-core portfolio unavailable: CORE_UNAVAILABLE"
     assert "Private Client" not in str(exc_info.value.detail)
     assert "secret-token" not in str(exc_info.value.detail)
 
