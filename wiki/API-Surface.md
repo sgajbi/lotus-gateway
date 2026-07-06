@@ -1,5 +1,11 @@
 # API Surface
 
+Current scope: this page summarizes the implemented Gateway route families and copy-paste API
+examples for local operator and engineering validation. Evidence posture: route examples are
+intended as operator smoke checks, while executable contract truth remains in the repo tests and
+OpenAPI generation. Examples use `GATEWAY_BASE_URL` so the same commands work against local, Docker,
+or governed ingress endpoints without embedding environment-specific hostnames in the wiki.
+
 ## Route families
 
 - `GET /api/v1/foundation/portfolios`
@@ -343,40 +349,53 @@
 
 ## Request examples
 
+Set the target gateway once:
+
+```bash
+export GATEWAY_BASE_URL="<gateway-base-url>"
+```
+
 Platform capabilities:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
 ```
 
 Domain-product catalog:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
+curl "$GATEWAY_BASE_URL/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
 ```
+
+The catalog response includes platform provenance such as `governedByRfcs`,
+`sourceManifestPath`, and `sourceDeclarationDirectory`; missing or invalid artifact failures use
+bounded product-safe detail text rather than configured filesystem paths.
 
 Domain-product detail:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/domain-products/products/lotus-core/PortfolioStateSnapshot/v1?consumerSystem=lotus-workbench"
+curl "$GATEWAY_BASE_URL/api/v1/domain-products/products/lotus-core/PortfolioStateSnapshot/v1?consumerSystem=lotus-workbench"
 ```
 
 Domain-product dependency graph:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/domain-products/dependency-graph?consumerSystem=lotus-workbench"
+curl "$GATEWAY_BASE_URL/api/v1/domain-products/dependency-graph?consumerSystem=lotus-workbench"
 ```
+
+The dependency graph preserves platform `governedByRfcs` and source catalog provenance from the
+generated artifact.
 
 Domain-product trust certification:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
+curl "$GATEWAY_BASE_URL/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
 Foundation workspace:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/foundation/portfolios/PF_1001/workspace"
+curl "$GATEWAY_BASE_URL/api/v1/foundation/portfolios/PF_1001/workspace"
 ```
 
 The Foundation workspace uses `lotus-core` portfolio identity and core-snapshot sections for
@@ -388,7 +407,7 @@ raw calendar date.
 Performance summary:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
+curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -400,7 +419,7 @@ curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/summar
 Risk summary:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?period=YTD&detail_basis=NET&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&reporting_currency=USD" \
+curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?period=YTD&detail_basis=NET&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&reporting_currency=USD" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -412,7 +431,7 @@ curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?perio
 Advisor brief:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
+curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -424,7 +443,7 @@ curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/adviso
 Advisor brief review action:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief/review-actions?period=YTD" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief/review-actions?period=YTD" \
   -H "Content-Type: application/json" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
@@ -438,7 +457,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performanc
 Reporting summary:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/summary" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/summary" \
   -H "Content-Type: application/json" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"WEALTH\",\"ALLOCATION\"],\"allocationDimensions\":[\"asset_class\"]}"
 ```
@@ -446,7 +465,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/summary" \
 Reporting portfolio review:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/review" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/review" \
   -H "Content-Type: application/json" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"allocationDimensions\":[\"asset_class\"],\"lookThroughMode\":\"full\",\"benchmarkCode\":\"BMK_PB_GLOBAL_BALANCED_60_40\"}"
 ```
@@ -454,7 +473,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/review" \
 Portfolio review report job:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/reports/portfolio-reviews" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/portfolio-reviews" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22" \
   -H "X-Actor-Id: advisor-123" \
@@ -469,7 +488,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/portfolio-reviews" \
 Outcome-review report job:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/reports/outcome-reviews" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/outcome-reviews" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: outcome-review-dor_001-pdf" \
   -H "X-Actor-Id: advisor-123" \
@@ -482,7 +501,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/outcome-reviews" \
 DPM outcome-review create:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: outcome-review-or_20260415_001" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-1" \
@@ -492,14 +511,14 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews" \
 DPM outcome-review supportability:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/supportability" \
+curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/supportability" \
   -H "X-Correlation-Id: corr-rfc42-supportability-1"
 ```
 
 DPM outcome-review AI narrative handoff:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/ai-narrative" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/ai-narrative" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-ai-narrative" \
   -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
@@ -508,7 +527,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or
 DPM proof-pack AI PM memo handoff:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc40-proof-pack-ai-pm-memo" \
   -d "{\"requested_outputs\":[\"pm_memo\",\"rationale_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\"]}"
@@ -517,7 +536,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/proof-packs/dpp_rr
 DPM rebalance-wave create:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-create" \
   -d "{\"idempotency_key\":\"wave-idem-001\",\"body\":{\"trigger_type\":\"EXPLICIT_PORTFOLIO_LIST\",\"trigger_id\":\"manual-wave-20260503-001\",\"rationale\":\"CIO model update for the Singapore balanced DPM book.\",\"as_of_date\":\"2026-05-03\",\"actor_id\":\"pm_sg_1\",\"portfolios\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\"}]}}"
@@ -526,21 +545,21 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves" \
 DPM rebalance-wave supportability:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/supportability" \
+curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/supportability" \
   -H "X-Correlation-Id: corr-rfc41-wave-supportability"
 ```
 
 DPM rebalance-wave report input:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/report-input" \
+curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/report-input" \
   -H "X-Correlation-Id: corr-rfc41-wave-report-input"
 ```
 
 DPM rebalance-wave AI PM memo:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-ai-pm-memo" \
   -d "{\"requested_outputs\":[\"wave_pm_memo\",\"approval_checklist\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\",\"operations\"]}"
@@ -549,7 +568,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/ai-p
 DPM rebalance-wave selection with proof-pack generation:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-select" \
   -d "{\"body\":{\"alternative_id\":\"alt_001\",\"actor_id\":\"pm_sg_1\",\"reason_code\":\"PM_SELECTED\",\"generate_proof_pack\":true}}"
@@ -558,13 +577,13 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/item
 Report job status:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example"
+curl "$GATEWAY_BASE_URL/api/v1/report-jobs/rjob_example"
 ```
 
 Report job operational search:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&portfolioId=PB_SG_GLOBAL_BAL_001&status=accepted&limit=25" \
+curl "$GATEWAY_BASE_URL/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&portfolioId=PB_SG_GLOBAL_BAL_001&status=accepted&limit=25" \
   -H "X-Actor-Id: support-operator-1" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC"
@@ -573,13 +592,13 @@ curl "http://127.0.0.1:8111/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&po
 Report job event history:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example/events"
+curl "$GATEWAY_BASE_URL/api/v1/report-jobs/rjob_example/events"
 ```
 
 Report batch materialization:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/report-batches" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: batch-PB_SG_GLOBAL_BAL_001-2026-04-22" \
   -H "X-Actor-Id: support-operator-1" \
@@ -592,7 +611,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/report-batches" \
 Report batch status:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/report-batches/rbch_example" \
+curl "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example" \
   -H "X-Actor-Id: support-operator-1" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC"
@@ -601,7 +620,7 @@ curl "http://127.0.0.1:8111/api/v1/report-batches/rbch_example" \
 Report batch bounded operator run:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/report-batches/rbch_example:run-once" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example:run-once" \
   -H "Content-Type: application/json" \
   -H "X-Actor-Id: support-operator-1" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -612,7 +631,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/report-batches/rbch_example:run-once"
 Archived document metadata:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/documents/doc_example" \
+curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -624,7 +643,7 @@ curl "http://127.0.0.1:8111/api/v1/documents/doc_example" \
 Archived document download:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/documents/doc_example/download" \
+curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example/download" \
   -H "X-Actor-Id: advisor-123" \
   -H "X-Caller-Application: lotus-workbench" \
   -H "X-Tenant-Id: tenant-sg" \
@@ -637,7 +656,7 @@ curl "http://127.0.0.1:8111/api/v1/documents/doc_example/download" \
 Advisor idea review queue:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z" \
+curl "$GATEWAY_BASE_URL/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z" \
   -H "X-Caller-Subject: advisor-123" \
   -H "X-Caller-Roles: advisor" \
   -H "X-Caller-Capabilities: idea.review.queue.read" \
@@ -650,7 +669,7 @@ curl "http://127.0.0.1:8111/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=20
 Idea candidate detail:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7" \
+curl "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7" \
   -H "X-Caller-Subject: advisor-123" \
   -H "X-Caller-Roles: advisor" \
   -H "X-Caller-Capabilities: idea.candidate.detail.read" \
@@ -663,7 +682,7 @@ curl "http://127.0.0.1:8111/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f
 Analytics diagnostics protected lookup:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
+curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
   -H "X-Actor-Id: support-operator-1" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC" \
@@ -673,7 +692,7 @@ curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-p
 Proposal creation:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/proposals" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: idem-create-1" \
   -d @docs/demo/payloads/proposal-create.json
@@ -682,7 +701,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/proposals" \
 Proposal narrative review:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/versions/2/narrative/review" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/narrative/review" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: proposal-narrative-review-idem-001" \
   -H "X-Correlation-Id: corr-rfc23-narrative-review" \
@@ -692,7 +711,7 @@ curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/versions/2/narrative/r
 Proposal report request with reviewed narrative package:
 
 ```bash
-curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/report-requests" \
+curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/report-requests" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc23-report-request" \
   -d "{\"report_type\":\"PORTFOLIO_REVIEW\",\"requested_by\":\"advisor_1\",\"related_version_no\":2,\"include_reviewed_narrative\":true}"
@@ -701,17 +720,17 @@ curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/report-requests" \
 Proposal delivery posture:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-summary" \
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/delivery-summary" \
   -H "X-Correlation-Id: corr-rfc23-delivery-summary"
 
-curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-events" \
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/delivery-events" \
   -H "X-Correlation-Id: corr-rfc23-delivery-events"
 ```
 
 Bank-demo proof supported-claim register:
 
 ```bash
-curl "http://127.0.0.1:8111/api/v1/advisory/bank-demo-proof/supported-claim-register" \
+curl "$GATEWAY_BASE_URL/api/v1/advisory/bank-demo-proof/supported-claim-register" \
   -H "X-Correlation-Id: corr-rfc0028-claims"
 ```
 

@@ -62,6 +62,8 @@ def test_domain_product_discovery_response_schemas_are_documented() -> None:
     trust_issue = schemas["DomainProductLiveTrustIssue"]
 
     assert catalog_data["properties"]["consumerSystem"]["description"]
+    assert catalog_data["properties"]["governedByRfcs"]["description"]
+    assert catalog_data["properties"]["sourceDeclarationDirectory"]["description"]
     assert catalog_data["properties"]["sourceManifest"]["description"]
     assert catalog_data["properties"]["products"]["description"]
     assert catalog_data["properties"]["consumers"]["description"]
@@ -79,6 +81,7 @@ def test_domain_product_discovery_response_schemas_are_documented() -> None:
     assert dependency["properties"]["failurePosture"]["examples"] == ["fail_closed"]
 
     assert graph_data["properties"]["nodes"]["description"]
+    assert graph_data["properties"]["governedByRfcs"]["description"]
     assert graph_data["properties"]["edges"]["description"]
     assert graph_edge["properties"]["edgeType"]["description"]
     assert graph_edge["properties"]["failurePosture"]["description"]

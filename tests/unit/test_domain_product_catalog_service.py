@@ -17,6 +17,8 @@ def _catalog_payload() -> dict[str, Any]:
         "contract_version": "1.0.0",
         "generated_at_utc": "2026-04-19T00:00:00Z",
         "source_manifest_path": "platform-contracts/domain-data-products/source.v1.json",
+        "governed_by_rfcs": ["RFC-0084", "RFC-0086"],
+        "source_declaration_directory": "platform-contracts/domain-data-products",
         "source_manifest": {"contract_id": "source", "repositories": []},
         "product_count": 1,
         "dependency_count": 1,
@@ -99,6 +101,7 @@ def _graph_payload() -> dict[str, Any]:
         "contract_version": "1.0.0",
         "generated_at_utc": "2026-04-19T00:00:00Z",
         "source_catalog": "domain-product-catalog.json",
+        "governed_by_rfcs": ["RFC-0084", "RFC-0086"],
         "node_count": 2,
         "edge_count": 1,
         "nodes": [
@@ -197,6 +200,8 @@ async def test_service_preserves_catalog_trust_and_dependency_context(tmp_path: 
     assert data.consumer_system == "lotus-workbench"
     assert data.correlation_id == "corr-domain-products-1"
     assert data.contract_version == "1.0.0"
+    assert data.governed_by_rfcs == ["RFC-0084", "RFC-0086"]
+    assert data.source_declaration_directory == "platform-contracts/domain-data-products"
     assert data.products[0].product_id == "lotus-core:PortfolioStateSnapshot:v1"
     assert data.products[0].approved_consumers == ["lotus-risk", "lotus-gateway"]
     assert data.products[0].required_trust_metadata == [
@@ -236,6 +241,7 @@ async def test_service_get_dependency_graph_preserves_consumption_posture(tmp_pa
     )
 
     assert response.data.node_count == 2
+    assert response.data.governed_by_rfcs == ["RFC-0084", "RFC-0086"]
     assert response.data.edge_count == 1
     assert response.data.edges[0].edge_type == "consumes"
     assert response.data.edges[0].from_node == "repo:lotus-risk"
@@ -286,7 +292,8 @@ async def test_service_returns_explicit_unavailable_posture_when_live_trust_is_m
     data = response.data
     assert data.trust_available is False
     assert data.trust_posture == "unavailable"
-    assert "missing-live-trust.json" in str(data.unavailable_reason)
+    assert data.unavailable_reason == "live_trust_certification_unavailable"
+    assert str(tmp_path) not in str(data.unavailable_reason)
     assert data.product_certifications == []
     assert data.governed_by_rfcs == ["RFC-0087"]
 
@@ -313,11 +320,34 @@ async def test_service_reports_unavailable_platform_artifact(tmp_path: Path) -> 
         str(tmp_path / "missing-trust.json"),
     )
 
-    with pytest.raises(DomainProductCatalogUnavailable, match="artifact is unavailable"):
+    with pytest.raises(DomainProductCatalogUnavailable, match="catalog artifact is unavailable"):
         await service.get_catalog(
             consumer_system="lotus-workbench",
             correlation_id="corr-unavailable-1",
         )
+
+
+@pytest.mark.asyncio
+async def test_service_failure_messages_do_not_expose_configured_artifact_paths(
+    tmp_path: Path,
+) -> None:
+    missing_catalog = tmp_path / "private-user" / "missing-catalog.json"
+    service = DomainProductCatalogService(
+        str(missing_catalog),
+        str(tmp_path / "missing-graph.json"),
+        str(tmp_path / "missing-trust.json"),
+    )
+
+    with pytest.raises(DomainProductCatalogUnavailable) as exc_info:
+        await service.get_catalog(
+            consumer_system="lotus-workbench",
+            correlation_id="corr-path-safe-1",
+        )
+
+    detail = str(exc_info.value)
+    assert detail == "Platform domain-product catalog artifact is unavailable."
+    assert "private-user" not in detail
+    assert "missing-catalog.json" not in detail
 
 
 @pytest.mark.asyncio
