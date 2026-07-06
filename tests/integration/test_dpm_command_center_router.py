@@ -1130,7 +1130,7 @@ def test_dpm_command_center_outcome_review_error_is_not_marked_supported(monkeyp
 
     assert response.status_code == 404
     assert response.json()["detail"]["error_code"] == "MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR"
-    assert response.json()["detail"]["detail"] == "outcome review not found"
+    assert response.json()["detail"]["detail"] == "lotus-manage command-center request failed"
 
 
 def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkeypatch) -> None:

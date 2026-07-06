@@ -730,7 +730,7 @@ async def test_dpm_portfolio_memory_preserves_campaign_assignment_transition_eve
 
 
 @pytest.mark.asyncio
-async def test_dpm_portfolio_memory_manage_errors_are_product_safe() -> None:
+async def test_dpm_portfolio_memory_manage_errors_are_bounded_product_safe() -> None:
     client = _FakeDpmClient((404, {"detail": "portfolio memory not found"}))
     service = DpmCommandCenterService(dpm_client=client)
 
@@ -746,12 +746,12 @@ async def test_dpm_portfolio_memory_manage_errors_are_product_safe() -> None:
         "source_service": "lotus-manage",
         "upstream_status": 404,
         "error_code": "MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
-        "detail": "portfolio memory not found",
+        "detail": "lotus-manage command-center request failed",
     }
 
 
 @pytest.mark.asyncio
-async def test_dpm_command_center_manage_errors_are_product_safe() -> None:
+async def test_dpm_command_center_manage_errors_are_bounded_product_safe() -> None:
     client = _FakeDpmClient((422, {"detail": "invalid health_state"}))
     service = DpmCommandCenterService(dpm_client=client)
 
@@ -766,7 +766,7 @@ async def test_dpm_command_center_manage_errors_are_product_safe() -> None:
         "source_service": "lotus-manage",
         "upstream_status": 422,
         "error_code": "MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
-        "detail": "invalid health_state",
+        "detail": "lotus-manage command-center request failed",
     }
 
 
@@ -932,7 +932,7 @@ async def test_dpm_command_center_preserves_manage_supportability_states(state: 
 
 
 @pytest.mark.asyncio
-async def test_dpm_command_center_forwards_manage_errors_as_product_safe_detail() -> None:
+async def test_dpm_command_center_bounds_manage_errors_as_product_safe_detail() -> None:
     client = _FakeDpmClient((409, {"detail": "execution evidence incomplete"}))
     service = DpmCommandCenterService(dpm_client=client)
 
@@ -948,7 +948,7 @@ async def test_dpm_command_center_forwards_manage_errors_as_product_safe_detail(
         "source_service": "lotus-manage",
         "upstream_status": 409,
         "error_code": "MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
-        "detail": "execution evidence incomplete",
+        "detail": "lotus-manage command-center request failed",
     }
 
 
@@ -1640,7 +1640,7 @@ async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_
 
 
 @pytest.mark.asyncio
-async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> None:
+async def test_dpm_pm_operating_quality_summary_bounds_lotus_ai_errors() -> None:
     dpm_client = _FakeDpmClient((200, {"score_run": _pm_quality_score_run()}))
     ai_client = _FakeLotusAiClient((422, {"detail": "pm ranking output blocked"}))
     service = DpmCommandCenterService(
@@ -1660,7 +1660,7 @@ async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> N
         "source_service": "lotus-ai",
         "upstream_status": 422,
         "error_code": "AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
-        "detail": "pm ranking output blocked",
+        "detail": "lotus-ai PM operating quality summary request failed",
     }
 
 
@@ -1783,12 +1783,12 @@ async def test_dpm_command_center_ai_narrative_uses_shared_manage_error_detail()
         "source_service": "lotus-manage",
         "upstream_status": 422,
         "error_code": "MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
-        "detail": ("OUTCOME_EVIDENCE_NOT_READY: Outcome-review evidence is still being refreshed."),
+        "detail": "OUTCOME_EVIDENCE_NOT_READY",
     }
 
 
 @pytest.mark.asyncio
-async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() -> None:
+async def test_dpm_command_center_ai_narrative_bounds_ai_guardrail_failure() -> None:
     service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient((200, _outcome_ai_evidence())),
         lotus_ai_client=_FakeLotusAiClient(
@@ -1818,7 +1818,7 @@ async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() 
     assert exc_info.value.status_code == 422
     assert detail["source_service"] == "lotus-ai"
     assert detail["error_code"] == "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR"
-    assert "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED" in detail["detail"]
+    assert detail["detail"] == "lotus-ai outcome-review narrative request failed"
 
 
 @pytest.mark.asyncio
@@ -1906,7 +1906,7 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
 
 
 @pytest.mark.asyncio
-async def test_dpm_command_center_exception_summary_preserves_ai_guardrail_failure() -> None:
+async def test_dpm_command_center_exception_summary_bounds_ai_guardrail_failure() -> None:
     service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient((200, _exception_page())),
         lotus_ai_client=_FakeLotusAiClient(
@@ -1936,7 +1936,7 @@ async def test_dpm_command_center_exception_summary_preserves_ai_guardrail_failu
     assert exc_info.value.status_code == 422
     assert detail["source_service"] == "lotus-ai"
     assert detail["error_code"] == "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR"
-    assert "DPM_EXCEPTION_SUMMARY_GUARDRAIL_BLOCKED" in detail["detail"]
+    assert detail["detail"] == "lotus-ai exception summary request failed"
 
 
 @pytest.mark.asyncio
