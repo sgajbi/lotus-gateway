@@ -1010,7 +1010,7 @@ def test_dpm_wave_error_is_not_marked_ready(monkeypatch) -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"]["error_code"] == "MANAGE_WAVE_UPSTREAM_ERROR"
-    assert response.json()["detail"]["detail"] == "Wave dwv_missing was not found."
+    assert response.json()["detail"]["detail"] == "lotus-manage rebalance-wave request failed"
 
 
 def test_dpm_wave_report_input_preserves_manage_evidence(monkeypatch) -> None:
