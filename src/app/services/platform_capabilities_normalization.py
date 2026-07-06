@@ -96,7 +96,7 @@ def navigation_flags(feature_enabled_by_key: dict[str, bool]) -> dict[str, bool]
         feature_enabled_by_key["lotus_core_intake"] or feature_enabled_by_key["lotus_core_snapshot"]
     )
     return {
-        "command_center": True,
+        "command_center": feature_enabled_by_key["lotus_manage_support"],
         "portfolio_intake": core_available,
         "analytics_studio": feature_enabled_by_key["lotus_performance_analytics"],
         "advisory_pipeline": feature_enabled_by_key["lotus_advise_lifecycle"],

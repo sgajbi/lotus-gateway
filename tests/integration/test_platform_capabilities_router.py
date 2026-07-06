@@ -102,6 +102,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_manage",
         "lotus_report",
     }
+    assert body["normalized"]["navigation"]["command_center"] is True
     assert body["normalized"]["navigation"]["decision_console"] is True
     assert body["normalized"]["navigation"]["reporting_hub"] is True
     assert body["normalized"]["navigation"]["portfolio_workspace"] is True

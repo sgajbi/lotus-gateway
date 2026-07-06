@@ -89,6 +89,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert "policyVersionsBySource" in payload["normalized"]
     assert "lotusCorePolicyDiagnostics" in payload["normalized"]
     assert "shellBootstrap" in payload["normalized"]
+    assert payload["normalized"]["navigation"]["command_center"] is False
     assert payload["normalized"]["navigation"]["portfolio_workspace"] is False
     assert payload["normalized"]["navigation"]["performance_workspace"] is False
     assert payload["normalized"]["navigation"]["risk_workspace"] is True

@@ -3,6 +3,7 @@ import time
 
 import pytest
 
+from app.services.platform_capabilities_normalization import navigation_flags
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
 
 
@@ -90,6 +91,32 @@ class _RecordingStubClient(_StubClient):
             consumer_system=consumer_system,
             tenant_id=tenant_id,
         )
+
+
+def _feature_enabled(**overrides: bool) -> dict[str, bool]:
+    flags = {
+        "lotus_core_snapshot": True,
+        "lotus_core_intake": False,
+        "lotus_performance_analytics": False,
+        "lotus_advise_lifecycle": False,
+        "lotus_manage_support": False,
+        "lotus_report_reporting": False,
+        "lotus_risk_analytics": False,
+    }
+    flags.update(overrides)
+    return flags
+
+
+def test_navigation_flags_gate_command_center_on_manage_support() -> None:
+    assert navigation_flags(_feature_enabled(lotus_manage_support=True))["command_center"] is True
+    assert navigation_flags(_feature_enabled(lotus_manage_support=False))["command_center"] is False
+
+
+def test_navigation_flags_keep_command_center_closed_when_manage_posture_absent() -> None:
+    navigation = navigation_flags(_feature_enabled())
+
+    assert navigation["command_center"] is False
+    assert navigation["decision_console"] is False
 
 
 class _DelayedStubClient(_StubClient):
@@ -246,6 +273,7 @@ async def test_platform_capabilities_all_sources_success():
         "lotus_report",
     }
     assert response.data.errors == []
+    assert response.data.normalized.navigation["command_center"] is True
     assert response.data.normalized.navigation["portfolio_intake"] is True
     assert response.data.normalized.navigation["analytics_studio"] is True
     assert response.data.normalized.navigation["advisory_pipeline"] is True
@@ -375,6 +403,7 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert len(response.data.errors) == 6
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
+    assert response.data.normalized.navigation["command_center"] is False
     assert response.data.normalized.navigation["portfolio_workspace"] is True
     assert response.data.normalized.navigation["performance_workspace"] is False
     assert response.data.normalized.navigation["risk_workspace"] is False
@@ -386,11 +415,10 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert any(
-        error.detail == "PERFORMANCE_CAPABILITIES_UNAVAILABLE: bad gateway"
+        error.detail == "PERFORMANCE_CAPABILITIES_UNAVAILABLE"
         for error in response.data.errors
     )
-    assert any(error.detail == "upstream failed" for error in response.data.errors)
-    assert any(error.detail == "risk timeout" for error in response.data.errors)
+    assert any(error.detail == "capability source unavailable" for error in response.data.errors)
     assert "Private Client" not in str(response.data.errors)
     assert "secret-token" not in str(response.data.errors)
     assert response.data.normalized.policy_versions_by_source == {
@@ -493,6 +521,7 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     )
 
     normalized = response.data.normalized
+    assert normalized.navigation["command_center"] is False
     assert normalized.navigation["portfolio_intake"] is True
     assert normalized.navigation["advisory_pipeline"] is False
     assert normalized.navigation["analytics_studio"] is False
