@@ -74,6 +74,7 @@ def test_dockerfile_labels_build_metadata_without_secret_args() -> None:
         "com.lotus.ci.run-id",
         "LOTUS_GIT_COMMIT_SHA",
         "LOTUS_IMAGE_DIGEST",
+        "pip uninstall --yes wheel jaraco.context setuptools",
     ):
         assert fragment in dockerfile
 

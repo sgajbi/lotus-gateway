@@ -33,7 +33,9 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir . \
+    && pip uninstall --yes wheel jaraco.context setuptools \
+    && pip cache purge
 
 EXPOSE 8100
 
