@@ -304,6 +304,10 @@ def test_main_releasability_retains_release_and_container_evidence() -> None:
 
     assert 'docker push "${IMAGE_NAME}:${IMAGE_TAG}"' in workflow
     assert "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" in workflow
+    assert workflow.index("- name: Vulnerability Scan") < workflow.index(
+        "- name: Push image from CI"
+    )
+    assert "--build-arg LOTUS_IMAGE_DIGEST" not in workflow
 
 
 def test_pr_merge_gate_builds_sha_tagged_scanned_unsigned_container_evidence() -> None:
@@ -326,5 +330,6 @@ def test_pr_merge_gate_builds_sha_tagged_scanned_unsigned_container_evidence() -
     ):
         assert fragment in workflow
 
+    assert "--build-arg LOTUS_IMAGE_DIGEST" not in workflow
     assert "docker push" not in workflow
     assert "PR images are not pushed or signed" in workflow

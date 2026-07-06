@@ -70,13 +70,13 @@ def test_dockerfile_labels_build_metadata_without_secret_args() -> None:
         "org.opencontainers.image.ref.name",
         "org.opencontainers.image.created",
         "org.opencontainers.image.source",
-        "org.opencontainers.image.digest",
         "com.lotus.ci.run-id",
         "LOTUS_GIT_COMMIT_SHA",
-        "LOTUS_IMAGE_DIGEST",
         "pip uninstall --yes wheel jaraco.context setuptools",
     ):
         assert fragment in dockerfile
+
+    assert "LOTUS_IMAGE_DIGEST" not in dockerfile
 
     arg_env_lines = [
         line for line in dockerfile.splitlines() if line.strip().startswith(("ARG ", "ENV "))

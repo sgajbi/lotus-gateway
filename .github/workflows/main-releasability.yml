@@ -143,17 +143,8 @@ jobs:
             --build-arg LOTUS_GIT_BRANCH="${GITHUB_REF_NAME}" \
             --build-arg LOTUS_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
             --build-arg LOTUS_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
-            --build-arg LOTUS_IMAGE_DIGEST=unknown \
             --build-arg LOTUS_CI_RUN_ID="${GITHUB_RUN_ID}" \
             .
-      - name: Push image from CI
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
-          IMAGE_DIGEST="$(docker buildx imagetools inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
-            --format '{{json .Manifest.Digest}}' | tr -d '"')"
-          echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"
-          echo "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_ENV"
       - name: Generate SBOM
         run: |
           docker run --rm \
@@ -173,6 +164,14 @@ jobs:
             --format json \
             --output /output/trivy-image-scan.json \
             "${IMAGE_NAME}:${IMAGE_TAG}"
+      - name: Push image from CI
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          IMAGE_DIGEST="$(docker buildx imagetools inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"
+          echo "LOTUS_IMAGE_REF=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_ENV"
       - name: Sign image
         run: cosign sign --yes "${LOTUS_IMAGE_REF}" | tee output/container-security/cosign-signature.txt
       - name: Attest provenance

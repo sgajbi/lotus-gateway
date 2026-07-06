@@ -31,8 +31,8 @@ The current local and PR-grade blocking gates are:
 12. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
 13. Docker build and local Docker parity in the PR Merge Gate,
 14. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
-    labels, SBOM generation, Trivy image scan that fails on fixable HIGH/CRITICAL findings,
-    release manifest generation, and artifact upload,
+    labels, SBOM generation, pre-push Trivy image scan that fails on fixable HIGH/CRITICAL
+    findings, release manifest generation, and artifact upload,
 15. main-only CI image promotion controls: GHCR push by CI, digest capture, cosign signing,
     provenance attestation, and Kubernetes deployment reference by digest.
 

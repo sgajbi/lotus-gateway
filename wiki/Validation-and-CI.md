@@ -62,15 +62,18 @@ writes `output/container-security/image-release-manifest.json`, validates it wit
 `pr-container-release-evidence`. The scan artifact still records unfixed vendor findings for
 operator review. PR images are not pushed or signed.
 
-Main Releasability builds the same Git-SHA tag, pushes it to GHCR from CI, captures the digest,
-signs the digest-pinned image with cosign, creates a provenance attestation, validates the same
-manifest without `--allow-unsigned`, and uploads `main-container-release-evidence`. Kubernetes
-deployment promotion must use the manifest `image.digest_ref`; do not deploy mutable tags.
+Main Releasability builds the same Git-SHA tag, generates the SBOM, runs the Trivy scan before any
+push, pushes the passing image to GHCR from CI, captures the digest, signs the digest-pinned image
+with cosign, creates a provenance attestation, validates the same manifest without
+`--allow-unsigned`, and uploads `main-container-release-evidence`. Kubernetes deployment promotion
+must use the manifest `image.digest_ref`; do not deploy mutable tags.
 
-The `/version` endpoint exposes the same non-secret build metadata stamped into the image:
-Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and version. Build
-metadata ARG/ENV values are explicitly non-secret; credentials are not passed through Docker build
-args or runtime environment metadata.
+The `/version` endpoint exposes the same non-secret build and deployment metadata recorded in the
+release manifest: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
+version. Build-time OCI labels carry only metadata known before image creation. Image digest is
+captured after push and must be supplied by deployment/runtime configuration; do not bake an
+`unknown` digest into Docker build args, ENV, or OCI labels. Credentials are not passed through
+Docker build args or runtime environment metadata.
 
 ## Quality baseline lane
 

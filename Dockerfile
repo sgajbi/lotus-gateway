@@ -5,7 +5,6 @@ ARG LOTUS_GIT_COMMIT_SHA=unknown
 ARG LOTUS_GIT_BRANCH=unknown
 ARG LOTUS_BUILD_TIMESTAMP=unknown
 ARG LOTUS_REPO_URL=unknown
-ARG LOTUS_IMAGE_DIGEST=unknown
 ARG LOTUS_CI_RUN_ID=unknown
 
 LABEL org.opencontainers.image.title="lotus-gateway" \
@@ -15,7 +14,6 @@ LABEL org.opencontainers.image.title="lotus-gateway" \
       org.opencontainers.image.ref.name="${LOTUS_GIT_BRANCH}" \
       org.opencontainers.image.created="${LOTUS_BUILD_TIMESTAMP}" \
       org.opencontainers.image.source="${LOTUS_REPO_URL}" \
-      org.opencontainers.image.digest="${LOTUS_IMAGE_DIGEST}" \
       com.lotus.ci.run-id="${LOTUS_CI_RUN_ID}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -25,7 +23,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LOTUS_GIT_BRANCH="${LOTUS_GIT_BRANCH}" \
     LOTUS_BUILD_TIMESTAMP="${LOTUS_BUILD_TIMESTAMP}" \
     LOTUS_REPO_URL="${LOTUS_REPO_URL}" \
-    LOTUS_IMAGE_DIGEST="${LOTUS_IMAGE_DIGEST}" \
     LOTUS_CI_RUN_ID="${LOTUS_CI_RUN_ID}"
 
 WORKDIR /app
