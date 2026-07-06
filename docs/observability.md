@@ -33,6 +33,12 @@ entitlement detail.
 3. Degraded upstream posture should be counted with bounded service and reason labels.
 4. Prometheus collector label sets must be declared in code-owned metric label contracts and remain
    covered by the static unit gate before new metric families are added.
+5. `lotus_gateway_analytics_degraded_total` reason labels must come from the code-owned bounded
+   vocabulary: `source_supportability_partial`, `source_supportability_degraded`,
+   `upstream_warning`, `partial_failure_code`, `upstream_unavailable`, `upstream_error`, or
+   `unknown`. Do not derive metric labels from upstream warning text, supportability prose, partial
+   failure details, portfolio identifiers, client names, trace IDs, prompts, model output, or
+   entitlement text.
 
 ## Traceability
 

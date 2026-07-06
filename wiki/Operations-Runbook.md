@@ -50,6 +50,11 @@ This page summarizes everyday operational checks. Use
   `service`, and `status_class` labels for implemented Gateway fan-out operations.
 - Gateway emits `lotus_gateway_analytics_degraded_total` with bounded `operation`, `service`, and
   `reason` labels when implemented Gateway fan-out is partial, degraded, or failed.
+- Degraded metric `reason` labels are limited to the code-owned vocabulary:
+  `source_supportability_partial`, `source_supportability_degraded`, `upstream_warning`,
+  `partial_failure_code`, `upstream_unavailable`, `upstream_error`, and `unknown`. Upstream
+  supportability prose, warning text, portfolio IDs, client names, trace IDs, prompts, model output,
+  entitlement text, and partial-failure details must not become Prometheus label values.
 - Gateway emits product-safe selected analytics read audit logs for upstream read outcomes:
   `gateway.analytics.audit.analytics_read_allowed` for successful upstream reads and
   `gateway.analytics.audit.analytics_read_denied` for `401` or `403` upstream denials.
@@ -88,10 +93,11 @@ This page summarizes everyday operational checks. Use
 ## Practical probes
 
 ```powershell
-curl http://127.0.0.1:8111/health/ready
-curl "http://127.0.0.1:8111/api/v1/foundation/portfolios/PF_1001/workspace"
-curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
-curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
+$GATEWAY_BASE_URL = "http://127.0.0.1:8111"
+curl "$GATEWAY_BASE_URL/health/ready"
+curl "$GATEWAY_BASE_URL/api/v1/foundation/portfolios/PF_1001/workspace"
+curl "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
   -H "X-Actor-Id: support-operator-1" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC" \

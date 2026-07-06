@@ -12,6 +12,7 @@ from app.observability.analytics_ui import (
     ANALYTICS_UI_STATE_VOCABULARY,
     ANALYTICS_UI_TRACE_ATTRIBUTES,
     GATEWAY_ANALYTICS_DEGRADED_LABELS,
+    GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY,
     GATEWAY_ANALYTICS_DEGRADED_TOTAL,
     GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
     GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS,
@@ -63,6 +64,17 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
     degraded_labels = GATEWAY_ANALYTICS_DEGRADED_TOTAL._labelnames
     assert duration_labels == GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS
     assert degraded_labels == GATEWAY_ANALYTICS_DEGRADED_LABELS
+    assert GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY == frozenset(
+        {
+            "source_supportability_partial",
+            "source_supportability_degraded",
+            "upstream_warning",
+            "partial_failure_code",
+            "upstream_unavailable",
+            "upstream_error",
+            "unknown",
+        }
+    )
 
 
 def test_state_vocabulary_matches_governed_analytics_ui_states() -> None:
@@ -416,7 +428,7 @@ def test_gateway_fanout_logs_use_source_calculation_supportability(caplog) -> No
         {
             "operation": "performance.workspace-summary",
             "service": "lotus-performance",
-            "reason": "source-data-window-stale",
+            "reason": "source_supportability_partial",
         },
     )
 
@@ -430,7 +442,7 @@ def test_gateway_fanout_logs_use_source_calculation_supportability(caplog) -> No
             "metadata": {
                 "calculation_supportability": {
                     "state": "stale",
-                    "reason": "Source data window stale",
+                    "reason": "Client Jane Doe portfolio PB_SG_GLOBAL_BAL_001 stale window",
                     "freshness_bucket": "stale",
                     "source_service": "lotus-performance",
                 }
@@ -446,8 +458,9 @@ def test_gateway_fanout_logs_use_source_calculation_supportability(caplog) -> No
     )
     assert record.extra_fields["state"] == "partial"
     assert record.extra_fields["supportability_state"] == "partial"
-    assert record.extra_fields["reason"] == "Source data window stale"
+    assert record.extra_fields["reason"] == "source_supportability_partial"
     assert "portfolio_id" not in record.extra_fields
+    assert "PB_SG_GLOBAL_BAL_001" not in record.extra_fields.values()
 
     assert (
         _sample_value(
@@ -456,11 +469,104 @@ def test_gateway_fanout_logs_use_source_calculation_supportability(caplog) -> No
             {
                 "operation": "performance.workspace-summary",
                 "service": "lotus-performance",
-                "reason": "source-data-window-stale",
+                "reason": "source_supportability_partial",
             },
         )
         == before_degraded_count + 1
     )
+
+
+def test_record_gateway_analytics_fanout_metrics_bounds_direct_reason_values() -> None:
+    before_degraded_count = _sample_value(
+        GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+        "lotus_gateway_analytics_degraded_total",
+        {
+            "operation": "performance.workspace-summary",
+            "service": "lotus-performance",
+            "reason": "unknown",
+        },
+    )
+
+    record_gateway_analytics_fanout_metrics(
+        {
+            "event": "gateway.analytics.fanout.degraded",
+            "route": "workbench-analytics",
+            "service": "lotus-performance",
+            "operation": "performance.workspace-summary",
+            "state": "degraded",
+            "reason": "Client Jane Doe portfolio PB_SG_GLOBAL_BAL_001 stale data window",
+            "status_class": "5xx",
+            "duration_ms": 125.0,
+            "warning_count": 0,
+            "partial_failure_count": 0,
+        }
+    )
+
+    assert (
+        _sample_value(
+            GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+            "lotus_gateway_analytics_degraded_total",
+            {
+                "operation": "performance.workspace-summary",
+                "service": "lotus-performance",
+                "reason": "unknown",
+            },
+        )
+        == before_degraded_count + 1
+    )
+    assert all("pb_sg_global_bal_001" not in reason for reason in _degraded_reason_labels())
+    assert set(_degraded_reason_labels()) <= GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY
+
+
+def test_gateway_fanout_logs_bound_warning_and_partial_failure_reasons(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    logger = logging.getLogger("analytics_ui.gateway")
+
+    emit_gateway_analytics_fanout_log(
+        logger=logger,
+        started_at=0.0,
+        service="lotus-risk",
+        operation="analytics.risk.calculate",
+        status_code=200,
+        payload={
+            "state": "partial",
+            "warnings": ["Client Jane Doe portfolio PB_SG_GLOBAL_BAL_001 stale data window"],
+        },
+    )
+    emit_gateway_analytics_fanout_log(
+        logger=logger,
+        started_at=0.0,
+        service="lotus-core",
+        operation="core.simulation-sessions.projected-positions.get",
+        status_code=200,
+        payload={
+            "partial_failures": [
+                {
+                    "error_code": "PB_SG_GLOBAL_BAL_001_TRACE_DETAIL",
+                    "detail": "Client Jane Doe failed.",
+                }
+            ]
+        },
+    )
+
+    records = [
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.fanout.degraded"
+    ]
+    assert [record.extra_fields["reason"] for record in records[-2:]] == [
+        "upstream_warning",
+        "partial_failure_code",
+    ]
+    assert all(
+        "PB_SG_GLOBAL_BAL_001" not in str(value)
+        for record in records[-2:]
+        for value in record.extra_fields.values()
+    )
+    assert set(_degraded_reason_labels()) <= GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY
 
 
 def test_record_gateway_analytics_fanout_metrics_rejects_sensitive_labels() -> None:
@@ -488,3 +594,12 @@ def _sample_value(collector: object, sample_name: str, labels: dict[str, str]) -
             if sample.name == sample_name and dict(sample.labels) == labels:
                 return float(sample.value)
     return 0.0
+
+
+def _degraded_reason_labels() -> list[str]:
+    return [
+        str(sample.labels["reason"])
+        for metric in GATEWAY_ANALYTICS_DEGRADED_TOTAL.collect()
+        for sample in metric.samples
+        if sample.name == "lotus_gateway_analytics_degraded_total"
+    ]
