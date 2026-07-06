@@ -93,4 +93,4 @@ docker-down:
 	docker compose down
 
 clean:
-	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in ['.pytest_cache', '.ruff_cache', '.mypy_cache']]; pathlib.Path('.coverage').unlink(missing_ok=True)"
+	python scripts/clean_generated_artifacts.py

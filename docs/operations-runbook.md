@@ -33,6 +33,10 @@ smoke, and unit/contract tests.
 
 `make ci` adds migration smoke, integration tests, coverage, and security audit.
 
+Use `make clean` to remove disposable local generated artifacts and caches. It deletes `output/`,
+`.codex-logs/`, coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`;
+publish or preserve required evidence before cleanup.
+
 ## Docker Parity
 
 ```powershell

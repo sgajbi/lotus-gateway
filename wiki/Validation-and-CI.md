@@ -23,6 +23,10 @@
   local feature-lane validation
 - `make ci-local-docker`
   Docker parity for the integration boundary
+- `make clean`
+  removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
+  coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or
+  preserve required evidence before cleanup
 
 ## PR auto-merge posture
 
