@@ -228,7 +228,15 @@ Important validation expectations:
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
 8. Docker parity matters because the gateway is a live integration boundary,
-9. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+9. Gateway Docker images are tagged with the Git SHA, stamped with non-secret OCI/runtime metadata,
+   scanned with Trivy, inventoried with an SBOM, and recorded in a release manifest. Main
+   Releasability is the only lane that pushes to GHCR; it captures the digest, signs the image,
+   creates provenance attestation evidence, and requires Kubernetes deployment by digest while
+   preserving the same image for environment promotion,
+10. `/version` exposes the same non-secret build metadata expected in image labels and release
+    manifests: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
+    version,
+11. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository

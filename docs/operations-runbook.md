@@ -46,6 +46,12 @@ make ci-local-docker-down
 
 Docker parity is required because gateway is a live integration boundary.
 
+CI-owned image release evidence is retained under `output/container-security/` artifacts. PRs build
+and scan the Git-SHA-tagged image without pushing it. Main releasability pushes the same Git-SHA tag
+to GHCR, captures the digest, signs the digest-pinned image, writes provenance attestation evidence,
+and records the digest-pinned Kubernetes deployment reference in
+`image-release-manifest.json`. Do not deploy mutable image tags.
+
 ## Quality Baseline
 
 The Quality Baseline workflow installs optional quality tooling and runs:
