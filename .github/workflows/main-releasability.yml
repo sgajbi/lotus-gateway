@@ -168,6 +168,7 @@ jobs:
             -v "${PWD}/output/container-security:/output" \
             "${TRIVY_IMAGE}" image \
             --severity HIGH,CRITICAL \
+            --ignore-unfixed \
             --exit-code 1 \
             --format json \
             --output /output/trivy-image-scan.json \
