@@ -26,7 +26,6 @@ ADVISE_LIFECYCLE_FEATURE_KEYS = (
     "advisory.proposals.lifecycle",
     "lotus_advise.proposals.lifecycle",
     "advise.proposals.lifecycle",
-    "dpm.proposals.lifecycle",
 )
 MANAGE_SUPPORT_FEATURE_KEYS = (
     "lotus_manage.support.run_apis",

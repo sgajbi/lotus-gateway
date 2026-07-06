@@ -26,13 +26,23 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
             "supportedInputModes": ["pas_ref", "inline_bundle"],
         }
 
-    async def _dpm(*args, **kwargs):
+    async def _advise(*args, **kwargs):
         return 200, {
             "sourceService": "lotus-advise",
             "contractVersion": "v1",
-            "policyVersion": "lotus-manage-default-v1",
-            "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+            "policyVersion": "lotus-advise-default-v1",
+            "features": [{"key": "advisory.proposals.lifecycle", "enabled": True}],
             "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
+        }
+
+    async def _manage(*args, **kwargs):
+        return 200, {
+            "sourceService": "lotus-manage",
+            "contractVersion": "v1",
+            "policyVersion": "lotus-manage-default-v1",
+            "features": [{"key": "dpm.support.run_apis", "enabled": True}],
+            "workflows": [],
             "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
 
@@ -63,8 +73,8 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
-    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _advise)
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _manage)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
     client = TestClient(app)
@@ -307,12 +317,22 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
     async def _performance(*args, **kwargs):
         return 503, {"detail": "lotus-performance unavailable"}
 
-    async def _dpm(*args, **kwargs):
+    async def _advise(*args, **kwargs):
         return 200, {
             "sourceService": "lotus-advise",
             "contractVersion": "v1",
+            "policyVersion": "lotus-advise-default-v1",
+            "features": [{"key": "advisory.proposals.lifecycle", "enabled": True}],
+            "workflows": [],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
+        }
+
+    async def _manage(*args, **kwargs):
+        return 200, {
+            "sourceService": "lotus-manage",
+            "contractVersion": "v1",
             "policyVersion": "lotus-manage-default-v1",
-            "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+            "features": [{"key": "dpm.support.run_apis", "enabled": True}],
             "workflows": [],
             "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
@@ -343,8 +363,8 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
-    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _advise)
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _manage)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
 
