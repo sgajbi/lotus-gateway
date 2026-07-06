@@ -415,8 +415,7 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert any(
-        error.detail == "PERFORMANCE_CAPABILITIES_UNAVAILABLE"
-        for error in response.data.errors
+        error.detail == "PERFORMANCE_CAPABILITIES_UNAVAILABLE" for error in response.data.errors
     )
     assert any(error.detail == "capability source unavailable" for error in response.data.errors)
     assert "Private Client" not in str(response.data.errors)
