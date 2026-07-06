@@ -55,8 +55,9 @@ can perform the rebase merge without leaving a false red CI check.
 ## Container release evidence
 
 PR Merge Gate builds `ghcr.io/<owner>/lotus-gateway:${{ github.sha }}` locally, also tags
-`lotus-gateway:ci-test` for Docker parity, generates an SBOM with Syft, runs a Trivy HIGH/CRITICAL
-image scan, writes `output/container-security/image-release-manifest.json`, validates it with
+`lotus-gateway:ci-test` for Docker parity, generates an SBOM with pinned `anchore/syft:v1.42.3`,
+runs a pinned `aquasec/trivy:0.72.0` HIGH/CRITICAL image scan, writes
+`output/container-security/image-release-manifest.json`, validates it with
 `scripts/check_container_release_evidence.py --allow-unsigned`, and uploads
 `pr-container-release-evidence`. PR images are not pushed or signed.
 
