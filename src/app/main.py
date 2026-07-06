@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.build_metadata import gateway_build_metadata
 from app.contracts.errors import ProblemDetails
 from app.enterprise_readiness import (
     build_enterprise_audit_middleware,
@@ -104,6 +105,18 @@ async def health_ready(response: Response) -> dict[str, str]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return {"status": "draining"}
     return {"status": "ready"}
+
+
+@app.get(
+    "/version",
+    tags=["Operations"],
+    summary="Build Version",
+    description=(
+        "Returns the non-secret build and image metadata stamped into the Gateway runtime image."
+    ),
+)
+async def version() -> dict[str, str]:
+    return gateway_build_metadata()
 
 
 @app.exception_handler(Exception)
