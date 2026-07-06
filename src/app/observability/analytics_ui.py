@@ -41,6 +41,7 @@ __all__ = [
     "ANALYTICS_UI_STATE_VOCABULARY",
     "ANALYTICS_UI_TRACE_ATTRIBUTES",
     "GATEWAY_ANALYTICS_DEGRADED_LABELS",
+    "GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY",
     "GATEWAY_ANALYTICS_DEGRADED_TOTAL",
     "GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS",
     "GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS",
@@ -69,6 +70,23 @@ GATEWAY_ANALYTICS_UI_METRIC_FAMILIES = (
 
 GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS = ("operation", "service", "status_class")
 GATEWAY_ANALYTICS_DEGRADED_LABELS = ("operation", "service", "reason")
+GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY = frozenset(
+    {
+        "source_supportability_partial",
+        "source_supportability_degraded",
+        "upstream_warning",
+        "partial_failure_code",
+        "upstream_unavailable",
+        "upstream_error",
+        "unknown",
+    }
+)
+_GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES = {
+    "upstream-unavailable": "upstream_unavailable",
+    "upstream_unavailable": "upstream_unavailable",
+    "upstream-error": "upstream_error",
+    "upstream_error": "upstream_error",
+}
 
 GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS = {
     "lotus_gateway_analytics_fanout_duration_seconds": GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
@@ -131,9 +149,7 @@ def record_gateway_analytics_fanout_metrics(fields: Mapping[str, object]) -> Non
         GATEWAY_ANALYTICS_DEGRADED_TOTAL.labels(
             operation=operation,
             service=service,
-            reason=_safe_dimension(
-                str(validated_fields.get("reason") or "unknown"), default="unknown"
-            ),
+            reason=_bounded_gateway_analytics_degraded_reason(validated_fields.get("reason")),
         ).inc()
 
 
@@ -292,11 +308,14 @@ def _resolve_gateway_analytics_reason(
         "ready",
         "supported",
     }:
-        return calculation_supportability.reason or calculation_supportability.state.upper()
+        supportability_state = str(calculation_supportability.state).lower()
+        if supportability_state in {"partial", "stale"}:
+            return "source_supportability_partial"
+        return "source_supportability_degraded"
 
     warnings = payload.get("warnings")
     if isinstance(warnings, list) and warnings:
-        return str(warnings[0])
+        return "upstream_warning"
 
     partial_failures = payload.get("partial_failures")
     if isinstance(partial_failures, list):
@@ -304,12 +323,12 @@ def _resolve_gateway_analytics_reason(
             if isinstance(failure, Mapping):
                 error_code = failure.get("error_code")
                 if error_code:
-                    return str(error_code)
+                    return "partial_failure_code"
 
     if status_code >= 500:
-        return "UPSTREAM_UNAVAILABLE"
+        return "upstream_unavailable"
     if status_code >= 400:
-        return "UPSTREAM_ERROR"
+        return "upstream_error"
     return None
 
 
@@ -373,3 +392,10 @@ def _safe_dimension(value: str | None, *, default: str) -> str:
             previous_was_separator = True
     cleaned = "".join(characters).strip("-")
     return cleaned[:64] or default
+
+
+def _bounded_gateway_analytics_degraded_reason(value: object) -> str:
+    normalized = _safe_dimension(str(value or "unknown"), default="unknown")
+    if normalized in GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY:
+        return normalized
+    return _GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES.get(normalized, "unknown")

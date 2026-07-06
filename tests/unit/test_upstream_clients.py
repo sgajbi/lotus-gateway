@@ -612,7 +612,7 @@ async def test_lotus_ai_client_emits_safe_fanout_metrics_without_prompt_content(
     assert fields["event"] == "gateway.analytics.fanout.degraded"
     assert fields["operation"] == "ai.tasks.execute"
     assert fields["status_class"] == "5xx"
-    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert fields["reason"] == "upstream_unavailable"
     assert "raw_prompt" not in fields
     assert "model_output" not in fields
     assert "portfolio_id" not in fields
@@ -934,7 +934,7 @@ async def test_lotus_analytics_client_emits_safe_structured_fanout_log(caplog):
     assert fields["operation"] == "performance.workspace-summary"
     assert fields["state"] == "partial"
     assert fields["supportability_state"] == "partial"
-    assert fields["reason"] == "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE"
+    assert fields["reason"] == "upstream_warning"
     assert fields["status_class"] == "2xx"
     assert fields["warning_count"] == 1
     assert fields["partial_failure_count"] == 1
@@ -1059,7 +1059,7 @@ async def test_lotus_analytics_client_emits_safe_unavailable_fanout_log(caplog):
     assert fields["service"] == "lotus-risk"
     assert fields["operation"] == "analytics.risk.calculate"
     assert fields["state"] == "degraded"
-    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert fields["reason"] == "upstream_unavailable"
     assert fields["status_class"] == "5xx"
     assert fields["error_category"] == "upstream_unavailable"
     assert "portfolio_id" not in fields
@@ -3531,7 +3531,7 @@ async def test_dpm_client_emits_safe_fanout_metrics_for_manage_routes(caplog):
     assert fields["service"] == "lotus-manage"
     assert fields["operation"] == "manage.rebalance.runs.list"
     assert fields["state"] == "degraded"
-    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert fields["reason"] == "upstream_unavailable"
     assert fields["status_class"] == "5xx"
     assert "portfolio_id" not in fields
     assert "request_body" not in fields
@@ -4125,7 +4125,7 @@ async def test_lotus_core_query_client_emits_safe_fanout_metrics_without_runtime
     assert fields["event"] == "gateway.analytics.fanout.degraded"
     assert fields["operation"] == "core.simulation-sessions.projected-positions.get"
     assert fields["status_class"] == "5xx"
-    assert fields["reason"] == "CORE_SIMULATION_UNAVAILABLE"
+    assert fields["reason"] == "partial_failure_code"
     assert fields["partial_failure_count"] == 1
     assert "sim_sensitive_1" not in fields.values()
     assert "session_id" not in fields
@@ -4160,7 +4160,7 @@ async def test_lotus_core_ingestion_client_emits_safe_fanout_metrics_without_pay
     assert fields["event"] == "gateway.analytics.fanout.degraded"
     assert fields["operation"] == "core.ingest.portfolio-bundle.create"
     assert fields["status_class"] == "4xx"
-    assert fields["reason"] == "UPSTREAM_ERROR"
+    assert fields["reason"] == "upstream_error"
     assert "P1" not in fields.values()
     assert "upload_sensitive_1" not in fields.values()
     assert "portfolio_id" not in fields
