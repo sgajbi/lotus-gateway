@@ -39,7 +39,9 @@ async def _get_archived_document_metadata(
         "Return product-safe archived document metadata through the gateway boundary. Use this "
         "endpoint when Workbench or support tooling needs document identity, lifecycle summary, "
         "retention summary, and a gateway-controlled download link without exposing archive "
-        "storage internals."
+        "storage internals. Gateway requires caller context and enforces tenant and region parity "
+        "against archive metadata before returning the document contract; broader portfolio, "
+        "client, or advisor entitlement remains owned by upstream authorization."
     ),
     openapi_extra={
         "responses": {

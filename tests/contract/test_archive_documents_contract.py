@@ -63,8 +63,10 @@ def test_archive_document_openapi_contract_registered() -> None:
 
     assert metadata_operation["summary"] == "Get archived document metadata"
     assert "gateway boundary" in metadata_operation["description"]
+    assert "tenant and region parity" in metadata_operation["description"]
     assert download_operation["summary"] == "Download archived document"
     assert "storage locations hidden" in download_operation["description"]
+    assert "preflights archive metadata" in download_operation["description"]
     assert metadata_operation["responses"]["403"]["description"]
     assert metadata_operation["responses"]["404"]["description"]
     assert metadata_operation["responses"]["502"]["description"]

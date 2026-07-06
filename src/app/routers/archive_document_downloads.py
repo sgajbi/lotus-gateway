@@ -37,7 +37,9 @@ async def _download_archived_document(
         "Download an archived document binary through the gateway boundary. Use this endpoint "
         "only after metadata retrieval has returned a gateway-controlled download URL. The "
         "gateway preserves content type and integrity headers while keeping archive storage "
-        "locations hidden."
+        "locations hidden. Gateway preflights archive metadata and enforces tenant and region "
+        "parity before streaming binary content; broader portfolio, client, or advisor "
+        "entitlement remains owned by upstream authorization."
     ),
     responses={
         200: {
