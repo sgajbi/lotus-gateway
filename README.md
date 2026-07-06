@@ -296,6 +296,10 @@ curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerS
   dockerized parity check
 - `make run-canonical`
   canonical local gateway runtime on port `8111`
+- `make clean`
+  remove disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
+  coverage reports, Python bytecode caches, package metadata, and `gateway-*.log`; publish or
+  preserve any required evidence before cleanup
 
 ## Validation And CI Lanes
 
