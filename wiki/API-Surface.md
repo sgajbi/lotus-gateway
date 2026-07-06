@@ -61,6 +61,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 ## Current contract notes
 
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
+- platform capabilities publishes `normalized.navigation.command_center=true` only when the
+  `lotus_manage` source publishes governed Manage support capability such as
+  `dpm.support.run_apis` or `lotus_manage.support.run_apis`
 - domain-product discovery uses `consumerSystem` for caller identity and serves only
   platform-generated catalog, dependency-graph, and live trust certification artifacts
 - domain-product detail requires the full governed identity:
