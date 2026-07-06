@@ -1,5 +1,6 @@
 """Shared service-layer helpers for upstream-backed gateway envelopes."""
 
+import re
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
@@ -36,6 +37,21 @@ GATEWAY_SERVICE_ERROR_STATUS_RULES = (
         ),
         gateway_status=status.HTTP_400_BAD_REQUEST,
     ),
+)
+
+_CODE_LIKE_UPSTREAM_DETAIL = re.compile(r"^[A-Za-z][A-Za-z0-9_.:]{0,95}$")
+_SENSITIVE_UPSTREAM_DETAIL_TOKENS = (
+    "account",
+    "client",
+    "correlation",
+    "document",
+    "entitlement",
+    "portfolio",
+    "prompt",
+    "request",
+    "response",
+    "session",
+    "trace",
 )
 
 
@@ -192,22 +208,32 @@ def safe_upstream_detail(payload: dict[str, Any], *, default_detail: str) -> str
     detail = payload.get("detail") or payload.get("message") or payload.get("error")
     if isinstance(detail, dict):
         code = detail.get("code")
-        message = detail.get("message")
-        if code and message:
-            return f"{code}: {message}"
-        if message:
-            return str(message)
+        if safe_code := _safe_upstream_machine_detail(code):
+            return safe_code
         reason = detail.get("reason")
-        if reason:
-            return str(reason)
-        if code:
-            return str(code)
+        if safe_reason := _safe_upstream_machine_detail(reason):
+            return safe_reason
+        message = detail.get("message")
+        if safe_message := _safe_upstream_machine_detail(message):
+            return safe_message
         return default_detail
     if isinstance(detail, str):
-        return detail
-    if detail is not None:
-        return str(detail)
+        return _safe_upstream_machine_detail(detail) or default_detail
     return default_detail
+
+
+def _safe_upstream_machine_detail(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    if not stripped or not _CODE_LIKE_UPSTREAM_DETAIL.fullmatch(stripped):
+        return None
+    normalized = stripped.lower()
+    if any(token in normalized for token in _SENSITIVE_UPSTREAM_DETAIL_TOKENS):
+        return None
+    if "pb_" in normalized or "traceback" in normalized or "://" in normalized:
+        return None
+    return stripped
 
 
 def raise_product_safe_upstream_error(

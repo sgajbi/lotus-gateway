@@ -154,7 +154,7 @@ def test_build_product_safe_upstream_status_payload_gateway_envelope_raises_type
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail["error_code"] == "MANAGE_CONSTRUCTION_UPSTREAM_ERROR"
-    assert exc_info.value.detail["detail"] == "campaign service unavailable"
+    assert exc_info.value.detail["detail"] == "lotus-manage construction request failed"
 
 
 def test_raise_for_upstream_error_preserves_payload_by_default() -> None:
@@ -188,14 +188,14 @@ def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
             },
             default_detail="fallback",
         )
-        == "DPM_WAVE_INVALID_TRANSITION: Wave dwv_001 cannot be approved from state DRAFT."
+        == "DPM_WAVE_INVALID_TRANSITION"
     )
     assert (
         safe_upstream_detail(
-            {"detail": {"reason": "blocked"}},
+            {"detail": {"reason": "material_review_blocked"}},
             default_detail="fallback",
         )
-        == "blocked"
+        == "material_review_blocked"
     )
     assert (
         safe_upstream_detail(
@@ -205,6 +205,25 @@ def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
         == "fallback"
     )
     assert safe_upstream_detail({}, default_detail="fallback") == "fallback"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"detail": "Traceback at C:\\Users\\Sandeep\\projects\\lotus-core\\app.py"},
+        {"detail": "Client Jane Doe portfolio PB_SG_GLOBAL_BAL_001 failed"},
+        {"detail": "http://internal-service/errors/123"},
+        {"message": "plain upstream failure text"},
+        {"error": "entitlement denied for portfolio PB_SG_GLOBAL_BAL_001"},
+    ],
+)
+def test_safe_upstream_detail_rejects_arbitrary_or_sensitive_strings(
+    payload: dict[str, object],
+) -> None:
+    assert (
+        safe_upstream_detail(payload, default_detail="product-safe fallback")
+        == "product-safe fallback"
+    )
 
 
 def test_raise_product_safe_upstream_error_builds_typed_detail() -> None:
@@ -241,7 +260,7 @@ def test_raise_product_safe_service_error_builds_untyped_detail() -> None:
         "source_service": "lotus-ai",
         "upstream_status": 503,
         "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
-        "detail": "workflow pack unavailable",
+        "detail": "lotus-ai workflow-pack request failed",
     }
 
 
@@ -304,5 +323,5 @@ def test_raise_gateway_mapped_service_error_maps_status(
         "source_service": "lotus-core",
         "upstream_status": upstream_status,
         "error_code": "UPSTREAM_SERVICE_ERROR",
-        "detail": "upstream failed",
+        "detail": "Upstream service request failed.",
     }

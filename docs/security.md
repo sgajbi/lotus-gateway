@@ -28,7 +28,10 @@ This slice adds report-only baseline tooling for:
 2. Logs and metrics must not expose sensitive client, portfolio, holding, transaction, prompt,
    model-output, entitlement, or document content.
 3. Downstream errors must be product-safe and should not leak raw upstream stack traces or internal
-   topology beyond governed service names.
+   topology beyond governed service names. Product-facing Gateway error details may preserve only
+   bounded machine-code values from structured upstream payloads; arbitrary text bodies, URLs,
+   filesystem paths, portfolio/client identifiers, and entitlement text must fall back to
+   route-owned default detail.
 4. Protected diagnostics must be auditable and role-aware.
 5. Mutating operations should define idempotency and audit behavior.
 
