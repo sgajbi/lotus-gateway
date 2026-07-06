@@ -26,6 +26,7 @@ from app.services.risk_workspace_attribution_controls import (
 )
 from app.services.risk_workspace_attribution_mapping import map_attribution_period_results
 from app.services.risk_workspace_envelopes import (
+    RISK_SOURCE_SERVICE,
     risk_metadata,
     risk_upstream_failure,
 )
@@ -228,7 +229,7 @@ def _resolve_attribution_state(
         resolved_warnings.append("RISK_ATTRIBUTION_EMPTY")
         resolved_partial_failures.append(
             WorkbenchPartialFailure(
-                source_service="risk",
+                source_service=RISK_SOURCE_SERVICE,
                 error_code="EMPTY_RISK_ATTRIBUTION",
                 detail="lotus-risk returned no attribution periods.",
             )

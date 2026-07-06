@@ -363,7 +363,7 @@ class WorkbenchAnalyticsResponse(BaseModel):
                 "warnings": ["RISK_BFF_PENDING"],
                 "partial_failures": [
                     {
-                        "source_service": "risk",
+                        "source_service": "lotus-risk",
                         "error_code": "RISK_BFF_NOT_IMPLEMENTED",
                         "detail": (
                             "Legacy workbench risk proxy was removed. Stateful concentration "

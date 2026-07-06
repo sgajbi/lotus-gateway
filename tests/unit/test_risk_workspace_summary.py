@@ -91,7 +91,8 @@ def test_unavailable_summary_preserves_product_safe_failure_detail() -> None:
     assert response.warnings == ["RISK_SUMMARY_UNAVAILABLE"]
     assert response.supportability[0].key == "risk_service"
     assert response.partial_failures[0].error_code == "HTTP_503"
-    assert response.partial_failures[0].detail == "risk unavailable"
+    assert response.partial_failures[0].source_service == "lotus-risk"
+    assert response.partial_failures[0].detail == "risk request failed"
 
 
 def _summary_payload() -> dict:

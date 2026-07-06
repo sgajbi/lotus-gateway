@@ -7,6 +7,7 @@ from app.contracts.risk_workspace_attribution import (
     WorkbenchRiskAttributionSet,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.risk_workspace_envelopes import RISK_SOURCE_SERVICE
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,7 @@ def map_attribution_period_results(
         if period.error:
             partial_failures.append(
                 WorkbenchPartialFailure(
-                    source_service="risk",
+                    source_service=RISK_SOURCE_SERVICE,
                     error_code="RISK_ATTRIBUTION_PERIOD_ERROR",
                     detail=f"{key}: {period.error}",
                 )

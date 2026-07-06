@@ -16,6 +16,7 @@ from app.contracts.risk_workspace_rolling import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
+    RISK_SOURCE_SERVICE,
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
@@ -192,7 +193,7 @@ def _map_rolling_period_results(results: Any) -> RollingMappingResult:
         if period.error:
             partial_failures.append(
                 WorkbenchPartialFailure(
-                    source_service="risk",
+                    source_service=RISK_SOURCE_SERVICE,
                     error_code="ROLLING_PERIOD_ERROR",
                     detail=f"{key}: {period.error}",
                 )
@@ -251,7 +252,7 @@ def _append_rolling_sharpe_fallback(
 
     partial_failures.append(
         WorkbenchPartialFailure(
-            source_service="risk",
+            source_service=RISK_SOURCE_SERVICE,
             error_code="ROLLING_SHARPE_UNAVAILABLE",
             detail=sharpe_fallback_reason,
         )
@@ -276,7 +277,7 @@ def _resolve_rolling_state(
         resolved_warnings.append("RISK_ROLLING_EMPTY")
         resolved_partial_failures.append(
             WorkbenchPartialFailure(
-                source_service="risk",
+                source_service=RISK_SOURCE_SERVICE,
                 error_code="EMPTY_RISK_ROLLING",
                 detail="lotus-risk returned no rolling periods.",
             )

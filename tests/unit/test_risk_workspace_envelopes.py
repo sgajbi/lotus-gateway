@@ -11,9 +11,9 @@ def test_risk_upstream_failure_preserves_dict_detail() -> None:
         upstream_payload={"detail": "risk service unavailable", "debug": "not exposed"},
     )
 
-    assert failure.source_service == "risk"
+    assert failure.source_service == "lotus-risk"
     assert failure.error_code == "HTTP_503"
-    assert failure.detail == "risk service unavailable"
+    assert failure.detail == "risk request failed"
 
 
 def test_risk_upstream_failure_bounds_structured_detail() -> None:
@@ -31,9 +31,9 @@ def test_risk_upstream_failure_bounds_structured_detail() -> None:
         },
     )
 
-    assert failure.source_service == "risk"
+    assert failure.source_service == "lotus-risk"
     assert failure.error_code == "HTTP_503"
-    assert failure.detail == "RISK_DOWN: risk service unavailable"
+    assert failure.detail == "RISK_DOWN"
     assert "Private Client" not in str(failure)
     assert "secret-token" not in str(failure)
 
@@ -44,9 +44,9 @@ def test_risk_upstream_failure_handles_non_dict_payload() -> None:
         upstream_payload="bad gateway",
     )
 
-    assert failure.source_service == "risk"
+    assert failure.source_service == "lotus-risk"
     assert failure.error_code == "HTTP_502"
-    assert failure.detail == "bad gateway"
+    assert failure.detail == "risk request failed"
 
 
 def test_unavailable_risk_service_supportability_is_product_safe() -> None:

@@ -234,7 +234,7 @@ def test_raise_for_lotus_core_error_includes_upstream_detail():
         "source_service": "lotus-core",
         "upstream_status": 500,
         "error_code": "LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
-        "detail": "downstream unavailable",
+        "detail": "Lotus Core snapshot is unavailable.",
     }
 
 
@@ -303,7 +303,7 @@ def test_parse_performance_snapshot_handles_http_error_payload():
     )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "PERFORMANCE_DOWN: lotus-performance down"
+    assert partial_failures[0].detail == "PERFORMANCE_DOWN"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 
@@ -422,7 +422,7 @@ def test_parse_dpm_snapshot_handles_http_error():
     )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_500"
-    assert partial_failures[0].detail == "DPM_DOWN: dpm down"
+    assert partial_failures[0].detail == "DPM_DOWN"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 
@@ -512,7 +512,7 @@ def test_parse_dpm_snapshot_records_supportability_summary_failure():
     assert parsed.supportability is None
     assert warnings == ["MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE"]
     assert partial_failures[0].error_code == "SUPPORTABILITY_HTTP_503"
-    assert partial_failures[0].detail == "SUPPORTABILITY_DOWN: summary unavailable"
+    assert partial_failures[0].detail == "SUPPORTABILITY_DOWN"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 
@@ -603,7 +603,7 @@ async def test_load_projected_state_raises_when_positions_unavailable():
         "source_service": "lotus-core",
         "upstream_status": 503,
         "error_code": "LOTUS_CORE_PROJECTED_POSITIONS_UNAVAILABLE",
-        "detail": "projection failed",
+        "detail": "Lotus Core projected positions are unavailable.",
     }
 
 
@@ -619,7 +619,7 @@ async def test_load_projected_state_raises_when_summary_unavailable():
         "source_service": "lotus-core",
         "upstream_status": 503,
         "error_code": "LOTUS_CORE_PROJECTED_SUMMARY_UNAVAILABLE",
-        "detail": "summary failed",
+        "detail": "Lotus Core projected summary is unavailable.",
     }
 
 
@@ -696,7 +696,7 @@ async def test_create_sandbox_session_raises_on_pas_error():
         "source_service": "lotus-core",
         "upstream_status": 500,
         "error_code": "LOTUS_CORE_SIMULATION_SESSION_CREATE_FAILED",
-        "detail": "session create failed",
+        "detail": "Lotus Core simulation session creation failed.",
     }
 
 
@@ -721,7 +721,7 @@ async def test_apply_sandbox_changes_raises_on_pas_error():
         "source_service": "lotus-core",
         "upstream_status": 500,
         "error_code": "LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
-        "detail": "change_failed: change apply failed",
+        "detail": "change_failed",
     }
 
 
@@ -825,7 +825,8 @@ async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
     assert [
         failure
         for failure in response.partial_failures
-        if failure.source_service == "risk" and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
+        if failure.source_service == "lotus-risk"
+        and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
     ]
 
 
@@ -858,7 +859,7 @@ async def test_evaluate_policy_feedback_handles_dpm_failure():
     assert warnings == ["ADVISE_PROPOSAL_SIMULATION_UNAVAILABLE"]
     assert partial_failures[0].source_service == "lotus-advise"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "POLICY_ENGINE_DOWN: policy engine down"
+    assert partial_failures[0].detail == "POLICY_ENGINE_DOWN"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 
@@ -1110,7 +1111,7 @@ def test_with_controlled_risk_bff_gap_appends_bounded_failure_once_per_projectio
     assert projected.warnings == ["RISK_BFF_PENDING"]
     assert [failure.source_service for failure in projected.partial_failures] == [
         "lotus-performance",
-        "risk",
+        "lotus-risk",
     ]
     assert projected.partial_failures[-1].error_code == "RISK_BFF_NOT_IMPLEMENTED"
 
@@ -1183,5 +1184,5 @@ async def test_workbench_analytics_reports_controlled_risk_gap_until_risk_bff_ex
     )
     assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
-    assert response.partial_failures[-1].source_service == "risk"
+    assert response.partial_failures[-1].source_service == "lotus-risk"
     assert response.partial_failures[-1].error_code == "RISK_BFF_NOT_IMPLEMENTED"

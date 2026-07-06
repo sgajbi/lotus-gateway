@@ -76,7 +76,7 @@ _RISK_SUMMARY_RESPONSE_EXAMPLE: dict[str, Any] = {
     "warnings": ["RISK_SUMMARY_PARTIAL"],
     "partial_failures": [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "RISK_FREE_UNAVAILABLE",
             "detail": "Sharpe could not be produced for one or more requested periods.",
         }
@@ -125,7 +125,7 @@ _RISK_CONCENTRATION_RESPONSE_EXAMPLE: dict[str, Any] = {
     "warnings": ["RISK_CONCENTRATION_PARTIAL"],
     "partial_failures": [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "ISSUER_ENRICHMENT_PARTIAL",
             "detail": "One or more positions were excluded from issuer grouping enrichment.",
         }
@@ -242,7 +242,7 @@ _RISK_DRAWDOWN_RESPONSE_EXAMPLE: dict[str, Any] = {
     "warnings": ["RISK_DRAWDOWN_PARTIAL"],
     "partial_failures": [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "BENCHMARK_RELATIVE_DRAWDOWN_UNAVAILABLE",
             "detail": (
                 "Benchmark-relative drawdown was not returned for one or more requested periods."
@@ -307,7 +307,7 @@ _RISK_ROLLING_RESPONSE_EXAMPLE: dict[str, Any] = {
     ],
     "partial_failures": [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "ROLLING_SHARPE_UNAVAILABLE",
             "detail": (
                 "Rolling Sharpe is unavailable because the risk-free series could not be sourced."
@@ -365,7 +365,7 @@ _RISK_ATTRIBUTION_RESPONSE_EXAMPLE: dict[str, Any] = {
     "warnings": ["RISK_ATTRIBUTION_PARTIAL"],
     "partial_failures": [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "RISK_ATTRIBUTION_PERIOD_ERROR",
             "detail": "YTD: Benchmark overlap required manual review.",
         }

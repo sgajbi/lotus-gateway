@@ -10,6 +10,7 @@ from app.contracts.workbench import (
     WorkbenchTopChange,
 )
 from app.precision_policy import quantize_performance, quantize_quantity
+from app.services.risk_workspace_envelopes import RISK_SOURCE_SERVICE
 
 
 def with_controlled_risk_bff_gap(
@@ -22,7 +23,7 @@ def with_controlled_risk_bff_gap(
     partial_failures = list(portfolio_360.partial_failures)
     partial_failures.append(
         WorkbenchPartialFailure(
-            source_service="risk",
+            source_service=RISK_SOURCE_SERVICE,
             error_code="RISK_BFF_NOT_IMPLEMENTED",
             detail=(
                 "Legacy workbench risk proxy was removed. Stateful concentration risk "

@@ -10,6 +10,7 @@ from app.contracts.risk_workspace import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
+    RISK_SOURCE_SERVICE,
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
@@ -269,7 +270,7 @@ def _summary_response_state(
     warnings.append("RISK_SUMMARY_EMPTY")
     partial_failures.append(
         WorkbenchPartialFailure(
-            source_service="risk",
+            source_service=RISK_SOURCE_SERVICE,
             error_code="EMPTY_RISK_SUMMARY",
             detail="lotus-risk returned no risk summary periods.",
         )

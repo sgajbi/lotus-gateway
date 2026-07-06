@@ -27,6 +27,7 @@ from app.services.risk_workspace_drawdown_supportability import (
     resolve_drawdown_period_supportability,
 )
 from app.services.risk_workspace_envelopes import (
+    RISK_SOURCE_SERVICE,
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
@@ -198,7 +199,7 @@ def _record_drawdown_period_failure(
 ) -> None:
     partial_failures.append(
         WorkbenchPartialFailure(
-            source_service="risk",
+            source_service=RISK_SOURCE_SERVICE,
             error_code="DRAWDOWN_PERIOD_ERROR",
             detail=f"{key}: {error}",
         )
@@ -268,7 +269,7 @@ def _resolve_drawdown_state(
         resolved_warnings.append("RISK_DRAWDOWN_EMPTY")
         resolved_partial_failures.append(
             WorkbenchPartialFailure(
-                source_service="risk",
+                source_service=RISK_SOURCE_SERVICE,
                 error_code="EMPTY_RISK_DRAWDOWN",
                 detail="lotus-risk returned no drawdown periods.",
             )

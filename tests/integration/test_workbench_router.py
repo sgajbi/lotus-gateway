@@ -1149,7 +1149,7 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
     assert body["warnings"] == ["RISK_ATTRIBUTION_PERIOD_PARTIAL"]
     assert body["partial_failures"] == [
         {
-            "source_service": "risk",
+            "source_service": "lotus-risk",
             "error_code": "RISK_ATTRIBUTION_PERIOD_ERROR",
             "detail": "YTD: Benchmark overlap required manual review.",
         }
