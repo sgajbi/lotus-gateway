@@ -904,9 +904,7 @@ async def test_dpm_wave_service_manage_errors_are_product_safe() -> None:
         "source_service": "lotus-manage",
         "upstream_status": 422,
         "error_code": "MANAGE_WAVE_UPSTREAM_ERROR",
-        "detail": (
-            "DPM_WAVE_INVALID_TRANSITION: Wave dwv_001 cannot be approved from state DRAFT."
-        ),
+        "detail": "DPM_WAVE_INVALID_TRANSITION",
     }
 
 
@@ -1035,7 +1033,7 @@ async def test_dpm_wave_pm_memo_ai_errors_are_product_safe() -> None:
         "source_service": "lotus-ai",
         "upstream_status": 503,
         "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
-        "detail": "workflow pack unavailable",
+        "detail": "lotus-ai wave PM memo request failed",
     }
 
 
@@ -1131,10 +1129,7 @@ async def test_dpm_operations_handoff_summary_ai_errors_are_product_safe() -> No
         "source_service": "lotus-ai",
         "upstream_status": 422,
         "error_code": "AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
-        "detail": (
-            "OPERATIONS_HANDOFF_SUMMARY_GUARDRAIL_BLOCKED: "
-            "Forbidden operations handoff outputs requested: order_ticket."
-        ),
+        "detail": "lotus-ai operations handoff summary request failed",
     }
 
 

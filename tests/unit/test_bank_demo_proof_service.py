@@ -120,5 +120,5 @@ async def test_bank_demo_proof_service_maps_advise_material_drift_conflict() -> 
         "source_service": "lotus-advise",
         "upstream_status": 409,
         "error_code": "ADVISE_BANK_DEMO_PROOF_UPSTREAM_ERROR",
-        "detail": "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'",
+        "detail": "lotus-advise bank-demo proof request failed.",
     }

@@ -55,7 +55,7 @@ def test_resolve_performance_report_end_date_falls_back_for_http_failure() -> No
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-core"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "REFERENCE_UNAVAILABLE: analytics reference unavailable"
+    assert partial_failures[0].detail == "REFERENCE_UNAVAILABLE"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
 

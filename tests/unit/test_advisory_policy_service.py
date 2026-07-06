@@ -297,7 +297,7 @@ async def test_policy_service_maps_advise_rejections_to_product_safe_detail() ->
         "source_service": "lotus-advise",
         "upstream_status": 409,
         "error_code": "ADVISE_POLICY_UPSTREAM_ERROR",
-        "detail": "client_ready_blocked",
+        "detail": "lotus-advise advisory policy request failed.",
     }
     assert advise_client.calls == [
         (

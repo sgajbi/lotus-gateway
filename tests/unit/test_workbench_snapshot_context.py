@@ -140,5 +140,5 @@ async def test_load_workbench_snapshot_context_maps_core_error_safely() -> None:
         "source_service": "lotus-core",
         "upstream_status": 503,
         "error_code": "LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
-        "detail": "database connection failed at internal-host:5432",
+        "detail": "Lotus Core snapshot is unavailable.",
     }

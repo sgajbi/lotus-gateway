@@ -1295,7 +1295,7 @@ async def test_approval_upstream_error_uses_product_safe_envelope() -> None:
             "source_service": "lotus-advise",
             "upstream_status": 409,
             "error_code": "ADVISE_PROPOSAL_UPSTREAM_ERROR",
-            "detail": "STATE_CONFLICT: Proposal state conflict.",
+            "detail": "STATE_CONFLICT",
         }
         assert "secret-token" not in str(exc.detail)
         assert "Private Client" not in str(exc.detail)

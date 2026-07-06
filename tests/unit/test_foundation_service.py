@@ -484,9 +484,9 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
     ]
     assert len(response.partial_failures) == 3
     assert [failure.detail for failure in response.partial_failures] == [
-        "PERFORMANCE_UNAVAILABLE: lotus-performance unavailable",
-        "DPM_UNAVAILABLE: dpm unavailable",
-        "REPORTING_UNAVAILABLE: reporting unavailable",
+        "PERFORMANCE_UNAVAILABLE",
+        "DPM_UNAVAILABLE",
+        "REPORTING_UNAVAILABLE",
     ]
     assert "Private Client" not in str(response.partial_failures)
     assert "secret-token" not in str(response.partial_failures)
@@ -638,7 +638,9 @@ async def test_foundation_catalog_rejects_upstream_error():
         await service.get_portfolio_catalog(correlation_id="corr-catalog-503")
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "lotus-core portfolio catalog unavailable: catalog unavailable"
+    assert exc_info.value.detail == (
+        "lotus-core portfolio catalog unavailable: upstream request failed"
+    )
     assert "Private Client" not in exc_info.value.detail
     assert "secret-token" not in exc_info.value.detail
 
@@ -672,9 +674,8 @@ async def test_foundation_workspace_rejects_snapshot_upstream_error():
         )
 
     assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == (
-        "lotus-core foundation snapshot unavailable: "
-        "SNAPSHOT_UNAVAILABLE: Foundation snapshot unavailable."
+    assert (
+        exc_info.value.detail == "lotus-core foundation snapshot unavailable: SNAPSHOT_UNAVAILABLE"
     )
     assert "Private Client" not in exc_info.value.detail
     assert "secret-token" not in exc_info.value.detail
@@ -706,7 +707,7 @@ async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
 
     assert exc_info.value.status_code == 502
     assert exc_info.value.detail == (
-        "lotus-core portfolio identity unavailable: portfolio unavailable"
+        "lotus-core portfolio identity unavailable: upstream request failed"
     )
     assert "Private Client" not in exc_info.value.detail
     assert "secret-token" not in exc_info.value.detail

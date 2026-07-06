@@ -126,4 +126,4 @@ def test_bank_demo_proof_router_preserves_advise_material_drift_error(monkeypatc
     )
 
     assert response.status_code == 409
-    assert "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED" in response.json()["detail"]["detail"]
+    assert response.json()["detail"]["detail"] == "lotus-advise bank-demo proof request failed."

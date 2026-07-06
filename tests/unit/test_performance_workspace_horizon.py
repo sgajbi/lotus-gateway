@@ -184,7 +184,7 @@ def test_merge_standard_horizon_results_records_partial_failures():
                 {
                     "source_service": "lotus-performance",
                     "error_code": "HTTP_503",
-                    "detail": "QTD_UNAVAILABLE: qtd unavailable",
+                    "detail": "QTD_UNAVAILABLE",
                 },
             ],
         },
@@ -393,6 +393,6 @@ def test_parse_horizon_comparison_result_bounds_upstream_failure_detail():
     assert benchmark_code is None
     assert warnings == ["PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE"]
     assert len(partial_failures) == 1
-    assert partial_failures[0].detail == ("HORIZON_UNAVAILABLE: horizon comparison unavailable")
+    assert partial_failures[0].detail == "HORIZON_UNAVAILABLE"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
