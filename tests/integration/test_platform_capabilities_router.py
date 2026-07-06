@@ -39,16 +39,27 @@ def test_platform_capabilities_router_success(monkeypatch):
             "supportedInputModes": ["pas_ref", "inline_bundle"],
         }
 
-    async def _dpm(*args, **kwargs):
+    async def _advise(*args, **kwargs):
         return 200, {
             "sourceService": "lotus-advise",
             "contractVersion": "v1",
-            "policyVersion": "lotus-manage-default-v1",
+            "policyVersion": "lotus-advise-default-v1",
             "features": [
-                {"key": "dpm.proposals.lifecycle", "enabled": True},
-                {"key": "dpm.support.run_apis", "enabled": True},
+                {"key": "advisory.proposals.lifecycle", "enabled": True},
             ],
             "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+            "supportedInputModes": ["portfolio_id", "inline_bundle"],
+        }
+
+    async def _manage(*args, **kwargs):
+        return 200, {
+            "sourceService": "lotus-manage",
+            "contractVersion": "v1",
+            "policyVersion": "lotus-manage-default-v1",
+            "features": [
+                {"key": "dpm.support.run_apis", "enabled": True},
+            ],
+            "workflows": [],
             "supportedInputModes": ["portfolio_id", "inline_bundle"],
         }
 
@@ -82,8 +93,8 @@ def test_platform_capabilities_router_success(monkeypatch):
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
-    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _advise)
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _manage)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
     client = TestClient(app)
@@ -116,7 +127,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
         "lotus_risk": "lotus-risk-default-v1",
-        "lotus_advise": "lotus-manage-default-v1",
+        "lotus_advise": "lotus-advise-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }
@@ -136,7 +147,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
         "lotus_risk": "lotus-risk-default-v1",
-        "lotus_advise": "lotus-manage-default-v1",
+        "lotus_advise": "lotus-advise-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }

@@ -3,6 +3,7 @@ import time
 
 import pytest
 
+from app.services.platform_capabilities_feature_flags import feature_enablement
 from app.services.platform_capabilities_normalization import navigation_flags
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
 
@@ -117,6 +118,22 @@ def test_navigation_flags_keep_command_center_closed_when_manage_posture_absent(
 
     assert navigation["command_center"] is False
     assert navigation["decision_console"] is False
+
+
+def test_legacy_dpm_proposal_lifecycle_key_no_longer_enables_manage_or_advise() -> None:
+    flags = feature_enablement(
+        {
+            "lotus_advise": {
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+            },
+            "lotus_manage": {
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+            },
+        }
+    )
+
+    assert flags["lotus_advise_lifecycle"] is False
+    assert flags["lotus_manage_support"] is False
 
 
 class _DelayedStubClient(_StubClient):
@@ -824,7 +841,7 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
             200,
             {
                 "sourceService": "lotus_manage",
-                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
                 "workflows": [],
             },
             delay_seconds=0.01,
