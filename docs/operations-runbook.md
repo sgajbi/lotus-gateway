@@ -49,10 +49,12 @@ Docker parity is required because gateway is a live integration boundary.
 CI-owned image release evidence is retained under `output/container-security/` artifacts. PRs build
 and scan the Git-SHA-tagged image without pushing it. The Trivy image scan fails on fixable
 HIGH/CRITICAL vulnerabilities and retains the full JSON scan artifact so unfixed vendor findings
-remain visible for operator review. Main releasability pushes the same Git-SHA tag to GHCR, captures
-the digest, signs the digest-pinned image, writes provenance attestation evidence, and records the
-digest-pinned Kubernetes deployment reference in `image-release-manifest.json`. Do not deploy
-mutable image tags.
+remain visible for operator review. Main releasability performs SBOM generation and the Trivy scan
+before pushing the same Git-SHA tag to GHCR, then captures the digest, signs the digest-pinned
+image, writes provenance attestation evidence, and records the digest-pinned Kubernetes deployment
+reference in `image-release-manifest.json`. Do not deploy mutable image tags. The image digest is
+captured after push and must be supplied to runtime `/version` metadata by deployment configuration;
+do not bake an `unknown` digest into Docker build args, ENV, or OCI labels.
 
 ## Quality Baseline
 
