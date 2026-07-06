@@ -82,3 +82,11 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "output/demo-certification/" in workflow
     assert "python scripts/check_quality_baseline_artifacts.py" in workflow
     assert "if-no-files-found: error" in workflow
+
+
+def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+
+    assert "/_ci_fail.log" in gitignore
+    assert "quality/" not in gitignore
+    assert "output/" in gitignore

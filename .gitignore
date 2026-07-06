@@ -12,3 +12,4 @@ htmlcov/
 output/
 .codex-logs/
 gateway-*.log
+/_ci_fail.log
