@@ -1254,6 +1254,18 @@ def test_services_do_not_emit_raw_upstream_payload_details() -> None:
     assert offenders == {}
 
 
+def test_upstream_envelope_delegates_error_policy() -> None:
+    envelope_methods = _function_names(_SERVICE_ROOT / "upstream_envelope.py")
+    policy_methods = _function_names(_SERVICE_ROOT / "upstream_error_policy.py")
+    delegated_methods = {
+        "safe_upstream_detail",
+        "gateway_status_for_service_error",
+    }
+
+    assert delegated_methods <= policy_methods
+    assert envelope_methods.isdisjoint(delegated_methods)
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
