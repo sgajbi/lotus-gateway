@@ -897,6 +897,14 @@ def test_portfolio_service_delegates_holdings_orchestration() -> None:
     assert "PortfolioHoldingsServiceMixin" in base_names
 
 
+def test_portfolio_holdings_service_delegates_projected_cashflow_orchestration() -> None:
+    holdings_methods = _function_names(_SERVICE_ROOT / "portfolio_holdings_service.py")
+    cashflow_methods = _function_names(_SERVICE_ROOT / "portfolio_projected_cashflow_service.py")
+
+    assert "get_portfolio_projected_cashflow" in cashflow_methods
+    assert "get_portfolio_projected_cashflow" not in holdings_methods
+
+
 def test_portfolio_service_delegates_workspace_component_parsing() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
