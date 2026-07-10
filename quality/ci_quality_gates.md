@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 366/49 ratchet, the current largest hotspot
-   `src/app/services/advisor_brief_source.py`, and durable scorecard/context guidance in
+   keeps the executable 363/49 ratchet, the current largest hotspot
+   `src/app/clients/http_resilience.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -89,12 +89,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 366
+2. Current enforced source-file threshold: no Python source file under `src/app` above 363
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=366` and `max_function_lines=49`.
+   `max_source_file_lines=363` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -251,6 +251,15 @@ Most recent local PR-grade evidence:
    prove 366 passes while 365 fails on that file. Focused validation includes risk drawdown
    contract, OpenAPI Workbench contract, contract-boundary, refactor-threshold, monetary-float,
    and agent quality evidence checks.
+24. Current advisor brief source narrative extraction moves summary, talking-point, action, and
+   risk narrative builders into `src/app/services/advisor_brief_source_narrative.py` while
+   preserving the public advisor brief source context builder. It reduces
+   `src/app/services/advisor_brief_source.py` below the previous 366-line ceiling and ratchets the
+   blocking threshold from 366/49 to 363/49 because
+   `src/app/clients/http_resilience.py` is the deterministic largest source file; threshold trials
+   prove 363 passes while 362 fails on both `http_resilience.py` and
+   `dpm_command_center_service.py`. Focused validation includes advisor brief source behavior,
+   service-boundary, refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving

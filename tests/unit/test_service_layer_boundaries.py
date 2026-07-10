@@ -513,6 +513,24 @@ def test_advisor_brief_source_delegates_source_metric_construction() -> None:
     assert "_source_metric" not in source_methods
 
 
+def test_advisor_brief_source_delegates_narrative_construction() -> None:
+    source_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source.py")
+    narrative_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source_narrative.py")
+
+    expected_narrative_methods = {
+        "build_source_summary",
+        "build_source_talking_points",
+        "build_recommended_actions",
+        "build_risks_and_exceptions",
+    }
+
+    assert expected_narrative_methods <= narrative_methods
+    assert "_build_return_talking_point" in narrative_methods
+    assert "_build_supportability_risk" in narrative_methods
+    assert "_build_return_talking_point" not in source_methods
+    assert "_build_supportability_risk" not in source_methods
+
+
 def test_proposal_service_delegates_lifecycle_transitions() -> None:
     path = _SERVICE_ROOT / "proposal_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
