@@ -191,6 +191,10 @@ The current reporting portfolio contract extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 354/49 refactor ratchet,
 current `src/app/contracts/foundation.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
+The current Foundation catalog contract extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 354/49 refactor ratchet,
+current `src/app/services/performance_workspace_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1078,15 +1082,15 @@ ratcheted to `max_source_file_lines=406` because
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 354 | `src/app/services/performance_workspace_service.py` |
-| 2 | 354 | `src/app/contracts/foundation.py` |
-| 3 | 352 | `src/app/services/risk_workspace_drawdown.py` |
-| 4 | 350 | `src/app/services/workbench_rebalance_snapshot.py` |
-| 5 | 348 | `src/app/router_groups/dpm.py` |
-| 6 | 347 | `src/app/services/portfolio_holdings_service.py` |
-| 7 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
-| 8 | 346 | `src/app/services/performance_calculation_evidence.py` |
-| 9 | 345 | `src/app/services/advisor_brief_service.py` |
-| 10 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
+| 2 | 352 | `src/app/services/risk_workspace_drawdown.py` |
+| 3 | 350 | `src/app/services/workbench_rebalance_snapshot.py` |
+| 4 | 348 | `src/app/router_groups/dpm.py` |
+| 5 | 347 | `src/app/services/portfolio_holdings_service.py` |
+| 6 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
+| 7 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 8 | 345 | `src/app/services/advisor_brief_service.py` |
+| 9 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
+| 10 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
 
 ## Largest Functions
 

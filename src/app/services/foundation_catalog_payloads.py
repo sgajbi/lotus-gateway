@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.contracts.foundation import FoundationPortfolioCatalogItem
+from app.contracts.foundation_catalog import FoundationPortfolioCatalogItem
 
 
 def parse_foundation_catalog_items(
