@@ -251,6 +251,10 @@ The DPM PM operating-quality protocol extraction keeps `scripts/check_agent_qual
 aligned with the executable 319/49 refactor ratchet, current evidence-selected
 `src/app/contracts/portfolio_workspace.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
+The portfolio workspace section contract extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 316/49 refactor ratchet,
+current evidence-selected `src/app/services/foundation_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1195,20 +1199,27 @@ into `src/app/services/dpm_pm_operating_quality_client_protocols.py` while prese
 refactor ratchet is now 319/49, with `src/app/contracts/portfolio_workspace.py` as the
 deterministic evidence-selected largest source file.
 
+Current portfolio workspace section contract extraction moves profile, rebalance, reporting, and
+operational-readiness DTOs into
+`src/app/contracts/portfolio_workspace_sections.py` while preserving the public
+`portfolio_workspace` facade and OpenAPI schema names. The executable refactor ratchet is now
+316/49, with `src/app/services/foundation_service.py` as the deterministic evidence-selected
+largest source file.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 319 | `src/app/contracts/portfolio_workspace.py` |
+| 1 | 316 | `src/app/services/foundation_service.py` |
 | 2 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 3 | 316 | `src/app/services/foundation_service.py` |
-| 4 | 315 | `src/app/services/dpm_proof_pack_service.py` |
+| 3 | 315 | `src/app/services/dpm_proof_pack_service.py` |
+| 4 | 314 | `src/app/contracts/proposals.py` |
 | 5 | 314 | `src/app/services/portfolio_service.py` |
-| 6 | 314 | `src/app/contracts/proposals.py` |
-| 7 | 313 | `src/app/services/upstream_envelope.py` |
+| 6 | 313 | `src/app/services/upstream_envelope.py` |
+| 7 | 312 | `src/app/clients/http_resilience.py` |
 | 8 | 312 | `src/app/contracts/risk_workspace.py` |
-| 9 | 312 | `src/app/clients/http_resilience.py` |
-| 10 | 309 | `src/app/contracts/foundation.py` |
+| 9 | 309 | `src/app/contracts/foundation.py` |
+| 10 | 308 | `src/app/services/portfolio_transaction_ledger.py` |
 
 ## Largest Functions
 

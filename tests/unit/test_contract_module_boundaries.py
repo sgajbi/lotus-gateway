@@ -467,6 +467,22 @@ def test_portfolio_workspace_control_contracts_live_outside_workspace_facade() -
     assert portfolio_workspace_facade_classes.isdisjoint(expected_control_contracts)
 
 
+def test_portfolio_workspace_section_contracts_live_outside_workspace_facade() -> None:
+    portfolio_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace.py")
+    section_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace_sections.py")
+
+    expected_section_contracts = {
+        "PortfolioOperationalReadiness",
+        "PortfolioProfile",
+        "PortfolioRebalanceSummary",
+        "PortfolioRebalanceSupportabilitySummary",
+        "PortfolioReportingReadiness",
+    }
+
+    assert expected_section_contracts <= section_contract_classes
+    assert portfolio_workspace_facade_classes.isdisjoint(expected_section_contracts)
+
+
 def test_portfolio_position_book_contracts_live_outside_holdings_facade() -> None:
     portfolio_holdings_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_holdings.py")
     position_book_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_position_book.py")
