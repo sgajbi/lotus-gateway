@@ -16,6 +16,12 @@ from app.contracts.foundation import (
 )
 from app.contracts.foundation_catalog import FoundationPortfolioCatalogResponse
 from app.services.foundation_catalog_payloads import parse_foundation_catalog_items
+from app.services.foundation_client_protocols import (
+    FoundationCoreClient,
+    FoundationManageClient,
+    FoundationPerformanceClient,
+    FoundationReportingClient,
+)
 from app.services.foundation_core_snapshot import FoundationCoreSnapshotMapper
 from app.services.foundation_workspace_optional import (
     FoundationWorkspaceOptionalResults,
@@ -27,12 +33,6 @@ from app.services.foundation_workspace_optional import (
     optional_str,
 )
 from app.services.upstream_envelope import safe_upstream_detail
-from app.services.workspace_client_protocols import (
-    FoundationCoreClient,
-    FoundationManageClient,
-    FoundationPerformanceClient,
-    FoundationReportingClient,
-)
 
 UpstreamResult = tuple[int, dict[str, Any]]
 
