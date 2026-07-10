@@ -12,8 +12,8 @@
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  360 script-counted lines after splitting performance attribution trend contracts into
-  `performance_attribution_trend.py`, with `src/app/clients/reporting_client.py` now the
+  359 script-counted lines after splitting reporting batch client methods into
+  `reporting_batch_client.py`, with `src/app/services/performance_workspace_benchmarks.py` now the
   source-file ceiling blocker, and the repository longest-function baseline remains held at the
   enforced 49-line AST span
 
