@@ -207,6 +207,10 @@ The current Workbench rebalance supportability extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 348/49 refactor ratchet,
 current `src/app/router_groups/dpm.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
+The current DPM router-group split keeps `scripts/check_agent_quality_evidence.py` aligned with the
+executable 347/49 refactor ratchet, current
+`src/app/contracts/risk_workspace_concentration.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1093,16 +1097,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 348 | `src/app/router_groups/dpm.py` |
-| 2 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
-| 3 | 347 | `src/app/services/portfolio_holdings_service.py` |
-| 4 | 346 | `src/app/services/performance_calculation_evidence.py` |
-| 5 | 345 | `src/app/services/advisor_brief_service.py` |
-| 6 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
-| 7 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
-| 8 | 342 | `src/app/services/risk_workspace_rolling.py` |
-| 9 | 338 | `src/app/observability/analytics_ui.py` |
-| 10 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 1 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
+| 2 | 347 | `src/app/services/portfolio_holdings_service.py` |
+| 3 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 4 | 345 | `src/app/services/advisor_brief_service.py` |
+| 5 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
+| 6 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
+| 7 | 342 | `src/app/services/risk_workspace_rolling.py` |
+| 8 | 338 | `src/app/observability/analytics_ui.py` |
+| 9 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 10 | 335 | `src/app/clients/http_resilience.py` |
 
 ## Largest Functions
 

@@ -4,11 +4,17 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI
 
 from app.router_groups.advisory import PROPOSAL_ROUTERS
-from app.router_groups.dpm import DPM_COMMAND_CENTER_ROUTERS, DPM_WAVE_ROUTERS
+from app.router_groups.dpm import (
+    DPM_CAMPAIGN_ROUTERS,
+    DPM_COMMAND_CENTER_ROUTERS,
+    DPM_PROOF_AND_CONSTRUCTION_ROUTERS,
+    DPM_WAVE_ROUTERS,
+)
 from app.router_registry import ROUTER_GROUPS, register_routers
 
 _MAIN_MODULE = Path(__file__).parents[2] / "src" / "app" / "main.py"
 _ROUTER_REGISTRY_MODULE = Path(__file__).parents[2] / "src" / "app" / "router_registry.py"
+_DPM_ROUTER_GROUP_MODULE = Path(__file__).parents[2] / "src" / "app" / "router_groups" / "dpm.py"
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -66,6 +72,23 @@ def test_dpm_router_groups_keep_command_center_and_wave_routes_together() -> Non
     assert "/api/v1/dpm/command-center/mandates/{mandate_id}/health" in command_center_routes
     assert "/api/v1/dpm/command-center/waves" in wave_routes
     assert "/api/v1/dpm/command-center/waves/{wave_id}/supportability" in wave_routes
+
+
+def test_dpm_router_group_facade_keeps_all_route_families_exported() -> None:
+    assert DPM_COMMAND_CENTER_ROUTERS
+    assert DPM_CAMPAIGN_ROUTERS
+    assert DPM_PROOF_AND_CONSTRUCTION_ROUTERS
+    assert DPM_WAVE_ROUTERS
+
+
+def test_dpm_router_group_facade_delegates_concrete_router_imports() -> None:
+    dpm_router_imports = [
+        module
+        for module in _imported_modules(_DPM_ROUTER_GROUP_MODULE)
+        if module.startswith("app.routers.dpm_")
+    ]
+
+    assert dpm_router_imports == []
 
 
 def test_router_registry_registers_concrete_routes_for_middleware_introspection() -> None:
