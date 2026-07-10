@@ -135,6 +135,10 @@ The current portfolio workflow definitions extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 379/49 refactor ratchet,
 current `src/app/contracts/risk_workspace_examples.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current risk drawdown response-example extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 378/49 refactor ratchet,
+current `src/app/services/upstream_envelope.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1021,14 +1025,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 381 | `src/app/services/portfolio_workflow.py` |
-| 2 | 379 | `src/app/contracts/risk_workspace_examples.py` |
-| 3 | 378 | `src/app/services/upstream_envelope.py` |
-| 4 | 376 | `src/app/contracts/workbench_sandbox.py` |
-| 5 | 369 | `src/app/contracts/risk_workspace_drawdown.py` |
-| 6 | 366 | `src/app/services/advisor_brief_source.py` |
-| 9 | 376 | `src/app/contracts/workbench_sandbox.py` |
-| 10 | 375 | `src/app/observability/analytics_ui.py` |
+| 1 | 378 | `src/app/services/upstream_envelope.py` |
+| 2 | 376 | `src/app/contracts/workbench_sandbox.py` |
+| 3 | 369 | `src/app/contracts/risk_workspace_drawdown.py` |
+| 4 | 366 | `src/app/services/advisor_brief_source.py` |
+| 5 | 363 | `src/app/services/dpm_command_center_service.py` |
+| 6 | 363 | `src/app/clients/http_resilience.py` |
+| 7 | 361 | `src/app/contracts/performance_attribution.py` |
+| 8 | 360 | `src/app/clients/reporting_client.py` |
+| 9 | 359 | `src/app/services/performance_workspace_benchmarks.py` |
+| 10 | 357 | `src/app/services/foundation_core_snapshot.py` |
 
 ## Largest Functions
 
