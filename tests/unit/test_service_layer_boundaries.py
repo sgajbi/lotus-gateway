@@ -1042,6 +1042,21 @@ def test_performance_workspace_service_delegates_summary_view_orchestration() ->
     assert "_fetch_workspace_summary_view_result" not in service_methods
 
 
+def test_performance_workspace_service_delegates_response_orchestration() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "performance_workspace_service.py")
+    response_service_methods = _function_names(
+        _SERVICE_ROOT / "performance_workspace_response_service.py"
+    )
+    response_orchestration_methods = {
+        "_build_workspace_response_parts",
+        "_build_workspace_response_components",
+        "_build_workspace_response_evidence_view",
+    }
+
+    assert response_orchestration_methods <= response_service_methods
+    assert not response_orchestration_methods & service_methods
+
+
 def test_performance_workspace_service_delegates_evidence_orchestration() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
