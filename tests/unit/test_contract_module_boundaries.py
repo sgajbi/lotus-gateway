@@ -497,6 +497,21 @@ def test_domain_product_trust_contracts_live_outside_domain_products_facade() ->
     assert domain_products_facade_classes.isdisjoint(expected_trust_contracts)
 
 
+def test_domain_product_graph_contracts_live_outside_domain_products_facade() -> None:
+    domain_products_facade_classes = _class_names(_CONTRACT_ROOT / "domain_products.py")
+    graph_contract_classes = _class_names(_CONTRACT_ROOT / "domain_product_graph.py")
+
+    expected_graph_contracts = {
+        "DomainProductGraphData",
+        "DomainProductGraphEdge",
+        "DomainProductGraphNode",
+        "DomainProductGraphResponse",
+    }
+
+    assert expected_graph_contracts <= graph_contract_classes
+    assert domain_products_facade_classes.isdisjoint(expected_graph_contracts)
+
+
 def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
     reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
     materialization_contract_classes = _class_names(

@@ -37,7 +37,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/domain_products.py` at 331 lines as the
+1. `src/app/clients/dpm_client.py` at 330 lines as the
    evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
@@ -63,9 +63,13 @@ Foundation core snapshot payload validation and section extraction now live in
 `src/app/services/foundation_core_snapshot.py` below the current 331-line ceiling while preserving
 the public Foundation mapper behavior.
 
+Domain-product graph node, edge, data, and response contracts now live in
+`src/app/contracts/domain_product_graph.py`, reducing `src/app/contracts/domain_products.py` below
+the current 330-line ceiling while preserving the public `domain_products` facade.
+
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 331/49 ratchet, the current evidence-selected
-`src/app/contracts/domain_products.py` hotspot, and durable scorecard/context
+executable 330/49 ratchet, the current evidence-selected
+`src/app/clients/dpm_client.py` hotspot, and durable scorecard/context
 guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
