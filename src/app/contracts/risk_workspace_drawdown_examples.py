@@ -118,3 +118,20 @@ RISK_DRAWDOWN_RESPONSE_EXAMPLE: dict[str, Any] = {
         "cache_status": "miss",
     },
 }
+
+RISK_DRAWDOWN_PAYLOAD_SCHEMA_EXAMPLE: dict[str, Any] = {
+    **RISK_DRAWDOWN_RESPONSE_EXAMPLE["payload"],
+    "periods": [
+        {
+            **RISK_DRAWDOWN_RESPONSE_EXAMPLE["payload"]["periods"][0],
+            "underwater_series": [
+                {"date": "2026-01-20", "drawdown": -0.0521},
+                {"date": "2026-01-21", "drawdown": -0.061},
+            ],
+        }
+    ],
+    "analysis_context": {
+        **RISK_DRAWDOWN_RESPONSE_EXAMPLE["payload"]["analysis_context"],
+        "include_underwater_series": True,
+    },
+}

@@ -237,13 +237,16 @@ def test_risk_rolling_payload_example_lives_outside_contract_models() -> None:
 
 def test_risk_drawdown_response_example_lives_outside_aggregate_examples() -> None:
     aggregate_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_examples.py")
+    drawdown_contract_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_drawdown.py")
     drawdown_example_assignments = _assigned_names(
         _CONTRACT_ROOT / "risk_workspace_drawdown_examples.py"
     )
 
     assert "RISK_DRAWDOWN_RESPONSE_EXAMPLE" in drawdown_example_assignments
+    assert "RISK_DRAWDOWN_PAYLOAD_SCHEMA_EXAMPLE" in drawdown_example_assignments
     assert "_RISK_DRAWDOWN_RESPONSE_EXAMPLE" in aggregate_assignments
     assert "RISK_DRAWDOWN_RESPONSE_EXAMPLE" not in aggregate_assignments
+    assert "RISK_DRAWDOWN_PAYLOAD_SCHEMA_EXAMPLE" not in drawdown_contract_assignments
 
 
 def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:

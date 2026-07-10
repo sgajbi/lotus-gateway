@@ -147,6 +147,10 @@ The current Workbench analytics contract extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 369/49 refactor ratchet,
 current `src/app/contracts/risk_workspace_drawdown.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current risk drawdown payload schema example extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 366/49 refactor ratchet,
+current `src/app/services/advisor_brief_source.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1033,16 +1037,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 369 | `src/app/contracts/risk_workspace_drawdown.py` |
-| 2 | 366 | `src/app/services/advisor_brief_source.py` |
-| 3 | 363 | `src/app/services/dpm_command_center_service.py` |
-| 4 | 363 | `src/app/clients/http_resilience.py` |
-| 5 | 361 | `src/app/contracts/performance_attribution.py` |
-| 6 | 360 | `src/app/clients/reporting_client.py` |
-| 7 | 359 | `src/app/services/performance_workspace_benchmarks.py` |
-| 8 | 357 | `src/app/services/foundation_core_snapshot.py` |
-| 9 | 357 | `src/app/contracts/dpm_outcome_review.py` |
-| 10 | 356 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 1 | 366 | `src/app/services/advisor_brief_source.py` |
+| 2 | 363 | `src/app/services/dpm_command_center_service.py` |
+| 3 | 363 | `src/app/clients/http_resilience.py` |
+| 4 | 361 | `src/app/contracts/performance_attribution.py` |
+| 5 | 360 | `src/app/clients/reporting_client.py` |
+| 6 | 359 | `src/app/services/performance_workspace_benchmarks.py` |
+| 7 | 357 | `src/app/services/foundation_core_snapshot.py` |
+| 8 | 357 | `src/app/contracts/dpm_outcome_review.py` |
+| 9 | 356 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 10 | 355 | `src/app/contracts/reporting.py` |
 
 ## Largest Functions
 
