@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p output/quality-baseline
           python scripts/check_refactor_quality_thresholds.py \
-            --max-source-file-lines 344 \
+            --max-source-file-lines 342 \
             --max-function-lines 49 \
             2>&1 | tee output/quality-baseline/refactor-thresholds.txt
 

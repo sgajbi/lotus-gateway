@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 
 from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
@@ -15,13 +15,17 @@ from app.services.performance_workspace_capabilities import (
 from app.services.performance_workspace_evidence_state import (
     EvidenceViewFetchState,
     EvidenceViewRequestContext,
-    GatheredResult,
+)
+from app.services.performance_workspace_evidence_supportability import (
+    build_source_supportability as build_source_supportability,
+)
+from app.services.performance_workspace_evidence_supportability import (
+    resolve_evidence_reason as resolve_evidence_reason,
+)
+from app.services.performance_workspace_evidence_supportability import (
+    resolve_evidence_state as resolve_evidence_state,
 )
 from app.services.performance_workspace_failures import build_performance_failure
-from app.services.source_supportability import (
-    extract_calculation_supportability,
-    source_supportability_reason,
-)
 
 
 def resolve_evidence_view_response(
@@ -276,69 +280,3 @@ def build_evidence_fallbacks(
     calculations: Sequence[PerformanceCalculationEvidenceView],
 ) -> list[str]:
     return [item.reason for item in calculations if item.reason is not None and item.reason.strip()]
-
-
-def build_source_supportability(
-    source_results: Sequence[GatheredResult | None],
-) -> list[PerformanceSourceSupportabilityView]:
-    items: list[PerformanceSourceSupportabilityView] = []
-    seen: set[tuple[str, str, str | None]] = set()
-    for result in source_results:
-        if result is None or isinstance(result, BaseException):
-            continue
-        status_code, payload = result
-        if status_code >= 400 or not isinstance(payload, Mapping):
-            continue
-        source_supportability = extract_calculation_supportability(payload)
-        if source_supportability is None:
-            continue
-        key = (
-            source_supportability.state,
-            source_supportability.reason or "",
-            source_supportability.freshness_bucket,
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        items.append(
-            PerformanceSourceSupportabilityView(
-                key="source_calculation",
-                state=source_supportability.performance_evidence_state,
-                reason=source_supportability_reason(
-                    source_supportability,
-                    default_ready_reason=(
-                        "Source calculation supportability was confirmed upstream."
-                    ),
-                ),
-                freshness_bucket=source_supportability.freshness_bucket,
-                source_service=source_supportability.source_service or "lotus-performance",
-            )
-        )
-    return items
-
-
-def resolve_evidence_state(
-    *,
-    evidence_state: str,
-    source_supportability: Sequence[PerformanceSourceSupportabilityView],
-) -> str:
-    states = {item.state for item in source_supportability}
-    if states & {"unavailable"}:
-        return "unavailable"
-    if states - {"supported"}:
-        return "partial"
-    return evidence_state
-
-
-def resolve_evidence_reason(
-    *,
-    evidence_state: str,
-    supported_reason: str,
-    source_supportability: Sequence[PerformanceSourceSupportabilityView],
-) -> str:
-    if evidence_state == "supported":
-        return supported_reason
-    for item in source_supportability:
-        if item.state != "supported" and item.reason:
-            return item.reason
-    return "Source calculation supportability is partial or unavailable upstream."
