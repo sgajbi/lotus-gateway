@@ -344,6 +344,22 @@ def test_portfolio_services_import_focused_protocol_family() -> None:
         assert "app.services.workspace_client_protocols" not in imports
 
 
+def test_portfolio_workflow_delegates_action_definitions() -> None:
+    workflow_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow.py")
+    definition_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow_definitions.py")
+    delegated_methods = {
+        "workflow_action_spec_href",
+        "workflow_order_rank",
+        "workflow_task_label",
+        "workflow_cta_label",
+        "workflow_target_label",
+        "workflow_impact_label",
+    }
+
+    assert delegated_methods <= definition_methods
+    assert workflow_methods.isdisjoint(delegated_methods)
+
+
 def test_dpm_pm_operating_quality_summary_lives_in_focused_service_mixin() -> None:
     service_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_service.py")
     summary_service_methods = _function_names(
