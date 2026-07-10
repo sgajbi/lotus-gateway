@@ -203,6 +203,26 @@ def test_dpm_command_center_service_delegates_response_assembly() -> None:
     assert service_methods.isdisjoint(expected_response_methods)
 
 
+def test_dpm_command_center_service_delegates_core_route_family() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_command_center_service.py")
+    core_methods = _function_names(_SERVICE_ROOT / "dpm_command_center_core_service.py")
+    expected_core_methods = {
+        "get_command_center",
+        "run_monitoring_once",
+        "list_monitoring_runs",
+        "get_monitoring_run",
+        "list_monitoring_exceptions",
+        "resolve_monitoring_exception",
+        "get_mandate_by_portfolio",
+        "get_mandate",
+        "get_mandate_health",
+        "get_mandate_diff",
+    }
+
+    assert expected_core_methods <= core_methods
+    assert service_methods.isdisjoint(expected_core_methods)
+
+
 def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
     advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
     advisor_brief_protocols_path = _SERVICE_ROOT / "advisor_brief_client_protocols.py"
