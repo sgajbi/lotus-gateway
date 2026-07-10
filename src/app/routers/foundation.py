@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
 
-from app.contracts.foundation import FoundationPortfolioCatalogResponse
+from app.contracts.foundation_catalog import FoundationPortfolioCatalogResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.gateway_service_provider import foundation_service
 

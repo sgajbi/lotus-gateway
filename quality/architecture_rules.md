@@ -37,13 +37,12 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/foundation.py` at 354 lines,
-2. `src/app/services/performance_workspace_service.py` at 354 lines.
+1. `src/app/services/performance_workspace_service.py` at 354 lines.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 354/49 ratchet, the current `src/app/contracts/foundation.py` hotspot, and durable
+executable 354/49 ratchet, the current `src/app/services/performance_workspace_service.py` hotspot, and durable
 scorecard/context guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after

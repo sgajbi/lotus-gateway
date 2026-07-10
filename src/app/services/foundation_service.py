@@ -8,13 +8,13 @@ from fastapi import HTTPException, status
 from app.config import settings
 from app.contracts.foundation import (
     FoundationAllocationBucket,
-    FoundationPortfolioCatalogResponse,
     FoundationPortfolioIdentity,
     FoundationPortfolioSummary,
     FoundationTopPosition,
     FoundationWorkspaceReadiness,
     FoundationWorkspaceResponse,
 )
+from app.contracts.foundation_catalog import FoundationPortfolioCatalogResponse
 from app.services.foundation_catalog_payloads import parse_foundation_catalog_items
 from app.services.foundation_core_snapshot import FoundationCoreSnapshotMapper
 from app.services.foundation_workspace_optional import (
