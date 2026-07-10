@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from collections.abc import Mapping
 from typing import Any
 
+from app.observability.analytics_ui_audit import (
+    emit_gateway_analytics_read_audit_log as emit_gateway_analytics_read_audit_log,
+)
+from app.observability.analytics_ui_audit import (
+    emit_gateway_protected_diagnostics_audit_log as emit_gateway_protected_diagnostics_audit_log,
+)
 from app.observability.analytics_ui_fields import (
     ANALYTICS_UI_ALLOWED_LABELS,
     ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
@@ -97,44 +102,6 @@ def emit_gateway_analytics_fanout_log(
     logger.info(event, extra={"extra_fields": fields})
 
 
-def emit_gateway_analytics_read_audit_log(
-    *,
-    logger: logging.Logger,
-    operation: str,
-    status_code: int,
-) -> None:
-    fields = _gateway_analytics_read_audit_fields(
-        operation=operation,
-        status_code=status_code,
-    )
-    if not fields:
-        return
-    logger.info(str(fields["event"]), extra={"extra_fields": fields})
-
-
-def emit_gateway_protected_diagnostics_audit_log(
-    *,
-    logger: logging.Logger,
-    status_code: int,
-    reason: str,
-) -> None:
-    fields = {
-        "event": "gateway.analytics.audit.protected_diagnostics_lookup",
-        "route": "workbench-analytics",
-        "panel": "protected-diagnostics",
-        "operation": "analytics-ui.protected-diagnostics.lookup",
-        "state": "ready" if 0 < status_code < 400 else "permission_blocked",
-        "reason": reason,
-        "status_class": _status_class(status_code),
-        "region": _safe_dimension(os.getenv("LOTUS_REGION"), default="unknown"),
-        "environment": _safe_dimension(os.getenv("LOTUS_ENVIRONMENT"), default="local"),
-    }
-    logger.info(
-        "gateway.analytics.audit.protected_diagnostics_lookup",
-        extra={"extra_fields": validate_gateway_analytics_ui_audit_log_fields(fields)},
-    )
-
-
 def _gateway_analytics_fanout_fields(
     *,
     started_at: float,
@@ -165,36 +132,6 @@ def _gateway_analytics_fanout_fields(
         "partial_failure_count": _list_count(payload.get("partial_failures")),
     }
     return validate_gateway_analytics_ui_log_fields(fields)
-
-
-def _gateway_analytics_read_audit_fields(
-    *,
-    operation: str,
-    status_code: int,
-) -> dict[str, object] | None:
-    if status_code in {401, 403}:
-        event = "gateway.analytics.audit.analytics_read_denied"
-        state = "permission_blocked"
-        reason = "upstream_authorization_denied"
-    elif 0 < status_code < 400:
-        event = "gateway.analytics.audit.analytics_read_allowed"
-        state = "ready"
-        reason = "upstream_read_succeeded"
-    else:
-        return None
-
-    fields = {
-        "event": event,
-        "route": "workbench-analytics",
-        "panel": _panel_for_operation(operation),
-        "operation": operation,
-        "state": state,
-        "reason": reason,
-        "status_class": _status_class(status_code),
-        "region": _safe_dimension(os.getenv("LOTUS_REGION"), default="unknown"),
-        "environment": _safe_dimension(os.getenv("LOTUS_ENVIRONMENT"), default="local"),
-    }
-    return validate_gateway_analytics_ui_audit_log_fields(fields)
 
 
 def _resolve_gateway_analytics_state(*, status_code: int, payload: Mapping[str, Any]) -> str:
@@ -307,32 +244,3 @@ def _error_category(status_code: int) -> str | None:
 
 def _list_count(value: object) -> int:
     return len(value) if isinstance(value, list) else 0
-
-
-def _panel_for_operation(operation: str) -> str:
-    if operation.startswith("advisor_brief."):
-        return "advisor-brief"
-    if operation.startswith("analytics.risk."):
-        return "risk-summary"
-    if "workspace-summary" in operation:
-        return "performance-summary"
-    if operation.startswith("performance."):
-        return "performance-details"
-    return "unknown"
-
-
-def _safe_dimension(value: str | None, *, default: str) -> str:
-    if not value:
-        return default
-    previous_was_separator = False
-    characters: list[str] = []
-    for character in value.strip().lower():
-        if character.isalnum() or character in {"_", "."}:
-            characters.append(character)
-            previous_was_separator = False
-            continue
-        if character in {"-", " ", "/"} and not previous_was_separator:
-            characters.append("-")
-            previous_was_separator = True
-    cleaned = "".join(characters).strip("-")
-    return cleaned[:64] or default

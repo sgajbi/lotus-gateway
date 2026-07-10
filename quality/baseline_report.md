@@ -227,9 +227,9 @@ The advisor-brief review-action extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 344/49 refactor ratchet,
 then-current `src/app/services/advisor_brief_workflow_pack.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
-The risk rolling period-mapping extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 338/49 refactor ratchet,
-current `src/app/observability/analytics_ui.py` hotspot evidence, and durable
+The analytics UI audit extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 336/49 refactor ratchet,
+current `src/app/contracts/risk_workspace_attribution.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -1117,16 +1117,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 338 | `src/app/observability/analytics_ui.py` |
-| 2 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
-| 3 | 335 | `src/app/services/performance_workspace_capabilities.py` |
-| 4 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
-| 5 | 335 | `src/app/clients/http_resilience.py` |
-| 6 | 334 | `src/app/services/foundation_core_snapshot.py` |
-| 7 | 331 | `src/app/contracts/domain_products.py` |
-| 8 | 330 | `src/app/clients/dpm_client.py` |
-| 9 | 329 | `src/app/services/workspace_client_protocols.py` |
-| 10 | 329 | `src/app/clients/advise_proposal_client.py` |
+| 1 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 2 | 335 | `src/app/services/performance_workspace_capabilities.py` |
+| 3 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
+| 4 | 335 | `src/app/clients/http_resilience.py` |
+| 5 | 334 | `src/app/services/foundation_core_snapshot.py` |
+| 6 | 331 | `src/app/contracts/domain_products.py` |
+| 7 | 330 | `src/app/clients/dpm_client.py` |
+| 8 | 329 | `src/app/services/workspace_client_protocols.py` |
+| 9 | 329 | `src/app/clients/advise_proposal_client.py` |
+| 10 | 328 | `src/app/services/risk_workspace_concentration.py` |
 
 ## Largest Functions
 

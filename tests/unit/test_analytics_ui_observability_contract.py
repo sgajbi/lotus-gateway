@@ -1,6 +1,11 @@
 import pytest
 
-from app.observability import analytics_ui, analytics_ui_fields, analytics_ui_metrics
+from app.observability import (
+    analytics_ui,
+    analytics_ui_audit,
+    analytics_ui_fields,
+    analytics_ui_metrics,
+)
 from app.observability.analytics_ui import (
     ANALYTICS_UI_ALLOWED_LABELS,
     ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
@@ -59,6 +64,17 @@ def test_analytics_ui_reexports_gateway_metric_contracts() -> None:
     assert (
         analytics_ui.record_gateway_analytics_fanout_metrics
         is analytics_ui_metrics.record_gateway_analytics_fanout_metrics
+    )
+
+
+def test_analytics_ui_reexports_gateway_audit_emitters() -> None:
+    assert (
+        analytics_ui.emit_gateway_analytics_read_audit_log
+        is analytics_ui_audit.emit_gateway_analytics_read_audit_log
+    )
+    assert (
+        analytics_ui.emit_gateway_protected_diagnostics_audit_log
+        is analytics_ui_audit.emit_gateway_protected_diagnostics_audit_log
     )
 
 
