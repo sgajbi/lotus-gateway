@@ -718,7 +718,9 @@ def test_proposal_service_delegates_delivery_posture_routes() -> None:
             "get_delivery_events",
             "get_delivery_summary",
             "get_execution_status",
+            "get_proposal_narrative",
             "record_execution_update",
+            "regenerate_proposal_narrative",
             "review_proposal_narrative",
         }
     )
