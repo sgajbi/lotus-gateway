@@ -40,6 +40,11 @@ def _function_names(path: Path) -> set[str]:
     }
 
 
+def _class_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+
+
 def test_only_service_factories_import_concrete_clients() -> None:
     offenders = {
         path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
@@ -1120,6 +1125,22 @@ def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
 
     assert expected_descriptor_methods <= descriptor_methods
     assert shell_methods.isdisjoint(expected_descriptor_methods)
+
+
+def test_platform_capabilities_workspace_descriptors_delegate_static_specs() -> None:
+    descriptors_imports = _imported_modules(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    descriptor_classes = _class_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    spec_classes = _class_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptor_specs.py"
+    )
+
+    assert "app.services.platform_capabilities_workspace_descriptor_specs" in descriptors_imports
+    assert "WorkspaceDescriptorSpec" in spec_classes
+    assert "WorkspaceDescriptorSpec" not in descriptor_classes
 
 
 def test_platform_capabilities_service_delegates_source_result_parsing() -> None:
