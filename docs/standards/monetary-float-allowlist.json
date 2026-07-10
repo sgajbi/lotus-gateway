@@ -52,7 +52,7 @@
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/performance_attribution.py:213:active_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_attribution_trend.py:52:active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-10"

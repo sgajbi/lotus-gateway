@@ -6,11 +6,19 @@ from app.contracts.performance_attribution import (
     AttributionRowView,
     AttributionSummaryView,
     AttributionSupportabilityEvidenceView,
-    PerformanceAttributionTrendResponse,
-    PerformanceAttributionTrendRow,
+)
+from app.contracts.performance_attribution import (
+    PerformanceAttributionTrendResponse as AttributionFacadeTrendResponse,
+)
+from app.contracts.performance_attribution import (
+    PerformanceAttributionTrendRow as AttributionFacadeTrendRow,
 )
 from app.contracts.performance_attribution_supportability import (
     AttributionReasonView as FocusedAttributionReasonView,
+)
+from app.contracts.performance_attribution_trend import (
+    PerformanceAttributionTrendResponse,
+    PerformanceAttributionTrendRow,
 )
 
 
@@ -32,6 +40,8 @@ def test_performance_attribution_contracts_remain_compatibility_reexports() -> N
         is PerformanceAttributionTrendResponse
     )
     assert performance_workspace.PerformanceAttributionTrendRow is PerformanceAttributionTrendRow
+    assert AttributionFacadeTrendResponse is PerformanceAttributionTrendResponse
+    assert AttributionFacadeTrendRow is PerformanceAttributionTrendRow
 
 
 def test_performance_attribution_supportability_contracts_live_in_focused_module() -> None:

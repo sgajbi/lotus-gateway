@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 361/49 ratchet, the current largest hotspot
-   `src/app/contracts/performance_attribution.py`, and durable scorecard/context guidance in
+   keeps the executable 360/49 ratchet, the current largest hotspot
+   `src/app/clients/reporting_client.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -89,12 +89,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 361
+2. Current enforced source-file threshold: no Python source file under `src/app` above 360
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=361` and `max_function_lines=49`.
+   `max_source_file_lines=360` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -267,7 +267,7 @@ Most recent local PR-grade evidence:
    `src/app/services/dpm_command_center_service.py` remains at 363 lines. Focused validation
    includes HTTP resilience behavior, retry-policy boundary, refactor-threshold, and agent quality
    evidence checks.
-26. Current DPM command center core extraction moves command-center and mandate pass-through route
+26. Previous DPM command center core extraction moves command-center and mandate pass-through route
    methods into `src/app/services/dpm_command_center_core_service.py` while preserving the public
    `DpmCommandCenterService` surface. It reduces
    `src/app/services/dpm_command_center_service.py` below the previous 363-line ceiling and
@@ -275,6 +275,14 @@ Most recent local PR-grade evidence:
    `src/app/contracts/performance_attribution.py` is now the largest source file; threshold trials
    prove 361 passes while 360 fails on that file. Focused validation includes DPM command center
    behavior, service-boundary, refactor-threshold, and agent quality evidence checks.
+27. Current performance attribution trend contract extraction moves attribution trend row and
+   response contracts into `src/app/contracts/performance_attribution_trend.py` while preserving
+   `app.contracts.performance_attribution` compatibility imports. It reduces
+   `src/app/contracts/performance_attribution.py` below the previous 361-line ceiling and ratchets
+   the blocking threshold from 361/49 to 360/49 because `src/app/clients/reporting_client.py` is
+   now the largest source file; threshold trials prove 360 passes while 359 fails on that file.
+   Focused validation includes performance attribution contracts, Workbench OpenAPI contract,
+   monetary-float guard, contract-boundary, refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving

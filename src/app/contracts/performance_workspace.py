@@ -5,6 +5,8 @@ from app.contracts.performance_attribution import (
     AttributionRowView,
     AttributionSummaryView,
     AttributionSupportabilityEvidenceView,
+)
+from app.contracts.performance_attribution_trend import (
     PerformanceAttributionTrendResponse,
     PerformanceAttributionTrendRow,
 )

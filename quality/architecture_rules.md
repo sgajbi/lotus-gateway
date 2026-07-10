@@ -37,16 +37,20 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/performance_attribution.py` at 361 lines,
-2. `src/app/clients/reporting_client.py` at 360 lines,
-3. `src/app/services/performance_workspace_benchmarks.py` at 359 lines,
-4. `src/app/contracts/dpm_outcome_review.py` at 357 lines.
+1. `src/app/clients/reporting_client.py` at 360 lines,
+2. `src/app/services/performance_workspace_benchmarks.py` at 359 lines,
+3. `src/app/contracts/dpm_outcome_review.py` at 357 lines,
+4. `src/app/services/foundation_core_snapshot.py` at 357 lines.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 361/49 ratchet, the current `src/app/contracts/performance_attribution.py` hotspot, and
-durable scorecard/context guidance synchronized.
+executable 360/49 ratchet, the current `src/app/clients/reporting_client.py` hotspot, and durable
+scorecard/context guidance synchronized.
+
+`src/app/contracts/performance_attribution.py` is reduced below the previous 361-line ceiling after
+attribution trend row and response contracts moved into
+`src/app/contracts/performance_attribution_trend.py`.
 
 `src/app/services/dpm_command_center_service.py` is reduced below the previous 363-line ceiling
 after core command-center and mandate pass-through methods moved into
