@@ -1298,6 +1298,18 @@ def test_dpm_proof_pack_service_delegates_supportability_mapping() -> None:
     assert service_methods.isdisjoint(expected_supportability_methods)
 
 
+def test_foundation_core_snapshot_delegates_payload_section_parsing() -> None:
+    mapper_methods = _function_names(_SERVICE_ROOT / "foundation_core_snapshot.py")
+    section_methods = _function_names(_SERVICE_ROOT / "foundation_core_snapshot_sections.py")
+    delegated_methods = {
+        "read_core_snapshot_sections",
+        "validate_core_snapshot_payloads",
+    }
+
+    assert delegated_methods <= section_methods
+    assert mapper_methods.isdisjoint(delegated_methods)
+
+
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
     descriptor_methods = _function_names(

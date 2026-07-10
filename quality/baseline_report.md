@@ -227,9 +227,9 @@ The advisor-brief review-action extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 344/49 refactor ratchet,
 then-current `src/app/services/advisor_brief_workflow_pack.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
-The performance workspace detail capability extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 334/49 refactor ratchet,
-current evidence-selected `src/app/services/foundation_core_snapshot.py` hotspot
+The foundation core snapshot section extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 331/49 refactor ratchet,
+current evidence-selected `src/app/contracts/domain_products.py` hotspot
 evidence, and durable scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -1141,20 +1141,25 @@ the public `performance_workspace_capabilities` import surface. The executable r
 now 334/49, with `src/app/services/foundation_core_snapshot.py` as the deterministic
 evidence-selected largest source file.
 
+Current foundation core snapshot section extraction moves payload validation and section parsing
+into `src/app/services/foundation_core_snapshot_sections.py` while preserving the public
+Foundation mapper behavior. The executable refactor ratchet is now 331/49, with
+`src/app/contracts/domain_products.py` as the deterministic evidence-selected largest source file.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 334 | `src/app/services/foundation_core_snapshot.py` |
-| 2 | 331 | `src/app/contracts/domain_products.py` |
-| 3 | 330 | `src/app/clients/dpm_client.py` |
-| 4 | 329 | `src/app/clients/advise_proposal_client.py` |
-| 5 | 329 | `src/app/services/workspace_client_protocols.py` |
-| 6 | 328 | `src/app/services/risk_workspace_concentration.py` |
-| 7 | 326 | `src/app/contracts/platform_capabilities.py` |
-| 8 | 325 | `src/app/services/platform_capabilities_service.py` |
-| 9 | 324 | `src/app/services/proposal_service.py` |
-| 10 | 321 | `src/app/services/dpm_client_protocols.py` |
+| 1 | 331 | `src/app/contracts/domain_products.py` |
+| 2 | 330 | `src/app/clients/dpm_client.py` |
+| 3 | 329 | `src/app/clients/advise_proposal_client.py` |
+| 4 | 329 | `src/app/services/workspace_client_protocols.py` |
+| 5 | 328 | `src/app/services/risk_workspace_concentration.py` |
+| 6 | 326 | `src/app/contracts/platform_capabilities.py` |
+| 7 | 325 | `src/app/services/platform_capabilities_service.py` |
+| 8 | 324 | `src/app/services/proposal_service.py` |
+| 9 | 321 | `src/app/services/dpm_client_protocols.py` |
+| 10 | 319 | `src/app/contracts/portfolio_workspace.py` |
 
 ## Largest Functions
 
