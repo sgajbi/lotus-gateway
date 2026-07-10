@@ -1,6 +1,6 @@
 import pytest
 
-from app.observability import analytics_ui, analytics_ui_fields
+from app.observability import analytics_ui, analytics_ui_fields, analytics_ui_metrics
 from app.observability.analytics_ui import (
     ANALYTICS_UI_ALLOWED_LABELS,
     ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
@@ -44,6 +44,21 @@ def test_analytics_ui_reexports_bounded_field_contracts() -> None:
     assert (
         analytics_ui.validate_gateway_analytics_ui_audit_log_fields
         is analytics_ui_fields.validate_gateway_analytics_ui_audit_log_fields
+    )
+
+
+def test_analytics_ui_reexports_gateway_metric_contracts() -> None:
+    assert (
+        analytics_ui.GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS
+        is analytics_ui_metrics.GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS
+    )
+    assert (
+        analytics_ui.GATEWAY_ANALYTICS_DEGRADED_TOTAL
+        is analytics_ui_metrics.GATEWAY_ANALYTICS_DEGRADED_TOTAL
+    )
+    assert (
+        analytics_ui.record_gateway_analytics_fanout_metrics
+        is analytics_ui_metrics.record_gateway_analytics_fanout_metrics
     )
 
 
