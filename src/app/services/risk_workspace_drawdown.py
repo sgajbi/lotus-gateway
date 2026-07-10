@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,15 +10,14 @@ from app.contracts.risk_workspace import (
 )
 from app.contracts.risk_workspace_drawdown import (
     WorkbenchRiskDrawdownAnalysisContext,
-    WorkbenchRiskDrawdownEpisode,
     WorkbenchRiskDrawdownPayload,
     WorkbenchRiskDrawdownPeriodResult,
-    WorkbenchRiskDrawdownSummary,
-    WorkbenchRiskRelativeDrawdownContext,
-    WorkbenchRiskRelativeDrawdownSummary,
-    WorkbenchRiskUnderwaterPoint,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.risk_workspace_drawdown_payloads import (
+    iter_drawdown_result_items,
+    map_drawdown_period_result,
+)
 from app.services.risk_workspace_drawdown_supportability import (
     append_source_calculation_supportability,
     build_drawdown_supportability,
@@ -153,8 +151,8 @@ def _map_drawdown_period_results(
         include_underwater_series=include_underwater_series
     )
 
-    for key, value in _iter_drawdown_result_items(results):
-        period = _map_drawdown_period_result(key=key, value=value)
+    for key, value in iter_drawdown_result_items(results):
+        period = map_drawdown_period_result(key=key, value=value)
         supportability = resolve_drawdown_period_supportability(
             benchmark_code=benchmark_code,
             include_underwater_series=include_underwater_series,
@@ -182,14 +180,6 @@ def _map_drawdown_period_results(
     )
 
 
-def _iter_drawdown_result_items(results: Any) -> Iterator[tuple[Any, dict[str, Any]]]:
-    if not isinstance(results, dict):
-        return
-    for key, value in results.items():
-        if isinstance(value, dict):
-            yield key, value
-
-
 def _record_drawdown_period_failure(
     *,
     key: Any,
@@ -205,51 +195,6 @@ def _record_drawdown_period_failure(
         )
     )
     warnings.append("RISK_DRAWDOWN_PERIOD_PARTIAL")
-
-
-def _map_drawdown_period_result(
-    *,
-    key: Any,
-    value: dict[str, Any],
-) -> WorkbenchRiskDrawdownPeriodResult:
-    summary_payload = value.get("summary")
-    episodes_payload = value.get("episodes")
-    relative_payload = value.get("relative_to_benchmark")
-    underwater_payload = value.get("underwater_series")
-    error = value.get("error")
-
-    return WorkbenchRiskDrawdownPeriodResult(
-        key=str(key),
-        label=str(key),
-        start_date=str(value.get("start_date", "")),
-        end_date=str(value.get("end_date", "")),
-        portfolio_observation_count=int(value.get("portfolio_observation_count", 0)),
-        benchmark_observation_count=int(value.get("benchmark_observation_count", 0)),
-        summary=(
-            _map_drawdown_summary(summary_payload) if isinstance(summary_payload, dict) else None
-        ),
-        episodes=(
-            _map_drawdown_episodes(episodes_payload) if isinstance(episodes_payload, list) else []
-        ),
-        relative_to_benchmark=(
-            WorkbenchRiskRelativeDrawdownSummary.model_validate(relative_payload)
-            if isinstance(relative_payload, dict)
-            else None
-        ),
-        relative_to_benchmark_context=(
-            WorkbenchRiskRelativeDrawdownContext.model_validate(
-                value.get("relative_to_benchmark_context")
-            )
-            if isinstance(value.get("relative_to_benchmark_context"), dict)
-            else None
-        ),
-        underwater_series=(
-            _map_underwater_series(underwater_payload)
-            if isinstance(underwater_payload, list)
-            else None
-        ),
-        error=str(error) if isinstance(error, str) and error.strip() else None,
-    )
 
 
 def _resolve_drawdown_state(
@@ -327,26 +272,3 @@ def _build_drawdown_payload(
             else None
         ),
     )
-
-
-def _map_drawdown_summary(summary_payload: dict[str, Any]) -> WorkbenchRiskDrawdownSummary:
-    return WorkbenchRiskDrawdownSummary.model_validate(summary_payload)
-
-
-def _map_drawdown_episodes(episodes_payload: list[Any]) -> list[WorkbenchRiskDrawdownEpisode]:
-    episodes: list[WorkbenchRiskDrawdownEpisode] = []
-    for payload in episodes_payload:
-        if not isinstance(payload, dict):
-            continue
-        episodes.append(WorkbenchRiskDrawdownEpisode.model_validate(payload))
-    episodes.sort(key=lambda episode: episode.depth)
-    return episodes
-
-
-def _map_underwater_series(series_payload: list[Any]) -> list[WorkbenchRiskUnderwaterPoint]:
-    points: list[WorkbenchRiskUnderwaterPoint] = []
-    for payload in series_payload:
-        if not isinstance(payload, dict):
-            continue
-        points.append(WorkbenchRiskUnderwaterPoint.model_validate(payload))
-    return points

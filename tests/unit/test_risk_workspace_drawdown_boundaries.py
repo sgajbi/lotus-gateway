@@ -30,3 +30,19 @@ def test_risk_drawdown_supportability_lives_in_dedicated_module() -> None:
 
     assert extracted_functions <= supportability_functions
     assert not extracted_functions & drawdown_functions
+
+
+def test_risk_drawdown_payload_mapping_lives_in_dedicated_module() -> None:
+    drawdown_functions = _function_names(_SERVICE_ROOT / "risk_workspace_drawdown.py")
+    payload_functions = _function_names(_SERVICE_ROOT / "risk_workspace_drawdown_payloads.py")
+
+    extracted_functions = {
+        "iter_drawdown_result_items",
+        "map_drawdown_episodes",
+        "map_drawdown_period_result",
+        "map_drawdown_summary",
+        "map_underwater_series",
+    }
+
+    assert extracted_functions <= payload_functions
+    assert not extracted_functions & drawdown_functions
