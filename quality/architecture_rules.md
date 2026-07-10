@@ -37,9 +37,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/risk_workspace_rolling.py` at 335 lines as the evidence-selected ceiling
-   blocker.
-2. `src/app/services/performance_workspace_capabilities.py` is tied at 335 lines.
+1. `src/app/services/performance_workspace_capabilities.py` at 335 lines as the
+   evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
@@ -48,14 +47,15 @@ The risk attribution payload example now lives in
 `src/app/contracts/risk_workspace_attribution.py` below the previous 336-line ceiling while
 preserving the public risk attribution contract facade.
 
-HTTP response and failure payload shaping now lives in
-`src/app/clients/http_response_payloads.py`, reducing `src/app/clients/http_resilience.py` below
-the current 335-line ceiling while preserving the public retry helper behavior.
+Rolling metric summary, series, series-context, and window-result contracts now live in
+`src/app/contracts/risk_workspace_rolling_metrics.py`, reducing
+`src/app/contracts/risk_workspace_rolling.py` below the current 335-line ceiling while preserving
+the public rolling contract facade.
 
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
 executable 335/49 ratchet, the current evidence-selected
-`src/app/contracts/risk_workspace_rolling.py` hotspot, and durable scorecard/context guidance
-synchronized.
+`src/app/services/performance_workspace_capabilities.py` hotspot, and durable scorecard/context
+guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
 Foundation core market-value parsing moved into

@@ -7,7 +7,7 @@ process and a few high-signal probes.
 
 1. Python dependencies available for the repo.
 2. `make` available in the shell.
-3. Optional platform ingress when using `http://gateway.dev.lotus`.
+3. Optional platform ingress when using [gateway.dev.lotus](http://gateway.dev.lotus).
 4. Sibling `lotus-platform` generated artifacts when testing domain-product discovery.
 
 ## Install
@@ -24,8 +24,8 @@ make run-canonical
 
 Canonical identities:
 
-- cross-app and product validation: `http://gateway.dev.lotus`
-- direct process debugging: `http://127.0.0.1:8111`
+- cross-app and product validation: [gateway.dev.lotus](http://gateway.dev.lotus)
+- direct process debugging: [local Gateway process](http://127.0.0.1:8111)
 
 `make run-canonical` uses `uvicorn app.main:app --reload --app-dir src --host 0.0.0.0 --port 8111`.
 The `--app-dir src` flag is part of the supported startup contract.
