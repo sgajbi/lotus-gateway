@@ -216,8 +216,8 @@ Important validation expectations:
 4. workflow action-runtime governance is part of `make lint` and enforces the platform baseline
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
-   `scripts/check_agent_quality_evidence.py`; it keeps the executable 352/49 refactor ratchet, the
-   current `src/app/services/risk_workspace_drawdown.py` hotspot, and durable
+   `scripts/check_agent_quality_evidence.py`; it keeps the executable 350/49 refactor ratchet, the
+   current `src/app/services/workbench_rebalance_snapshot.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
