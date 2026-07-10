@@ -451,6 +451,19 @@ def test_foundation_service_imports_focused_protocol_family() -> None:
     assert "app.services.workspace_client_protocols" not in imports
 
 
+def test_foundation_workspace_source_loading_lives_in_focused_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "foundation_service.py")
+    source_loading_methods = _function_names(_SERVICE_ROOT / "foundation_workspace_sources.py")
+    delegated_methods = {
+        "_load_foundation_workspace_sources",
+        "_load_foundation_workspace_optional_results",
+        "_resolve_performance_report_end_date",
+    }
+
+    assert delegated_methods <= source_loading_methods
+    assert service_methods.isdisjoint(delegated_methods)
+
+
 def test_portfolio_workflow_delegates_action_definitions() -> None:
     workflow_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow.py")
     definition_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow_definitions.py")
