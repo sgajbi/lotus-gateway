@@ -211,6 +211,10 @@ The current DPM router-group split keeps `scripts/check_agent_quality_evidence.p
 executable 347/49 refactor ratchet, current
 `src/app/contracts/risk_workspace_concentration.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
+The current risk concentration example extraction keeps `scripts/check_agent_quality_evidence.py`
+aligned with the executable 347/49 refactor ratchet, current
+`src/app/services/portfolio_holdings_service.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1097,16 +1101,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
-| 2 | 347 | `src/app/services/portfolio_holdings_service.py` |
-| 3 | 346 | `src/app/services/performance_calculation_evidence.py` |
-| 4 | 345 | `src/app/services/advisor_brief_service.py` |
-| 5 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
-| 6 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
-| 7 | 342 | `src/app/services/risk_workspace_rolling.py` |
-| 8 | 338 | `src/app/observability/analytics_ui.py` |
-| 9 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
-| 10 | 335 | `src/app/clients/http_resilience.py` |
+| 1 | 347 | `src/app/services/portfolio_holdings_service.py` |
+| 2 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 3 | 345 | `src/app/services/advisor_brief_service.py` |
+| 4 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
+| 5 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
+| 6 | 342 | `src/app/services/risk_workspace_rolling.py` |
+| 7 | 338 | `src/app/observability/analytics_ui.py` |
+| 8 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 9 | 335 | `src/app/clients/http_resilience.py` |
+| 10 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
 
 ## Largest Functions
 
