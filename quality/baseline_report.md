@@ -227,10 +227,14 @@ The advisor-brief review-action extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 344/49 refactor ratchet,
 then-current `src/app/services/advisor_brief_workflow_pack.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
-The Foundation protocol-family extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 328/49 refactor ratchet,
-current evidence-selected `src/app/services/risk_workspace_concentration.py` hotspot
+The Foundation protocol-family extraction kept
+`scripts/check_agent_quality_evidence.py` aligned with the then-executable 328/49 refactor ratchet,
+then-current evidence-selected `src/app/services/risk_workspace_concentration.py` hotspot
 evidence, and durable scorecard/context guidance synchronized for future agent work.
+The risk concentration supportability extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 326/49 refactor ratchet,
+current evidence-selected `src/app/contracts/platform_capabilities.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1163,26 +1167,26 @@ public `AdviseClient` import surface. The executable refactor ratchet remains 32
 `src/app/services/workspace_client_protocols.py` as the deterministic evidence-selected largest
 source file.
 
-Current Foundation protocol-family extraction moves Foundation core, performance, manage, and
-reporting upstream protocols into `src/app/services/foundation_client_protocols.py` while
-preserving the public `workspace_client_protocols` import surface. The executable refactor ratchet
-is now 328/49, with `src/app/services/risk_workspace_concentration.py` as the deterministic
-evidence-selected largest source file.
+Current risk concentration supportability extraction moves block extraction and supportability
+narration into `src/app/services/risk_workspace_concentration_supportability.py` while preserving
+the public concentration response mapper behavior. The executable refactor ratchet is now 326/49,
+with `src/app/contracts/platform_capabilities.py` as the deterministic evidence-selected largest
+source file.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 328 | `src/app/services/risk_workspace_concentration.py` |
-| 2 | 326 | `src/app/contracts/platform_capabilities.py` |
-| 3 | 325 | `src/app/services/platform_capabilities_service.py` |
-| 4 | 324 | `src/app/services/proposal_service.py` |
-| 5 | 321 | `src/app/services/dpm_client_protocols.py` |
-| 6 | 319 | `src/app/contracts/portfolio_workspace.py` |
-| 7 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 8 | 316 | `src/app/services/foundation_service.py` |
-| 9 | 315 | `src/app/services/dpm_proof_pack_service.py` |
-| 10 | 314 | `src/app/services/portfolio_service.py` |
+| 1 | 326 | `src/app/contracts/platform_capabilities.py` |
+| 2 | 325 | `src/app/services/platform_capabilities_service.py` |
+| 3 | 324 | `src/app/services/proposal_service.py` |
+| 4 | 321 | `src/app/services/dpm_client_protocols.py` |
+| 5 | 319 | `src/app/contracts/portfolio_workspace.py` |
+| 6 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 7 | 316 | `src/app/services/foundation_service.py` |
+| 8 | 315 | `src/app/services/dpm_proof_pack_service.py` |
+| 9 | 314 | `src/app/services/portfolio_service.py` |
+| 10 | 314 | `src/app/contracts/proposals.py` |
 
 ## Largest Functions
 
