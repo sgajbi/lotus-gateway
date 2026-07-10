@@ -161,6 +161,7 @@ def test_dpm_command_center_contracts_live_outside_dpm_command_center_facade() -
     command_center_core_contract_classes = _class_names(
         _CONTRACT_ROOT / "dpm_command_center_core.py"
     )
+    exception_summary_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_exception_summary.py")
     outcome_review_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_outcome_review.py")
 
     expected_core_contracts = {
@@ -169,9 +170,11 @@ def test_dpm_command_center_contracts_live_outside_dpm_command_center_facade() -
         "DpmCommandCenterResolveExceptionRequest",
         "DpmCommandCenterSupportability",
     }
-    expected_outcome_review_contracts = {
+    expected_exception_summary_contracts = {
         "DpmExceptionSummaryGatewayResponse",
         "DpmExceptionSummaryRequest",
+    }
+    expected_outcome_review_contracts = {
         "DpmOutcomeReviewErrorDetail",
         "DpmOutcomeReviewForwardRequest",
         "DpmOutcomeReviewGatewayResponse",
@@ -182,8 +185,10 @@ def test_dpm_command_center_contracts_live_outside_dpm_command_center_facade() -
     }
 
     assert expected_core_contracts <= command_center_core_contract_classes
+    assert expected_exception_summary_contracts <= exception_summary_contract_classes
     assert expected_outcome_review_contracts <= outcome_review_contract_classes
     assert dpm_command_center_facade_classes.isdisjoint(expected_core_contracts)
+    assert dpm_command_center_facade_classes.isdisjoint(expected_exception_summary_contracts)
     assert dpm_command_center_facade_classes.isdisjoint(expected_outcome_review_contracts)
 
 

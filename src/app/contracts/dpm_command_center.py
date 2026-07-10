@@ -10,10 +10,10 @@ from app.contracts.dpm_command_center_core import (
 from app.contracts.dpm_command_center_core import (
     DpmCommandCenterSupportability as DpmCommandCenterSupportability,
 )
-from app.contracts.dpm_outcome_review import (
+from app.contracts.dpm_exception_summary import (
     DpmExceptionSummaryGatewayResponse as DpmExceptionSummaryGatewayResponse,
 )
-from app.contracts.dpm_outcome_review import (
+from app.contracts.dpm_exception_summary import (
     DpmExceptionSummaryRequest as DpmExceptionSummaryRequest,
 )
 from app.contracts.dpm_outcome_review import (

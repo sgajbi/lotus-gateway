@@ -19,7 +19,7 @@ The current local and PR-grade blocking gates are:
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
    keeps the executable 357/49 ratchet, the current largest hotspot
-   `src/app/contracts/dpm_outcome_review.py`, and durable scorecard/context guidance in
+   `src/app/services/foundation_core_snapshot.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -291,7 +291,7 @@ Most recent local PR-grade evidence:
    threshold trials prove 359 passes while 358 fails on that file. Focused validation includes
    reporting client boundary, upstream reporting batch forwarding, refactor-threshold, mypy, and
    agent quality evidence checks.
-29. Current benchmark catalog parser extraction moves benchmark catalog parsing and product-safe
+29. Previous benchmark catalog parser extraction moves benchmark catalog parsing and product-safe
    failure mapping into `src/app/services/performance_workspace_benchmark_catalog.py` while
    preserving `app.services.performance_workspace_benchmarks.parse_benchmark_catalog_result` as a
    compatibility import. It reduces `src/app/services/performance_workspace_benchmarks.py` below
@@ -300,6 +300,14 @@ Most recent local PR-grade evidence:
    are now the largest source files; threshold trials prove 357 passes while 356 fails on those
    files. Focused validation includes benchmark helper behavior, benchmark-boundary, mypy,
    refactor-threshold, and agent quality evidence checks.
+30. Current DPM exception-summary contract extraction moves support-only exception-summary request
+   and response DTOs into `src/app/contracts/dpm_exception_summary.py` while preserving
+   compatibility re-exports from `app.contracts.dpm_outcome_review` and the public
+   `app.contracts.dpm_command_center` facade. It reduces
+   `src/app/contracts/dpm_outcome_review.py` from 357 to 250 lines while keeping the blocking
+   threshold at 357/49 because `src/app/services/foundation_core_snapshot.py` remains the largest
+   source file; focused validation includes DPM command-center contract shape, contract-boundary,
+   mypy, refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving
