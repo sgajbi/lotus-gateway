@@ -183,6 +183,10 @@ The current Foundation core market-value extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 356/49 refactor ratchet,
 current `src/app/services/dpm_pm_operating_quality_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current PM operating-quality summary-invocation extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 355/49 refactor ratchet,
+current `src/app/contracts/reporting.py` hotspot evidence, and durable scorecard/context guidance
+synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1069,16 +1073,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 356 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 2 | 355 | `src/app/contracts/reporting.py` |
-| 3 | 354 | `src/app/services/performance_workspace_service.py` |
-| 4 | 354 | `src/app/contracts/foundation.py` |
-| 5 | 352 | `src/app/services/risk_workspace_drawdown.py` |
-| 6 | 350 | `src/app/services/workbench_rebalance_snapshot.py` |
-| 7 | 348 | `src/app/router_groups/dpm.py` |
-| 8 | 347 | `src/app/services/portfolio_holdings_service.py` |
-| 9 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
-| 10 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 1 | 355 | `src/app/contracts/reporting.py` |
+| 2 | 354 | `src/app/services/performance_workspace_service.py` |
+| 3 | 354 | `src/app/contracts/foundation.py` |
+| 4 | 352 | `src/app/services/risk_workspace_drawdown.py` |
+| 5 | 350 | `src/app/services/workbench_rebalance_snapshot.py` |
+| 6 | 348 | `src/app/router_groups/dpm.py` |
+| 7 | 347 | `src/app/services/portfolio_holdings_service.py` |
+| 8 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
+| 9 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 10 | 345 | `src/app/services/advisor_brief_service.py` |
 
 ## Largest Functions
 
