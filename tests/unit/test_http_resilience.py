@@ -6,6 +6,12 @@ import httpx
 import pytest
 
 from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.clients.http_response_payloads import (
+    binary_communication_failure_result,
+    communication_failure_result,
+    response_payload,
+    unsupported_method_payload,
+)
 from app.clients.http_retry_policy import (
     retry_attempts,
     retry_delay,
@@ -32,6 +38,39 @@ def test_http_resilience_delegates_retry_policy() -> None:
     assert "_retry_attempts" not in resilience_functions
     assert "_retry_delay" not in resilience_functions
     assert "_should_retry_status" not in resilience_functions
+
+
+def test_http_response_payload_helpers_normalize_upstream_errors() -> None:
+    json_response = httpx.Response(
+        503,
+        json={"detail": "try-again"},
+        request=httpx.Request("GET", "http://test"),
+    )
+    list_response = httpx.Response(
+        502,
+        json=["not", "a", "dict"],
+        request=httpx.Request("GET", "http://test"),
+    )
+    text_response = httpx.Response(
+        500,
+        text="plain-text-error",
+        request=httpx.Request("GET", "http://test"),
+    )
+
+    assert response_payload(json_response) == {"detail": "try-again"}
+    assert response_payload(list_response) == {"detail": ["not", "a", "dict"]}
+    assert response_payload(text_response) == {"detail": "plain-text-error"}
+    assert unsupported_method_payload("") == {"detail": "unsupported upstream HTTP method: <blank>"}
+    assert communication_failure_result("NetworkError") == (
+        503,
+        {"detail": "upstream communication failure: NetworkError"},
+    )
+    assert binary_communication_failure_result("TimeoutException") == (
+        503,
+        b"",
+        {},
+        {"detail": "upstream communication failure: TimeoutException"},
+    )
 
 
 class _FlakyAsyncClient:

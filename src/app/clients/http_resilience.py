@@ -3,6 +3,12 @@ from typing import Any
 
 import httpx
 
+from app.clients.http_response_payloads import (
+    binary_communication_failure_result,
+    communication_failure_result,
+    response_payload,
+    unsupported_method_payload,
+)
 from app.clients.http_retry_policy import (
     retry_attempts,
     retry_delay,
@@ -12,35 +18,6 @@ from app.clients.http_retry_policy import (
 
 _BINARY_REQUEST_METHODS = frozenset({"GET", "POST"})
 _JSON_REQUEST_METHODS = frozenset({"GET", "POST", "PUT"})
-
-
-def _response_payload(response: httpx.Response) -> dict[str, Any]:
-    try:
-        payload = response.json()
-    except ValueError:
-        payload = {"detail": response.text}
-    if isinstance(payload, dict):
-        return payload
-    return {"detail": payload}
-
-
-def _unsupported_method_payload(method: str) -> dict[str, str]:
-    request_method = method.upper() or "<blank>"
-    return {"detail": f"unsupported upstream HTTP method: {request_method}"}
-
-
-def _communication_failure_payload(reason: str) -> dict[str, str]:
-    return {"detail": f"upstream communication failure: {reason}"}
-
-
-def _communication_failure_result(reason: str) -> tuple[int, dict[str, str]]:
-    return 503, _communication_failure_payload(reason)
-
-
-def _binary_communication_failure_result(
-    reason: str,
-) -> tuple[int, bytes, dict[str, str], dict[str, str]]:
-    return 503, b"", {}, _communication_failure_payload(reason)
 
 
 async def _send_json_request(
@@ -132,7 +109,7 @@ async def _retry_or_return_json_response(
     ):
         await _sleep_before_retry(backoff_seconds, attempt)
         return None
-    return response.status_code, _response_payload(response)
+    return response.status_code, response_payload(response)
 
 
 async def _retry_or_return_request_error(
@@ -149,7 +126,7 @@ async def _retry_or_return_request_error(
         attempt=attempt,
         max_retries=max_retries,
     ):
-        return _communication_failure_result(exc.__class__.__name__)
+        return communication_failure_result(exc.__class__.__name__)
     await _sleep_before_retry(backoff_seconds, attempt)
     return None
 
@@ -200,7 +177,7 @@ async def _retry_or_return_binary_response(
         return None
     error_payload: dict[str, Any] = {}
     if response.status_code >= 400:
-        error_payload = _response_payload(response)
+        error_payload = response_payload(response)
     return response.status_code, response.content, dict(response.headers), error_payload
 
 
@@ -218,7 +195,7 @@ async def _retry_or_return_binary_request_error(
         attempt=attempt,
         max_retries=max_retries,
     ):
-        return _binary_communication_failure_result(exc.__class__.__name__)
+        return binary_communication_failure_result(exc.__class__.__name__)
     await _sleep_before_retry(backoff_seconds, attempt)
     return None
 
@@ -268,7 +245,7 @@ async def request_with_retry(
 ) -> tuple[int, dict[str, Any]]:
     request_method = method.upper()
     if request_method not in _JSON_REQUEST_METHODS:
-        return 503, _unsupported_method_payload(method)
+        return 503, unsupported_method_payload(method)
 
     request_kwargs = {
         "request_method": request_method,
@@ -293,7 +270,7 @@ async def request_with_retry(
         if result is not None:
             return result
 
-    return _communication_failure_result("exhausted retries")
+    return communication_failure_result("exhausted retries")
 
 
 async def request_binary_with_retry(
@@ -310,7 +287,7 @@ async def request_binary_with_retry(
 ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]:
     request_method = method.upper()
     if request_method not in _BINARY_REQUEST_METHODS:
-        return 503, b"", {}, _unsupported_method_payload(method)
+        return 503, b"", {}, unsupported_method_payload(method)
 
     request_kwargs = {
         "request_method": request_method,
@@ -332,4 +309,4 @@ async def request_binary_with_retry(
         if result is not None:
             return result
 
-    return _binary_communication_failure_result("exhausted retries")
+    return binary_communication_failure_result("exhausted retries")
