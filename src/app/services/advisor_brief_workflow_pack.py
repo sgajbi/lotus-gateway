@@ -9,22 +9,11 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunFinding,
     AdvisorBriefWorkflowPackTaskFlow,
-    AdvisorBriefWorkflowPackTaskFlowHandoff,
-    AdvisorBriefWorkflowPackTaskFlowLineage,
 )
 from app.services.advisor_brief_client_protocols import AdvisorBriefAiClient
+from app.services.advisor_brief_task_flow import parse_advisor_brief_workflow_pack_task_flow
 
 _ADVISOR_BRIEF_TASK_FLOW_LOOKUP_LIMIT = 100
-
-
-@dataclass(frozen=True)
-class _TaskFlowRequiredFields:
-    task_flow_id: str
-    workflow_pack_id: str
-    version: str
-    flow_status: str
-    supportability_status: str
-    updated_at: str
 
 
 @dataclass(frozen=True)
@@ -177,143 +166,10 @@ async def load_advisor_brief_workflow_pack_task_flow(
         return None
 
     for value in _safe_list(task_flow_payload.get("task_flows")):
-        task_flow = _parse_advisor_brief_workflow_pack_task_flow(value=value, run_id=run_id)
+        task_flow = parse_advisor_brief_workflow_pack_task_flow(value=value, run_id=run_id)
         if task_flow is not None:
             return task_flow
     return None
-
-
-def _parse_advisor_brief_workflow_pack_task_flow(
-    *,
-    value: Any,
-    run_id: str,
-) -> AdvisorBriefWorkflowPackTaskFlow | None:
-    item = _safe_dict(value)
-    run_refs = _parse_task_flow_run_refs(item=item)
-    if run_id not in run_refs:
-        return None
-
-    required_fields = _parse_task_flow_required_fields(item=item)
-    if required_fields is None:
-        return None
-
-    return AdvisorBriefWorkflowPackTaskFlow(
-        task_flow_id=required_fields.task_flow_id,
-        workflow_pack_id=required_fields.workflow_pack_id,
-        version=required_fields.version,
-        flow_status=required_fields.flow_status,
-        current_step_id=_safe_str(item.get("current_step_id")),
-        run_refs=run_refs,
-        review_states=_parse_task_flow_review_states(item=item),
-        supportability_status=required_fields.supportability_status,
-        replacement_lineage=_parse_task_flow_lineage_items(item=item),
-        handoff_refs=_parse_task_flow_handoff_refs(item=item),
-        updated_at=required_fields.updated_at,
-    )
-
-
-def _parse_task_flow_run_refs(*, item: dict[str, Any]) -> list[str]:
-    return [ref for ref in (_safe_str(value) for value in _safe_list(item.get("run_refs"))) if ref]
-
-
-def _parse_task_flow_required_fields(
-    *,
-    item: dict[str, Any],
-) -> _TaskFlowRequiredFields | None:
-    task_flow_id = _safe_str(item.get("task_flow_id"))
-    workflow_pack_id = _safe_str(item.get("workflow_pack_id"))
-    version = _safe_str(item.get("workflow_pack_version")) or _safe_str(item.get("version"))
-    flow_status = _safe_str(item.get("flow_status"))
-    supportability_status = _safe_str(item.get("supportability_status"))
-    updated_at = _safe_str(item.get("updated_at"))
-    if (
-        task_flow_id is None
-        or workflow_pack_id is None
-        or version is None
-        or flow_status is None
-        or supportability_status is None
-        or updated_at is None
-    ):
-        return None
-    return _TaskFlowRequiredFields(
-        task_flow_id=task_flow_id,
-        workflow_pack_id=workflow_pack_id,
-        version=version,
-        flow_status=flow_status,
-        supportability_status=supportability_status,
-        updated_at=updated_at,
-    )
-
-
-def _parse_task_flow_review_states(*, item: dict[str, Any]) -> dict[str, str]:
-    return {
-        str(key): str(value)
-        for key, value in _safe_dict(item.get("review_states")).items()
-        if key and value
-    }
-
-
-def _parse_task_flow_lineage_items(
-    *,
-    item: dict[str, Any],
-) -> list[AdvisorBriefWorkflowPackTaskFlowLineage]:
-    return [
-        lineage_item
-        for lineage_item in (
-            _parse_task_flow_lineage(value=value)
-            for value in _safe_list(item.get("replacement_lineage"))
-        )
-        if lineage_item is not None
-    ]
-
-
-def _parse_task_flow_handoff_refs(
-    *,
-    item: dict[str, Any],
-) -> list[AdvisorBriefWorkflowPackTaskFlowHandoff]:
-    return [
-        handoff
-        for handoff in (
-            _parse_task_flow_handoff(value=value) for value in _safe_list(item.get("handoff_refs"))
-        )
-        if handoff is not None
-    ]
-
-
-def _parse_task_flow_lineage(*, value: Any) -> AdvisorBriefWorkflowPackTaskFlowLineage | None:
-    item = _safe_dict(value)
-    superseded_run_id = _safe_str(item.get("superseded_run_id"))
-    replacement_run_id = _safe_str(item.get("replacement_run_id"))
-    review_action_ref = _safe_str(item.get("review_action_ref"))
-    reason = _safe_str(item.get("reason"))
-    if (
-        superseded_run_id is None
-        or replacement_run_id is None
-        or review_action_ref is None
-        or reason is None
-    ):
-        return None
-    return AdvisorBriefWorkflowPackTaskFlowLineage(
-        superseded_run_id=superseded_run_id,
-        replacement_run_id=replacement_run_id,
-        review_action_ref=review_action_ref,
-        reason=reason,
-    )
-
-
-def _parse_task_flow_handoff(*, value: Any) -> AdvisorBriefWorkflowPackTaskFlowHandoff | None:
-    item = _safe_dict(value)
-    handoff_id = _safe_str(item.get("handoff_id"))
-    owner_service = _safe_str(item.get("owner_service"))
-    status = _safe_str(item.get("status"))
-    if handoff_id is None or owner_service is None or status is None:
-        return None
-    return AdvisorBriefWorkflowPackTaskFlowHandoff(
-        handoff_id=handoff_id,
-        owner_service=owner_service,
-        status=status,
-        domain_ref=_safe_str(item.get("domain_ref")),
-    )
 
 
 def _parse_workflow_pack_run_finding(*, value: Any) -> AdvisorBriefWorkflowPackRunFinding | None:

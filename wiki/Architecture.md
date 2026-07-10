@@ -12,9 +12,10 @@
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  344 script-counted lines after splitting advisor-brief review-action orchestration out of
-  `advisor_brief_service.py`, with
-  `src/app/services/advisor_brief_workflow_pack.py` now the source-file ceiling blocker, and
+  344 script-counted lines after splitting advisor-brief task-flow parsing out of
+  `advisor_brief_workflow_pack.py`, with
+  `src/app/services/performance_workspace_evidence_response.py` now the source-file ceiling blocker,
+  and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map

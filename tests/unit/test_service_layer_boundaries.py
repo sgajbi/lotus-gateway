@@ -481,6 +481,24 @@ def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None
     assert workflow_pack_helpers == []
 
 
+def test_advisor_brief_workflow_pack_delegates_task_flow_parsing() -> None:
+    workflow_pack_methods = _function_names(_SERVICE_ROOT / "advisor_brief_workflow_pack.py")
+    task_flow_methods = _function_names(_SERVICE_ROOT / "advisor_brief_task_flow.py")
+    expected_task_flow_methods = {
+        "parse_advisor_brief_workflow_pack_task_flow",
+        "_parse_task_flow_handoff",
+        "_parse_task_flow_handoff_refs",
+        "_parse_task_flow_lineage",
+        "_parse_task_flow_lineage_items",
+        "_parse_task_flow_required_fields",
+        "_parse_task_flow_review_states",
+        "_parse_task_flow_run_refs",
+    }
+
+    assert expected_task_flow_methods <= task_flow_methods
+    assert workflow_pack_methods.isdisjoint(expected_task_flow_methods)
+
+
 def test_advisor_brief_service_delegates_supportability_runtime_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
