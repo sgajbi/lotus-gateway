@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Any, cast
 
-from app.contracts.performance_attribution import PerformanceAttributionTrendResponse
+from app.contracts.performance_attribution_trend import PerformanceAttributionTrendResponse
 from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_attribution import parse_attribution_trend_results
 from app.services.performance_workspace_context import (

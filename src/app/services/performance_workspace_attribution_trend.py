@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from app.contracts.performance_attribution import PerformanceAttributionTrendRow
+from app.contracts.performance_attribution_trend import PerformanceAttributionTrendRow
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_attribution_supportability import (
     parse_attribution_residual_materiality,

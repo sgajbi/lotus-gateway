@@ -85,6 +85,19 @@ def test_performance_horizon_contracts_live_outside_performance_workspace_facade
     assert performance_workspace_facade_classes.isdisjoint(expected_horizon_contracts)
 
 
+def test_performance_attribution_trend_contracts_live_outside_attribution_summary() -> None:
+    attribution_contract_classes = _class_names(_CONTRACT_ROOT / "performance_attribution.py")
+    trend_contract_classes = _class_names(_CONTRACT_ROOT / "performance_attribution_trend.py")
+
+    expected_trend_contracts = {
+        "PerformanceAttributionTrendResponse",
+        "PerformanceAttributionTrendRow",
+    }
+
+    assert expected_trend_contracts <= trend_contract_classes
+    assert attribution_contract_classes.isdisjoint(expected_trend_contracts)
+
+
 def test_performance_workspace_contracts_live_outside_performance_workspace_facade() -> None:
     performance_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "performance_workspace.py")
     common_contract_classes = _class_names(_CONTRACT_ROOT / "performance_workspace_common.py")
