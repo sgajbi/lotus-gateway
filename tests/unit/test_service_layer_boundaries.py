@@ -1200,6 +1200,18 @@ def test_risk_workspace_mappers_delegate_source_supportability() -> None:
     assert "_append_source_calculation_supportability" not in attribution_methods
 
 
+def test_risk_workspace_rolling_delegates_period_mapping() -> None:
+    rolling_methods = _function_names(_SERVICE_ROOT / "risk_workspace_rolling.py")
+    period_methods = _function_names(_SERVICE_ROOT / "risk_workspace_rolling_periods.py")
+    expected_period_methods = {
+        "map_rolling_period_result",
+        "map_rolling_period_results",
+    }
+
+    assert expected_period_methods <= period_methods
+    assert rolling_methods.isdisjoint(expected_period_methods)
+
+
 def test_risk_workspace_attribution_controls_delegate_supportability_items() -> None:
     controls_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution_controls.py")
     supportability_methods = _function_names(
