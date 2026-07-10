@@ -38,15 +38,19 @@ report-only baseline is reviewed.
 The largest current modularity risks are:
 
 1. `src/app/services/foundation_core_snapshot.py` at 357 lines,
-2. `src/app/contracts/dpm_outcome_review.py` at 357 lines,
-3. `src/app/services/dpm_pm_operating_quality_service.py` at 356 lines,
-4. `src/app/contracts/reporting.py` at 355 lines.
+2. `src/app/services/dpm_pm_operating_quality_service.py` at 356 lines,
+3. `src/app/contracts/reporting.py` at 355 lines,
+4. `src/app/services/performance_workspace_service.py` at 354 lines.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 357/49 ratchet, the current `src/app/contracts/dpm_outcome_review.py` selected hotspot
-evidence among the tied 357-line files, and durable scorecard/context guidance synchronized.
+executable 357/49 ratchet, the current `src/app/services/foundation_core_snapshot.py` hotspot, and
+durable scorecard/context guidance synchronized.
+
+`src/app/contracts/dpm_outcome_review.py` is reduced below the 357-line ceiling after DPM
+exception-summary request and response contracts moved into
+`src/app/contracts/dpm_exception_summary.py` with compatibility re-exports preserved.
 
 `src/app/services/performance_workspace_benchmarks.py` is reduced below the previous 359-line
 ceiling after benchmark catalog parsing and failure mapping moved into
