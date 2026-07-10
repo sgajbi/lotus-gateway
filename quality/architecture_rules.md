@@ -37,7 +37,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/platform_capabilities.py` at 326 lines as the
+1. `src/app/services/platform_capabilities_service.py` at 325 lines as the
    evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
@@ -86,9 +86,14 @@ Risk concentration block extraction and supportability narration now live in
 `src/app/services/risk_workspace_concentration.py` below the current 326-line ceiling while
 preserving the public concentration response mapper behavior.
 
+Platform capability shell bootstrap DTOs now live in
+`src/app/contracts/platform_capabilities_bootstrap.py`, reducing
+`src/app/contracts/platform_capabilities.py` below the current 325-line ceiling while preserving
+the public `platform_capabilities` compatibility facade.
+
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 326/49 ratchet, the current evidence-selected
-`src/app/contracts/platform_capabilities.py` hotspot, and durable scorecard/context
+executable 325/49 ratchet, the current evidence-selected
+`src/app/services/platform_capabilities_service.py` hotspot, and durable scorecard/context
 guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after

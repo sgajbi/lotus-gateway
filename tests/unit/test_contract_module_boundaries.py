@@ -481,6 +481,24 @@ def test_portfolio_position_book_contracts_live_outside_holdings_facade() -> Non
     assert portfolio_holdings_facade_classes.isdisjoint(expected_position_book_contracts)
 
 
+def test_platform_capability_bootstrap_contracts_live_outside_facade() -> None:
+    platform_facade_classes = _class_names(_CONTRACT_ROOT / "platform_capabilities.py")
+    bootstrap_contract_classes = _class_names(_CONTRACT_ROOT / "platform_capabilities_bootstrap.py")
+
+    expected_bootstrap_contracts = {
+        "PlatformBootstrapCaching",
+        "PlatformBootstrapEvidence",
+        "PlatformBootstrapFreshness",
+        "PlatformBootstrapSupportability",
+        "PlatformBootstrapVersioning",
+        "PlatformShellBootstrap",
+        "PlatformShellWorkspaceDescriptor",
+    }
+
+    assert expected_bootstrap_contracts <= bootstrap_contract_classes
+    assert platform_facade_classes.isdisjoint(expected_bootstrap_contracts)
+
+
 def test_domain_product_trust_contracts_live_outside_domain_products_facade() -> None:
     domain_products_facade_classes = _class_names(_CONTRACT_ROOT / "domain_products.py")
     trust_contract_classes = _class_names(_CONTRACT_ROOT / "domain_product_trust.py")
