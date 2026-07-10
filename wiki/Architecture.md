@@ -11,10 +11,10 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
-  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 522
-  to 521 script-counted lines after splitting risk rolling window mapping into
-  `risk_workspace_rolling_windows.py`, with
-  `src/app/services/dpm_command_center_service.py` now the source-file ceiling blocker, and the
+  existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
+  361 script-counted lines after splitting DPM command-center core pass-through methods into
+  `dpm_command_center_core_service.py`, with
+  `src/app/contracts/performance_attribution.py` now the source-file ceiling blocker, and the
   repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
