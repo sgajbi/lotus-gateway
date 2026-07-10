@@ -185,6 +185,19 @@ def test_dpm_command_center_service_delegates_outcome_narrative_handoff() -> Non
     assert "DpmCommandCenterOutcomeNarrativeMixin" in base_names
 
 
+def test_dpm_command_center_service_delegates_response_assembly() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_command_center_service.py")
+    response_methods = _function_names(_SERVICE_ROOT / "dpm_command_center_response.py")
+    expected_response_methods = {
+        "compose_outcome_review_response",
+        "compose_command_center_response",
+        "compose_portfolio_memory_response",
+    }
+
+    assert expected_response_methods <= response_methods
+    assert service_methods.isdisjoint(expected_response_methods)
+
+
 def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
     advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
     advisor_brief_protocols_path = _SERVICE_ROOT / "advisor_brief_client_protocols.py"
