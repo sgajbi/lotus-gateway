@@ -1,6 +1,8 @@
 from typing import Any, cast
 
-from app.contracts.risk_workspace_attribution import _RISK_ATTRIBUTION_PAYLOAD_EXAMPLE
+from app.contracts.risk_workspace_attribution_examples import (
+    RISK_ATTRIBUTION_PAYLOAD_EXAMPLE as _RISK_ATTRIBUTION_PAYLOAD_EXAMPLE,
+)
 from app.contracts.risk_workspace_concentration_examples import (
     RISK_CONCENTRATION_PAYLOAD_EXAMPLE as _RISK_CONCENTRATION_PAYLOAD_EXAMPLE,
 )
