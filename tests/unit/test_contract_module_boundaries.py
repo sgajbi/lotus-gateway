@@ -280,6 +280,19 @@ def test_risk_concentration_payload_example_lives_outside_contract_models() -> N
     assert "_RISK_CONCENTRATION_PAYLOAD_EXAMPLE" not in concentration_contract_assignments
 
 
+def test_risk_attribution_payload_example_lives_outside_contract_models() -> None:
+    attribution_contract_assignments = _assigned_names(
+        _CONTRACT_ROOT / "risk_workspace_attribution.py"
+    )
+    attribution_example_assignments = _assigned_names(
+        _CONTRACT_ROOT / "risk_workspace_attribution_examples.py"
+    )
+
+    assert "RISK_ATTRIBUTION_PAYLOAD_EXAMPLE" in attribution_example_assignments
+    assert "RISK_ATTRIBUTION_PAYLOAD_EXAMPLE" not in attribution_contract_assignments
+    assert "_RISK_ATTRIBUTION_PAYLOAD_EXAMPLE" not in attribution_contract_assignments
+
+
 def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:
     advisor_brief_facade_classes = _class_names(_CONTRACT_ROOT / "advisor_brief.py")
     workflow_contract_classes = _class_names(_CONTRACT_ROOT / "advisor_brief_workflow.py")
