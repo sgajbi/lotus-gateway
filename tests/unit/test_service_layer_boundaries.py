@@ -1110,6 +1110,24 @@ def test_performance_workspace_evidence_delegates_response_composition() -> None
     assert evidence_facade_methods.isdisjoint(expected_response_methods)
 
 
+def test_performance_calculation_evidence_delegates_completion_polling() -> None:
+    calculation_methods = _function_names(_SERVICE_ROOT / "performance_calculation_evidence.py")
+    completion_methods = _function_names(
+        _SERVICE_ROOT / "performance_calculation_evidence_completion.py"
+    )
+    expected_completion_methods = {
+        "await_recent_evidence_completion",
+        "execution_is_complete",
+        "execution_lineage_stage_complete",
+        "lineage_is_complete",
+        "lineage_is_transient",
+        "refresh_execution_after_lineage_completion",
+    }
+
+    assert expected_completion_methods <= completion_methods
+    assert calculation_methods.isdisjoint(expected_completion_methods)
+
+
 def test_performance_contribution_delegates_payload_mapping() -> None:
     contribution_methods = _function_names(_SERVICE_ROOT / "performance_workspace_contribution.py")
     payload_methods = _function_names(

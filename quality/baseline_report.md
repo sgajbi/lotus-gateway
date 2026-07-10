@@ -215,9 +215,13 @@ The current risk concentration example extraction keeps `scripts/check_agent_qua
 aligned with the executable 347/49 refactor ratchet, current
 `src/app/services/portfolio_holdings_service.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
-The current portfolio projected-cashflow extraction keeps
+The portfolio projected-cashflow extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 346/49 refactor ratchet,
-current `src/app/services/performance_calculation_evidence.py` hotspot evidence, and durable
+then-current `src/app/services/performance_calculation_evidence.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
+The current performance calculation-evidence completion extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 345/49 refactor ratchet,
+current `src/app/services/advisor_brief_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -1105,16 +1109,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 346 | `src/app/services/performance_calculation_evidence.py` |
-| 2 | 345 | `src/app/services/advisor_brief_service.py` |
-| 3 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
-| 4 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
-| 5 | 342 | `src/app/services/risk_workspace_rolling.py` |
-| 6 | 338 | `src/app/observability/analytics_ui.py` |
-| 7 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
-| 8 | 335 | `src/app/clients/http_resilience.py` |
-| 9 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
-| 10 | 335 | `src/app/services/performance_workspace_capabilities.py` |
+| 1 | 345 | `src/app/services/advisor_brief_service.py` |
+| 2 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
+| 3 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
+| 4 | 342 | `src/app/services/risk_workspace_rolling.py` |
+| 5 | 338 | `src/app/observability/analytics_ui.py` |
+| 6 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 7 | 335 | `src/app/clients/http_resilience.py` |
+| 8 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
+| 9 | 335 | `src/app/services/performance_workspace_capabilities.py` |
+| 10 | 334 | `src/app/services/foundation_core_snapshot.py` |
 
 ## Largest Functions
 
