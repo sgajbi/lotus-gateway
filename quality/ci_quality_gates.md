@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 360/49 ratchet, the current largest hotspot
-   `src/app/clients/reporting_client.py`, and durable scorecard/context guidance in
+   keeps the executable 359/49 ratchet, the current largest hotspot
+   `src/app/services/performance_workspace_benchmarks.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -275,7 +275,7 @@ Most recent local PR-grade evidence:
    `src/app/contracts/performance_attribution.py` is now the largest source file; threshold trials
    prove 361 passes while 360 fails on that file. Focused validation includes DPM command center
    behavior, service-boundary, refactor-threshold, and agent quality evidence checks.
-27. Current performance attribution trend contract extraction moves attribution trend row and
+27. Previous performance attribution trend contract extraction moves attribution trend row and
    response contracts into `src/app/contracts/performance_attribution_trend.py` while preserving
    `app.contracts.performance_attribution` compatibility imports. It reduces
    `src/app/contracts/performance_attribution.py` below the previous 361-line ceiling and ratchets
@@ -283,6 +283,14 @@ Most recent local PR-grade evidence:
    now the largest source file; threshold trials prove 360 passes while 359 fails on that file.
    Focused validation includes performance attribution contracts, Workbench OpenAPI contract,
    monetary-float guard, contract-boundary, refactor-threshold, and agent quality evidence checks.
+28. Current reporting batch client extraction moves report batch and schedule route-family methods
+   into `src/app/clients/reporting_batch_client.py` while preserving the public `ReportingClient`
+   surface. It reduces `src/app/clients/reporting_client.py` below the previous 360-line ceiling
+   and ratchets the blocking threshold from 360/49 to 359/49 because
+   `src/app/services/performance_workspace_benchmarks.py` is now the largest source file;
+   threshold trials prove 359 passes while 358 fails on that file. Focused validation includes
+   reporting client boundary, upstream reporting batch forwarding, refactor-threshold, mypy, and
+   agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving
