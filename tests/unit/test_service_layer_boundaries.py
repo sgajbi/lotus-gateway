@@ -1321,6 +1321,25 @@ def test_risk_workspace_service_delegates_response_loading() -> None:
     assert service_methods.isdisjoint(expected_response_loading_methods)
 
 
+def test_risk_workspace_concentration_delegates_supportability_mapping() -> None:
+    mapper_methods = _function_names(_SERVICE_ROOT / "risk_workspace_concentration.py")
+    supportability_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_concentration_supportability.py"
+    )
+    expected_supportability_methods = {
+        "extract_concentration_blocks",
+        "build_concentration_supportability",
+        "append_source_calculation_supportability",
+        "_issuer_supportability_state",
+        "_issuer_supportability_reason",
+        "_issuer_grouping_reason",
+        "_valuation_context_reason",
+    }
+
+    assert expected_supportability_methods <= supportability_methods
+    assert mapper_methods.isdisjoint(expected_supportability_methods)
+
+
 def test_dpm_proof_pack_service_delegates_supportability_mapping() -> None:
     service_methods = _function_names(_SERVICE_ROOT / "dpm_proof_pack_service.py")
     supportability_methods = _function_names(_SERVICE_ROOT / "dpm_proof_pack_supportability.py")
