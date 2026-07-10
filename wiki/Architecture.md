@@ -22,9 +22,9 @@ state roadmap.
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  329 script-counted lines after moving DPM command-center routes into
-  `src/app/clients/dpm_command_center_client.py`, with
-  `src/app/clients/advise_proposal_client.py` now the evidence-selected
+  329 script-counted lines after moving Advise proposal narrative routes into
+  `src/app/clients/advise_proposal_narrative_client.py`, with
+  `src/app/services/workspace_client_protocols.py` now the evidence-selected
   source-file ceiling blocker, and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 

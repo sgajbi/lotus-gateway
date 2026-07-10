@@ -11,7 +11,7 @@ checks and the current measured quality baseline; it is not a replacement for Gi
 | Developer | What should I run before committing? | `make check` for lint, type, contract, and unit proof |
 | Reviewer | Which gate proves PR readiness? | `make ci` plus GitHub PR Merge Gate |
 | Release/operator | What proves image and metadata posture? | Main Releasability and container release manifests |
-| Future agent | What quality ceiling must not regress? | Agent quality evidence: `329/49`, current hotspot `src/app/clients/advise_proposal_client.py` |
+| Future agent | What quality ceiling must not regress? | Agent quality evidence: `329/49`, current hotspot `src/app/services/workspace_client_protocols.py` |
 
 ## Lane model
 
@@ -95,7 +95,7 @@ pure report-only lane. It blocks refactor-threshold regression, workflow-governa
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
 329/49 ratchet, the current evidence-selected
-`src/app/clients/advise_proposal_client.py` hotspot, and durable scorecard/context
+`src/app/services/workspace_client_protocols.py` hotspot, and durable scorecard/context
 guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 

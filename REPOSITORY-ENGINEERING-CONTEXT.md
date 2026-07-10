@@ -217,7 +217,7 @@ Important validation expectations:
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
    `scripts/check_agent_quality_evidence.py`; it keeps the executable 329/49 refactor ratchet, the
-   current evidence-selected `src/app/clients/advise_proposal_client.py` hotspot, and durable
+   current evidence-selected `src/app/services/workspace_client_protocols.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
