@@ -203,6 +203,10 @@ The current risk drawdown payload-mapping extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 350/49 refactor ratchet,
 current `src/app/services/workbench_rebalance_snapshot.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current Workbench rebalance supportability extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 348/49 refactor ratchet,
+current `src/app/router_groups/dpm.py` hotspot evidence, and durable scorecard/context guidance
+synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1089,16 +1093,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 350 | `src/app/services/workbench_rebalance_snapshot.py` |
-| 2 | 348 | `src/app/router_groups/dpm.py` |
+| 1 | 348 | `src/app/router_groups/dpm.py` |
+| 2 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
 | 3 | 347 | `src/app/services/portfolio_holdings_service.py` |
-| 4 | 347 | `src/app/contracts/risk_workspace_concentration.py` |
-| 5 | 346 | `src/app/services/performance_calculation_evidence.py` |
-| 6 | 345 | `src/app/services/advisor_brief_service.py` |
+| 4 | 346 | `src/app/services/performance_calculation_evidence.py` |
+| 5 | 345 | `src/app/services/advisor_brief_service.py` |
+| 6 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
 | 7 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
-| 8 | 344 | `src/app/services/advisor_brief_workflow_pack.py` |
-| 9 | 342 | `src/app/services/risk_workspace_rolling.py` |
-| 10 | 338 | `src/app/observability/analytics_ui.py` |
+| 8 | 342 | `src/app/services/risk_workspace_rolling.py` |
+| 9 | 338 | `src/app/observability/analytics_ui.py` |
+| 10 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
 
 ## Largest Functions
 
