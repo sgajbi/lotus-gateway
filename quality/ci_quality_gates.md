@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 359/49 ratchet, the current largest hotspot
-   `src/app/services/performance_workspace_benchmarks.py`, and durable scorecard/context guidance in
+   keeps the executable 357/49 ratchet, the current largest hotspot
+   `src/app/contracts/dpm_outcome_review.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -283,7 +283,7 @@ Most recent local PR-grade evidence:
    now the largest source file; threshold trials prove 360 passes while 359 fails on that file.
    Focused validation includes performance attribution contracts, Workbench OpenAPI contract,
    monetary-float guard, contract-boundary, refactor-threshold, and agent quality evidence checks.
-28. Current reporting batch client extraction moves report batch and schedule route-family methods
+28. Previous reporting batch client extraction moves report batch and schedule route-family methods
    into `src/app/clients/reporting_batch_client.py` while preserving the public `ReportingClient`
    surface. It reduces `src/app/clients/reporting_client.py` below the previous 360-line ceiling
    and ratchets the blocking threshold from 360/49 to 359/49 because
@@ -291,6 +291,15 @@ Most recent local PR-grade evidence:
    threshold trials prove 359 passes while 358 fails on that file. Focused validation includes
    reporting client boundary, upstream reporting batch forwarding, refactor-threshold, mypy, and
    agent quality evidence checks.
+29. Current benchmark catalog parser extraction moves benchmark catalog parsing and product-safe
+   failure mapping into `src/app/services/performance_workspace_benchmark_catalog.py` while
+   preserving `app.services.performance_workspace_benchmarks.parse_benchmark_catalog_result` as a
+   compatibility import. It reduces `src/app/services/performance_workspace_benchmarks.py` below
+   the previous 359-line ceiling and ratchets the blocking threshold from 359/49 to 357/49 because
+   `src/app/services/foundation_core_snapshot.py` and `src/app/contracts/dpm_outcome_review.py`
+   are now the largest source files; threshold trials prove 357 passes while 356 fails on those
+   files. Focused validation includes benchmark helper behavior, benchmark-boundary, mypy,
+   refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving
