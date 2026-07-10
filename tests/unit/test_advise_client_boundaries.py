@@ -86,7 +86,6 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "get_proposal",
         "get_proposal_idempotency_record",
         "get_proposal_lineage",
-        "get_proposal_narrative",
         "get_proposal_operation",
         "get_proposal_operation_by_correlation",
         "get_proposal_operation_replay_evidence",
@@ -95,8 +94,6 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "get_workflow_events",
         "list_proposals",
         "record_approval",
-        "regenerate_proposal_narrative",
-        "review_proposal_narrative",
         "simulate_proposal",
         "transition_proposal",
     }
@@ -119,6 +116,20 @@ def test_advisory_proposal_delivery_routes_live_in_dedicated_client_mixin() -> N
     }
 
     assert extracted_methods <= delivery_methods
+    assert not extracted_methods & proposal_methods
+
+
+def test_advisory_proposal_narrative_routes_live_in_dedicated_client_mixin() -> None:
+    proposal_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_client.py")
+    narrative_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_narrative_client.py")
+
+    extracted_methods = {
+        "get_proposal_narrative",
+        "regenerate_proposal_narrative",
+        "review_proposal_narrative",
+    }
+
+    assert extracted_methods <= narrative_methods
     assert not extracted_methods & proposal_methods
 
 
