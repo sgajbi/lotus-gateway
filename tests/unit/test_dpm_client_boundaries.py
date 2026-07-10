@@ -144,3 +144,26 @@ def test_wave_routes_live_in_dedicated_client_mixin() -> None:
     )
     assert wave_facade_methods == set()
     assert not extracted_methods & dpm_client_methods
+
+
+def test_command_center_routes_live_in_dedicated_client_mixin() -> None:
+    dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
+    command_center_methods = _async_function_names(_CLIENT_ROOT / "dpm_command_center_client.py")
+
+    extracted_methods = {
+        "get_command_center",
+        "run_monitoring_once",
+        "list_monitoring_runs",
+        "get_monitoring_run",
+        "list_monitoring_exceptions",
+        "resolve_monitoring_exception",
+        "get_mandate_by_portfolio",
+        "get_mandate",
+        "get_mandate_health",
+        "get_mandate_diff",
+        "get_portfolio_memory",
+        "search_portfolio_memory",
+    }
+
+    assert extracted_methods <= command_center_methods
+    assert not extracted_methods & dpm_client_methods
