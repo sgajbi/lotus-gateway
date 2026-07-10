@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 379/49 ratchet, the current largest hotspot
-   `src/app/contracts/risk_workspace_examples.py`, and durable scorecard/context guidance in
+   keeps the executable 378/49 ratchet, the current largest hotspot
+   `src/app/services/upstream_envelope.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -89,12 +89,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 379
+2. Current enforced source-file threshold: no Python source file under `src/app` above 378
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=379` and `max_function_lines=49`.
+   `max_source_file_lines=378` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -216,6 +216,14 @@ Most recent local PR-grade evidence:
    `src/app/contracts/risk_workspace_examples.py` is now the largest source file; threshold trials
    prove 379 passes while 378 fails on that file. Focused validation includes portfolio workflow,
    portfolio service, service-boundary, refactor-threshold, and agent quality evidence checks.
+20. Current risk drawdown response-example extraction moves the drawdown OpenAPI/model example
+   into `src/app/contracts/risk_workspace_drawdown_examples.py` while preserving the public
+   `app.contracts.risk_workspace_examples` example names used by response model config. It reduces
+   `src/app/contracts/risk_workspace_examples.py` below the previous 379-line ceiling and ratchets
+   the blocking threshold from 379/49 to 378/49 because
+   `src/app/services/upstream_envelope.py` is now the largest source file; threshold trials prove
+   378 passes while 377 fails on that file. Focused validation includes risk workspace example
+   model validation, contract-boundary, refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving
