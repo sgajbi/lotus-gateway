@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.contracts.foundation import (
     FoundationAllocationBucket,
     FoundationPortfolioIdentity,
@@ -11,15 +9,12 @@ from app.contracts.foundation import (
 )
 from app.precision_policy import quantize_money, quantize_performance
 from app.services.foundation_core_market_value import extract_core_market_value
+from app.services.foundation_core_snapshot_sections import (
+    read_core_snapshot_sections,
+    validate_core_snapshot_payloads,
+)
 
 Number = int | float
-
-
-@dataclass(frozen=True)
-class CoreSnapshotSections:
-    baseline_rows: list[Any]
-    totals_payload: dict[str, Any]
-    enrichment_rows: list[Any]
 
 
 @dataclass(frozen=True)
@@ -43,12 +38,12 @@ class FoundationCoreSnapshotMapper:
         list[FoundationTopPosition],
         str,
     ]:
-        self._validate_core_snapshot_payloads(
+        validate_core_snapshot_payloads(
             payload=payload,
             portfolio_payload=portfolio_payload,
         )
 
-        sections = self._read_core_snapshot_sections(payload)
+        sections = read_core_snapshot_sections(payload)
         market_value_base, total_cash_base, cash_weight_pct = self._read_core_totals(
             sections.totals_payload
         )
@@ -80,40 +75,6 @@ class FoundationCoreSnapshotMapper:
     def extract_market_value(self, item: dict[str, Any]) -> float | None:
         market_value = extract_core_market_value(item)
         return self._to_number(market_value) if market_value is not None else None
-
-    def _validate_core_snapshot_payloads(
-        self,
-        *,
-        payload: dict[str, Any],
-        portfolio_payload: dict[str, Any],
-    ) -> None:
-        if not isinstance(payload, dict):
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Invalid lotus-core foundation snapshot payload structure.",
-            )
-        if not isinstance(portfolio_payload, dict):
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Invalid lotus-core portfolio identity payload structure.",
-            )
-
-    def _read_core_snapshot_sections(self, payload: dict[str, Any]) -> CoreSnapshotSections:
-        sections_payload = payload.get("sections", {})
-        if not isinstance(sections_payload, dict):
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Invalid lotus-core foundation snapshot payload structure.",
-            )
-
-        baseline_rows = sections_payload.get("positions_baseline", [])
-        totals_payload = sections_payload.get("portfolio_totals", {})
-        enrichment_rows = sections_payload.get("instrument_enrichment", [])
-        return CoreSnapshotSections(
-            baseline_rows=baseline_rows if isinstance(baseline_rows, list) else [],
-            totals_payload=totals_payload if isinstance(totals_payload, dict) else {},
-            enrichment_rows=enrichment_rows if isinstance(enrichment_rows, list) else [],
-        )
 
     def _read_core_totals(self, totals_payload: dict[str, Any]) -> tuple[float, float, float]:
         market_value_base = float(

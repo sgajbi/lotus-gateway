@@ -37,7 +37,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/foundation_core_snapshot.py` at 334 lines as the
+1. `src/app/contracts/domain_products.py` at 331 lines as the
    evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
@@ -58,9 +58,14 @@ construction now lives in `src/app/services/performance_workspace_module_capabil
 `src/app/services/performance_workspace_capabilities.py` below the current 334-line ceiling while
 preserving the public performance workspace capability facade.
 
+Foundation core snapshot payload validation and section extraction now live in
+`src/app/services/foundation_core_snapshot_sections.py`, reducing
+`src/app/services/foundation_core_snapshot.py` below the current 331-line ceiling while preserving
+the public Foundation mapper behavior.
+
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 334/49 ratchet, the current evidence-selected
-`src/app/services/foundation_core_snapshot.py` hotspot, and durable scorecard/context
+executable 331/49 ratchet, the current evidence-selected
+`src/app/contracts/domain_products.py` hotspot, and durable scorecard/context
 guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
