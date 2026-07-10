@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 388/49 ratchet, the current largest hotspot
-   `src/app/services/platform_capabilities_workspace_descriptors.py`, and durable scorecard/context guidance in
+   keeps the executable 385/49 ratchet, the current largest hotspot
+   `src/app/observability/analytics_ui.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -89,12 +89,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 388
+2. Current enforced source-file threshold: no Python source file under `src/app` above 385
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=388` and `max_function_lines=49`.
+   `max_source_file_lines=385` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -181,6 +181,15 @@ Most recent local PR-grade evidence:
    file; threshold trials prove 388 passes while 387 fails on that file. Focused validation
    includes DPM command-center service, service-boundary, refactor-threshold, and agent quality
    evidence checks.
+16. Current platform workspace descriptor spec extraction moves static shell workspace descriptor
+   specs and the shell bootstrap contract constant into
+   `src/app/services/platform_capabilities_workspace_descriptor_specs.py` while preserving shell
+   bootstrap descriptor behavior. It reduces
+   `src/app/services/platform_capabilities_workspace_descriptors.py` below the previous 388-line
+   ceiling and ratchets the blocking threshold from 388/49 to 385/49 because
+   `src/app/observability/analytics_ui.py` is now the largest source file; threshold trials prove
+   385 passes while 384 fails on that file. Focused validation includes platform capabilities
+   shell/service, service-boundary, refactor-threshold, and agent quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving

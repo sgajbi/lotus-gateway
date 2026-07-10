@@ -119,6 +119,10 @@ The current DPM command-center response extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 388/49 refactor ratchet,
 current `src/app/services/platform_capabilities_workspace_descriptors.py` hotspot evidence, and
 durable scorecard/context guidance synchronized for future agent work.
+The current platform workspace descriptor spec extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 385/49 refactor ratchet,
+current `src/app/observability/analytics_ui.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1005,12 +1009,12 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 2 | 385 | `src/app/observability/analytics_ui.py` |
-| 3 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 4 | 381 | `src/app/services/portfolio_workflow.py` |
-| 5 | 379 | `src/app/contracts/risk_workspace_examples.py` |
-| 6 | 378 | `src/app/services/upstream_envelope.py` |
+| 1 | 385 | `src/app/observability/analytics_ui.py` |
+| 2 | 383 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 3 | 381 | `src/app/services/portfolio_workflow.py` |
+| 4 | 379 | `src/app/contracts/risk_workspace_examples.py` |
+| 5 | 378 | `src/app/services/upstream_envelope.py` |
+| 6 | 376 | `src/app/contracts/workbench_sandbox.py` |
 | 9 | 376 | `src/app/contracts/workbench_sandbox.py` |
 | 10 | 375 | `src/app/observability/analytics_ui.py` |
 

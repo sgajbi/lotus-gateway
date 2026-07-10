@@ -37,17 +37,15 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/platform_capabilities_workspace_descriptors.py` at 388 lines,
+1. `src/app/observability/analytics_ui.py` at 385 lines,
 2. `src/app/services/dpm_pm_operating_quality_service.py` at 383 lines,
-3. `src/app/contracts/risk_workspace_examples.py` at 373 lines,
-4. `src/app/services/dpm_command_center_service.py` below the current ceiling after response
-   assembly moved into `src/app/services/dpm_command_center_response.py`.
+3. `src/app/services/portfolio_workflow.py` at 381 lines,
+4. `src/app/contracts/risk_workspace_examples.py` at 379 lines.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 388/49 ratchet, the current
-`src/app/services/platform_capabilities_workspace_descriptors.py` hotspot, and durable
+executable 385/49 ratchet, the current `src/app/observability/analytics_ui.py` hotspot, and durable
 scorecard/context guidance synchronized.
 
 `src/app/services/risk_workspace_service.py` is reduced from 402 to 222 lines after upstream
