@@ -1130,14 +1130,26 @@ def test_performance_workspace_evidence_delegates_response_composition() -> None
     response_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence_response.py")
     expected_response_methods = {
         "build_performance_evidence_view",
-        "build_source_supportability",
-        "resolve_evidence_reason",
-        "resolve_evidence_state",
         "resolve_evidence_view_response",
     }
 
     assert expected_response_methods <= response_methods
     assert evidence_facade_methods.isdisjoint(expected_response_methods)
+
+
+def test_performance_workspace_evidence_delegates_supportability_policy() -> None:
+    response_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence_response.py")
+    supportability_methods = _function_names(
+        _SERVICE_ROOT / "performance_workspace_evidence_supportability.py"
+    )
+    expected_supportability_methods = {
+        "build_source_supportability",
+        "resolve_evidence_reason",
+        "resolve_evidence_state",
+    }
+
+    assert expected_supportability_methods <= supportability_methods
+    assert response_methods.isdisjoint(expected_supportability_methods)
 
 
 def test_performance_calculation_evidence_delegates_completion_polling() -> None:

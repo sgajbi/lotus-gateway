@@ -227,9 +227,9 @@ The advisor-brief review-action extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 344/49 refactor ratchet,
 then-current `src/app/services/advisor_brief_workflow_pack.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
-The current advisor-brief task-flow extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 344/49 refactor ratchet,
-current `src/app/services/performance_workspace_evidence_response.py` hotspot evidence, and durable
+The performance evidence supportability extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 342/49 refactor ratchet,
+current `src/app/services/risk_workspace_rolling.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -1117,16 +1117,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 344 | `src/app/services/performance_workspace_evidence_response.py` |
-| 2 | 342 | `src/app/services/risk_workspace_rolling.py` |
-| 3 | 338 | `src/app/observability/analytics_ui.py` |
-| 4 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
-| 5 | 335 | `src/app/clients/http_resilience.py` |
-| 6 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
-| 7 | 335 | `src/app/services/performance_workspace_capabilities.py` |
-| 8 | 334 | `src/app/services/foundation_core_snapshot.py` |
-| 9 | 331 | `src/app/contracts/domain_products.py` |
-| 10 | 330 | `src/app/clients/dpm_client.py` |
+| 1 | 342 | `src/app/services/risk_workspace_rolling.py` |
+| 2 | 338 | `src/app/observability/analytics_ui.py` |
+| 3 | 336 | `src/app/contracts/risk_workspace_attribution.py` |
+| 4 | 335 | `src/app/services/performance_workspace_capabilities.py` |
+| 5 | 335 | `src/app/contracts/risk_workspace_rolling.py` |
+| 6 | 335 | `src/app/clients/http_resilience.py` |
+| 7 | 334 | `src/app/services/foundation_core_snapshot.py` |
+| 8 | 331 | `src/app/contracts/domain_products.py` |
+| 9 | 330 | `src/app/clients/dpm_client.py` |
+| 10 | 329 | `src/app/services/workspace_client_protocols.py` |
 
 ## Largest Functions
 
