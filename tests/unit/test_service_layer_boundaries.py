@@ -428,6 +428,18 @@ def test_advisor_brief_runtime_context_owns_runtime_evidence_loading() -> None:
     assert "_load_advisor_brief_runtime_context" not in service_methods
 
 
+def test_advisor_brief_service_delegates_response_assembly() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "advisor_brief_service.py")
+    response_methods = _function_names(_SERVICE_ROOT / "advisor_brief_response.py")
+
+    assert {
+        "assemble_advisor_brief_response",
+        "with_advisor_brief_runtime_context",
+    } <= response_methods
+    assert "_assemble_advisor_brief_response" not in service_methods
+    assert "_with_advisor_brief_runtime_context" not in service_methods
+
+
 def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
