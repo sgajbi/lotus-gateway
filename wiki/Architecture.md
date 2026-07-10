@@ -22,9 +22,9 @@ state roadmap.
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  335 script-counted lines after moving rolling metric and window contracts into
-  `src/app/contracts/risk_workspace_rolling_metrics.py`, with
-  `src/app/services/performance_workspace_capabilities.py` now the evidence-selected
+  334 script-counted lines after moving performance workspace detail capability policy into
+  `src/app/services/performance_workspace_detail_capabilities.py`, with
+  `src/app/services/foundation_core_snapshot.py` now the evidence-selected
   source-file ceiling blocker, and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 
@@ -94,8 +94,9 @@ state roadmap.
     `src/app/services/portfolio_exception_summaries.py`; `PortfolioService` keeps readiness
     orchestration while the compact exception-summary contract remains separately testable.
 13. performance workspace capability state derivation is isolated behind
-    `PerformanceCapabilityInputs` and `resolve_history_date_range`; capability payload assembly
-    remains in `src/app/services/performance_workspace_capabilities.py`.
+    `PerformanceCapabilityInputs` and `resolve_history_date_range`; detail-capability policy now
+    lives in `src/app/services/performance_workspace_detail_capabilities.py`, and shared module
+    capability construction lives in `src/app/services/performance_workspace_module_capability.py`.
 14. portfolio workspace source/analytics assembly, response-component assembly, and position
     parsing, foundation workspace assembly and response composition, performance workspace
     summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,

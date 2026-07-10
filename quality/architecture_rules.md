@@ -37,7 +37,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_capabilities.py` at 335 lines as the
+1. `src/app/services/foundation_core_snapshot.py` at 334 lines as the
    evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
@@ -52,9 +52,15 @@ Rolling metric summary, series, series-context, and window-result contracts now 
 `src/app/contracts/risk_workspace_rolling.py` below the current 335-line ceiling while preserving
 the public rolling contract facade.
 
+Performance workspace detail capability policy now lives in
+`src/app/services/performance_workspace_detail_capabilities.py`, and shared module capability
+construction now lives in `src/app/services/performance_workspace_module_capability.py`, reducing
+`src/app/services/performance_workspace_capabilities.py` below the current 334-line ceiling while
+preserving the public performance workspace capability facade.
+
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 335/49 ratchet, the current evidence-selected
-`src/app/services/performance_workspace_capabilities.py` hotspot, and durable scorecard/context
+executable 334/49 ratchet, the current evidence-selected
+`src/app/services/foundation_core_snapshot.py` hotspot, and durable scorecard/context
 guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
