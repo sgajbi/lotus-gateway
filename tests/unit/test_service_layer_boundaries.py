@@ -322,6 +322,54 @@ def test_dpm_wave_services_import_focused_protocol_family() -> None:
         assert "app.services.dpm_client_protocols" not in imports
 
 
+def test_dpm_pm_operating_quality_protocol_is_split_from_command_center_protocol() -> None:
+    dpm_protocols_path = _SERVICE_ROOT / "dpm_client_protocols.py"
+    pm_quality_protocols_path = _SERVICE_ROOT / "dpm_pm_operating_quality_client_protocols.py"
+    dpm_tree = ast.parse(
+        dpm_protocols_path.read_text(encoding="utf-8"),
+        filename=str(dpm_protocols_path),
+    )
+    pm_quality_tree = ast.parse(
+        pm_quality_protocols_path.read_text(encoding="utf-8"),
+        filename=str(pm_quality_protocols_path),
+    )
+
+    command_center_protocol = next(
+        node
+        for node in ast.walk(dpm_tree)
+        if isinstance(node, ast.ClassDef) and node.name == "DpmCommandCenterClient"
+    )
+    command_center_method_names = {
+        node.name for node in command_center_protocol.body if isinstance(node, ast.AsyncFunctionDef)
+    }
+    pm_quality_protocol_names = {
+        node.name for node in ast.walk(pm_quality_tree) if isinstance(node, ast.ClassDef)
+    }
+    pm_quality_method_names = {
+        node.name for node in ast.walk(pm_quality_tree) if isinstance(node, ast.AsyncFunctionDef)
+    }
+
+    assert pm_quality_protocol_names == {
+        "DpmPmOperatingQualityClient",
+        "DpmPmOperatingQualityClientAccessMixin",
+    }
+    assert pm_quality_method_names
+    assert {
+        method for method in command_center_method_names if "pm_operating_quality" in method
+    } == set()
+
+
+def test_dpm_pm_operating_quality_services_import_focused_protocol_family() -> None:
+    for service_file in {
+        "dpm_pm_operating_quality_service.py",
+        "dpm_pm_operating_quality_summary_invocation_service.py",
+        "dpm_pm_operating_quality_summary_service.py",
+    }:
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert "app.services.dpm_pm_operating_quality_client_protocols" in imports
+        assert "app.services.dpm_client_protocols" not in imports
+
+
 def test_portfolio_protocols_are_split_from_workspace_protocol_aggregator() -> None:
     workspace_protocols_path = _SERVICE_ROOT / "workspace_client_protocols.py"
     portfolio_protocols_path = _SERVICE_ROOT / "portfolio_client_protocols.py"

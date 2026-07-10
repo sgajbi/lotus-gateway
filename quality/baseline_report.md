@@ -247,6 +247,10 @@ The proposal delivery narrative extraction keeps `scripts/check_agent_quality_ev
 with the executable 321/49 refactor ratchet, current evidence-selected
 `src/app/services/dpm_client_protocols.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
+The DPM PM operating-quality protocol extraction keeps `scripts/check_agent_quality_evidence.py`
+aligned with the executable 319/49 refactor ratchet, current evidence-selected
+`src/app/contracts/portfolio_workspace.py` hotspot evidence, and durable scorecard/context guidance
+synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -1185,20 +1189,26 @@ surface. The executable refactor ratchet is now 321/49, with
 `src/app/services/dpm_client_protocols.py` as the deterministic evidence-selected largest source
 file.
 
+Current DPM PM operating-quality protocol extraction moves the PM quality client protocol family
+into `src/app/services/dpm_pm_operating_quality_client_protocols.py` while preserving the public
+`DpmCommandCenterClient` protocol surface through focused protocol inheritance. The executable
+refactor ratchet is now 319/49, with `src/app/contracts/portfolio_workspace.py` as the
+deterministic evidence-selected largest source file.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 321 | `src/app/services/dpm_client_protocols.py` |
-| 2 | 319 | `src/app/contracts/portfolio_workspace.py` |
-| 3 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 4 | 316 | `src/app/services/foundation_service.py` |
-| 5 | 315 | `src/app/services/dpm_proof_pack_service.py` |
-| 6 | 314 | `src/app/services/portfolio_service.py` |
-| 7 | 314 | `src/app/contracts/proposals.py` |
-| 8 | 313 | `src/app/services/upstream_envelope.py` |
-| 9 | 312 | `src/app/contracts/risk_workspace.py` |
-| 10 | 312 | `src/app/clients/http_resilience.py` |
+| 1 | 319 | `src/app/contracts/portfolio_workspace.py` |
+| 2 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 3 | 316 | `src/app/services/foundation_service.py` |
+| 4 | 315 | `src/app/services/dpm_proof_pack_service.py` |
+| 5 | 314 | `src/app/services/portfolio_service.py` |
+| 6 | 314 | `src/app/contracts/proposals.py` |
+| 7 | 313 | `src/app/services/upstream_envelope.py` |
+| 8 | 312 | `src/app/contracts/risk_workspace.py` |
+| 9 | 312 | `src/app/clients/http_resilience.py` |
+| 10 | 309 | `src/app/contracts/foundation.py` |
 
 ## Largest Functions
 

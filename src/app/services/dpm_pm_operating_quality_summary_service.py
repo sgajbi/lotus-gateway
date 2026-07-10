@@ -11,8 +11,10 @@ from app.contracts.dpm_command_center import (
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
 from app.services.ai_client_protocols import LotusAiWorkflowClient
-from app.services.dpm_client_protocols import DpmCommandCenterClient
 from app.services.dpm_command_center_errors import raise_manage_command_center_error
+from app.services.dpm_pm_operating_quality_client_protocols import (
+    DpmPmOperatingQualityClientAccessMixin,
+)
 from app.services.lotus_ai_workflow import (
     build_workflow_pack_task_request,
     require_lotus_ai_client,
@@ -29,8 +31,7 @@ class DpmPmOperatingQualitySummaryContext:
     task_payload: dict[str, object]
 
 
-class DpmPmOperatingQualitySummaryServiceMixin:
-    _dpm_client: DpmCommandCenterClient
+class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccessMixin):
     _lotus_ai_client: LotusAiWorkflowClient | None
 
     async def request_pm_operating_quality_summary(
@@ -66,7 +67,10 @@ class DpmPmOperatingQualitySummaryServiceMixin:
         request: DpmPmOperatingQualitySummaryRequest,
         correlation_id: str,
     ) -> DpmPmOperatingQualitySummaryContext:
-        manage_status, manage_payload = await self._dpm_client.get_pm_operating_quality_score_run(
+        (
+            manage_status,
+            manage_payload,
+        ) = await self._pm_operating_quality_client.get_pm_operating_quality_score_run(
             score_run_id=score_run_id,
             correlation_id=correlation_id,
         )
