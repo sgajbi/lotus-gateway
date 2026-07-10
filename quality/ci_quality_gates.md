@@ -19,7 +19,7 @@ The current local and PR-grade blocking gates are:
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
    keeps the executable 363/49 ratchet, the current largest hotspot
-   `src/app/clients/http_resilience.py`, and durable scorecard/context guidance in
+   `src/app/services/dpm_command_center_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -260,6 +260,13 @@ Most recent local PR-grade evidence:
    prove 363 passes while 362 fails on both `http_resilience.py` and
    `dpm_command_center_service.py`. Focused validation includes advisor brief source behavior,
    service-boundary, refactor-threshold, and agent quality evidence checks.
+25. Current HTTP resilience retry-policy extraction moves retry attempt, backoff-delay, and
+   retry-eligibility policy into `src/app/clients/http_retry_policy.py` while preserving the public
+   JSON and binary retry request helpers. It reduces `src/app/clients/http_resilience.py` below the
+   363-line ceiling tie and keeps the blocking threshold at 363/49 because
+   `src/app/services/dpm_command_center_service.py` remains at 363 lines. Focused validation
+   includes HTTP resilience behavior, retry-policy boundary, refactor-threshold, and agent quality
+   evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving

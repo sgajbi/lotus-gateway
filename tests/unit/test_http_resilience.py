@@ -1,10 +1,37 @@
+import ast
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 
 from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.clients.http_retry_policy import (
+    retry_attempts,
+    retry_delay,
+    should_retry_status,
+)
 from app.services.upstream_envelope import safe_upstream_detail
+
+
+def test_http_resilience_delegates_retry_policy() -> None:
+    resilience_path = Path(__file__).parents[2] / "src" / "app" / "clients" / "http_resilience.py"
+    tree = ast.parse(resilience_path.read_text(encoding="utf-8"), filename=str(resilience_path))
+    resilience_functions = {
+        node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+    }
+
+    assert retry_attempts(-1) == 1
+    assert retry_delay(-1.0, attempt=2) == 0.0
+    assert should_retry_status(
+        response_status_code=503,
+        retry_status_codes={503},
+        attempt=0,
+        max_retries=1,
+    )
+    assert "_retry_attempts" not in resilience_functions
+    assert "_retry_delay" not in resilience_functions
+    assert "_should_retry_status" not in resilience_functions
 
 
 class _FlakyAsyncClient:
