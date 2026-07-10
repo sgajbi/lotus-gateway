@@ -66,7 +66,7 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
 
     assert "Enforce Refactored Source Thresholds" in workflow
     assert "python scripts/check_refactor_quality_thresholds.py \\" in workflow
-    assert "--max-source-file-lines 325" in workflow
+    assert "--max-source-file-lines 324" in workflow
     assert "--max-function-lines 49" in workflow
     assert "output/quality-baseline/refactor-thresholds.txt" in workflow
     assert "Enforce Workflow Governance" in workflow

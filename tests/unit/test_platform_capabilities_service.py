@@ -3,8 +3,12 @@ import time
 
 import pytest
 
-from app.services.platform_capabilities_feature_flags import feature_enablement
-from app.services.platform_capabilities_normalization import navigation_flags
+from app.services.platform_capabilities_feature_flags import (
+    feature_enabled,
+    feature_enablement,
+    workflow_enabled,
+)
+from app.services.platform_capabilities_normalization import module_health, navigation_flags
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
 
 
@@ -588,13 +592,6 @@ async def test_platform_capabilities_records_pas_policy_exception():
 
 
 def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
-    service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(200, {}),
-        lotus_core_query_client=_StubClient(200, {}),
-        analytics_client=_StubClient(200, {}),
-        reporting_client=_StubClient(200, {}),
-        contract_version="v1",
-    )
     sources = {
         "lotus_performance": {
             "features": ["bad", {"key": "performance.analytics.twr", "enabled": True}]
@@ -604,7 +601,7 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         },
     }
     assert (
-        service._feature_enabled(
+        feature_enabled(
             sources=sources,
             source_name="lotus_performance",
             feature_keys=("performance.analytics.twr",),
@@ -612,7 +609,7 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         is True
     )
     assert (
-        service._workflow_enabled(
+        workflow_enabled(
             sources=sources, source_name="lotus_advise", workflow_key="proposal_lifecycle"
         )
         is True
@@ -706,14 +703,7 @@ async def test_platform_capabilities_preserves_advise_supportability_without_loc
 
 
 def test_platform_capabilities_module_health_marks_unknown_sources():
-    service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(200, {}),
-        lotus_core_query_client=_StubClient(200, {}),
-        analytics_client=_StubClient(200, {}),
-        reporting_client=_StubClient(200, {}),
-        contract_version="v1",
-    )
-    health = service._module_health(sources={"lotus_core": {}}, errors=[])
+    health = module_health(sources={"lotus_core": {}}, errors=[])
     assert health["lotus_core"] == "available"
     assert health["lotus_performance"] == "unknown"
     assert health["lotus_risk"] == "unknown"
