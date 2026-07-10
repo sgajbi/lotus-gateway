@@ -361,6 +361,14 @@ def test_dpm_pm_operating_quality_summary_lives_in_focused_service_mixin() -> No
     assert not summary_methods & service_methods
 
 
+def test_dpm_pm_operating_quality_service_delegates_response_assembly() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_service.py")
+    response_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_response.py")
+
+    assert "compose_pm_operating_quality_response" in response_methods
+    assert "_compose_pm_operating_quality_response" not in service_methods
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

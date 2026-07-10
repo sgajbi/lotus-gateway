@@ -1,17 +1,11 @@
 from typing import Any
 
-from app.contracts.dpm_command_center import (
-    DpmOutcomeReviewErrorDetail,
-    DpmPmOperatingQualityGatewayResponse,
-)
-from app.services import dpm_command_center_supportability
+from app.contracts.dpm_command_center import DpmPmOperatingQualityGatewayResponse
 from app.services.ai_client_protocols import LotusAiWorkflowClient
 from app.services.dpm_client_protocols import DpmCommandCenterClient
+from app.services.dpm_pm_operating_quality_response import compose_pm_operating_quality_response
 from app.services.dpm_pm_operating_quality_summary_service import (
     DpmPmOperatingQualitySummaryServiceMixin,
-)
-from app.services.upstream_envelope import (
-    build_product_safe_upstream_status_gateway_envelope,
 )
 
 
@@ -31,7 +25,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -49,7 +43,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -67,7 +61,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -85,7 +79,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -103,7 +97,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             params=filters,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -121,7 +115,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             fairness_analysis_id=fairness_analysis_id,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -139,7 +133,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -157,7 +151,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -175,7 +169,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             params=filters,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -193,7 +187,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             review_action_id=review_action_id,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -211,7 +205,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -229,7 +223,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -247,7 +241,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             params=filters,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -265,7 +259,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             summary_invocation_id=summary_invocation_id,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -283,7 +277,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             params=filters,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -301,7 +295,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             score_run_id=score_run_id,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -320,7 +314,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             body=body,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -338,7 +332,7 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             params=filters,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -355,29 +349,8 @@ class DpmPmOperatingQualityServiceMixin(DpmPmOperatingQualitySummaryServiceMixin
             policy_version=policy_version,
             correlation_id=correlation_id,
         )
-        return self._compose_pm_operating_quality_response(
+        return compose_pm_operating_quality_response(
             upstream_status,
             upstream_payload,
             correlation_id,
-        )
-
-    def _compose_pm_operating_quality_response(
-        self,
-        upstream_status: int,
-        upstream_payload: dict[str, Any],
-        correlation_id: str,
-    ) -> DpmPmOperatingQualityGatewayResponse:
-        return build_product_safe_upstream_status_gateway_envelope(
-            DpmPmOperatingQualityGatewayResponse,
-            correlation_id=correlation_id,
-            upstream_status=upstream_status,
-            supportability=(
-                dpm_command_center_supportability.pm_operating_quality_supportability_from(
-                    upstream_payload
-                )
-            ),
-            upstream_payload=upstream_payload,
-            error_model=DpmOutcomeReviewErrorDetail,
-            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-            default_detail="lotus-manage command-center request failed",
         )
