@@ -1,5 +1,18 @@
 # Validation and CI
 
+This page is the current operator and engineering map for `lotus-gateway` validation lanes,
+release evidence, and progressive enterprise-hardening gates. It records implementation-backed
+checks and the current measured quality baseline; it is not a replacement for GitHub check truth.
+
+## Reader Map
+
+| Reader | First Question | Use This Evidence |
+| --- | --- | --- |
+| Developer | What should I run before committing? | `make check` for lint, type, contract, and unit proof |
+| Reviewer | Which gate proves PR readiness? | `make ci` plus GitHub PR Merge Gate |
+| Release/operator | What proves image and metadata posture? | Main Releasability and container release manifests |
+| Future agent | What quality ceiling must not regress? | Agent quality evidence: `335/49`, current hotspot `src/app/services/performance_workspace_capabilities.py` |
+
 ## Lane model
 
 `lotus-gateway` uses:
@@ -81,8 +94,9 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-335/49 ratchet, the current evidence-selected `src/app/contracts/risk_workspace_rolling.py` hotspot, and
-durable scorecard/context guidance synchronized for future agent development. It installs the optional
+335/49 ratchet, the current evidence-selected
+`src/app/services/performance_workspace_capabilities.py` hotspot, and durable scorecard/context
+guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
 - complexity and maintainability through `radon` and `xenon`

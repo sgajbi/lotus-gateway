@@ -1,5 +1,15 @@
 # Architecture
 
+This page describes the current `lotus-gateway` experience-API architecture, ownership boundaries,
+and measured modularity posture. It reflects implementation-backed branch evidence, not a target
+state roadmap.
+
+| Reader | Use This Page For | Current Evidence |
+| --- | --- | --- |
+| Engineering | Find route, service, client, and contract ownership boundaries | `make check` and architecture/refactor quality gates |
+| Operations | Understand which runtime dependencies Gateway composes | Canonical local identities and downstream integration map |
+| Product and demo | Confirm what Gateway owns versus upstream domain services | Workbench-facing route-family map and supportability boundary notes |
+
 ## Runtime model
 
 - FastAPI experience API
@@ -12,9 +22,10 @@
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  335 script-counted lines after moving HTTP response and failure payload helpers into
-  `src/app/clients/http_response_payloads.py`, with
-  `src/app/contracts/risk_workspace_rolling.py` now the evidence-selected source-file ceiling blocker, and
+  335 script-counted lines after moving rolling metric and window contracts into
+  `src/app/contracts/risk_workspace_rolling_metrics.py`, with
+  `src/app/services/performance_workspace_capabilities.py` now the evidence-selected
+  source-file ceiling blocker, and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map

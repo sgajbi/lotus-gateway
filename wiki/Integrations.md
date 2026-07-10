@@ -1,5 +1,18 @@
 # Integrations
 
+This page summarizes the current `lotus-gateway` upstream and downstream integration boundaries.
+Gateway composes source-owned services for Workbench-facing contracts; it does not become the
+domain authority for portfolio, performance, risk, advisory, management, reporting, archive, idea,
+or AI truth.
+
+## Reader Map
+
+| Reader | Use This Page For | Evidence Boundary |
+| --- | --- | --- |
+| Engineering | Find which service owns each consumed capability | Upstream posture and contract notes |
+| Operations | Check canonical local service identities | Canonical local identities |
+| Product/demo | Confirm which claims Gateway can make | Source-ownership and supportability notes |
+
 ## Downstream posture
 
 - primary product consumer:
@@ -50,25 +63,25 @@
 ## Canonical local identities
 
 - `lotus-gateway`
-  `http://gateway.dev.lotus`
+  [gateway.dev.lotus](http://gateway.dev.lotus)
 - `lotus-core query`
-  `http://core-query.dev.lotus`
+  [core-query.dev.lotus](http://core-query.dev.lotus)
 - `lotus-core control`
-  `http://core-control.dev.lotus`
+  [core-control.dev.lotus](http://core-control.dev.lotus)
 - `lotus-core ingestion`
-  `http://core-ingestion.dev.lotus`
+  [core-ingestion.dev.lotus](http://core-ingestion.dev.lotus)
 - `lotus-performance`
-  `http://performance.dev.lotus`
+  [performance.dev.lotus](http://performance.dev.lotus)
 - `lotus-risk`
-  `http://risk.dev.lotus`
+  [risk.dev.lotus](http://risk.dev.lotus)
 - `lotus-report`
-  `http://report.dev.lotus`
+  [report.dev.lotus](http://report.dev.lotus)
 - `lotus-archive`
-  `http://archive.dev.lotus`
+  [archive.dev.lotus](http://archive.dev.lotus)
 - `lotus-idea`
-  `http://idea.dev.lotus`
+  [idea.dev.lotus](http://idea.dev.lotus)
 - `lotus-ai`
-  `http://ai.dev.lotus`
+  [ai.dev.lotus](http://ai.dev.lotus)
 
 ## Contract notes
 

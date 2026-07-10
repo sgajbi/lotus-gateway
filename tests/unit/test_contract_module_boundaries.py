@@ -253,6 +253,21 @@ def test_risk_rolling_payload_example_lives_outside_contract_models() -> None:
     assert "RISK_ROLLING_PAYLOAD_EXAMPLE" not in rolling_contract_assignments
 
 
+def test_risk_rolling_metric_contracts_live_outside_aggregate_contract() -> None:
+    rolling_contract_classes = _class_names(_CONTRACT_ROOT / "risk_workspace_rolling.py")
+    metric_contract_classes = _class_names(_CONTRACT_ROOT / "risk_workspace_rolling_metrics.py")
+
+    expected_metric_contracts = {
+        "WorkbenchRiskRollingMetricSeriesContext",
+        "WorkbenchRiskRollingMetricSeriesPoint",
+        "WorkbenchRiskRollingMetricSummary",
+        "WorkbenchRiskRollingWindowResult",
+    }
+
+    assert expected_metric_contracts <= metric_contract_classes
+    assert rolling_contract_classes.isdisjoint(expected_metric_contracts)
+
+
 def test_risk_drawdown_response_example_lives_outside_aggregate_examples() -> None:
     aggregate_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_examples.py")
     drawdown_contract_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_drawdown.py")
