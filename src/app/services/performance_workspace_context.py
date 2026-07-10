@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
-from app.services.performance_workspace_capabilities import (
-    SUPPORTED_ATTRIBUTION_DIMENSIONS,
-    SUPPORTED_CONTRIBUTION_DIMENSIONS,
-)
 from app.services.performance_workspace_controls import (
     normalize_workspace_chart_frequency,
     normalize_workspace_dimension,
     resolve_shared_segment,
+)
+from app.services.performance_workspace_detail_capabilities import (
+    SUPPORTED_ATTRIBUTION_DIMENSIONS,
+    SUPPORTED_CONTRIBUTION_DIMENSIONS,
 )
 from app.services.performance_workspace_response import GatheredResult
 

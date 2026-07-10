@@ -8,7 +8,7 @@ from app.contracts.performance_evidence import (
     PerformanceSourceSupportabilityView,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
-from app.services.performance_workspace_capabilities import (
+from app.services.performance_workspace_detail_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
 )

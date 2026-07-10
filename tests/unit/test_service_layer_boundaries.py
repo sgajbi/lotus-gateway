@@ -1095,6 +1095,27 @@ def test_performance_workspace_service_delegates_response_orchestration() -> Non
     assert not response_orchestration_methods & service_methods
 
 
+def test_performance_workspace_capabilities_delegate_detail_capability_policy() -> None:
+    capability_methods = _function_names(_SERVICE_ROOT / "performance_workspace_capabilities.py")
+    detail_methods = _function_names(_SERVICE_ROOT / "performance_workspace_detail_capabilities.py")
+    delegated_detail_methods = {
+        "build_attribution_capability",
+        "build_contribution_capability",
+        "build_detail_capabilities",
+    }
+
+    assert delegated_detail_methods <= detail_methods
+    assert capability_methods.isdisjoint(delegated_detail_methods)
+
+
+def test_performance_workspace_capabilities_delegate_module_capability_builder() -> None:
+    capability_methods = _function_names(_SERVICE_ROOT / "performance_workspace_capabilities.py")
+    module_methods = _function_names(_SERVICE_ROOT / "performance_workspace_module_capability.py")
+
+    assert "build_module_capability" in module_methods
+    assert "build_module_capability" not in capability_methods
+
+
 def test_performance_workspace_service_delegates_evidence_orchestration() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

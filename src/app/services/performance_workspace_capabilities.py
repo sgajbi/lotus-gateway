@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 from app.contracts.performance_attribution import AttributionSummaryView
@@ -13,9 +12,33 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceCapabilities,
 )
 from app.services.performance_workspace_controls import SUPPORTED_WORKSPACE_FREQUENCIES
+from app.services.performance_workspace_detail_capabilities import (
+    SUPPORTED_ATTRIBUTION_DIMENSIONS,
+    SUPPORTED_CONTRIBUTION_DIMENSIONS,
+    PerformanceDetailCapabilities,
+    build_attribution_capability,
+    build_contribution_capability,
+    build_detail_capabilities,
+)
+from app.services.performance_workspace_module_capability import build_module_capability
 
-SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
-SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
+__all__ = (
+    "SUPPORTED_ATTRIBUTION_DIMENSIONS",
+    "SUPPORTED_CONTRIBUTION_DIMENSIONS",
+    "PerformanceCapabilityInputs",
+    "PerformanceDetailCapabilities",
+    "build_attribution_capability",
+    "build_benchmark_comparison_capability",
+    "build_contribution_capability",
+    "build_detail_capabilities",
+    "build_evidence_capability",
+    "build_module_capability",
+    "build_multi_horizon_capability",
+    "build_performance_capability_inputs",
+    "build_return_path_capability",
+    "build_workspace_capabilities",
+    "resolve_history_date_range",
+)
 
 
 @dataclass(frozen=True)
@@ -29,36 +52,6 @@ class PerformanceCapabilityInputs:
     has_attribution_summary: bool
     earliest_history_date: str | None
     latest_history_date: str | None
-
-
-@dataclass(frozen=True)
-class PerformanceDetailCapabilities:
-    contribution_ranking: PerformanceModuleCapability
-    attribution_detail: PerformanceModuleCapability
-    contribution_detail: PerformanceModuleCapability
-
-
-def build_module_capability(
-    state: str,
-    reason: str | None = None,
-    *,
-    coverage_level: str | None = None,
-    fallback_available: bool | None = None,
-    earliest_available_date: str | None = None,
-    latest_available_date: str | None = None,
-    supported_dimensions: Sequence[str] | None = None,
-    supported_frequencies: Sequence[str] | None = None,
-) -> PerformanceModuleCapability:
-    return PerformanceModuleCapability(
-        state=state,
-        reason=reason,
-        coverage_level=coverage_level,
-        fallback_available=fallback_available,
-        earliest_available_date=earliest_available_date,
-        latest_available_date=latest_available_date,
-        supported_dimensions=list(supported_dimensions) if supported_dimensions else None,
-        supported_frequencies=list(supported_frequencies) if supported_frequencies else None,
-    )
 
 
 def build_workspace_capabilities(
@@ -95,38 +88,6 @@ def build_workspace_capabilities(
         attribution_detail=detail_capabilities.attribution_detail,
         contribution_detail=detail_capabilities.contribution_detail,
         evidence=build_evidence_capability(evidence_view=evidence_view),
-    )
-
-
-def build_detail_capabilities(
-    *,
-    inputs: PerformanceCapabilityInputs,
-    include_detail_blocks: bool,
-) -> PerformanceDetailCapabilities:
-    return PerformanceDetailCapabilities(
-        contribution_ranking=build_contribution_capability(
-            include_detail_blocks=include_detail_blocks,
-            has_position_ranking=inputs.has_position_ranking,
-            has_contribution_detail=inputs.has_contribution_detail,
-            supported_reason="Position-level contribution ranking is available.",
-            aggregate_reason="Contribution exists, but only aggregate rows are available.",
-            unavailable_reason=(
-                "Contribution analytics are not available for the current selection."
-            ),
-        ),
-        attribution_detail=build_attribution_capability(
-            include_detail_blocks=include_detail_blocks,
-            has_attribution_detail=inputs.has_attribution_detail,
-            has_attribution_summary=inputs.has_attribution_summary,
-        ),
-        contribution_detail=build_contribution_capability(
-            include_detail_blocks=include_detail_blocks,
-            has_position_ranking=inputs.has_position_ranking,
-            has_contribution_detail=inputs.has_contribution_detail,
-            supported_reason="Contribution detail is available for the current selection.",
-            aggregate_reason="Contribution exists, but only aggregate rows are available.",
-            unavailable_reason="Contribution detail is not available for the current selection.",
-        ),
     )
 
 
@@ -267,69 +228,4 @@ def build_evidence_capability(
         "unavailable",
         evidence_view.reason,
         coverage_level="calculation",
-    )
-
-
-def build_contribution_capability(
-    *,
-    include_detail_blocks: bool,
-    has_position_ranking: bool,
-    has_contribution_detail: bool,
-    supported_reason: str,
-    aggregate_reason: str,
-    unavailable_reason: str,
-) -> PerformanceModuleCapability:
-    if not include_detail_blocks or has_position_ranking:
-        return build_module_capability(
-            "supported",
-            supported_reason,
-            coverage_level="position",
-            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-        )
-    if has_contribution_detail:
-        return build_module_capability(
-            "partial",
-            aggregate_reason,
-            coverage_level="aggregate",
-            fallback_available=True,
-            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-        )
-    return build_module_capability(
-        "unavailable",
-        unavailable_reason,
-        supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-    )
-
-
-def build_attribution_capability(
-    *,
-    include_detail_blocks: bool,
-    has_attribution_detail: bool,
-    has_attribution_summary: bool,
-) -> PerformanceModuleCapability:
-    if not include_detail_blocks or has_attribution_detail:
-        return build_module_capability(
-            "supported",
-            "Benchmark-relative attribution detail is available.",
-            coverage_level="detail",
-            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-        )
-    if has_attribution_summary:
-        return build_module_capability(
-            "partial",
-            (
-                "Benchmark-relative attribution is available only at summary level "
-                "for the current selection."
-            ),
-            coverage_level="summary",
-            fallback_available=True,
-            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-        )
-    return build_module_capability(
-        "unavailable",
-        "Attribution detail is not available for the current selection.",
-        supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-        supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
     )
