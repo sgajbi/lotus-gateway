@@ -3,17 +3,15 @@ from typing import Any
 
 import httpx
 
+from app.clients.http_retry_policy import (
+    retry_attempts,
+    retry_delay,
+    should_retry_request_error,
+    should_retry_status,
+)
+
 _BINARY_REQUEST_METHODS = frozenset({"GET", "POST"})
 _JSON_REQUEST_METHODS = frozenset({"GET", "POST", "PUT"})
-
-
-def _retry_attempts(max_retries: int) -> int:
-    return max(0, max_retries) + 1
-
-
-def _retry_delay(backoff_seconds: float, attempt: int) -> float:
-    bounded_backoff = backoff_seconds if backoff_seconds > 0.0 else 0.0
-    return bounded_backoff * (2.0**attempt)
 
 
 def _response_payload(response: httpx.Response) -> dict[str, Any]:
@@ -114,34 +112,8 @@ async def _send_binary_request_once(
         return await client.post(url, headers=headers)
 
 
-def _should_retry_status(
-    *,
-    response_status_code: int,
-    retry_status_codes: set[int] | None,
-    attempt: int,
-    max_retries: int,
-) -> bool:
-    return (
-        retry_status_codes is not None
-        and response_status_code in retry_status_codes
-        and attempt < max_retries
-    )
-
-
-def _should_retry_request_error(
-    *,
-    exc: httpx.RequestError,
-    retry_timeout_exceptions: bool,
-    attempt: int,
-    max_retries: int,
-) -> bool:
-    if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
-        return False
-    return attempt < max_retries
-
-
 async def _sleep_before_retry(backoff_seconds: float, attempt: int) -> None:
-    await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+    await asyncio.sleep(retry_delay(backoff_seconds, attempt))
 
 
 async def _retry_or_return_json_response(
@@ -152,7 +124,7 @@ async def _retry_or_return_json_response(
     max_retries: int,
     backoff_seconds: Any,
 ) -> tuple[int, dict[str, Any]] | None:
-    if _should_retry_status(
+    if should_retry_status(
         response_status_code=response.status_code,
         retry_status_codes=retry_status_codes,
         attempt=attempt,
@@ -171,7 +143,7 @@ async def _retry_or_return_request_error(
     max_retries: int,
     backoff_seconds: Any,
 ) -> tuple[int, dict[str, str]] | None:
-    if not _should_retry_request_error(
+    if not should_retry_request_error(
         exc=exc,
         retry_timeout_exceptions=retry_timeout_exceptions,
         attempt=attempt,
@@ -218,7 +190,7 @@ async def _retry_or_return_binary_response(
     max_retries: int,
     backoff_seconds: Any,
 ) -> tuple[int, bytes, dict[str, str], dict[str, Any]] | None:
-    if _should_retry_status(
+    if should_retry_status(
         response_status_code=response.status_code,
         retry_status_codes=retry_status_codes,
         attempt=attempt,
@@ -240,7 +212,7 @@ async def _retry_or_return_binary_request_error(
     max_retries: int,
     backoff_seconds: Any,
 ) -> tuple[int, bytes, dict[str, str], dict[str, str]] | None:
-    if not _should_retry_request_error(
+    if not should_retry_request_error(
         exc=exc,
         retry_timeout_exceptions=retry_timeout_exceptions,
         attempt=attempt,
@@ -308,7 +280,7 @@ async def request_with_retry(
         "data": data,
         "files": files,
     }
-    attempts = _retry_attempts(max_retries)
+    attempts = retry_attempts(max_retries)
     for attempt in range(attempts):
         result = await _send_json_retry_attempt(
             request_kwargs=request_kwargs,
@@ -347,7 +319,7 @@ async def request_binary_with_retry(
         "params": params,
         "headers": headers,
     }
-    attempts = _retry_attempts(max_retries)
+    attempts = retry_attempts(max_retries)
     for attempt in range(attempts):
         result = await _send_binary_retry_attempt(
             request_kwargs=request_kwargs,

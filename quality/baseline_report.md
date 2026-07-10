@@ -151,9 +151,14 @@ The previous risk drawdown payload schema example extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 366/49 refactor ratchet,
 then-current `src/app/services/advisor_brief_source.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
-The current advisor brief source narrative extraction keeps
+The previous advisor brief source narrative extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 363/49 refactor ratchet,
-current `src/app/clients/http_resilience.py` hotspot evidence, and durable scorecard/context
+then-current `src/app/clients/http_resilience.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
+The current HTTP resilience retry-policy extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 363/49 refactor ratchet,
+current `src/app/services/dpm_command_center_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -1041,16 +1046,16 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 363 | `src/app/clients/http_resilience.py` |
-| 2 | 363 | `src/app/services/dpm_command_center_service.py` |
-| 3 | 361 | `src/app/contracts/performance_attribution.py` |
-| 4 | 360 | `src/app/clients/reporting_client.py` |
-| 5 | 359 | `src/app/services/performance_workspace_benchmarks.py` |
-| 6 | 357 | `src/app/contracts/dpm_outcome_review.py` |
-| 7 | 357 | `src/app/services/foundation_core_snapshot.py` |
-| 8 | 356 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 9 | 355 | `src/app/contracts/reporting.py` |
-| 10 | 354 | `src/app/contracts/foundation.py` |
+| 1 | 363 | `src/app/services/dpm_command_center_service.py` |
+| 2 | 361 | `src/app/contracts/performance_attribution.py` |
+| 3 | 360 | `src/app/clients/reporting_client.py` |
+| 4 | 359 | `src/app/services/performance_workspace_benchmarks.py` |
+| 5 | 357 | `src/app/contracts/dpm_outcome_review.py` |
+| 6 | 357 | `src/app/services/foundation_core_snapshot.py` |
+| 7 | 356 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 8 | 355 | `src/app/contracts/reporting.py` |
+| 9 | 354 | `src/app/contracts/foundation.py` |
+| 10 | 354 | `src/app/contracts/proposal_memos.py` |
 
 ## Largest Functions
 
