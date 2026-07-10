@@ -269,36 +269,6 @@ class ProposalService(
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._opaque_envelope(correlation_id, upstream_payload)
 
-    async def regenerate_proposal_narrative(
-        self,
-        proposal_id: str,
-        version_no: int,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
-        upstream_status, upstream_payload = await self._advise_client.regenerate_proposal_narrative(
-            proposal_id=proposal_id,
-            version_no=version_no,
-            body=body,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._opaque_envelope(correlation_id, upstream_payload)
-
-    async def get_proposal_narrative(
-        self,
-        proposal_id: str,
-        version_no: int,
-        correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
-        upstream_status, upstream_payload = await self._advise_client.get_proposal_narrative(
-            proposal_id=proposal_id,
-            version_no=version_no,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._opaque_envelope(correlation_id, upstream_payload)
-
     def _opaque_envelope(
         self,
         correlation_id: str,
