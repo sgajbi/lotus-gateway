@@ -1,13 +1,13 @@
 from typing import Any
 
 from app.contracts.dpm_command_center import DpmPmOperatingQualityGatewayResponse
-from app.services.dpm_client_protocols import DpmCommandCenterClient
+from app.services.dpm_pm_operating_quality_client_protocols import (
+    DpmPmOperatingQualityClientAccessMixin,
+)
 from app.services.dpm_pm_operating_quality_response import compose_pm_operating_quality_response
 
 
-class DpmPmOperatingQualitySummaryInvocationServiceMixin:
-    _dpm_client: DpmCommandCenterClient
-
+class DpmPmOperatingQualitySummaryInvocationServiceMixin(DpmPmOperatingQualityClientAccessMixin):
     async def preview_pm_operating_quality_summary_invocation(
         self,
         body: dict[str, Any],
@@ -16,7 +16,7 @@ class DpmPmOperatingQualitySummaryInvocationServiceMixin:
         (
             upstream_status,
             upstream_payload,
-        ) = await self._dpm_client.preview_pm_operating_quality_summary_invocation(
+        ) = await self._pm_operating_quality_client.preview_pm_operating_quality_summary_invocation(
             body=body,
             correlation_id=correlation_id,
         )
@@ -34,7 +34,7 @@ class DpmPmOperatingQualitySummaryInvocationServiceMixin:
         (
             upstream_status,
             upstream_payload,
-        ) = await self._dpm_client.create_pm_operating_quality_summary_invocation(
+        ) = await self._pm_operating_quality_client.create_pm_operating_quality_summary_invocation(
             body=body,
             correlation_id=correlation_id,
         )
@@ -52,7 +52,7 @@ class DpmPmOperatingQualitySummaryInvocationServiceMixin:
         (
             upstream_status,
             upstream_payload,
-        ) = await self._dpm_client.list_pm_operating_quality_summary_invocations(
+        ) = await self._pm_operating_quality_client.list_pm_operating_quality_summary_invocations(
             params=filters,
             correlation_id=correlation_id,
         )
@@ -70,7 +70,7 @@ class DpmPmOperatingQualitySummaryInvocationServiceMixin:
         (
             upstream_status,
             upstream_payload,
-        ) = await self._dpm_client.get_pm_operating_quality_summary_invocation(
+        ) = await self._pm_operating_quality_client.get_pm_operating_quality_summary_invocation(
             summary_invocation_id=summary_invocation_id,
             correlation_id=correlation_id,
         )

@@ -1,5 +1,7 @@
 from typing import Any, Protocol
 
+from app.services.dpm_pm_operating_quality_client_protocols import DpmPmOperatingQualityClient
+
 
 class DpmConstructionClient(Protocol):
     async def generate_construction_alternative_set(
@@ -64,7 +66,7 @@ class DpmProofPackClient(Protocol):
     ) -> tuple[int, dict[str, Any]]: ...
 
 
-class DpmCommandCenterClient(Protocol):
+class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
     async def get_command_center(
         self,
         params: dict[str, Any],
@@ -200,122 +202,5 @@ class DpmCommandCenterClient(Protocol):
     async def search_portfolio_memory(
         self,
         params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def preview_pm_operating_quality_score_run(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def create_pm_operating_quality_score_run(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def list_pm_operating_quality_score_runs(
-        self,
-        params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_pm_operating_quality_score_run(
-        self,
-        score_run_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def preview_pm_operating_quality_summary_invocation(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def create_pm_operating_quality_summary_invocation(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def list_pm_operating_quality_summary_invocations(
-        self,
-        params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_pm_operating_quality_summary_invocation(
-        self,
-        summary_invocation_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def preview_pm_operating_quality_review_action(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def create_pm_operating_quality_review_action(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def list_pm_operating_quality_review_actions(
-        self,
-        params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_pm_operating_quality_review_action(
-        self,
-        review_action_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def preview_pm_operating_quality_fairness_analysis(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def create_pm_operating_quality_fairness_analysis(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def list_pm_operating_quality_fairness_analyses(
-        self,
-        params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_pm_operating_quality_fairness_analysis(
-        self,
-        fairness_analysis_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def put_pm_operating_quality_policy(
-        self,
-        policy_id: str,
-        policy_version: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def list_pm_operating_quality_policies(
-        self,
-        params: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_pm_operating_quality_policy(
-        self,
-        policy_id: str,
-        policy_version: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...

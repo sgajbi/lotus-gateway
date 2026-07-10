@@ -37,7 +37,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/dpm_client_protocols.py` at 321 lines as the
+1. `src/app/contracts/portfolio_workspace.py` at 319 lines as the
    evidence-selected ceiling blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
@@ -99,9 +99,14 @@ Proposal narrative read/regenerate behavior now lives in
 `src/app/services/proposal_delivery_service.py` with review and delivery posture behavior, reducing
 `src/app/services/proposal_service.py` below the current 321-line ceiling.
 
+PM operating-quality client protocol ownership now lives in
+`src/app/services/dpm_pm_operating_quality_client_protocols.py`, reducing
+`src/app/services/dpm_client_protocols.py` below the current 319-line ceiling while preserving the
+public `DpmCommandCenterClient` protocol surface through focused protocol inheritance.
+
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 321/49 ratchet, the current evidence-selected
-`src/app/services/dpm_client_protocols.py` hotspot, and durable scorecard/context
+executable 319/49 ratchet, the current evidence-selected
+`src/app/contracts/portfolio_workspace.py` hotspot, and durable scorecard/context
 guidance synchronized.
 
 `src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
