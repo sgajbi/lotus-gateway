@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Path
 
-from app.contracts.reporting import (
+from app.contracts.reporting_portfolio import (
     ReportingPortfolioRequest,
     ReportingSummaryResponse,
 )

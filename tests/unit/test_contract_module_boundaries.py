@@ -513,3 +513,18 @@ def test_reporting_job_contracts_live_outside_reporting_facade() -> None:
 
     assert expected_reporting_job_contracts <= reporting_job_contract_classes
     assert reporting_facade_classes.isdisjoint(expected_reporting_job_contracts)
+
+
+def test_reporting_portfolio_contracts_live_outside_reporting_facade() -> None:
+    reporting_facade_classes = _class_names(_CONTRACT_ROOT / "reporting.py")
+    reporting_portfolio_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_portfolio.py")
+
+    expected_reporting_portfolio_contracts = {
+        "ReportingPortfolioRequest",
+        "ReportingSnapshotResponse",
+        "ReportingSummaryResponse",
+        "ReportingReviewResponse",
+    }
+
+    assert expected_reporting_portfolio_contracts <= reporting_portfolio_contract_classes
+    assert reporting_facade_classes.isdisjoint(expected_reporting_portfolio_contracts)

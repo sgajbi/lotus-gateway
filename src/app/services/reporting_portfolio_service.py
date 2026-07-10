@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.contracts.reporting import (
+from app.contracts.reporting_portfolio import (
     ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,

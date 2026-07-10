@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Path
 
-from app.contracts.reporting import ReportingPortfolioRequest, ReportingReviewResponse
+from app.contracts.reporting_portfolio import ReportingPortfolioRequest, ReportingReviewResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_examples import REVIEW_REQUEST_EXAMPLES
 from app.services.reporting_service_provider import reporting_portfolio_service
