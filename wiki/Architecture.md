@@ -22,9 +22,9 @@ state roadmap.
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  316 script-counted lines after moving portfolio workspace section DTO ownership into
-  `src/app/contracts/portfolio_workspace_sections.py`, with
-  `src/app/services/foundation_service.py` now the evidence-selected
+  316 script-counted lines after moving Foundation workspace source loading into
+  `src/app/services/foundation_workspace_sources.py`, with
+  `src/app/services/platform_capabilities_workspace_descriptors.py` now the evidence-selected
   source-file ceiling blocker, and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 

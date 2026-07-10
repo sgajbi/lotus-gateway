@@ -19,8 +19,8 @@ The current local and PR-grade blocking gates are:
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
    keeps the executable 316/49 ratchet, the current evidence-selected largest hotspot
-   `src/app/services/foundation_service.py`, and durable scorecard/context
-   guidance in sync,
+   `src/app/services/platform_capabilities_workspace_descriptors.py`, and durable
+   scorecard/context guidance in sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
@@ -106,8 +106,8 @@ Most recent local PR-grade evidence:
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
    `scripts/check_agent_quality_evidence.py`, proving the executable 316/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/foundation_service.py` as the current evidence-selected
-   316-line hotspot after portfolio workspace section contract extraction.
+   `src/app/services/platform_capabilities_workspace_descriptors.py` as the current
+   evidence-selected 316-line hotspot after Foundation workspace source-loading extraction.
 8. Current Gateway demo certification slice adds `make demo-certification`, which calls five real
    Gateway FastAPI endpoints with deterministic synthetic upstream fixtures and writes
    `output/demo-certification/gateway-demo-certification.json`. The current local run passed 24
