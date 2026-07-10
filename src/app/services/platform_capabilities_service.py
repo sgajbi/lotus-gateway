@@ -8,21 +8,9 @@ from app.contracts.platform_capabilities import (
     PlatformCapabilitiesNormalized,
     PlatformCapabilitiesResponse,
 )
-from app.services.platform_capabilities_feature_flags import (
-    feature_enabled as _normalized_feature_enabled,
-)
-from app.services.platform_capabilities_feature_flags import (
-    workflow_enabled as _normalized_workflow_enabled,
-)
 from app.services.platform_capabilities_normalization import (
     PRIMARY_CAPABILITY_SOURCES,
     build_normalized_capabilities,
-)
-from app.services.platform_capabilities_normalization import (
-    module_health as _normalized_module_health,
-)
-from app.services.platform_capabilities_normalization import (
-    payload_value as _normalized_payload_value,
 )
 from app.services.platform_capabilities_sources import (
     lotus_core_policy_from_result,
@@ -258,68 +246,3 @@ class PlatformCapabilitiesService:
             evaluated_at=evaluated_at,
             contract_version=self._contract_version,
         )
-
-    def _feature_enabled(
-        self,
-        *,
-        sources: dict[str, dict[str, Any]],
-        source_name: str,
-        feature_keys: tuple[str, ...],
-    ) -> bool:
-        return _normalized_feature_enabled(
-            sources=sources,
-            source_name=source_name,
-            feature_keys=feature_keys,
-        )
-
-    def _payload_value(
-        self,
-        payload: dict[str, Any],
-        camel_key: str,
-        snake_key: str,
-        *,
-        default: Any,
-    ) -> Any:
-        return _normalized_payload_value(
-            payload,
-            camel_key,
-            snake_key,
-            default=default,
-        )
-
-    def _workflow_enabled(
-        self,
-        *,
-        sources: dict[str, dict[str, Any]],
-        source_name: str,
-        workflow_key: str,
-    ) -> bool:
-        return _normalized_workflow_enabled(
-            sources=sources,
-            source_name=source_name,
-            workflow_key=workflow_key,
-        )
-
-    def _any_workflow_enabled(
-        self,
-        *,
-        sources: dict[str, dict[str, Any]],
-        source_name: str,
-        workflow_keys: tuple[str, ...],
-    ) -> bool:
-        return any(
-            _normalized_workflow_enabled(
-                sources=sources,
-                source_name=source_name,
-                workflow_key=workflow_key,
-            )
-            for workflow_key in workflow_keys
-        )
-
-    def _module_health(
-        self,
-        *,
-        sources: dict[str, dict[str, Any]],
-        errors: list[CapabilitySourceError],
-    ) -> dict[str, str]:
-        return _normalized_module_health(sources=sources, errors=errors)
