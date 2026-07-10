@@ -10,6 +10,7 @@ from app.contracts.foundation import (
     FoundationTopPosition,
 )
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.foundation_core_market_value import extract_core_market_value
 
 Number = int | float
 
@@ -77,32 +78,8 @@ class FoundationCoreSnapshotMapper:
         )
 
     def extract_market_value(self, item: dict[str, Any]) -> float | None:
-        valuation = item.get("valuation")
-        if isinstance(valuation, dict):
-            for key in ("market_value_base", "market_value", "current_value_base", "current_value"):
-                value = valuation.get(key)
-                if value is None:
-                    continue
-                try:
-                    return float(quantize_money(value))
-                except (TypeError, ValueError):
-                    continue
-        for key in (
-            "market_value_base",
-            "market_value",
-            "current_value_base",
-            "current_value",
-            "valuation_base",
-            "value_base",
-        ):
-            value = item.get(key)
-            if value is None:
-                continue
-            try:
-                return float(quantize_money(value))
-            except (TypeError, ValueError):
-                continue
-        return None
+        market_value = extract_core_market_value(item)
+        return self._to_number(market_value) if market_value is not None else None
 
     def _validate_core_snapshot_payloads(
         self,

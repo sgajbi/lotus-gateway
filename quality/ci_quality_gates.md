@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 357/49 ratchet, the current largest hotspot
-   `src/app/services/foundation_core_snapshot.py`, and durable scorecard/context guidance in
+   keeps the executable 356/49 ratchet, the current largest hotspot
+   `src/app/services/dpm_pm_operating_quality_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -308,6 +308,14 @@ Most recent local PR-grade evidence:
    threshold at 357/49 because `src/app/services/foundation_core_snapshot.py` remains the largest
    source file; focused validation includes DPM command-center contract shape, contract-boundary,
    mypy, refactor-threshold, and agent quality evidence checks.
+31. Current Foundation core market-value extraction moves market-value key selection and
+   quantized-money parsing into `src/app/services/foundation_core_market_value.py` while preserving
+   the public `FoundationCoreSnapshotMapper.extract_market_value` method. It reduces
+   `src/app/services/foundation_core_snapshot.py` from 357 to 333 lines and ratchets the blocking
+   threshold from 357/49 to 356/49 because
+   `src/app/services/dpm_pm_operating_quality_service.py` is now the largest source file; focused
+   validation includes Foundation core snapshot tests, mypy, refactor-threshold, and agent quality
+   evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into
    `src/app/services/performance_workspace_contribution_payloads.py` while preserving

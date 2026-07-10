@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.services.foundation_core_market_value import extract_core_market_value
 from app.services.foundation_core_snapshot import FoundationCoreSnapshotMapper
 
 
@@ -90,6 +91,7 @@ def test_foundation_core_snapshot_mapper_rejects_invalid_snapshot_payload() -> N
 def test_foundation_core_snapshot_mapper_extracts_market_value() -> None:
     mapper = FoundationCoreSnapshotMapper()
 
+    assert str(extract_core_market_value({"valuation": {"market_value": "88.10"}})) == "88.10"
     assert mapper.extract_market_value({"valuation": {"market_value": "88.10"}}) == 88.1
     assert (
         mapper.extract_market_value(
