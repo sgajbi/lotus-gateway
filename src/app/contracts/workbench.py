@@ -1,3 +1,8 @@
+from app.contracts.workbench_analytics import (
+    WorkbenchAnalyticsBucket,
+    WorkbenchAnalyticsResponse,
+    WorkbenchTopChange,
+)
 from app.contracts.workbench_common import (
     WorkbenchOverviewSummary,
     WorkbenchPartialFailure,
@@ -14,14 +19,11 @@ from app.contracts.workbench_overview import (
     WorkbenchPortfolio360Response,
 )
 from app.contracts.workbench_sandbox import (
-    WorkbenchAnalyticsBucket,
-    WorkbenchAnalyticsResponse,
     WorkbenchPolicyFeedback,
     WorkbenchSandboxApplyChangesRequest,
     WorkbenchSandboxChangeInput,
     WorkbenchSandboxSessionCreateRequest,
     WorkbenchSandboxStateResponse,
-    WorkbenchTopChange,
 )
 
 __all__ = (
