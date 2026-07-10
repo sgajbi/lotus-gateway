@@ -107,6 +107,10 @@ The current Advisor Brief example-boundary extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 397/49 refactor ratchet,
 current `src/app/services/advisor_brief_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current Advisor Brief response-assembly extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 397/49 refactor ratchet,
+current `src/app/services/risk_workspace_attribution_controls.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -993,8 +997,8 @@ ratcheted to `max_source_file_lines=406` because
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 397 | `src/app/services/advisor_brief_service.py` |
-| 2 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 1 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
+| 2 | 396 | `src/app/services/dpm_command_center_service.py` |
 | 3 | 396 | `src/app/services/dpm_command_center_service.py` |
 | 4 | 396 | `src/app/services/dpm_command_center_service.py` |
 | 5 | 388 | `src/app/services/platform_capabilities_workspace_descriptors.py` |

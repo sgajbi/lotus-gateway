@@ -23,14 +23,16 @@ from app.services.advisor_brief_narrative import (
     build_source_advisor_brief_narrative_state,
     safe_advisor_brief_error_detail,
 )
+from app.services.advisor_brief_response import (
+    assemble_advisor_brief_response,
+    with_advisor_brief_runtime_context,
+)
 from app.services.advisor_brief_runtime_context import (
-    AdvisorBriefRuntimeContext,
     load_advisor_brief_runtime_context,
 )
 from app.services.advisor_brief_source import (
     AdvisorBriefSourceContext,
     build_advisor_brief_source_context,
-    build_advisor_brief_source_metrics,
 )
 from app.services.advisor_brief_workflow_pack import (
     assert_advisor_brief_review_action_allowed,
@@ -161,7 +163,7 @@ class AdvisorBriefService:
             correlation_id=correlation_id,
             ai_audit=narrative_state.ai_audit,
         )
-        return self._assemble_advisor_brief_response(
+        return assemble_advisor_brief_response(
             correlation_id=correlation_id,
             source_context=source_context,
             narrative_state=narrative_state,
@@ -227,46 +229,6 @@ class AdvisorBriefService:
             ai_payload=ai_payload,
         )
 
-    def _assemble_advisor_brief_response(
-        self,
-        *,
-        correlation_id: str,
-        source_context: AdvisorBriefSourceContext,
-        narrative_state: AdvisorBriefNarrativeState,
-        runtime_context: AdvisorBriefRuntimeContext,
-    ) -> AdvisorBriefResponse:
-        workspace = source_context.workspace
-        return AdvisorBriefResponse(
-            correlation_id=correlation_id,
-            contract_version=workspace.contract_version,
-            portfolio_id=workspace.portfolio_id,
-            portfolio=workspace.portfolio,
-            as_of_date=workspace.as_of_date,
-            period=workspace.period,
-            report_start_date=workspace.report_start_date,
-            report_end_date=workspace.report_end_date,
-            detail_basis=workspace.detail_basis,
-            chart_frequency=workspace.chart_frequency,
-            contribution_dimension=workspace.contribution_dimension,
-            attribution_dimension=workspace.attribution_dimension,
-            benchmark_code=workspace.benchmark_code,
-            status=narrative_state.status,
-            summary=narrative_state.summary,
-            talking_points=narrative_state.talking_points,
-            recommended_actions=narrative_state.recommended_actions,
-            risks_and_exceptions=narrative_state.risks_and_exceptions,
-            source_metrics=build_advisor_brief_source_metrics(source_context=source_context),
-            supportability=source_context.supportability,
-            ai_surface_supportability=runtime_context.ai_surface_supportability,
-            advisory_supportability=runtime_context.advisory_supportability,
-            ai_audit=narrative_state.ai_audit,
-            ai_evidence=narrative_state.ai_evidence,
-            workflow_pack_run=runtime_context.workflow_pack_run,
-            workflow_pack_task_flow=runtime_context.workflow_pack_task_flow,
-            warnings=workspace.warnings,
-            partial_failures=workspace.partial_failures,
-        )
-
     async def apply_performance_advisor_brief_review_action(
         self,
         *,
@@ -307,7 +269,7 @@ class AdvisorBriefService:
             ai_audit=review_context.brief.ai_audit,
         )
         self.clear_cache()
-        return self._with_advisor_brief_runtime_context(
+        return with_advisor_brief_runtime_context(
             review_context.brief,
             runtime_context,
         )
@@ -381,17 +343,3 @@ class AdvisorBriefService:
                 status_code=review_status,
                 detail=safe_advisor_brief_error_detail(review_payload),
             )
-
-    def _with_advisor_brief_runtime_context(
-        self,
-        brief: AdvisorBriefResponse,
-        runtime_context: AdvisorBriefRuntimeContext,
-    ) -> AdvisorBriefResponse:
-        return brief.model_copy(
-            update={
-                "workflow_pack_run": runtime_context.workflow_pack_run,
-                "workflow_pack_task_flow": runtime_context.workflow_pack_task_flow,
-                "ai_surface_supportability": runtime_context.ai_surface_supportability,
-                "advisory_supportability": runtime_context.advisory_supportability,
-            }
-        )
