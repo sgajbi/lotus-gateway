@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 397/49 ratchet, the current largest hotspot
-   `src/app/services/advisor_brief_service.py`, and durable scorecard/context guidance in
+   keeps the executable 394/49 ratchet, the current largest hotspot
+   `src/app/services/dpm_command_center_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -89,12 +89,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 397
+2. Current enforced source-file threshold: no Python source file under `src/app` above 394
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=397` and `max_function_lines=49`.
+   `max_source_file_lines=394` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -161,6 +161,15 @@ Most recent local PR-grade evidence:
    `src/app/services/risk_workspace_attribution_controls.py` are the tied 397-line hotspots;
    threshold trials prove 397 passes while 396 fails on those files. Focused validation includes
    contract-module boundary, Workbench Advisor Brief OpenAPI, refactor-threshold, and agent
+   quality evidence checks.
+14. Current risk attribution supportability extraction moves benchmark exposure supportability
+   item construction into `src/app/services/risk_workspace_attribution_supportability.py` while
+   preserving risk attribution control option behavior. It reduces
+   `src/app/services/risk_workspace_attribution_controls.py` below the previous 397-line ceiling
+   and ratchets the blocking threshold from 397/49 to 394/49 because
+   `src/app/services/dpm_command_center_service.py` is now the largest source file; threshold
+   trials prove 394 passes while 393 fails on that file. Focused validation includes risk
+   attribution controls, risk attribution mapper, service-boundary, refactor-threshold, and agent
    quality evidence checks.
 12. Current performance contribution payload mapping extraction moves contribution level, row,
    position, smoothing-evidence, and source-economics payload mapping into

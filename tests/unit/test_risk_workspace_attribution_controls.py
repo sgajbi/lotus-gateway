@@ -1,10 +1,12 @@
 from app.services.risk_workspace_attribution_controls import (
     build_attribution_controls,
-    build_attribution_supportability,
     metadata_grouping_dimension_set,
     normalize_risk_attribution_grouping,
     normalize_risk_attribution_type,
     resolve_active_risk_grouping_support,
+)
+from app.services.risk_workspace_attribution_supportability import (
+    build_attribution_supportability,
     total_risk_gated_grouping_reason,
 )
 

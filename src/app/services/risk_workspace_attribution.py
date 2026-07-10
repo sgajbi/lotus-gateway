@@ -16,7 +16,6 @@ from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_attribution_controls import (
     RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS,
     build_attribution_controls,
-    build_attribution_supportability,
 )
 from app.services.risk_workspace_attribution_controls import (
     normalize_risk_attribution_grouping as _normalize_risk_attribution_grouping,
@@ -25,6 +24,9 @@ from app.services.risk_workspace_attribution_controls import (
     normalize_risk_attribution_type as _normalize_risk_attribution_type,
 )
 from app.services.risk_workspace_attribution_mapping import map_attribution_period_results
+from app.services.risk_workspace_attribution_supportability import (
+    build_attribution_supportability,
+)
 from app.services.risk_workspace_envelopes import (
     RISK_SOURCE_SERVICE,
     risk_metadata,

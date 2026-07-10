@@ -1021,6 +1021,24 @@ def test_risk_workspace_mappers_delegate_source_supportability() -> None:
     assert "_append_source_calculation_supportability" not in attribution_methods
 
 
+def test_risk_workspace_attribution_controls_delegate_supportability_items() -> None:
+    controls_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution_controls.py")
+    supportability_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_attribution_supportability.py"
+    )
+    expected_supportability_methods = {
+        "build_attribution_supportability",
+        "build_base_attribution_supportability_items",
+        "build_active_risk_supportability_items",
+        "active_risk_benchmark_exposure_state",
+        "build_total_risk_benchmark_exposure_supportability_item",
+        "total_risk_gated_grouping_reason",
+    }
+
+    assert expected_supportability_methods <= supportability_methods
+    assert controls_methods.isdisjoint(expected_supportability_methods)
+
+
 def test_risk_workspace_attribution_delegates_period_mapping() -> None:
     attribution_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution.py")
     mapping_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution_mapping.py")
