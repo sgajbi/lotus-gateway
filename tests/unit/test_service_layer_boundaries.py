@@ -506,6 +506,18 @@ def test_advisor_brief_runtime_context_owns_runtime_evidence_loading() -> None:
     assert "_load_advisor_brief_runtime_context" not in service_methods
 
 
+def test_advisor_brief_service_delegates_review_action_context() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "advisor_brief_service.py")
+    review_action_methods = _function_names(_SERVICE_ROOT / "advisor_brief_review_actions.py")
+
+    assert {
+        "apply_advisor_brief_review_action",
+        "load_advisor_brief_review_action_context",
+    } <= review_action_methods
+    assert "_apply_advisor_brief_review_action" not in service_methods
+    assert "_load_advisor_brief_review_action_context" not in service_methods
+
+
 def test_advisor_brief_service_delegates_response_assembly() -> None:
     service_methods = _function_names(_SERVICE_ROOT / "advisor_brief_service.py")
     response_methods = _function_names(_SERVICE_ROOT / "advisor_brief_response.py")
