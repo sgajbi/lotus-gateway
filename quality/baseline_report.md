@@ -131,6 +131,10 @@ The current DPM PM operating-quality response extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 381/49 refactor ratchet,
 current `src/app/services/portfolio_workflow.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
+The current portfolio workflow definitions extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 379/49 refactor ratchet,
+current `src/app/contracts/risk_workspace_examples.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio

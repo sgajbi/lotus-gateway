@@ -37,16 +37,20 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_workflow.py` at 381 lines,
-2. `src/app/contracts/risk_workspace_examples.py` at 379 lines,
-3. `src/app/services/upstream_envelope.py` at 378 lines,
-4. `src/app/contracts/workbench_sandbox.py` at 376 lines.
+1. `src/app/contracts/risk_workspace_examples.py` at 379 lines,
+2. `src/app/services/upstream_envelope.py` at 378 lines,
+3. `src/app/contracts/workbench_sandbox.py` at 376 lines,
+4. `src/app/contracts/risk_workspace_rolling.py` at 369 lines.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 381/49 ratchet, the current `src/app/services/portfolio_workflow.py` hotspot, and
+executable 379/49 ratchet, the current `src/app/contracts/risk_workspace_examples.py` hotspot, and
 durable scorecard/context guidance synchronized.
+
+`src/app/services/portfolio_workflow.py` is reduced below the previous 381-line ceiling after
+static workflow action specs and label policy moved into
+`src/app/services/portfolio_workflow_definitions.py`.
 
 `src/app/services/risk_workspace_service.py` is reduced from 402 to 222 lines after upstream
 summary, concentration, drawdown, rolling, and rolling-Sharpe fallback response loading moved into
