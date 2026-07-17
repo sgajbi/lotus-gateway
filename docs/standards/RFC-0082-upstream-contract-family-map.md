@@ -133,9 +133,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 6. Gateway report batch routes are an operator/API boundary only. Workbench batch UI, RFC-0105
    replay/dashboard operations, and RFC-0106 entitlement certification must not be inferred from
    these routes until those slices are implemented and proven.
-7. Gateway idea routes are read-only publication surfaces only. Workbench idea UI, mutation
-   routes, data-product promotion, and full supported-feature claims must not be inferred until
-   separately implemented and proven.
+7. Gateway Idea reads and candidate-scoped review-action, feedback, and conversion-intent routes are
+   implementation-backed BFF surfaces. Workbench action affordances, canonical runtime proof,
+   data-product promotion, downstream realization, and full supported-feature claims must not be
+   inferred until separately implemented and proven.
 
 ## Validation Lane
 
