@@ -7,11 +7,8 @@ from app.contracts.portfolio_liquidity import (
 )
 from app.services.portfolio_holdings_payloads import parse_cash_balances
 from app.services.portfolio_liquidity_payloads import PortfolioLiquidityPayloads
-from app.services.portfolio_workspace_components import (
-    extract_resolved_as_of_date,
-    parse_cashflow,
-    parse_summary,
-)
+from app.services.portfolio_workspace_components import parse_cashflow, parse_summary
+from app.services.portfolio_workspace_sources import extract_resolved_as_of_date
 
 UpstreamResult = tuple[int, dict[str, Any]]
 

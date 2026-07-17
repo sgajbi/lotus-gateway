@@ -6,7 +6,6 @@ from app.services.portfolio_workspace_components import (
     assemble_portfolio_workspace_components,
     build_portfolio_workspace_assembly_state,
     build_portfolio_workspace_response_parts,
-    extract_resolved_as_of_date,
     parse_cashflow,
     parse_summary,
     parse_workspace_rebalance,
@@ -190,8 +189,3 @@ def test_assemble_workspace_components_preserves_source_warnings_and_parts() -> 
     )
     assert response_parts.workflow_cues
     assert response_parts.partial_failures == components.partial_failures
-
-
-def test_extract_resolved_as_of_date_uses_source_payload_only_when_available() -> None:
-    assert extract_resolved_as_of_date(_aum_result()) == "2026-03-28"
-    assert extract_resolved_as_of_date((503, {"resolved_as_of_date": "2026-03-28"})) is None

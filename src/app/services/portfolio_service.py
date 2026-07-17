@@ -46,7 +46,6 @@ from app.services.portfolio_workspace_components import (
     assemble_portfolio_workspace_components,
     build_portfolio_workspace_assembly_state,
     build_portfolio_workspace_response_parts,
-    extract_resolved_as_of_date,
 )
 from app.services.portfolio_workspace_response import (
     assemble_portfolio_workspace_response,
@@ -98,16 +97,16 @@ class PortfolioService(
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioWorkspaceResponse:
-        effective_as_of_date = as_of_date or datetime.now(UTC).date().isoformat()
         source_results = await self._load_portfolio_workspace_sources(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
-            effective_as_of_date=effective_as_of_date,
+            requested_as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         )
         resolved_as_of_date = (
-            extract_resolved_as_of_date(source_results.aum_result) or effective_as_of_date
+            source_results.resolved_as_of_date or as_of_date or datetime.now(UTC).date().isoformat()
         )
+        effective_as_of_date = as_of_date or resolved_as_of_date
         performance_as_of_date = as_of_date or resolved_as_of_date
         analytics_results = await self._load_portfolio_workspace_analytics(
             portfolio_id=portfolio_id,
@@ -129,14 +128,14 @@ class PortfolioService(
         *,
         portfolio_id: str,
         correlation_id: str,
-        effective_as_of_date: str,
+        requested_as_of_date: str | None,
         reporting_currency: str | None,
     ) -> PortfolioWorkspaceSourceResults:
         return await load_portfolio_workspace_sources(
             PortfolioWorkspaceSourceLoadRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                effective_as_of_date=effective_as_of_date,
+                requested_as_of_date=requested_as_of_date,
                 reporting_currency=reporting_currency,
             ),
             PortfolioWorkspaceSourceLoaders(

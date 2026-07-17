@@ -262,16 +262,19 @@ Most relevant current governance:
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
 4. reporting query, cashflow projection, projected summary, and benchmark catalog upstream calls remain RFC-0082 watchlist surfaces,
 5. integration drift is most dangerous here because it directly affects the product UI,
-6. repo-local `wiki/` content should summarize route families and operator flows without duplicating
+6. an omitted optional portfolio workspace `as_of_date` must remain omitted for the initial
+   lotus-core AUM request; Gateway then aligns the remaining workspace sources and analytics to
+   the source-resolved date rather than substituting its host wall clock,
+7. repo-local `wiki/` content should summarize route families and operator flows without duplicating
    the full `docs/` tree.
-7. archive retrieval uses `ARCHIVE_SERVICE_BASE_URL` and forwards archive-specific caller context
+8. archive retrieval uses `ARCHIVE_SERVICE_BASE_URL` and forwards archive-specific caller context
    as `lotus-gateway`; direct Workbench-to-archive access is not part of the supported product
    boundary,
-8. idea publication uses `IDEA_SERVICE_BASE_URL`, forwards `X-Caller-Subject`,
+9. idea publication uses `IDEA_SERVICE_BASE_URL`, forwards `X-Caller-Subject`,
    `X-Caller-Roles`, `X-Caller-Capabilities`, entitlement-scope headers for published idea reads,
    and correlation context to `lotus-idea`, and maps unsafe upstream failures to product-safe
    Gateway errors,
-9. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
+10. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
    under the sibling `lotus-platform/generated/` directory, and live trust certification defaults to
    `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
    deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,
