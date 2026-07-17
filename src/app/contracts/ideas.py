@@ -1,4 +1,5 @@
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -92,6 +93,141 @@ class IdeaGatewayCandidateDetailResponse(BaseModel):
         ...,
         alias="supportedFeaturePromoted",
         description="Source-owned supported-feature promotion flag. Gateway must not promote it.",
+    )
+
+
+class IdeaCandidateActionRequest(BaseModel):
+    """Base request contract for Idea-owned candidate mutations.
+
+    Gateway validates transport shape only. Lotus Idea remains authoritative for candidate state,
+    entitlement decisions, idempotency semantics, audit, and every business transition.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+
+class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
+    review_id: str = Field(..., alias="reviewId", min_length=1)
+    action: Literal[
+        "approve_for_conversion",
+        "reject",
+        "no_action",
+        "suppress",
+        "snooze",
+        "escalate_to_pm",
+        "escalate_to_compliance",
+    ]
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    decided_at_utc: datetime = Field(..., alias="decidedAtUtc")
+    suppression_reason: (
+        Literal[
+            "duplicate",
+            "recently_rejected",
+            "below_materiality",
+            "unsupported_evidence",
+            "manual_suppression",
+        ]
+        | None
+    ) = Field(default=None, alias="suppressionReason")
+    snoozed_until_utc: datetime | None = Field(default=None, alias="snoozedUntilUtc")
+
+
+class IdeaCandidateFeedbackRequest(IdeaCandidateActionRequest):
+    feedback_id: str = Field(..., alias="feedbackId", min_length=1)
+    outcome: Literal[
+        "useful",
+        "not_useful",
+        "duplicate",
+        "too_late",
+        "missing_context",
+        "unsupported_claim",
+    ]
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
+
+
+class IdeaCandidateConversionIntentRequest(IdeaCandidateActionRequest):
+    conversion_intent_id: str = Field(..., alias="conversionIntentId", min_length=1)
+    target: Literal["advise_proposal", "manage_review", "report_evidence"]
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    requested_at_utc: datetime = Field(..., alias="requestedAtUtc")
+
+
+class IdeaMutationPersistenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    decision: str
+    candidate_id: str | None = Field(default=None, alias="candidateId")
+    lifecycle_status: str | None = Field(default=None, alias="lifecycleStatus")
+    review_posture: str | None = Field(default=None, alias="reviewPosture")
+    audit_event_type: str | None = Field(default=None, alias="auditEventType")
+
+
+class IdeaCandidateActionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    persistence: IdeaMutationPersistenceResponse
+    durable_storage_backed: bool = Field(..., alias="durableStorageBacked")
+    supported_feature_promoted: bool = Field(..., alias="supportedFeaturePromoted")
+
+
+class IdeaReviewDecisionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    review_id: str = Field(..., alias="reviewId")
+    candidate_id: str = Field(..., alias="candidateId")
+    evidence_packet_id: str = Field(..., alias="evidencePacketId")
+    action: str
+    resulting_posture: str = Field(..., alias="resultingPosture")
+    actor_role: str = Field(..., alias="actorRole")
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
+    decided_at_utc: datetime = Field(..., alias="decidedAtUtc")
+    suppression_reason: str | None = Field(default=None, alias="suppressionReason")
+    snoozed_until_utc: datetime | None = Field(default=None, alias="snoozedUntilUtc")
+    grants_downstream_authority: bool = Field(..., alias="grantsDownstreamAuthority")
+
+
+class IdeaCandidateReviewActionResponse(IdeaCandidateActionResponse):
+    review_decision: IdeaReviewDecisionResponse | None = Field(default=None, alias="reviewDecision")
+
+
+class IdeaFeedbackEventResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    feedback_id: str = Field(..., alias="feedbackId")
+    candidate_id: str = Field(..., alias="candidateId")
+    evidence_packet_id: str = Field(..., alias="evidencePacketId")
+    outcome: str
+    actor_role: str = Field(..., alias="actorRole")
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
+    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
+
+
+class IdeaCandidateFeedbackResponse(IdeaCandidateActionResponse):
+    feedback_event: IdeaFeedbackEventResponse | None = Field(default=None, alias="feedbackEvent")
+
+
+class IdeaConversionIntentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    conversion_intent_id: str = Field(..., alias="conversionIntentId")
+    candidate_id: str = Field(..., alias="candidateId")
+    target: str
+    source_status: str = Field(..., alias="sourceStatus")
+    target_source_authority: str = Field(..., alias="targetSourceAuthority")
+    evidence_packet_id: str = Field(..., alias="evidencePacketId")
+    evidence_content_hash: str = Field(..., alias="evidenceContentHash")
+    source_signal_ids: tuple[str, ...] = Field(..., alias="sourceSignalIds")
+    boundary: str
+    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
+    requested_at_utc: datetime = Field(..., alias="requestedAtUtc")
+    grants_downstream_authority: bool = Field(..., alias="grantsDownstreamAuthority")
+
+
+class IdeaCandidateConversionIntentResponse(IdeaCandidateActionResponse):
+    conversion_intent: IdeaConversionIntentResponse | None = Field(
+        default=None,
+        alias="conversionIntent",
     )
 
 

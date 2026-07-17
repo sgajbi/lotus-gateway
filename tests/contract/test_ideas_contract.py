@@ -8,6 +8,13 @@ def test_ideas_openapi_contract_registered() -> None:
 
     queue_operation = spec["paths"]["/api/v1/ideas/review-queues/advisor"]["get"]
     detail_operation = spec["paths"]["/api/v1/ideas/candidates/{candidate_id}"]["get"]
+    review_action_operation = spec["paths"][
+        "/api/v1/ideas/candidates/{candidate_id}/review-actions"
+    ]["post"]
+    feedback_operation = spec["paths"]["/api/v1/ideas/candidates/{candidate_id}/feedback"]["post"]
+    conversion_operation = spec["paths"][
+        "/api/v1/ideas/candidates/{candidate_id}/conversion-intents"
+    ]["post"]
     queue_schema = spec["components"]["schemas"]["IdeaGatewayReviewQueueResponse"]
     detail_schema = spec["components"]["schemas"]["IdeaGatewayCandidateDetailResponse"]
 
@@ -38,3 +45,15 @@ def test_ideas_openapi_contract_registered() -> None:
     assert queue_schema["properties"]["supportedFeaturePromoted"]["description"]
     assert detail_schema["properties"]["evidence"]["description"]
     assert detail_schema["properties"]["supportedFeaturePromoted"]["description"]
+    assert review_action_operation["summary"] == "Record idea candidate review action"
+    assert feedback_operation["summary"] == "Record idea candidate feedback"
+    assert conversion_operation["summary"] == "Record idea candidate conversion intent"
+    for operation in (review_action_operation, feedback_operation, conversion_operation):
+        parameter_names = {parameter["name"] for parameter in operation["parameters"]}
+        assert {"Idempotency-Key", "X-Causation-Id", "X-Caller-Capabilities"}.issubset(
+            parameter_names
+        )
+        assert operation["responses"]["409"]["description"]
+        assert operation["responses"]["422"]["description"]
+        assert operation["responses"]["502"]["description"]
+        assert "does not" in operation["description"]

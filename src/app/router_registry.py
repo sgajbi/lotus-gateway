@@ -34,6 +34,7 @@ from app.routers.domain_product_trust import router as domain_product_trust_rout
 from app.routers.foundation import router as foundation_router
 from app.routers.foundation_workspace import router as foundation_workspace_router
 from app.routers.ideas import router as ideas_router
+from app.routers.ideas_actions import router as ideas_actions_router
 from app.routers.intake import router as intake_router
 from app.routers.intake_upload_commits import router as intake_upload_commits_router
 from app.routers.intake_uploads import router as intake_uploads_router
@@ -227,7 +228,7 @@ OPERATIONS_ROUTERS: RouterGroup = (
     analytics_diagnostics_router,
 )
 
-IDEA_ROUTERS: RouterGroup = (ideas_router,)
+IDEA_ROUTERS: RouterGroup = (ideas_router, ideas_actions_router)
 
 ROUTER_GROUPS: tuple[RouterGroup, ...] = (
     ADVISOR_COCKPIT_ROUTERS,

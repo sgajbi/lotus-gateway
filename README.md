@@ -103,7 +103,8 @@ It depends on:
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-idea`
-  opportunity intelligence review queues and source-safe candidate detail
+  opportunity intelligence review queues, source-safe candidate detail, and source-owned candidate
+  review, feedback, and conversion-intent recording
 - `lotus-ai`
   evidence-grounded advisor-brief support, outcome-review narrative support, DPM exception-summary
   support, proof-pack PM memo support, wave PM memo support, and operations handoff support through
@@ -126,8 +127,9 @@ Boundary rules that matter:
    reporting, intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
-4. Idea review queue and candidate detail routes are active as source-preserving read facades over
-   `lotus-idea`; Gateway does not rank, generate, enrich, or promote ideas locally.
+4. Idea queue/detail reads and bounded candidate review, feedback, and conversion-intent routes are
+   active as source-preserving BFF facades over `lotus-idea`; Gateway does not rank, generate,
+   enrich, authorize, or promote ideas locally.
 5. The repository is still moving from thin pass-through behavior toward cleaner experience-API
    contracts.
 6. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
@@ -364,12 +366,14 @@ Important current parameter conventions:
 10. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
-11. idea review queue and candidate detail routes forward `X-Caller-Subject`, `X-Caller-Roles`,
+11. Idea queue/detail and candidate action routes forward `X-Caller-Subject`, `X-Caller-Roles`,
    `X-Caller-Capabilities`, `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`,
-   `X-Caller-Portfolio-Ids`, and `X-Caller-Client-Ids` to `lotus-idea` for
-   entitlement-scope enforcement. Gateway preserves
+   `X-Caller-Portfolio-Ids`, `X-Caller-Client-Ids`, and optional
+   `X-Lotus-Trusted-Caller-Context` to `lotus-idea` for entitlement-scope enforcement. Candidate
+   mutations require `Idempotency-Key` and forward correlation/trace context and optional
+   `X-Causation-Id`. Gateway preserves
    `supportedFeaturePromoted=false` and does not rank, score, enrich, or certify idea candidates
-   locally
+   locally, grant downstream authority, or create downstream execution records
 12. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
    action routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,

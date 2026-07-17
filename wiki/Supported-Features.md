@@ -5,34 +5,43 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
-## Idea Opportunity Reads
+## Idea Opportunity BFF
 
-Status: implementation-backed in Gateway for the first read-only `lotus-idea` publication slice.
-This is not a Workbench UI completion claim or a supported-feature promotion from `lotus-idea`.
+Status: implementation-backed in Gateway for bounded `lotus-idea` reads and candidate action
+recording. This is not a Workbench UI completion claim or a supported-feature promotion from
+`lotus-idea`.
 
 What is supported:
 
 1. advisors can read the Idea review queue through Gateway,
 2. advisors and operators can read source-safe candidate detail through Gateway,
-3. Gateway preserves `lotus-idea` ranking, source signal identifiers, redacted source references,
-   durable-storage posture, and `supportedFeaturePromoted=false`,
-4. Gateway maps unsafe upstream failures to product-safe error detail.
+3. authorized callers can record a source-owned candidate review action, feedback event, or
+   conversion intent through Gateway,
+4. Gateway preserves `lotus-idea` ranking, source signal identifiers, redacted source references,
+   durable-storage posture, accepted/replayed mutation posture, and `supportedFeaturePromoted=false`,
+5. Gateway maps unsafe upstream failures to product-safe error detail.
 
 Supported routes:
 
 1. `GET /api/v1/ideas/review-queues/advisor`
 2. `GET /api/v1/ideas/candidates/{candidate_id}`
+3. `POST /api/v1/ideas/candidates/{candidate_id}/review-actions`
+4. `POST /api/v1/ideas/candidates/{candidate_id}/feedback`
+5. `POST /api/v1/ideas/candidates/{candidate_id}/conversion-intents`
 
 Boundary:
 
 1. Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
    `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,
-   `X-Caller-Client-Ids`, and correlation context to `lotus-idea` for
-   `lotus-idea` entitlement-scope enforcement on published idea reads.
+   `X-Caller-Client-Ids`, optional `X-Lotus-Trusted-Caller-Context`, and correlation/trace context
+   to `lotus-idea` for entitlement-scope enforcement. Mutation routes additionally require and
+   forward `Idempotency-Key` and forward optional `X-Causation-Id`.
 2. Gateway does not generate ideas, rank candidates, enrich evidence, certify data-product posture,
-   grant downstream authority, or promote `supportedFeaturePromoted`.
-3. Workbench idea UI, mutation routes, data-product certification, and full supported-feature
-   promotion remain separate proof scopes.
+   grant downstream authority, or promote `supportedFeaturePromoted`; a conversion intent does not
+   create a downstream proposal, action, report evidence pack, rebalance, execution, or client
+   communication.
+3. Workbench idea UI, canonical runtime proof, data-product certification, and full
+   supported-feature promotion remain separate proof scopes.
 
 ## Advisory Proposal Narrative Posture
 
