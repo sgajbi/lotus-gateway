@@ -473,6 +473,8 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workflow" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot" in spec["paths"]
     catalog_path = spec["paths"]["/api/v1/portfolio/portfolios"]["get"]
+    workspace_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workspace"]["get"]
+    workspace_parameters = {row["name"]: row for row in workspace_path["parameters"]}
     catalog_schema = spec["components"]["schemas"]["PortfolioCatalogResponse"]
     catalog_item_schema = spec["components"]["schemas"]["PortfolioCatalogItem"]
     workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
@@ -502,6 +504,10 @@ def test_portfolio_openapi_contract_registered() -> None:
     workspace_module_capability_schema = spec["components"]["schemas"][
         "PortfolioWorkspaceModuleCapability"
     ]
+    assert (
+        "latest governed date resolved by lotus-core"
+        in workspace_parameters["as_of_date"]["description"]
+    )
     workflow_launch_cue_schema = spec["components"]["schemas"]["PortfolioWorkflowLaunchCue"]
     readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
     readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]

@@ -581,11 +581,25 @@ async def test_portfolio_workspace_uses_source_resolved_date_for_default_perform
     class _RecordingCoreClient(_StubLotusCoreQueryClient):
         def __init__(self) -> None:
             self.analytics_reference_as_of_date: str | None = None
+            self.source_as_of_dates: dict[str, str | None] = {}
 
         async def query_assets_under_management(self, **kwargs):
+            self.source_as_of_dates["aum"] = kwargs.get("as_of_date")
             payload = await super().query_assets_under_management(**kwargs)
             payload[1]["resolved_as_of_date"] = "2026-04-10"
             return payload
+
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.source_as_of_dates["cashflow"] = kwargs.get("as_of_date")
+            return await super().get_cashflow_projection(portfolio_id, correlation_id, **kwargs)
+
+        async def get_portfolio_cash_balances(self, **kwargs):
+            self.source_as_of_dates["cash_balances"] = kwargs.get("as_of_date")
+            return await super().get_portfolio_cash_balances(**kwargs)
+
+        async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.source_as_of_dates["readiness"] = kwargs.get("as_of_date")
+            return await super().get_portfolio_readiness(portfolio_id, correlation_id, **kwargs)
 
         async def get_portfolio_analytics_reference(
             self,
@@ -620,9 +634,17 @@ async def test_portfolio_workspace_uses_source_resolved_date_for_default_perform
     )
 
     assert response.as_of_date == "2026-04-10"
+    assert core_client.source_as_of_dates == {
+        "aum": None,
+        "cashflow": "2026-04-10",
+        "cash_balances": "2026-04-10",
+        "readiness": "2026-04-10",
+    }
     assert core_client.analytics_reference_as_of_date == "2026-04-10"
     assert analytics_client.twr_kwargs is not None
     assert analytics_client.twr_kwargs["report_end_date"] == "2026-04-10"
+    assert response.control_capabilities.historical_snapshots.requested_as_of_date == "2026-04-10"
+    assert response.control_capabilities.historical_snapshots.effective_as_of_date == "2026-04-10"
 
 
 @pytest.mark.asyncio

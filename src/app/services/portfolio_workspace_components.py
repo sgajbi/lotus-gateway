@@ -263,12 +263,3 @@ def parse_operations(
     if payload is None:
         return None
     return parse_operational_readiness(payload)
-
-
-def extract_resolved_as_of_date(result: tuple[int, dict[str, Any]]) -> str | None:
-    payload = optional_payload(result, "lotus-core", "IGNORED", [], [])
-    return (
-        str(payload.get("resolved_as_of_date"))
-        if payload and payload.get("resolved_as_of_date")
-        else None
-    )

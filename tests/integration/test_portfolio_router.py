@@ -315,6 +315,7 @@ def test_portfolio_workspace_router_uses_source_resolved_date_for_default_perfor
         return 200, {"business_date": "2026-04-10", "publish_allowed": True}
 
     async def _readiness(*args, **kwargs):
+        captured["readiness_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
             "pricing": {"status": "READY", "reasons": []},
@@ -324,6 +325,7 @@ def test_portfolio_workspace_router_uses_source_resolved_date_for_default_perfor
         }
 
     async def _cashflow(*args, **kwargs):
+        captured["cashflow_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "as_of_date": "2026-04-10",
             "range_end_date": "2026-04-20",
@@ -334,6 +336,7 @@ def test_portfolio_workspace_router_uses_source_resolved_date_for_default_perfor
         }
 
     async def _cash_balances(*args, **kwargs):
+        captured["cash_balances_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
             "cash_accounts": [],
@@ -360,6 +363,10 @@ def test_portfolio_workspace_router_uses_source_resolved_date_for_default_perfor
     assert response.status_code == 200
     body = response.json()
     assert body["as_of_date"] == "2026-04-10"
+    assert captured["aum_as_of_date"] is None
+    assert captured["cashflow_as_of_date"] == "2026-04-10"
+    assert captured["cash_balances_as_of_date"] == "2026-04-10"
+    assert captured["readiness_as_of_date"] == "2026-04-10"
     assert captured["analytics_reference_as_of_date"] == "2026-04-10"
     assert captured["twr_report_end_date"] == "2026-04-10"
 

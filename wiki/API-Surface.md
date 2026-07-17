@@ -60,6 +60,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 ## Current contract notes
 
+- Portfolio workspace `as_of_date` is an optional review-date override. When it is omitted,
+  Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same
+  date for cashflow, cash balances, readiness, and performance composition. Gateway host time is
+  not a portfolio business-date authority.
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as

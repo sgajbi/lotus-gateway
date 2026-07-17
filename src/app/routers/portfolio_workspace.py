@@ -40,7 +40,11 @@ async def get_portfolio_workspace(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format for workspace composition.",
+        description=(
+            "Optional review date in YYYY-MM-DD format for workspace composition. Omit it to "
+            "use the latest governed date resolved by lotus-core; Gateway then aligns the other "
+            "workspace sources to that resolved date."
+        ),
         examples=["2026-04-10"],
     ),
     reporting_currency: str | None = Query(

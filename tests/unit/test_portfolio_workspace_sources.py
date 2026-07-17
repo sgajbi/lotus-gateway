@@ -5,8 +5,11 @@ from app.services.portfolio_workspace_sources import (
     PortfolioWorkspaceAnalyticsLoadRequest,
     PortfolioWorkspaceSourceLoaders,
     PortfolioWorkspaceSourceLoadRequest,
+    extract_resolved_as_of_date,
+    extract_success_date,
     load_portfolio_workspace_analytics,
     load_portfolio_workspace_sources,
+    resolve_workspace_source_as_of_date,
 )
 
 
@@ -15,7 +18,7 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
     calls: list[tuple[str, dict[str, object]]] = []
     results = {
         "portfolio": (200, {"portfolio_id": "PF_3003"}),
-        "aum": (200, {"portfolios": []}),
+        "aum": (200, {"resolved_as_of_date": "2026-05-28", "portfolios": []}),
         "support": (200, {"operational_readiness": {}}),
         "cashflow": (200, {"points": []}),
         "cash_balances": (200, {"cash_accounts": []}),
@@ -50,7 +53,7 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
         PortfolioWorkspaceSourceLoadRequest(
             portfolio_id="PF_3003",
             correlation_id="corr-workspace",
-            effective_as_of_date="2026-05-29",
+            requested_as_of_date="2026-05-29",
             reporting_currency="USD",
         ),
         PortfolioWorkspaceSourceLoaders(
@@ -69,6 +72,7 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
     assert source_results.cashflow_result == results["cashflow"]
     assert source_results.cash_balance_result == results["cash_balances"]
     assert source_results.readiness_result == results["readiness"]
+    assert source_results.resolved_as_of_date == "2026-05-28"
     assert calls == [
         (
             "portfolio",
@@ -98,7 +102,7 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
             {
                 "portfolio_id": "PF_3003",
                 "correlation_id": "corr-workspace",
-                "as_of_date": "2026-05-29",
+                "as_of_date": "2026-05-28",
                 "include_projected": True,
                 "horizon_days": 10,
             },
@@ -108,7 +112,7 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
             {
                 "portfolio_id": "PF_3003",
                 "correlation_id": "corr-workspace",
-                "as_of_date": "2026-05-29",
+                "as_of_date": "2026-05-28",
                 "reporting_currency": "USD",
             },
         ),
@@ -117,10 +121,33 @@ async def test_load_portfolio_workspace_sources_queries_all_workspace_inputs() -
             {
                 "portfolio_id": "PF_3003",
                 "correlation_id": "corr-workspace",
-                "as_of_date": "2026-05-29",
+                "as_of_date": "2026-05-28",
             },
         ),
     ]
+
+
+def test_resolve_workspace_source_as_of_date_prefers_source_and_safe_fallbacks() -> None:
+    assert (
+        resolve_workspace_source_as_of_date(
+            requested_as_of_date="2026-05-29",
+            aum_result=(200, {"resolved_as_of_date": "2026-05-28"}),
+            support_result=(200, {"business_date": "2026-05-27"}),
+        )
+        == "2026-05-28"
+    )
+    assert (
+        resolve_workspace_source_as_of_date(
+            requested_as_of_date=None,
+            aum_result=(503, {"resolved_as_of_date": "2099-01-01"}),
+            support_result=(200, {"business_date": "2026-05-27"}),
+        )
+        == "2026-05-27"
+    )
+    assert extract_success_date((503, {"business_date": "2099-01-01"}), "business_date") is None
+    assert extract_resolved_as_of_date((200, {"resolved_as_of_date": "2026-05-28"})) == (
+        "2026-05-28"
+    )
 
 
 @pytest.mark.asyncio
