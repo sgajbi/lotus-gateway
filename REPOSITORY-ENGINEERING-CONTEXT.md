@@ -79,12 +79,14 @@ Current repository posture:
    product-facing boundary over `lotus-archive`,
 7. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-8. idea review queue and candidate detail read routes are active under
-   `/api/v1/ideas/review-queues/advisor` and `/api/v1/ideas/candidates/{candidate_id}`; Gateway
-   forwards entitlement-scope headers for both idea read routes, preserves `lotus-idea` ranking,
-   source refs, durable-storage posture, and
-   `supportedFeaturePromoted=false` without generating, ranking, enriching, certifying, or
-   promoting ideas locally,
+8. idea review queue/detail reads and candidate review-action, feedback, and conversion-intent
+   recordings are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
+   trusted context, correlation/trace context, and for mutations `Idempotency-Key` plus optional
+   causation. It preserves `lotus-idea` ranking, source refs, durable-storage posture, accepted or
+   replayed source outcomes, and `supportedFeaturePromoted=false` without generating, ranking,
+   enriching, certifying, authorizing, or promoting ideas locally. These BFF routes do not claim
+   Workbench completion, data-product certification, downstream realization, execution, or client
+   communication readiness,
 9. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
 9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
 10. RFC-0042 outcome-review AI narrative handoff now reads manage-owned

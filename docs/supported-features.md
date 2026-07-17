@@ -60,12 +60,20 @@
 ## Ideas
 
 1. advisor idea review queue read through `/api/v1/ideas/review-queues/advisor`,
-2. source-safe idea candidate detail read through `/api/v1/ideas/candidates/{candidate_id}`.
+2. source-safe idea candidate detail read through `/api/v1/ideas/candidates/{candidate_id}`,
+3. candidate-scoped review-action recording through
+   `/api/v1/ideas/candidates/{candidate_id}/review-actions`,
+4. candidate-scoped feedback recording through `/api/v1/ideas/candidates/{candidate_id}/feedback`,
+5. candidate-scoped conversion-intent recording through
+   `/api/v1/ideas/candidates/{candidate_id}/conversion-intents`.
 
-These routes are implementation-backed Gateway publication for `lotus-idea` read surfaces only.
-Gateway preserves `lotus-idea` ranking, source signal identifiers, source references,
-durable-storage posture, caller entitlement-scope forwarding for published idea reads, and
-`supportedFeaturePromoted=false`; it does not generate, rank, enrich, or certify ideas locally.
+These are implementation-backed Gateway BFF routes over `lotus-idea`; they do not promote an Idea
+supported feature or claim Workbench, runtime, data-product, suitability, execution, or client
+communication readiness. Gateway preserves `lotus-idea` ranking, source signal identifiers, source
+references, durable-storage posture, accepted/replayed mutation outcomes, and
+`supportedFeaturePromoted=false`. For mutations it forwards trusted caller context, entitlement
+scope, `Idempotency-Key`, correlation and trace context, and optional `X-Causation-Id` without
+deriving lifecycle, authorization, audit, or downstream authority locally.
 
 ## Boundaries
 

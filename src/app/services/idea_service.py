@@ -1,15 +1,22 @@
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 
 from app.contracts.ideas import (
+    IdeaCandidateActionRequest,
+    IdeaCandidateActionResponse,
     IdeaGatewayCandidateDetailResponse,
     IdeaGatewayReviewQueueResponse,
 )
 from app.services.idea_client_protocols import IdeaClient
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
+IdeaCandidateActionMethod = Literal[
+    "record_candidate_review_action",
+    "record_candidate_feedback",
+    "record_candidate_conversion_intent",
+]
 
 
 class IdeaService:
@@ -45,6 +52,48 @@ class IdeaService:
         )
         self._raise_on_idea_error(status_code, payload, missing_code="idea_candidate_unavailable")
         return self._validate_payload(IdeaGatewayCandidateDetailResponse, payload)
+
+    async def record_candidate_action(
+        self,
+        *,
+        action: IdeaCandidateActionMethod,
+        candidate_id: str,
+        request: IdeaCandidateActionRequest,
+        response_model: type[ResponseModel],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        idempotency_key: str,
+        causation_id: str | None,
+    ) -> ResponseModel:
+        action_methods = {
+            "record_candidate_review_action": self._idea_client.record_candidate_review_action,
+            "record_candidate_feedback": self._idea_client.record_candidate_feedback,
+            "record_candidate_conversion_intent": (
+                self._idea_client.record_candidate_conversion_intent
+            ),
+        }
+        action_method = action_methods[action]
+        status_code, payload = await action_method(
+            candidate_id=candidate_id,
+            body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            causation_id=causation_id,
+        )
+        self._raise_on_idea_error(
+            status_code, payload, missing_code="idea_candidate_action_unavailable"
+        )
+        response = self._validate_payload(response_model, payload)
+        if isinstance(response, IdeaCandidateActionResponse) and (
+            response.supported_feature_promoted is not False
+        ):
+            raise self._gateway_error(
+                status.HTTP_502_BAD_GATEWAY,
+                "idea_supported_feature_claim_invalid",
+                "Lotus Idea returned an unsupported feature-promotion claim.",
+            )
+        return response
 
     def _validate_payload(
         self,
@@ -93,6 +142,18 @@ class IdeaService:
                 status.HTTP_404_NOT_FOUND,
                 "idea_resource_not_found",
                 "The requested Idea resource was not found.",
+            )
+        if status_code == status.HTTP_409_CONFLICT:
+            raise self._gateway_error(
+                status.HTTP_409_CONFLICT,
+                "idea_conflict",
+                "The requested Idea action conflicts with current source state or replay evidence.",
+            )
+        if status_code == status.HTTP_422_UNPROCESSABLE_CONTENT:
+            raise self._gateway_error(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "idea_validation_failed",
+                "Lotus Idea could not validate the action request.",
             )
         raise self._gateway_error(
             status.HTTP_502_BAD_GATEWAY,

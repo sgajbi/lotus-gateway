@@ -260,13 +260,16 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   metadata before returning metadata or streaming binary content. Broader portfolio, client, and
   advisor entitlement remains upstream authorization truth; Gateway must not claim fuller document
   entitlement enforcement until that source is wired and tested.
-- idea review queue and candidate detail reads are gateway-first under `/api/v1/ideas/*`;
+- idea review queue/detail reads and candidate review-action, feedback, and conversion-intent
+  recordings are gateway-first under `/api/v1/ideas/*`;
   Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
   `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,
-  `X-Caller-Client-Ids`, and correlation context to `lotus-idea` for
-  `lotus-idea` entitlement-scope enforcement. Gateway preserves source-owned ranking, source
-  signal identifiers, source refs, durable-storage posture, and `supportedFeaturePromoted=false`,
-  and does not generate, rank, enrich, certify, or promote idea candidates locally
+  `X-Caller-Client-Ids`, optional `X-Lotus-Trusted-Caller-Context`, and correlation/trace context
+  to `lotus-idea` for entitlement-scope enforcement. Mutation requests require `Idempotency-Key`
+  and may carry `X-Causation-Id`; Gateway preserves source-owned ranking, source signal identifiers,
+  source refs, durable-storage posture, accepted/replayed outcomes, and
+  `supportedFeaturePromoted=false`. It does not generate, rank, enrich, certify, or promote Idea
+  candidates, grant downstream authority, or create downstream delivery/execution records locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
   routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Caller-Application`, `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit
@@ -689,6 +692,24 @@ curl "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7"
   -H "X-Caller-Portfolio-Ids: PB_SG_GLOBAL_BAL_001" \
   -H "X-Caller-Client-Ids: client-001"
 ```
+
+Idea candidate review action:
+
+```bash
+curl -X POST "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/review-actions" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: idea-review-001" \
+  -H "X-Caller-Subject: advisor-123" \
+  -H "X-Caller-Roles: advisor" \
+  -H "X-Caller-Capabilities: idea.review.record" \
+  -H "X-Caller-Tenant-Ids: tenant-private-bank-sg" \
+  -H "X-Caller-Portfolio-Ids: PB_SG_GLOBAL_BAL_001" \
+  -d "{\"reviewId\":\"review-001\",\"action\":\"approve_for_conversion\",\"reasonCodes\":[\"review_required\"],\"decidedAtUtc\":\"2026-06-21T10:15:00Z\"}"
+```
+
+The `feedback` and `conversion-intents` routes use the same caller-context and idempotency posture.
+They record only Lotus Idea-owned workflow facts; a conversion intent does not initiate downstream
+submission, rebalance, execution, suitability approval, or client communication.
 
 Analytics diagnostics protected lookup:
 

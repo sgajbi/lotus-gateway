@@ -44,7 +44,7 @@ outputs.
 | `lotus-manage` | versioned `/api/v1` rebalance run lookup, supportability summary, capability posture, construction alternatives, proof packs, portfolio memory timeline/search, outcome reviews with source-lineage facets, report input, AI evidence input, and PM operating quality policy/score-run/fairness-analysis/review-action/summary-invocation lifecycle APIs | management workflow composition | discretionary management operations, proof-pack evidence, portfolio-memory timeline/search lineage, outcome-review truth/facets, and PM operating quality policy/score-run/fairness-analysis/review-action/summary-invocation truth remain in `lotus-manage`; gateway must not reintroduce retired unversioned aliases, monolithic `dpm-execution-context` assumptions, local timeline reconstruction, source-owner store querying, global portfolio-universe discovery, cross-app source-event search, PM scoring logic, fairness recomputation, review-rationale reinterpretation, generated-summary text/prompt/model-response exposure, PM ranking, or HR/compensation/conduct decision semantics |
 | `lotus-report` | report snapshot rows, summary/review payloads, report job status/search/event/cancellation APIs, report batch materialization/status/control/operator-run APIs | report-ready experience payloads, durable report-job support posture, and RFC-0104 batch operator boundary | report generation, request semantics, job lifecycle truth, batch lifecycle truth, and batch execution truth remain in `lotus-report` |
 | `lotus-archive` | archived document metadata, current-document resolution, and binary download APIs | gateway-controlled generated-document retrieval for product clients | archive metadata, retention, legal-hold, purge, lifecycle, checksum, storage, and access-audit truth remain in `lotus-archive`; gateway exposes metadata and controlled download only |
-| `lotus-idea` | advisor review queue and candidate detail read APIs | opportunity intelligence read publication | idea signal evaluation, deterministic ranking, candidate lifecycle, redacted evidence, source references, entitlement-scope enforcement, durable-storage posture, and supported-feature promotion truth remain in `lotus-idea`; gateway must not generate, rank, enrich, certify, or promote ideas locally |
+| `lotus-idea` | advisor review queue, candidate detail, and candidate-scoped review-action, feedback, and conversion-intent APIs | opportunity intelligence BFF publication and source-safe action recording | idea signal evaluation, deterministic ranking, candidate lifecycle, review, feedback, conversion intent, redacted evidence, source references, entitlement-scope enforcement, durable-storage posture, and supported-feature promotion truth remain in `lotus-idea`; gateway must not generate, rank, enrich, certify, authorize, promote, or grant downstream authority locally |
 | `lotus-ai` | advisor-brief, DPM workflow-pack execution surfaces, workflow-pack run-ledger, and RFC-0097 task-flow posture surfaces | evidence-grounded narrative/support text plus bounded run/task-flow posture for Workbench | gateway must not invent unsupported evidence, model outputs, review states, replacement lineage, task-flow authority, trade approval, client messaging, PM scoring, or order-routing instructions |
 
 ## Conformance Rules
@@ -111,9 +111,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 6. RFC-0104 config-backed scheduler list and run-due actions are exposed through gateway-owned
    `/api/v1/report-batch-schedules` routes while preserving `lotus-report` as the scheduler
    configuration and materialization authority.
-7. Idea review queue and candidate detail reads are exposed through gateway-owned
-   `/api/v1/ideas/*` routes while preserving `lotus-idea` as the ranking, lifecycle, evidence,
-   conversion, entitlement-scope enforcement, and supported-feature authority.
+7. Idea review queue/detail reads and candidate-scoped review-action, feedback, and conversion-intent
+   recording are exposed through gateway-owned `/api/v1/ideas/*` routes while preserving
+   `lotus-idea` as the ranking, lifecycle, review, feedback, conversion, evidence,
+   entitlement-scope enforcement, idempotency, audit, and supported-feature authority.
 
 ## Gap Register
 

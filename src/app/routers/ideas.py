@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.ideas import (
     IDEA_CANDIDATE_DETAIL_EXAMPLE,
@@ -9,7 +9,7 @@ from app.contracts.ideas import (
     IdeaGatewayReviewQueueResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.ideas_common import IdeaCallerHeaders, idea_error_response
+from app.routers.ideas_common import IdeaCallerHeaders, idea_caller_headers, idea_error_response
 from app.services.gateway_service_provider import idea_service
 
 router = APIRouter(prefix="/api/v1/ideas", tags=["Ideas"])
@@ -74,31 +74,11 @@ async def get_advisor_idea_review_queue(
             examples=["2026-06-21T10:10:00Z"],
         ),
     ] = None,
-    x_caller_subject: Annotated[str | None, Header(alias="X-Caller-Subject")] = None,
-    x_caller_roles: Annotated[str | None, Header(alias="X-Caller-Roles")] = None,
-    x_caller_capabilities: Annotated[
-        str | None,
-        Header(alias="X-Caller-Capabilities"),
-    ] = None,
-    x_caller_tenant_ids: Annotated[str | None, Header(alias="X-Caller-Tenant-Ids")] = None,
-    x_caller_book_ids: Annotated[str | None, Header(alias="X-Caller-Book-Ids")] = None,
-    x_caller_portfolio_ids: Annotated[
-        str | None,
-        Header(alias="X-Caller-Portfolio-Ids"),
-    ] = None,
-    x_caller_client_ids: Annotated[str | None, Header(alias="X-Caller-Client-Ids")] = None,
+    caller_headers: IdeaCallerHeaders = Depends(idea_caller_headers),
 ) -> IdeaGatewayReviewQueueResponse:
     return await _get_advisor_idea_review_queue(
         evaluated_at_utc=evaluated_at_utc,
-        caller_headers=IdeaCallerHeaders(
-            subject=x_caller_subject,
-            roles=x_caller_roles,
-            capabilities=x_caller_capabilities,
-            tenant_ids=x_caller_tenant_ids,
-            book_ids=x_caller_book_ids,
-            portfolio_ids=x_caller_portfolio_ids,
-            client_ids=x_caller_client_ids,
-        ),
+        caller_headers=caller_headers,
     )
 
 
@@ -135,29 +115,9 @@ async def get_idea_candidate_detail(
             examples=["idea_high_cash_8d57adbf52f7f5a7"],
         ),
     ],
-    x_caller_subject: Annotated[str | None, Header(alias="X-Caller-Subject")] = None,
-    x_caller_roles: Annotated[str | None, Header(alias="X-Caller-Roles")] = None,
-    x_caller_capabilities: Annotated[
-        str | None,
-        Header(alias="X-Caller-Capabilities"),
-    ] = None,
-    x_caller_tenant_ids: Annotated[str | None, Header(alias="X-Caller-Tenant-Ids")] = None,
-    x_caller_book_ids: Annotated[str | None, Header(alias="X-Caller-Book-Ids")] = None,
-    x_caller_portfolio_ids: Annotated[
-        str | None,
-        Header(alias="X-Caller-Portfolio-Ids"),
-    ] = None,
-    x_caller_client_ids: Annotated[str | None, Header(alias="X-Caller-Client-Ids")] = None,
+    caller_headers: IdeaCallerHeaders = Depends(idea_caller_headers),
 ) -> IdeaGatewayCandidateDetailResponse:
     return await _get_idea_candidate_detail(
         candidate_id=candidate_id,
-        caller_headers=IdeaCallerHeaders(
-            subject=x_caller_subject,
-            roles=x_caller_roles,
-            capabilities=x_caller_capabilities,
-            tenant_ids=x_caller_tenant_ids,
-            book_ids=x_caller_book_ids,
-            portfolio_ids=x_caller_portfolio_ids,
-            client_ids=x_caller_client_ids,
-        ),
+        caller_headers=caller_headers,
     )

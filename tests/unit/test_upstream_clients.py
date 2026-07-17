@@ -155,6 +155,46 @@ async def test_lotus_idea_client_forwards_explicit_queue_timestamp():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "action_path"),
+    [
+        ("record_candidate_review_action", "review-actions"),
+        ("record_candidate_feedback", "feedback"),
+        ("record_candidate_conversion_intent", "conversion-intents"),
+    ],
+)
+async def test_lotus_idea_client_forwards_candidate_action_lineage_and_idempotency(
+    method_name, action_path
+):
+    client = LotusIdeaClient(base_url="http://lotus-idea", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceAuthority": "lotus-idea"})
+
+    await getattr(client, method_name)(
+        candidate_id="idea-123",
+        body={"requestId": "action-001"},
+        caller_headers={
+            "X-Caller-Subject": "advisor-123",
+            "X-Caller-Capabilities": "idea.review.record",
+        },
+        correlation_id="corr-idea-action",
+        idempotency_key="idem-idea-action-001",
+        causation_id="parent-event-001",
+    )
+
+    call = _FakeAsyncClient.calls[0]
+    assert call["method"] == "POST"
+    assert call["url"] == f"http://lotus-idea/api/v1/idea-candidates/idea-123/{action_path}"
+    assert call["json"] == {"requestId": "action-001"}
+    assert call["headers"]["X-Caller-Service"] == "lotus-gateway"
+    assert call["headers"]["X-Caller-Subject"] == "advisor-123"
+    assert call["headers"]["X-Caller-Capabilities"] == "idea.review.record"
+    assert call["headers"]["Idempotency-Key"] == "idem-idea-action-001"
+    assert call["headers"]["X-Correlation-Id"] == "corr-idea-action"
+    assert call["headers"]["X-Causation-Id"] == "parent-event-001"
+    assert call["headers"]["X-Trace-Id"]
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_calls_and_payload_handling():
     client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "lotus-performance"})
