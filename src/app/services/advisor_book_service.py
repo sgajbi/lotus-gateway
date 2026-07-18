@@ -10,7 +10,6 @@ from app.contracts.advisor_book import (
     AdvisorBookProvenance,
     AdvisorBookResponse,
     AdvisorBookScope,
-    AdvisorBookSupportability,
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_client_protocols import AdvisorBookMembershipClient
@@ -18,19 +17,16 @@ from app.services.advisor_book_source_contract import (
     SourceAdvisorBookMember,
     SourceAdvisorBookResponse,
 )
+from app.services.advisor_book_supportability import (
+    advisor_book_supportability,
+    empty_advisor_book_supportability,
+)
 
 AdvisorBookSortField = Literal["portfolio_id", "client_id", "mandate_type"]
 AdvisorBookSortOrder = Literal["asc", "desc"]
 AdvisorBookMandateType = Literal["ADVISORY", "DISCRETIONARY"]
 
 _SUPPORTED_PORTFOLIO_TYPES = ["ADVISORY", "DISCRETIONARY"]
-_BASE_LIMITATIONS = [
-    "delegated_scope_not_supported",
-    "team_scope_not_supported",
-    "household_scope_not_supported",
-    "assets_under_management_not_reported",
-    "attention_indicators_not_reported",
-]
 
 
 @dataclass(frozen=True)
@@ -146,7 +142,7 @@ def _project_response(
             sort_order=query.sort_order,
         ),
         items=[_portfolio(member) for member in page_members],
-        supportability=_supportability(source=source, filtered_count=len(filtered)),
+        supportability=advisor_book_supportability(source=source, filtered_count=len(filtered)),
         provenance=AdvisorBookProvenance(
             product_name=source.product_name,
             product_version=source.product_version,
@@ -197,61 +193,6 @@ def _portfolio(member: SourceAdvisorBookMember) -> AdvisorBookPortfolio:
     )
 
 
-def _supportability(
-    *, source: SourceAdvisorBookResponse, filtered_count: int
-) -> AdvisorBookSupportability:
-    limitations = list(_BASE_LIMITATIONS)
-    tenant_scope: Literal["source_confirmed", "trusted_context_only"] = "source_confirmed"
-    has_legacy_projection = any(
-        member.membership_source == "legacy_advisor_projection" for member in source.members
-    )
-    if source.tenant_id is None:
-        tenant_scope = "trusted_context_only"
-        limitations.insert(0, "tenant_scope_not_reported")
-    if has_legacy_projection:
-        limitations.append("legacy_advisor_projection_present")
-
-    if not source.members:
-        return AdvisorBookSupportability(
-            state="empty",
-            reason_code="advisor_book_empty",
-            tenant_scope=tenant_scope,
-            limitations=limitations,
-        )
-    reason_code: Literal[
-        "advisor_book_source_incomplete",
-        "advisor_book_tenant_scope_not_reported",
-        "advisor_book_legacy_projection",
-    ]
-    if source.supportability.state == "INCOMPLETE":
-        limitations.append("source_membership_incomplete")
-        reason_code = "advisor_book_source_incomplete"
-    elif source.tenant_id is None:
-        reason_code = "advisor_book_tenant_scope_not_reported"
-    elif has_legacy_projection:
-        reason_code = "advisor_book_legacy_projection"
-    elif filtered_count == 0:
-        return AdvisorBookSupportability(
-            state="empty",
-            reason_code="advisor_book_filter_empty",
-            tenant_scope=tenant_scope,
-            limitations=limitations,
-        )
-    else:
-        return AdvisorBookSupportability(
-            state="ready",
-            reason_code="advisor_book_ready",
-            tenant_scope=tenant_scope,
-            limitations=limitations,
-        )
-    return AdvisorBookSupportability(
-        state="degraded",
-        reason_code=reason_code,
-        tenant_scope=tenant_scope,
-        limitations=limitations,
-    )
-
-
 def _empty_response(
     *,
     caller: AdvisorBookCallerContext,
@@ -270,12 +211,7 @@ def _empty_response(
             sort_order=query.sort_order,
         ),
         items=[],
-        supportability=AdvisorBookSupportability(
-            state="empty",
-            reason_code="advisor_book_empty",
-            tenant_scope="trusted_context_only",
-            limitations=["tenant_scope_not_reported", *_BASE_LIMITATIONS],
-        ),
+        supportability=empty_advisor_book_supportability(),
         provenance=None,
     )
 
