@@ -44,11 +44,20 @@
 
 ## Reporting And Archive
 
-1. portfolio-review report job submission,
-2. report-job search/status/event-history/cancellation,
-3. RFC-0104 report-batch materialization/status/control/retry/recovery/bounded operator-run,
-4. report-batch scheduler list and run-due,
-5. archived generated-document metadata and controlled binary download.
+1. source-backed report ordering choices and selected-scope eligibility through
+   `GET /api/v1/report-ordering/options`,
+2. portfolio-review report job submission,
+3. report-job search/status/event-history/cancellation,
+4. RFC-0104 report-batch materialization/status/control/retry/recovery/bounded operator-run,
+5. report-batch scheduler list and run-due,
+6. archived generated-document metadata and controlled binary download.
+
+Report ordering publishes business labels, available configuration, sections, output-format
+posture, and only implemented submission paths. `lotus-report` remains the catalogue and report
+lifecycle authority. Gateway applies trusted caller role and explicit portfolio, client, or advisor
+book scope without expanding membership. Client- and book-scoped batch choices remain partial until
+an authoritative portfolio list is supplied. Ordering eligibility does not grant client
+distribution, prove PDF generation, or claim archive completion.
 
 ## Data Products
 

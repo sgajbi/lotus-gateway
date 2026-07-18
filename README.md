@@ -98,8 +98,9 @@ It depends on:
   RFC-0039 construction alternative-set authority, RFC-0040 proof-pack authority, and RFC-0042
   post-trade outcome-review authority through the DPM command-center BFF routes
 - `lotus-report`
-  reporting snapshot, summary, review payloads, portfolio-review and outcome-review durable report
-  job initiation/lifecycle/search, and RFC-0104 batch materialization/status/control/operator-run APIs
+  reporting snapshot, summary, review payloads, source-owned report ordering catalogue,
+  portfolio-review and outcome-review durable report job initiation/lifecycle/search, and RFC-0104
+  batch materialization/status/control/operator-run APIs
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-idea`
@@ -204,6 +205,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/workbench/*`
 - `reporting`
   `/api/v1/reports/*`
+- `report-ordering`
+  `/api/v1/report-ordering/options`
 - `report-jobs`
   `/api/v1/report-jobs`, `/api/v1/report-jobs/*`
 - `report-batches`
@@ -354,19 +357,24 @@ Important current parameter conventions:
    artifact is absent
 5. reporting snapshot and reporting portfolio requests use `asOfDate`; portfolio review requests
    also document `benchmarkCode` for RFC-0002 performance and risk context
-6. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
+6. report ordering options use camelCase `scopeType` and `scopeId`, require trusted actor, tenant,
+   and region context, and accept trusted role plus portfolio, client, or advisor-book entitlement
+   headers. The response preserves Report-owned configuration and output availability while Gateway
+   publishes only implemented submission paths; ordering eligibility is not distribution approval
+   or document-completion evidence
+7. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
    `allowPartial`
-7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
+8. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
-8. proposal lifecycle write routes require `Idempotency-Key`; narrative review accepts an optional
+9. proposal lifecycle write routes require `Idempotency-Key`; narrative review accepts an optional
    `Idempotency-Key` and preserves the reviewed narrative posture returned by `lotus-advise`
-9. report batch materialization uses canonical snake_case body fields and requires
+10. report batch materialization uses canonical snake_case body fields and requires
    `Idempotency-Key`; report batch status/control/operator-run routes require caller context
    headers and forward the operation to `lotus-report` as the lifecycle authority
-10. archived document metadata and download routes require caller context headers:
+11. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
-11. Idea queue/detail and candidate action routes forward `X-Caller-Subject`, `X-Caller-Roles`,
+12. Idea queue/detail and candidate action routes forward `X-Caller-Subject`, `X-Caller-Roles`,
    `X-Caller-Capabilities`, `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`,
    `X-Caller-Portfolio-Ids`, `X-Caller-Client-Ids`, and optional
    `X-Lotus-Trusted-Caller-Context` to `lotus-idea` for entitlement-scope enforcement. Candidate
@@ -374,7 +382,7 @@ Important current parameter conventions:
    `X-Causation-Id`. Gateway preserves
    `supportedFeaturePromoted=false` and does not rank, score, enrich, or certify idea candidates
    locally, grant downstream authority, or create downstream execution records
-12. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
+13. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
    action routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,
    `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit posture for
