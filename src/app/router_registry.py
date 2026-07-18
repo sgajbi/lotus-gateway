@@ -76,6 +76,7 @@ from app.routers.reporting_job_lineage import lineage_router as reporting_job_li
 from app.routers.reporting_job_search import search_router as reporting_job_search_router
 from app.routers.reporting_job_submissions import router as reporting_job_submissions_router
 from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
+from app.routers.reporting_ordering import router as reporting_ordering_router
 from app.routers.reporting_outcome_review_submissions import (
     router as reporting_outcome_review_submissions_router,
 )
@@ -198,6 +199,7 @@ WORKBENCH_ROUTERS: RouterGroup = (
 )
 
 REPORTING_ROUTERS: RouterGroup = (
+    reporting_ordering_router,
     reporting_portfolio_summary_router,
     reporting_portfolio_reviews_router,
     reporting_portfolio_snapshots_router,
