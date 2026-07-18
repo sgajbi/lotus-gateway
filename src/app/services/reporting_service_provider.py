@@ -1,3 +1,8 @@
+from app.services.report_ordering_service import ReportOrderingService
+from app.services.report_ordering_service_factory import (
+    build_report_ordering_service,
+    report_ordering_service_signature,
+)
 from app.services.reporting_batch_control_service import ReportingBatchControlService
 from app.services.reporting_batch_control_service_factory import (
     build_reporting_batch_control_service,
@@ -42,6 +47,21 @@ _REPORTING_BATCH_LIFECYCLE_SERVICE: ReportingBatchLifecycleService | None = None
 _REPORTING_BATCH_LIFECYCLE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _REPORTING_BATCH_SCHEDULER_SERVICE: ReportingBatchSchedulerService | None = None
 _REPORTING_BATCH_SCHEDULER_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_REPORT_ORDERING_SERVICE: ReportOrderingService | None = None
+_REPORT_ORDERING_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+
+
+def report_ordering_service() -> ReportOrderingService:
+    global _REPORT_ORDERING_SERVICE, _REPORT_ORDERING_SERVICE_SIGNATURE
+    service, signature = resolve_cached_service(
+        _REPORT_ORDERING_SERVICE,
+        _REPORT_ORDERING_SERVICE_SIGNATURE,
+        report_ordering_service_signature(),
+        build_report_ordering_service,
+    )
+    _REPORT_ORDERING_SERVICE = service
+    _REPORT_ORDERING_SERVICE_SIGNATURE = signature
+    return service
 
 
 def reporting_portfolio_service() -> ReportingPortfolioService:
