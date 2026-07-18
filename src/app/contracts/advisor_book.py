@@ -72,6 +72,13 @@ class AdvisorBookPortfolio(BaseModel):
         description="Opaque source record reference retained for support and audit review.",
         examples=["portfolio:PB_SG_GLOBAL_BAL_001"],
     )
+    membership_basis: Literal["governed_role_assignment", "legacy_advisor_projection"] = Field(
+        description=(
+            "Whether membership is established by a governed portfolio role or the bounded "
+            "legacy advisor projection published by Core."
+        ),
+        examples=["governed_role_assignment"],
+    )
 
 
 class AdvisorBookPage(BaseModel):
@@ -114,7 +121,10 @@ class AdvisorBookSupportability(BaseModel):
     reason_code: Literal[
         "advisor_book_ready",
         "advisor_book_empty",
+        "advisor_book_filter_empty",
+        "advisor_book_source_incomplete",
         "advisor_book_tenant_scope_not_reported",
+        "advisor_book_legacy_projection",
     ] = Field(
         description="Bounded reason explaining the advisor-book availability posture.",
         examples=["advisor_book_tenant_scope_not_reported"],

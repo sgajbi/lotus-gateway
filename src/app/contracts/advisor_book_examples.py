@@ -31,6 +31,7 @@ ADVISOR_BOOK_RESPONSE_EXAMPLE = AdvisorBookResponse.model_validate(
                 "closed_on": None,
                 "membership_source": "PortfolioManagerBookMembership:v1",
                 "membership_reference": "portfolio:PB_SG_GLOBAL_BAL_001",
+                "membership_basis": "legacy_advisor_projection",
             }
         ],
         "supportability": {
