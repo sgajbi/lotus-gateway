@@ -5,6 +5,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 
 from app.router_groups.advisory import (
+    ADVISOR_BOOK_ROUTERS,
     ADVISOR_COCKPIT_ROUTERS,
     ADVISORY_COPILOT_ROUTERS,
     ADVISORY_POLICY_ROUTERS,
@@ -233,6 +234,7 @@ OPERATIONS_ROUTERS: RouterGroup = (
 IDEA_ROUTERS: RouterGroup = (ideas_router, ideas_actions_router)
 
 ROUTER_GROUPS: tuple[RouterGroup, ...] = (
+    ADVISOR_BOOK_ROUTERS,
     ADVISOR_COCKPIT_ROUTERS,
     BANK_DEMO_PROOF_ROUTERS,
     ADVISORY_WORKSPACE_ROUTERS,

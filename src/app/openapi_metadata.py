@@ -1,4 +1,11 @@
 OPENAPI_TAGS: list[dict[str, str]] = [
+    {
+        "name": "advisor-book",
+        "description": (
+            "Authenticated advisor own-book discovery backed by Core portfolio-manager "
+            "membership, with explicit source and tenant supportability."
+        ),
+    },
     {"name": "Reports", "description": "Gateway-facing reporting data and command APIs."},
     {
         "name": "Report Jobs",
