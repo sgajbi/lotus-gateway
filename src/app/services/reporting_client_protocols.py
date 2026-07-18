@@ -1,6 +1,14 @@
 from typing import Any, Protocol
 
 
+class ReportingCatalogueClient(Protocol):
+    async def get_report_ordering_catalogue(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
 class ReportingJobSubmissionClient(Protocol):
     async def submit_portfolio_review_job(
         self,
