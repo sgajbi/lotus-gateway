@@ -20,9 +20,11 @@ Current branch: `feat/authenticated-advisor-book-500`
   manager, date, booking-centre, non-null tenant, count, duplicate-row, or source-contract mismatch
   fails closed. Null Core tenant scope and legacy advisor projection remain explicit degraded
   posture. The route never falls back to the global portfolio catalogue.
-- Measured signal: the feature remains bounded to dedicated `advisor_book` modules; the mapping
-  service is 305 lines and the router is 192 lines, both below the current 397-line source-file
-  quality ceiling. Existing client, service, router, and provider ownership guards remain green.
+- Measured signal: the feature remains bounded to dedicated `advisor_book` modules. The mapping
+  service is 241 lines, supportability policy is 93 lines, router is 104 lines, and request-input
+  module is 114 lines, all below the current 316-line source-file quality ceiling; every function
+  is within the 49-line ceiling. Existing client, service, router, and provider ownership guards
+  remain green.
 - Proof: focused client, source-contract, access-policy, service, provider, integration-router,
   OpenAPI, and layer-boundary tests cover path encoding, exact caller capability, missing context,
   cross-scope rejection, cross-tenant denial, duplicate evidence, explicit empty, filter-empty,
