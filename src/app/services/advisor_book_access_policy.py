@@ -34,7 +34,38 @@ def require_advisor_book_caller_context(
     role: str | None,
     capabilities: str | None,
 ) -> AdvisorBookCallerContext:
-    cleaned = {
+    cleaned = _required_caller_fields(
+        actor_id=actor_id,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+        capabilities=capabilities,
+    )
+    resolved_actor_id = cleaned["X-Actor-Id"]
+    resolved_role = cleaned["X-Role"]
+    _validate_actor_id(resolved_actor_id)
+    _validate_access(role=resolved_role, capabilities=cleaned["X-Caller-Capabilities"])
+    return AdvisorBookCallerContext(
+        portfolio_manager_id=resolved_actor_id,
+        tenant_id=cleaned["X-Tenant-Id"],
+        region=cleaned["X-Region"],
+        booking_center_code=cleaned["X-Booking-Center-Code"],
+        role=resolved_role,
+        caller_application=_clean(caller_application) or "lotus-gateway",
+    )
+
+
+def _required_caller_fields(
+    *,
+    actor_id: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+    capabilities: str | None,
+) -> dict[str, str]:
+    fields = {
         "X-Actor-Id": _clean(actor_id),
         "X-Tenant-Id": _clean(tenant_id),
         "X-Region": _clean(region),
@@ -42,42 +73,34 @@ def require_advisor_book_caller_context(
         "X-Role": _clean(role),
         "X-Caller-Capabilities": _clean(capabilities),
     }
-    missing = [name for name, value in cleaned.items() if value is None]
+    missing = [name for name, value in fields.items() if value is None]
     if missing:
         raise AdvisorBookCallerContextError(
             code="advisor_book_caller_context_missing",
             message="Required advisor-book caller context is missing.",
             status_code=400,
         )
+    return {name: value for name, value in fields.items() if value is not None}
 
-    resolved_actor_id = cleaned["X-Actor-Id"] or ""
-    if not _ACTOR_ID_PATTERN.fullmatch(resolved_actor_id):
+
+def _validate_actor_id(actor_id: str) -> None:
+    if not _ACTOR_ID_PATTERN.fullmatch(actor_id):
         raise AdvisorBookCallerContextError(
             code="advisor_book_caller_context_invalid",
             message="Advisor-book caller identity is invalid.",
             status_code=400,
         )
 
-    resolved_role = cleaned["X-Role"] or ""
-    resolved_capabilities = _capability_set(cleaned["X-Caller-Capabilities"] or "")
-    if (
-        resolved_role not in ADVISOR_BOOK_ROLES
-        or ADVISOR_BOOK_READ_CAPABILITY not in resolved_capabilities
+
+def _validate_access(*, role: str, capabilities: str) -> None:
+    if role not in ADVISOR_BOOK_ROLES or ADVISOR_BOOK_READ_CAPABILITY not in _capability_set(
+        capabilities
     ):
         raise AdvisorBookCallerContextError(
             code="advisor_book_access_denied",
             message="Advisor-book access is not available for this caller.",
             status_code=403,
         )
-
-    return AdvisorBookCallerContext(
-        portfolio_manager_id=resolved_actor_id,
-        tenant_id=cleaned["X-Tenant-Id"] or "",
-        region=cleaned["X-Region"] or "",
-        booking_center_code=cleaned["X-Booking-Center-Code"] or "",
-        role=resolved_role,
-        caller_application=_clean(caller_application) or "lotus-gateway",
-    )
 
 
 def _capability_set(value: str) -> frozenset[str]:
