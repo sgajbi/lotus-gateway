@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.contracts.reporting import (
+    REPORT_ORDERING_RESPONSE_EXAMPLE,
     BatchHandleResponse,
     BatchStatusResponse,
     BatchWorkerRunResponse,
@@ -10,8 +11,16 @@ from app.contracts.reporting import (
     ReportingSummaryResponse,
     ReportInputSnapshotRecord,
     ReportSnapshotLineageResponse,
+    WorkbenchReportOrderingResponse,
 )
 from app.main import app
+
+
+def test_report_ordering_contract_is_available_from_reporting_facade() -> None:
+    response = WorkbenchReportOrderingResponse.model_validate(REPORT_ORDERING_RESPONSE_EXAMPLE)
+
+    assert response.contract_version == "workbench-report-ordering.v1"
+    assert response.source_authority == "reporting"
 
 
 def test_reporting_contract_shapes() -> None:
