@@ -58,6 +58,20 @@ class ReportingClient(ReportingBatchClientMixin):
             headers=headers,
         )
 
+    async def get_report_ordering_catalogue(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/integration/report-ordering-catalogue"
+        headers = build_upstream_headers(correlation_id)
+        return await self._request(
+            operation="report.integration.ordering-catalogue",
+            method="GET",
+            url=url,
+            headers=headers,
+        )
+
     async def post_portfolio_summary(
         self,
         portfolio_id: str,
