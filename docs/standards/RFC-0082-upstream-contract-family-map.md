@@ -31,6 +31,7 @@ outputs.
 | projected-state calls | `/simulation-sessions/*/projected-*` | Snapshot and simulation watchlist | projected position and summary views | watch for semantics that should move to a governed analytics service |
 | `get_portfolio_analytics_reference` | `/integration/portfolios/{portfolio_id}/analytics/reference` | Analytics Input | upstream source context for analytics consumers | do not compute analytics conclusions in gateway |
 | `get_benchmark_assignment` | `/integration/portfolios/{portfolio_id}/benchmark-assignment` | Analytics Input | benchmark context for workspace composition | benchmark meaning remains core-governed input |
+| `get_portfolio_manager_book_memberships` | `POST /integration/portfolio-manager-books/{portfolio_manager_id}/memberships` | Operational Read | authenticated advisor own-book discovery | derive the manager from trusted caller context; preserve Core membership evidence; never widen through the global portfolio catalogue or infer team, delegated, supervisory, or household scope |
 | `get_benchmark_catalog` | `/integration/benchmarks/catalog` | Analytics Input watchlist | selector and catalog composition | keep catalog interpretation out of gateway |
 | support overview and readiness calls | `/support/portfolios/{portfolio_id}/*` | Control-plane and support metadata | show supportability and readiness | preserve partial readiness and gap details |
 
@@ -121,6 +122,12 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    explicit scope eligibility, and preserves Report-owned output availability and reason codes.
    It does not expand client or advisor-book membership, publish unimplemented schedule/source
    workflow submission paths, grant distribution approval, or infer document completion.
+9. Authenticated advisor own-book discovery is exposed through gateway-owned
+   `/api/v1/advisor-book/portfolios`. Gateway derives manager identity from trusted caller
+   context, consumes Core `PortfolioManagerBookMembership:v1`, rejects cross-scope evidence,
+   preserves source provenance and legacy-assignment basis, and reports null source tenant scope
+   as degraded. It does not use the global catalogue as a fallback or infer delegated, team,
+   supervisor, household, assets-under-management, attention, suitability, or execution truth.
 
 ## Gap Register
 

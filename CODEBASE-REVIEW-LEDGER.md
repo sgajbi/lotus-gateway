@@ -1,8 +1,43 @@
 # Codebase Review Ledger
 
-Date: 2026-06-21
+Last updated: 2026-07-18
 Repository: `lotus-gateway`
-Branch: `fix/gateway-issue-129-report-capability-query-params`
+Current branch: `feat/authenticated-advisor-book-500`
+
+## Authenticated Advisor Own-Book Experience Contract
+
+- Scope: GitHub issue #500, raised from Workbench portfolio-selector discovery because the global
+  portfolio catalogue cannot prove an authenticated advisor's book of business.
+- Source authority: `lotus-core` owns `PortfolioManagerBookMembership:v1`, effective portfolio
+  membership, assignment basis, source record evidence, freshness, content identity, and lineage.
+  Gateway owns the bounded product-facing own-book projection and caller-context enforcement.
+- Change: added a path-safe Core control-plane client call, strict source model, focused
+  client protocol, own-book mapping service, cached factory/provider, executable response example,
+  and `GET /api/v1/advisor-book/portfolios` with explicit business date, exact filters,
+  deterministic sort, and bounded paging.
+- Security and truth boundary: manager identity comes only from trusted `X-Actor-Id`; exact
+  supported role plus `advisor.book.read`, tenant, region, and booking centre are required. A
+  manager, date, booking-centre, non-null tenant, count, duplicate-row, or source-contract mismatch
+  fails closed. Null Core tenant scope and legacy advisor projection remain explicit degraded
+  posture. The route never falls back to the global portfolio catalogue.
+- Measured signal: the feature remains bounded to dedicated `advisor_book` modules; the mapping
+  service is 305 lines and the router is 192 lines, both below the current 397-line source-file
+  quality ceiling. Existing client, service, router, and provider ownership guards remain green.
+- Proof: focused client, source-contract, access-policy, service, provider, integration-router,
+  OpenAPI, and layer-boundary tests cover path encoding, exact caller capability, missing context,
+  cross-scope rejection, cross-tenant denial, duplicate evidence, explicit empty, filter-empty,
+  tenant degradation, legacy projection, upstream failure, deterministic paging, and no
+  browser-owned advisor identity. Repository-wide gates are recorded on issue #500 before PR
+  review.
+- Durable documentation: supported-feature source, wiki supported features/API examples,
+  RFC-0082 upstream-family classification, README parameter conventions, and repository context
+  are updated in the same slice.
+- Existing follow-up owners: Gateway/Workbench #436 owns production authenticated principal
+  resolution; Core #513 owns richer effective-dated relationship roles until its local work is
+  packaged, reviewed, merged, and exact-main validated. No duplicate downstream issue was opened.
+- No-claim boundary: team, delegated, supervisory, household, assets-under-management, attention,
+  suitability, recommendation, client communication, order, and execution coverage remain out of
+  scope unless separately sourced and proven.
 
 ## Capability Contract Issue Triage
 
