@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 from app.clients.lotus_core_transaction_params import build_portfolio_transaction_query_params
 
@@ -27,6 +28,38 @@ class LotusCorePortfolioQueryClientMixin:
         payload: dict[str, Any],
     ) -> tuple[int, dict[str, Any]]:
         raise NotImplementedError
+
+    async def _post_control_plane_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        raise NotImplementedError
+
+    async def get_portfolio_manager_book_memberships(
+        self,
+        *,
+        portfolio_manager_id: str,
+        as_of_date: str,
+        booking_center_code: str,
+        portfolio_types: list[str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        manager_path_segment = quote(portfolio_manager_id, safe="")
+        return await self._post_control_plane_resource(
+            operation="core.integration.portfolio-manager-books.memberships.get",
+            path=(f"/integration/portfolio-manager-books/{manager_path_segment}/memberships"),
+            correlation_id=correlation_id,
+            payload={
+                "as_of_date": as_of_date,
+                "booking_center_code": booking_center_code,
+                "portfolio_types": portfolio_types,
+                "include_inactive": False,
+            },
+        )
 
     async def list_portfolios(
         self,

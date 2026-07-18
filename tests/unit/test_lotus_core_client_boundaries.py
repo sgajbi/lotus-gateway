@@ -44,6 +44,7 @@ def test_lotus_core_portfolio_query_routes_live_in_dedicated_client_mixin() -> N
     portfolio_methods = _async_function_names(_CLIENT_ROOT / "lotus_core_portfolio_query_client.py")
 
     extracted_methods = {
+        "get_portfolio_manager_book_memberships",
         "get_cashflow_projection",
         "get_portfolio",
         "get_portfolio_cash_balances",

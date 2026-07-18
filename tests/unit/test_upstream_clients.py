@@ -1341,6 +1341,38 @@ async def test_lotus_core_query_client_fetches_benchmark_assignment():
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_fetches_portfolio_manager_book_memberships():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(200, {"portfolio_manager_id": "PM SG/001", "members": []})
+
+    status_code, payload = await client.get_portfolio_manager_book_memberships(
+        portfolio_manager_id="PM SG/001",
+        as_of_date="2026-03-28",
+        booking_center_code="SG",
+        portfolio_types=["ADVISORY", "DISCRETIONARY"],
+        correlation_id="corr-advisor-book",
+    )
+
+    assert status_code == 200
+    assert payload["portfolio_manager_id"] == "PM SG/001"
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == (
+        "http://core-control/integration/portfolio-manager-books/PM%20SG%2F001/memberships"
+    )
+    assert request["json"] == {
+        "as_of_date": "2026-03-28",
+        "booking_center_code": "SG",
+        "portfolio_types": ["ADVISORY", "DISCRETIONARY"],
+        "include_inactive": False,
+    }
+    assert request["headers"]["X-Correlation-Id"] == "corr-advisor-book"
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
     _FakeAsyncClient.queue_text(503, "lotus-performance unavailable")
