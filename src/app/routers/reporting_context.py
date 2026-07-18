@@ -14,8 +14,11 @@ def reporting_context_headers(
     region: str | None,
     booking_center_code: str | None,
     role: str | None,
+    portfolio_ids: str | None = None,
+    client_ids: str | None = None,
+    book_ids: str | None = None,
 ) -> dict[str, str]:
-    return caller_context_headers(
+    headers = caller_context_headers(
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
@@ -23,6 +26,19 @@ def reporting_context_headers(
         booking_center_code=booking_center_code,
         role=role,
     )
+    entitlement_headers = {
+        "X-Caller-Portfolio-Ids": portfolio_ids,
+        "X-Caller-Client-Ids": client_ids,
+        "X-Caller-Book-Ids": book_ids,
+    }
+    headers.update(
+        {
+            name: value.strip()
+            for name, value in entitlement_headers.items()
+            if value and value.strip()
+        }
+    )
+    return headers
 
 
 @dataclass(frozen=True)
@@ -33,6 +49,9 @@ class ReportingCallerHeaderInputs:
     region: str | None
     booking_center_code: str | None
     role: str | None
+    portfolio_ids: str | None = None
+    client_ids: str | None = None
+    book_ids: str | None = None
 
     def as_headers(self) -> dict[str, str]:
         return reporting_context_headers(
@@ -42,6 +61,9 @@ class ReportingCallerHeaderInputs:
             region=self.region,
             booking_center_code=self.booking_center_code,
             role=self.role,
+            portfolio_ids=self.portfolio_ids,
+            client_ids=self.client_ids,
+            book_ids=self.book_ids,
         )
 
 
