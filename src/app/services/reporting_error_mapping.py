@@ -5,6 +5,25 @@ from fastapi import HTTPException, status
 
 ErrorCodeSet = frozenset[str] | None
 
+REPORT_ORDERING_VALIDATION_ERROR_CODES = frozenset(
+    {
+        "allocation_dimension_required",
+        "duplicate_allocation_dimension",
+        "duplicate_report_output_format",
+        "duplicate_report_section",
+        "invalid_report_configuration",
+        "invalid_retain_until_date",
+        "report_output_format_required",
+        "report_section_required",
+        "unknown_report_family",
+        "unsupported_allocation_dimension",
+        "unsupported_report_configuration",
+        "unsupported_report_ordering_mode",
+        "unsupported_report_output_format",
+        "unsupported_report_section",
+    }
+)
+
 
 @dataclass(frozen=True)
 class ReportingErrorRule:
@@ -34,6 +53,13 @@ REPORT_JOB_ERROR_RULES = (
         gateway_status=status.HTTP_400_BAD_REQUEST,
         error_codes=frozenset({"missing_caller_context", "invalid_report_job_filters"}),
         fallback_code="invalid_report_job_filters",
+        preserve_detail=True,
+    ),
+    ReportingErrorRule(
+        upstream_status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        gateway_status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        error_codes=REPORT_ORDERING_VALIDATION_ERROR_CODES,
+        fallback_code="invalid_report_order_configuration",
         preserve_detail=True,
     ),
     ReportingErrorRule(
@@ -71,6 +97,13 @@ REPORT_BATCH_ERROR_RULES = (
             }
         ),
         fallback_code="invalid_batch_selector",
+        preserve_detail=True,
+    ),
+    ReportingErrorRule(
+        upstream_status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        gateway_status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        error_codes=REPORT_ORDERING_VALIDATION_ERROR_CODES,
+        fallback_code="invalid_report_order_configuration",
         preserve_detail=True,
     ),
     ReportingErrorRule(
