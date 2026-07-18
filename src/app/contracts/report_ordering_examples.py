@@ -1,4 +1,6 @@
-REPORT_ORDERING_RESPONSE_EXAMPLE = {
+from typing import Any
+
+REPORT_ORDERING_RESPONSE_EXAMPLE: dict[str, Any] = {
     "contractVersion": "workbench-report-ordering.v1",
     "sourceAuthority": "reporting",
     "sourceContractVersion": "report-ordering-catalogue.v1",
