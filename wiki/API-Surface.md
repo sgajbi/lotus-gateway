@@ -18,6 +18,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
 - `GET` and `POST /api/v1/advisory-copilot/*`
+- `GET /api/v1/advisor-book/portfolios`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -65,6 +66,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same
   date for cashflow, cash balances, readiness, and performance composition. Gateway host time is
   not a portfolio business-date authority.
+- advisor-book discovery requires camelCase `asOfDate` plus trusted actor, tenant, region, booking
+  centre, role, and capability headers. The actor identifies the manager's own book; there is no
+  advisor-id query override. Optional `clientId`, `mandateType`, `sortBy`, `sortOrder`, `offset`,
+  and `limit` inputs only narrow or order the source cohort.
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as
@@ -473,6 +478,23 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/ad
   -H "X-Role: advisor" \
   -d "{\"action_type\":\"ACCEPT\",\"reviewed_by\":\"advisor-123\",\"reason\":\"Approved for client discussion.\"}"
 ```
+
+Authenticated advisor own-book discovery:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/advisor-book/portfolios?asOfDate=2026-04-10&sortBy=client_id&limit=25" \
+  -H "X-Actor-Id: PM_SG_001" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: Singapore" \
+  -H "X-Role: ADVISOR" \
+  -H "X-Caller-Capabilities: advisor.book.read"
+```
+
+The response contains only the source-backed own-book cohort for the trusted actor and booking
+centre. Treat `trusted_context_only`, `legacy_advisor_projection`, and other limitations as
+operating boundaries; do not promote them to tenant certification or authoritative role coverage.
 
 Report ordering options for a selected portfolio:
 

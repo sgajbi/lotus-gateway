@@ -5,6 +5,38 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
+## Authenticated Advisor Book
+
+Status: implementation-backed in Gateway for an authenticated advisor's own source-backed
+portfolio book. Workbench portfolio-switcher completion and production principal resolution remain
+separate owning slices.
+
+Business outcome:
+
+1. an advisor can retrieve, search, sort, and page the portfolios in their own supported book for
+   an explicit business date,
+2. portfolio membership comes from Core rather than browser filtering of the global portfolio
+   catalogue,
+3. the response distinguishes governed portfolio-role assignments from the bounded legacy advisor
+   projection and makes missing tenant confirmation visible as degraded.
+
+Supported route:
+
+1. `GET /api/v1/advisor-book/portfolios`
+
+Authority and boundary:
+
+1. `lotus-core` owns `PortfolioManagerBookMembership:v1`, effective portfolio membership, source
+   evidence, freshness, and lineage,
+2. Gateway derives the portfolio manager only from trusted `X-Actor-Id`, requires an entitled
+   advisor role and `advisor.book.read`, constrains the Core request to the trusted booking centre,
+   and exposes no advisor-id override,
+3. a non-null conflicting source tenant, booking centre, manager, business date, duplicate
+   portfolio, or malformed contract fails closed,
+4. null Core tenant scope is explicit degraded posture and is not tenant-isolation certification,
+5. team, delegate, supervisor, household, assets-under-management, attention, suitability,
+   recommendation, client communication, order, and execution coverage are not claimed.
+
 ## Report Ordering Options
 
 Status: implementation-backed in Gateway for source-backed configuration discovery and
