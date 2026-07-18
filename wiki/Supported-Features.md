@@ -5,6 +5,38 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
+## Report Ordering Options
+
+Status: implementation-backed in Gateway for source-backed configuration discovery and
+selected-scope eligibility. Workbench UI completion, whole-book portfolio expansion, client
+distribution, and canonical runtime proof remain separate owning slices.
+
+Business outcome:
+
+1. a client advisor or portfolio manager can discover the report families, sections, business
+   configuration, and output formats currently available before starting an order,
+2. the response distinguishes source catalogue availability from caller and selected-scope
+   eligibility, so a temporarily unavailable PDF does not hide a ready structured-data option,
+3. only implemented Gateway submission paths are returned, preventing the UI from presenting
+   schedule or source-workflow actions that it cannot execute.
+
+Supported route:
+
+1. `GET /api/v1/report-ordering/options`
+
+Authority and boundary:
+
+1. `lotus-report` owns `report-ordering-catalogue.v1`, report family definitions, configuration,
+   sections, output-format availability, and report lifecycle truth,
+2. Gateway validates and projects that strict source contract, filters internal report families by
+   trusted caller role, and applies explicit portfolio, client, or advisor-book scope eligibility,
+3. client and advisor-book selections do not expand portfolio membership; explicit batch ordering
+   remains partial until authoritative portfolio identifiers are supplied,
+4. ordering eligibility does not authorize client distribution, prove render completion, prove
+   archive completion, or make a report client-ready,
+5. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
+   details fail closed behind a product-safe Gateway error.
+
 ## Idea Opportunity BFF
 
 Status: implementation-backed in Gateway for bounded `lotus-idea` reads and candidate action

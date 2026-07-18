@@ -45,6 +45,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET` and `POST /api/v1/dpm/command-center/proof-packs*`
 - `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`
 - `GET` and `POST /api/v1/workbench/*`
+- `GET /api/v1/report-ordering/options`
 - `GET` and `POST /api/v1/reports/*`
 - `POST /api/v1/reports/outcome-reviews`
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
@@ -80,6 +81,11 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   truth
 - reporting snapshot and reporting request payloads use `asOfDate`; portfolio review requests also
   support `benchmarkCode` for RFC-0002 performance and risk context
+- report ordering options preserve Report-owned family, configuration, section, and output-format
+  availability while applying trusted caller role and explicit portfolio, client, or advisor-book
+  scope. The response publishes only implemented Gateway submission paths. Client/book scope does
+  not expand portfolio membership, and ordering eligibility is not client-distribution approval or
+  proof of document/archive completion
 - reporting review preserves `client_sections`, `advisor_sections`, readiness, evidence, and
   partial/unavailable section states from `lotus-report`; advisor-only material must stay under
   `advisor_sections`
@@ -467,6 +473,24 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/ad
   -H "X-Role: advisor" \
   -d "{\"action_type\":\"ACCEPT\",\"reviewed_by\":\"advisor-123\",\"reason\":\"Approved for client discussion.\"}"
 ```
+
+Report ordering options for a selected portfolio:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/report-ordering/options?scopeType=portfolio&scopeId=PB_SG_GLOBAL_BAL_001" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: client_advisor" \
+  -H "X-Caller-Portfolio-Ids: PB_SG_GLOBAL_BAL_001"
+```
+
+The response separates source catalogue availability from caller-scope eligibility. JSON may be
+ready while PDF remains unavailable with a Report-owned reason code. Use the returned submission
+path for an eligible ordering mode; do not infer distribution or document completion from this
+discovery response.
 
 Reporting summary:
 
