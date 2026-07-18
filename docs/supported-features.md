@@ -28,6 +28,15 @@
 5. advisory copilot evidence packets, action runs, review decisions, supportability, and
    proposal-version run lineage,
 6. bank-demo proof scenario contract, supported-claim register, and proof-pack capture.
+7. authenticated own-book portfolio discovery through `GET /api/v1/advisor-book/portfolios`,
+   backed by Core `PortfolioManagerBookMembership:v1` and bounded to trusted caller context.
+
+Advisor-book discovery supports an explicit business date, exact client and mandate filters,
+deterministic sorting, and bounded paging. It identifies governed role assignments separately from
+the bounded legacy advisor projection, reports missing Core tenant scope as degraded, rejects
+cross-tenant or cross-booking-centre evidence, and never falls back to the global portfolio
+catalogue. Team, delegated, supervisory, household, assets-under-management, attention,
+suitability, recommendation, communication, and execution claims are not supported by this route.
 
 ## DPM Command Center
 

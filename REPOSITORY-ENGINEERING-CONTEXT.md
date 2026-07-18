@@ -70,6 +70,12 @@ Current repository posture:
 4. source-backed report ordering configuration and selected-scope eligibility are active under
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
    only implemented submission paths, and client/book scopes do not imply portfolio membership,
+5. authenticated advisor own-book discovery is active under
+   `/api/v1/advisor-book/portfolios`; Gateway derives the manager only from trusted caller context,
+   consumes Core `PortfolioManagerBookMembership:v1`, preserves assignment basis and provenance,
+   rejects cross-scope evidence, reports null Core tenant scope as degraded, and does not fall back
+   to the global portfolio catalogue or infer team, delegate, supervisor, household,
+   assets-under-management, attention, suitability, communication, or execution truth,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,

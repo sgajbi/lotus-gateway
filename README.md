@@ -83,7 +83,8 @@ as the claim-controlled demo entrypoints.
 It depends on:
 
 - `lotus-core`
-  portfolio, booking, lookup, ingestion, simulation, and supportability inputs
+  portfolio, authenticated portfolio-manager book membership, booking, lookup, ingestion,
+  simulation, and supportability inputs
 - `lotus-performance`
   performance workspace analytics and evidence lineage
 - `lotus-risk`
@@ -362,7 +363,10 @@ Important current parameter conventions:
    headers. The response preserves Report-owned configuration and output availability while Gateway
    publishes only implemented submission paths; ordering eligibility is not distribution approval
    or document-completion evidence
-7. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
+7. advisor-book discovery uses camelCase `asOfDate`, `clientId`, `mandateType`, `sortBy`, and
+   `sortOrder`; requires trusted actor, tenant, region, booking centre, exact supported role, and
+   `advisor.book.read`; and exposes no browser-authored advisor-id override
+8. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
    `allowPartial`
 8. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
