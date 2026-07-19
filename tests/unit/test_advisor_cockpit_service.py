@@ -3,6 +3,11 @@ from fastapi import HTTPException
 
 from app.services.advisor_cockpit_service import AdvisorCockpitService
 
+CALLER_HEADERS = {
+    "X-Actor-Id": "advisor_sg_001",
+    "X-Tenant-Id": "tenant-sg",
+}
+
 
 class _FakeAdviseClient:
     def __init__(self) -> None:
@@ -29,12 +34,17 @@ class _FakeAdviseClient:
         self,
         *,
         params: dict[str, object],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         self.calls.append(
             (
                 "list_advisor_cockpit_actions",
-                {"params": params, "correlation_id": correlation_id},
+                {
+                    "params": params,
+                    "caller_headers": caller_headers,
+                    "correlation_id": correlation_id,
+                },
             )
         )
         return self.status, self.payload
@@ -43,12 +53,17 @@ class _FakeAdviseClient:
         self,
         *,
         params: dict[str, object],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         self.calls.append(
             (
                 "list_advisor_cockpit_preparation_packets",
-                {"params": params, "correlation_id": correlation_id},
+                {
+                    "params": params,
+                    "caller_headers": caller_headers,
+                    "correlation_id": correlation_id,
+                },
             )
         )
         return self.status, self.payload
@@ -58,6 +73,7 @@ class _FakeAdviseClient:
         *,
         action_item_id: str,
         params: dict[str, object],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         self.calls.append(
@@ -66,6 +82,7 @@ class _FakeAdviseClient:
                 {
                     "action_item_id": action_item_id,
                     "params": params,
+                    "caller_headers": caller_headers,
                     "correlation_id": correlation_id,
                 },
             )
@@ -76,12 +93,17 @@ class _FakeAdviseClient:
         self,
         *,
         params: dict[str, object],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         self.calls.append(
             (
                 "get_advisor_cockpit_snapshot",
-                {"params": params, "correlation_id": correlation_id},
+                {
+                    "params": params,
+                    "caller_headers": caller_headers,
+                    "correlation_id": correlation_id,
+                },
             )
         )
         return self.status, self.payload
@@ -90,12 +112,17 @@ class _FakeAdviseClient:
         self,
         *,
         params: dict[str, object],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         self.calls.append(
             (
                 "get_advisor_cockpit_supportability",
-                {"params": params, "correlation_id": correlation_id},
+                {
+                    "params": params,
+                    "caller_headers": caller_headers,
+                    "correlation_id": correlation_id,
+                },
             )
         )
         return self.status, self.payload
@@ -106,6 +133,7 @@ class _FakeAdviseClient:
         action_item_id: str,
         body: dict[str, object],
         params: dict[str, object],
+        caller_headers: dict[str, str],
         idempotency_key: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
@@ -116,6 +144,7 @@ class _FakeAdviseClient:
                     "action_item_id": action_item_id,
                     "body": body,
                     "params": params,
+                    "caller_headers": caller_headers,
                     "idempotency_key": idempotency_key,
                     "correlation_id": correlation_id,
                 },
@@ -132,7 +161,10 @@ class _FakeAdviseClient:
         self.calls.append(
             (
                 "evaluate_advisor_cockpit_house_view_cohort",
-                {"body": body, "correlation_id": correlation_id},
+                {
+                    "body": body,
+                    "correlation_id": correlation_id,
+                },
             )
         )
         return self.status, self.payload
@@ -149,6 +181,7 @@ async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -
             "advisor_id": "advisor_sg_001",
             "role": "ADVISOR",
         },
+        caller_headers=CALLER_HEADERS,
         correlation_id="corr-cockpit-list",
     )
 
@@ -164,6 +197,7 @@ async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -
                     "advisor_id": "advisor_sg_001",
                     "role": "ADVISOR",
                 },
+                "caller_headers": CALLER_HEADERS,
                 "correlation_id": "corr-cockpit-list",
             },
         )
@@ -198,6 +232,7 @@ async def test_advisor_cockpit_service_preserves_advise_owned_preparation_packet
             "role": "ADVISOR",
             "limit": 10,
         },
+        caller_headers=CALLER_HEADERS,
         correlation_id="corr-cockpit-prep",
     )
 
@@ -214,6 +249,7 @@ async def test_advisor_cockpit_service_preserves_advise_owned_preparation_packet
                     "role": "ADVISOR",
                     "limit": 10,
                 },
+                "caller_headers": CALLER_HEADERS,
                 "correlation_id": "corr-cockpit-prep",
             },
         )
@@ -243,7 +279,10 @@ async def test_advisor_cockpit_service_preserves_house_view_cohort_product() -> 
     assert advise_client.calls == [
         (
             "evaluate_advisor_cockpit_house_view_cohort",
-            {"body": body, "correlation_id": "corr-house-view"},
+            {
+                "body": body,
+                "correlation_id": "corr-house-view",
+            },
         )
     ]
 
@@ -264,6 +303,7 @@ async def test_advisor_cockpit_service_maps_acknowledgement_conflict_to_safe_det
             action_item_id="cockpit_action_001",
             body={"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
             params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
+            caller_headers=CALLER_HEADERS,
             idempotency_key="idem-cockpit-ack",
             correlation_id="corr-cockpit-ack",
         )
@@ -282,6 +322,7 @@ async def test_advisor_cockpit_service_maps_acknowledgement_conflict_to_safe_det
                 "action_item_id": "cockpit_action_001",
                 "body": {"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
                 "params": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
+                "caller_headers": CALLER_HEADERS,
                 "idempotency_key": "idem-cockpit-ack",
                 "correlation_id": "corr-cockpit-ack",
             },

@@ -3441,39 +3441,49 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
 
     action_filters = {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "advisor_id": "advisor_sg_001",
-        "role": "ADVISOR",
         "limit": 25,
         "cursor": None,
     }
     acknowledgement_filters = {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "advisor_id": None,
-        "role": "ADVISOR",
+    }
+    caller_headers = {
+        "X-Actor-Id": "advisor_sg_001",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
     }
 
-    await client.list_advisor_cockpit_actions(action_filters, correlation_id="corr-cockpit")
+    await client.list_advisor_cockpit_actions(
+        action_filters,
+        caller_headers=caller_headers,
+        correlation_id="corr-cockpit",
+    )
     await client.list_advisor_cockpit_preparation_packets(
         action_filters,
+        caller_headers=caller_headers,
         correlation_id="corr-cockpit",
     )
     await client.get_advisor_cockpit_action(
         "cockpit_action_001",
         acknowledgement_filters,
+        caller_headers=caller_headers,
         correlation_id="corr-cockpit",
     )
     await client.get_advisor_cockpit_snapshot(
         acknowledgement_filters,
+        caller_headers=caller_headers,
         correlation_id="corr-cockpit",
     )
     await client.get_advisor_cockpit_supportability(
         acknowledgement_filters,
+        caller_headers=caller_headers,
         correlation_id="corr-cockpit",
     )
     await client.acknowledge_advisor_cockpit_action(
         "cockpit_action_001",
         body={"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
         params=acknowledgement_filters,
+        caller_headers=caller_headers,
         idempotency_key="idem-cockpit-ack",
         correlation_id="corr-cockpit",
     )
@@ -3489,8 +3499,6 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
     assert _FakeAsyncClient.calls[0]["url"] == "http://advise/advisory/cockpit/actions"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "advisor_id": "advisor_sg_001",
-        "role": "ADVISOR",
         "limit": 25,
     }
     assert _FakeAsyncClient.calls[1]["url"] == (
@@ -3498,8 +3506,6 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
     )
     assert _FakeAsyncClient.calls[1]["params"] == {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "advisor_id": "advisor_sg_001",
-        "role": "ADVISOR",
         "limit": 25,
     }
     assert _FakeAsyncClient.calls[2]["url"] == (
@@ -3514,7 +3520,6 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
     )
     assert acknowledgement_call["params"] == {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "role": "ADVISOR",
     }
     assert acknowledgement_call["json"] == {
         "action_item_version": 1,
@@ -3528,8 +3533,14 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
         "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
         "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
     }
-    for call in _FakeAsyncClient.calls:
+    for call in _FakeAsyncClient.calls[:6]:
         assert call["headers"]["X-Correlation-Id"] == "corr-cockpit"
+        assert call["headers"]["X-Actor-Id"] == "advisor_sg_001"
+        assert call["headers"]["X-Tenant-Id"] == "tenant-sg"
+        assert call["headers"]["X-Region"] == "APAC"
+    assert house_view_call["headers"]["X-Correlation-Id"] == "corr-cockpit"
+    assert "X-Actor-Id" not in house_view_call["headers"]
+    assert "X-Capabilities" not in house_view_call["headers"]
 
 
 @pytest.mark.asyncio

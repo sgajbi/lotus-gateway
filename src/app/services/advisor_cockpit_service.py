@@ -23,10 +23,12 @@ class AdvisorCockpitService:
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.list_advisor_cockpit_actions(
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -36,6 +38,7 @@ class AdvisorCockpitService:
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
         (
@@ -43,6 +46,7 @@ class AdvisorCockpitService:
             upstream_payload,
         ) = await self._advise_client.list_advisor_cockpit_preparation_packets(
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -53,11 +57,13 @@ class AdvisorCockpitService:
         *,
         action_item_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_advisor_cockpit_action(
             action_item_id=action_item_id,
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -67,10 +73,12 @@ class AdvisorCockpitService:
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_advisor_cockpit_snapshot(
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -80,6 +88,7 @@ class AdvisorCockpitService:
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
         (
@@ -87,6 +96,7 @@ class AdvisorCockpitService:
             upstream_payload,
         ) = await self._advise_client.get_advisor_cockpit_supportability(
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -98,6 +108,7 @@ class AdvisorCockpitService:
         action_item_id: str,
         body: dict[str, Any],
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         idempotency_key: str,
         correlation_id: str,
     ) -> AdvisorCockpitEnvelopeResponse:
@@ -108,6 +119,7 @@ class AdvisorCockpitService:
             action_item_id=action_item_id,
             body=body,
             params=params,
+            caller_headers=caller_headers,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )

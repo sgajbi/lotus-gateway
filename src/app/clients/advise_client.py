@@ -72,24 +72,26 @@ class AdviseClient(
     async def list_advisor_cockpit_actions(
         self,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/advisory/cockpit/actions",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.cockpit.actions.list",
         )
 
     async def list_advisor_cockpit_preparation_packets(
         self,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/advisory/cockpit/preparation-packets",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.cockpit.preparation-packets.list",
         )
 
@@ -97,36 +99,39 @@ class AdviseClient(
         self,
         action_item_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/advisory/cockpit/actions/{action_item_id}",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.cockpit.actions.get",
         )
 
     async def get_advisor_cockpit_snapshot(
         self,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/advisory/cockpit/snapshot",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.cockpit.snapshot",
         )
 
     async def get_advisor_cockpit_supportability(
         self,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/advisory/cockpit/supportability",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.cockpit.supportability",
         )
 
@@ -135,13 +140,17 @@ class AdviseClient(
         action_item_id: str,
         body: dict[str, Any],
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         idempotency_key: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/cockpit/actions/{action_item_id}/acknowledgements",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=self._headers(
+                correlation_id,
+                {**caller_headers, "Idempotency-Key": idempotency_key},
+            ),
             operation="advise.advisory.cockpit.actions.acknowledge",
             params=self._clean_params(params),
         )
