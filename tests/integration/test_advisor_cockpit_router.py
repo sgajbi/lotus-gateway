@@ -5,9 +5,7 @@ from app.main import app
 
 def _caller_headers(
     *,
-    capabilities: str = (
-        "advisory.advisor_cockpit.read,advisory.advisor_cockpit.acknowledge"
-    ),
+    capabilities: str = ("advisory.advisor_cockpit.read,advisory.advisor_cockpit.acknowledge"),
     role: str = "ADVISOR",
     portfolio_id: str | None = "PB_SG_GLOBAL_BAL_001",
 ) -> dict[str, str]:
@@ -81,7 +79,11 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         }
 
     async def _fake_get_action(
-        self, action_item_id, params, caller_headers, correlation_id  # noqa: ANN001
+        self,
+        action_item_id,
+        params,
+        caller_headers,
+        correlation_id,  # noqa: ANN001
     ):
         _ = self
         captured["get_action"] = {
@@ -98,7 +100,10 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         }
 
     async def _fake_preparation_packets(
-        self, params, caller_headers, correlation_id  # noqa: ANN001
+        self,
+        params,
+        caller_headers,
+        correlation_id,  # noqa: ANN001
     ):
         _ = self
         captured["preparation_packets"] = {
@@ -120,7 +125,10 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         }
 
     async def _fake_supportability(
-        self, params, caller_headers, correlation_id  # noqa: ANN001
+        self,
+        params,
+        caller_headers,
+        correlation_id,  # noqa: ANN001
     ):
         _ = self
         captured["supportability"] = {
@@ -281,9 +289,7 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
     assert acknowledgement_response.json()["data"]["action_item"]["status"] == "PENDING_REVIEW"
     assert house_view_response.json()["data"]["product_name"] == "TacticalHouseViewAffectedCohort"
     expected_advisor_headers = _expected_upstream_headers(
-        capability=(
-            "advisory.advisor_cockpit.acknowledge,advisory.advisor_cockpit.read"
-        )
+        capability=("advisory.advisor_cockpit.acknowledge,advisory.advisor_cockpit.read")
     )
     for operation in (
         "list",
@@ -332,12 +338,11 @@ def test_advisor_cockpit_openapi_documents_boundary_and_idempotency() -> None:
     assert "HOUSE_VIEW_IMPACT_REVIEW" in house_view_operation["description"]
     assert "does not discover candidate portfolios" in house_view_operation["description"]
     assert "does not clear blocking policy" in ack_operation["description"]
-    assert "acknowledging actor is derived from trusted caller context" in ack_operation[
-        "description"
-    ]
+    assert (
+        "acknowledging actor is derived from trusted caller context" in ack_operation["description"]
+    )
     assert not any(
-        parameter["name"] in {"advisor_id", "role"}
-        and parameter["in"] == "query"
+        parameter["name"] in {"advisor_id", "role"} and parameter["in"] == "query"
         for parameter in action_operation["parameters"]
     )
     assert {
@@ -381,9 +386,7 @@ def test_advisor_cockpit_rejects_browser_selected_authority() -> None:
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"]["code"] == (
-        "advisor_cockpit_authority_query_not_supported"
-    )
+    assert response.json()["detail"]["code"] == ("advisor_cockpit_authority_query_not_supported")
 
 
 def test_advisor_cockpit_fails_closed_without_trusted_context_or_capability() -> None:
@@ -396,9 +399,7 @@ def test_advisor_cockpit_fails_closed_without_trusted_context_or_capability() ->
     )
 
     assert missing_context.status_code == 400
-    assert missing_context.json()["detail"]["code"] == (
-        "advisor_cockpit_caller_context_missing"
-    )
+    assert missing_context.json()["detail"]["code"] == ("advisor_cockpit_caller_context_missing")
     assert missing_capability.status_code == 403
     assert missing_capability.json()["detail"]["code"] == "advisor_cockpit_access_denied"
 
@@ -413,9 +414,7 @@ def test_advisor_cockpit_rejects_cross_portfolio_access_before_upstream_call() -
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"]["code"] == (
-        "advisor_cockpit_portfolio_access_denied"
-    )
+    assert response.json()["detail"]["code"] == ("advisor_cockpit_portfolio_access_denied")
 
 
 def test_advisor_cockpit_action_lookup_requires_entitled_portfolio() -> None:
@@ -447,9 +446,9 @@ def test_advisor_cockpit_acknowledgement_rejects_body_actor_override() -> None:
 
 
 def test_tactical_house_view_route_does_not_claim_cockpit_authority() -> None:
-    operation = app.openapi()["paths"][
-        "/api/v1/advisor-cockpit/house-view-cohorts/evaluate"
-    ]["post"]
+    operation = app.openapi()["paths"]["/api/v1/advisor-cockpit/house-view-cohorts/evaluate"][
+        "post"
+    ]
 
     assert not any(
         parameter["in"] == "header" and "Capability" in parameter["name"]

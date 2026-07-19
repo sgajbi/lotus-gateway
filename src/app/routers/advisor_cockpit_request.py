@@ -17,18 +17,12 @@ def advisor_cockpit_caller_context(
     caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
     tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
     region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[
-        str | None, Header(alias="X-Booking-Center-Code")
-    ] = None,
-    legal_entity_code: Annotated[
-        str | None, Header(alias="X-Legal-Entity-Code")
-    ] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
     capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
     principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    authorized_advisor_id: Annotated[
-        str | None, Header(alias="X-Authorized-Advisor-Id")
-    ] = None,
+    authorized_advisor_id: Annotated[str | None, Header(alias="X-Authorized-Advisor-Id")] = None,
     authorized_portfolio_id: Annotated[
         str | None, Header(alias="X-Authorized-Portfolio-Id")
     ] = None,
