@@ -75,45 +75,29 @@ def require_advisor_cockpit_caller_context(
         capabilities=capabilities,
         principal_status=principal_status,
     )
-    resolved_role = required["X-Role"].upper()
-    resolved_principal_status = required["X-Principal-Status"].upper()
-    resolved_capabilities = _identifier_set(required["X-Caller-Capabilities"])
-    optional_scope = {
-        "authorized_advisor_id": _clean(authorized_advisor_id),
-        "authorized_portfolio_id": _clean(authorized_portfolio_id),
-    }
+    return _context_from_fields(
+        required,
+        authorized_advisor_id=_clean(authorized_advisor_id),
+        authorized_portfolio_id=_clean(authorized_portfolio_id),
+    )
 
-    if resolved_role not in _SUPPORTED_ROLES:
-        raise _access_denied()
-    if resolved_principal_status != "ACTIVE":
-        raise AdvisorCockpitAccessError(
-            code="advisor_cockpit_principal_invalid",
-            message="Advisor Cockpit access requires an active authenticated principal.",
-            status_code=401,
-        )
-    if not resolved_capabilities:
-        raise _invalid_context()
-    if any(
-        not _IDENTIFIER_PATTERN.fullmatch(value)
-        for value in (
-            required["X-Actor-Id"],
-            required["X-Caller-Application"],
-            required["X-Tenant-Id"],
-            required["X-Region"],
-            required["X-Booking-Center-Code"],
-            required["X-Legal-Entity-Code"],
-            *resolved_capabilities,
-            *(value for value in optional_scope.values() if value is not None),
-        )
-    ):
-        raise _invalid_context()
 
-    resolved_authorized_advisor_id = optional_scope["authorized_advisor_id"]
-    if resolved_role == "ADVISOR":
-        if resolved_authorized_advisor_id not in {None, required["X-Actor-Id"]}:
-            raise _access_denied()
-        resolved_authorized_advisor_id = required["X-Actor-Id"]
-
+def _context_from_fields(
+    required: dict[str, str],
+    *,
+    authorized_advisor_id: str | None,
+    authorized_portfolio_id: str | None,
+) -> AdvisorCockpitCallerContext:
+    role = required["X-Role"].upper()
+    principal_status = required["X-Principal-Status"].upper()
+    capabilities = _identifier_set(required["X-Caller-Capabilities"])
+    _validate_principal(role, principal_status, capabilities)
+    _validate_identifiers(required, capabilities, authorized_advisor_id, authorized_portfolio_id)
+    advisor_scope = _authorized_advisor_scope(
+        role=role,
+        actor_id=required["X-Actor-Id"],
+        authorized_advisor_id=authorized_advisor_id,
+    )
     return AdvisorCockpitCallerContext(
         actor_id=required["X-Actor-Id"],
         caller_application=required["X-Caller-Application"],
@@ -121,12 +105,62 @@ def require_advisor_cockpit_caller_context(
         region=required["X-Region"],
         booking_center_code=required["X-Booking-Center-Code"],
         legal_entity_code=required["X-Legal-Entity-Code"].upper(),
-        role=cast(AdvisorCockpitOwnerRole, resolved_role),
-        capabilities=resolved_capabilities,
-        principal_status=resolved_principal_status,
-        authorized_advisor_id=resolved_authorized_advisor_id,
-        authorized_portfolio_id=optional_scope["authorized_portfolio_id"],
+        role=cast(AdvisorCockpitOwnerRole, role),
+        capabilities=capabilities,
+        principal_status=principal_status,
+        authorized_advisor_id=advisor_scope,
+        authorized_portfolio_id=authorized_portfolio_id,
     )
+
+
+def _validate_principal(
+    role: str,
+    principal_status: str,
+    capabilities: frozenset[str],
+) -> None:
+    if role not in _SUPPORTED_ROLES:
+        raise _access_denied()
+    if principal_status != "ACTIVE":
+        raise AdvisorCockpitAccessError(
+            code="advisor_cockpit_principal_invalid",
+            message="Advisor Cockpit access requires an active authenticated principal.",
+            status_code=401,
+        )
+    if not capabilities:
+        raise _invalid_context()
+
+
+def _validate_identifiers(
+    required: dict[str, str],
+    capabilities: frozenset[str],
+    authorized_advisor_id: str | None,
+    authorized_portfolio_id: str | None,
+) -> None:
+    identifiers = (
+        required["X-Actor-Id"],
+        required["X-Caller-Application"],
+        required["X-Tenant-Id"],
+        required["X-Region"],
+        required["X-Booking-Center-Code"],
+        required["X-Legal-Entity-Code"],
+        *capabilities,
+        *(value for value in (authorized_advisor_id, authorized_portfolio_id) if value),
+    )
+    if any(not _IDENTIFIER_PATTERN.fullmatch(value) for value in identifiers):
+        raise _invalid_context()
+
+
+def _authorized_advisor_scope(
+    *,
+    role: str,
+    actor_id: str,
+    authorized_advisor_id: str | None,
+) -> str | None:
+    if role != "ADVISOR":
+        return authorized_advisor_id
+    if authorized_advisor_id not in {None, actor_id}:
+        raise _access_denied()
+    return actor_id
 
 
 def require_advisor_cockpit_capability(
