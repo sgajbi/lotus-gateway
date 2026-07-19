@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.contracts.ideas import IDEA_CANDIDATE_DETAIL_EXAMPLE, IDEA_REVIEW_QUEUE_EXAMPLE
+from app.contracts.idea_examples import IDEA_CANDIDATE_DETAIL_EXAMPLE, IDEA_REVIEW_QUEUE_EXAMPLE
 from app.main import app
 
 
@@ -185,6 +185,40 @@ def test_idea_route_maps_upstream_failures_without_raw_payload(monkeypatch) -> N
 
 
 @pytest.mark.parametrize(
+    ("method_name", "route"),
+    [
+        (
+            "get_advisor_review_queue",
+            "/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z",
+        ),
+        (
+            "get_candidate_detail",
+            "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7",
+        ),
+    ],
+)
+def test_idea_read_routes_preserve_source_permission_denial_without_payload_leakage(
+    monkeypatch,
+    method_name,
+    route,
+) -> None:
+    async def _denied(self, **kwargs):
+        return 403, {
+            "detail": "tenant-private-bank-sg:portfolio:PB_SG_GLOBAL_BAL_001 denied by authz"
+        }
+
+    monkeypatch.setattr(f"app.clients.lotus_idea_client.LotusIdeaClient.{method_name}", _denied)
+
+    response = TestClient(app).get(route, headers=_headers())
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["detail"]["code"] == "idea_permission_denied"
+    assert "PB_SG_GLOBAL_BAL_001" not in str(body)
+    assert "authz" not in str(body).lower()
+
+
+@pytest.mark.parametrize(
     ("method_name", "path", "body", "payload_key", "payload"),
     [
         (
@@ -357,6 +391,61 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
 
     assert response.status_code == 422
     assert "authorizedScope" in str(response.json())
+
+
+def test_idea_candidate_action_requires_idempotency_before_upstream_call(monkeypatch) -> None:
+    async def _action(*args, **kwargs):
+        raise AssertionError("Gateway must not call Lotus Idea without Idempotency-Key.")
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_review_action",
+        _action,
+    )
+
+    response = TestClient(app).post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/review-actions",
+        json={
+            "reviewId": "review-001",
+            "action": "approve_for_conversion",
+            "reasonCodes": ["review_required"],
+            "decidedAtUtc": "2026-06-21T10:15:00Z",
+        },
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+    assert "Idempotency-Key" in str(response.json())
+
+
+def test_idea_candidate_action_preserves_source_permission_denial_without_payload_leakage(
+    monkeypatch,
+) -> None:
+    async def _action(self, **kwargs):
+        return 403, {
+            "detail": "advisor-123 cannot record feedback for client-001 on candidate payload"
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_feedback",
+        _action,
+    )
+
+    response = TestClient(app).post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/feedback",
+        json={
+            "feedbackId": "feedback-001",
+            "outcome": "useful",
+            "reasonCodes": ["review_required"],
+            "recordedAtUtc": "2026-06-21T10:16:00Z",
+        },
+        headers={**_headers(), "Idempotency-Key": "idea-action-idem-denied"},
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["detail"]["code"] == "idea_permission_denied"
+    assert "advisor-123" not in str(body)
+    assert "client-001" not in str(body)
 
 
 @pytest.mark.parametrize("upstream_status", [409, 422])
