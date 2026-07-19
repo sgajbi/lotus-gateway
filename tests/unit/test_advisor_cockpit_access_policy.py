@@ -19,9 +19,7 @@ def _context(**overrides: str | None):
         "booking_center_code": "SG",
         "legal_entity_code": "SGPB",
         "role": "ADVISOR",
-        "capabilities": (
-            "advisory.advisor_cockpit.read,advisory.advisor_cockpit.acknowledge"
-        ),
+        "capabilities": ("advisory.advisor_cockpit.read,advisory.advisor_cockpit.acknowledge"),
         "principal_status": "ACTIVE",
         "authorized_advisor_id": "advisor_sg_001",
         "authorized_portfolio_id": "PB_SG_GLOBAL_BAL_001",
@@ -46,9 +44,7 @@ def test_caller_context_preserves_bounded_trusted_authority() -> None:
         "X-Tenant-Id": "tenant-sg",
         "X-Legal-Entity-Code": "SGPB",
         "X-Service-Identity": "lotus-gateway",
-        "X-Capabilities": (
-            "advisory.advisor_cockpit.acknowledge,advisory.advisor_cockpit.read"
-        ),
+        "X-Capabilities": ("advisory.advisor_cockpit.acknowledge,advisory.advisor_cockpit.read"),
         "X-Principal-Status": "ACTIVE",
         "X-Authorized-Advisor-Id": "advisor_sg_001",
         "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
