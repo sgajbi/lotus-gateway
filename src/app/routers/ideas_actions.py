@@ -2,6 +2,11 @@ from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Depends, Header, Path
 
+from app.contracts.idea_examples import (
+    IDEA_CONVERSION_INTENT_EXAMPLE,
+    IDEA_FEEDBACK_EXAMPLE,
+    IDEA_REVIEW_ACTION_EXAMPLE,
+)
 from app.contracts.ideas import (
     IdeaCandidateConversionIntentRequest,
     IdeaCandidateConversionIntentResponse,
@@ -64,6 +69,13 @@ async def _record_idea_candidate_action(
         "replay, audit, and downstream-authority decisions; this route does not approve "
         "suitability, compliance, mandate, execution, or client communication."
     ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {"application/json": {"example": IDEA_REVIEW_ACTION_EXAMPLE}},
+            }
+        }
+    },
     responses={
         **idea_error_response(400, description="Lotus Idea rejected the action request."),
         **idea_error_response(403, description="Caller lacks Idea review permission."),
@@ -117,6 +129,13 @@ async def record_idea_candidate_review_action(
         "idempotency, and request lineage. Gateway does not interpret feedback, mutate candidate "
         "state locally, or grant downstream authority."
     ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {"application/json": {"example": IDEA_FEEDBACK_EXAMPLE}},
+            }
+        }
+    },
     responses={
         **idea_error_response(400, description="Lotus Idea rejected the feedback request."),
         **idea_error_response(403, description="Caller lacks Idea feedback permission."),
@@ -164,6 +183,13 @@ async def record_idea_candidate_feedback(
         "does not create an Advise proposal, Manage action, Report evidence pack, rebalance, "
         "execution instruction, suitability approval, or client communication."
     ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {"application/json": {"example": IDEA_CONVERSION_INTENT_EXAMPLE}},
+            }
+        }
+    },
     responses={
         **idea_error_response(
             400, description="Lotus Idea rejected the conversion-intent request."

@@ -53,7 +53,23 @@ def test_ideas_openapi_contract_registered() -> None:
         assert {"Idempotency-Key", "X-Causation-Id", "X-Caller-Capabilities"}.issubset(
             parameter_names
         )
+        example = operation["responses"]["200"]["content"]["application/json"]["example"]
+        assert example["durableStorageBacked"] is True
+        assert example["supportedFeaturePromoted"] is False
+        assert "client communication" not in str(example).lower()
         assert operation["responses"]["409"]["description"]
         assert operation["responses"]["422"]["description"]
         assert operation["responses"]["502"]["description"]
         assert "does not" in operation["description"]
+    assert (
+        review_action_operation["responses"]["200"]["content"]["application/json"]["example"][
+            "reviewDecision"
+        ]["grantsDownstreamAuthority"]
+        is False
+    )
+    assert (
+        conversion_operation["responses"]["200"]["content"]["application/json"]["example"][
+            "conversionIntent"
+        ]["grantsDownstreamAuthority"]
+        is False
+    )

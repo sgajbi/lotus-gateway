@@ -2,9 +2,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
 
+from app.contracts.idea_examples import IDEA_CANDIDATE_DETAIL_EXAMPLE, IDEA_REVIEW_QUEUE_EXAMPLE
 from app.contracts.ideas import (
-    IDEA_CANDIDATE_DETAIL_EXAMPLE,
-    IDEA_REVIEW_QUEUE_EXAMPLE,
     IdeaGatewayCandidateDetailResponse,
     IdeaGatewayReviewQueueResponse,
 )
