@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 AdvisorCockpitOwnerRole = Literal[
     "ADVISOR",
@@ -12,20 +12,18 @@ AdvisorCockpitOwnerRole = Literal[
     "REPORTING_OWNER",
     "ARCHIVE_OWNER",
     "EXECUTION_OWNER",
-    "DPM_OWNER",
+    "PORTFOLIO_MANAGER",
     "SYSTEM",
 ]
 
 
 class AdvisorCockpitAcknowledgeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     action_item_version: int = Field(
         ge=1,
         description="Advise-owned action item version observed by the caller.",
         examples=[1],
-    )
-    acknowledged_by: str = Field(
-        description="Actor acknowledging the advisor cockpit action item.",
-        examples=["advisor_sg_001"],
     )
     acknowledgement_note: str | None = Field(
         default=None,

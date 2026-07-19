@@ -6,6 +6,7 @@ class AdvisorCockpitClient(Protocol):
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -13,6 +14,7 @@ class AdvisorCockpitClient(Protocol):
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -21,6 +23,7 @@ class AdvisorCockpitClient(Protocol):
         *,
         action_item_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -28,6 +31,7 @@ class AdvisorCockpitClient(Protocol):
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -35,6 +39,7 @@ class AdvisorCockpitClient(Protocol):
         self,
         *,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -44,6 +49,7 @@ class AdvisorCockpitClient(Protocol):
         action_item_id: str,
         body: dict[str, Any],
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         idempotency_key: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
