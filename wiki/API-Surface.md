@@ -316,7 +316,11 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `/api/v1/advisor-cockpit/snapshot`, `/api/v1/advisor-cockpit/supportability`, and
   `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`, plus
   `/api/v1/advisor-cockpit/house-view-cohorts/evaluate` for source-backed tactical house-view
-  cohort publication. Gateway preserves
+  cohort publication. Cockpit reads and acknowledgements reject caller-selected `advisor_id` and
+  `role`; Gateway derives authority from trusted caller headers, authorizes portfolio filters,
+  binds acknowledgements to the authenticated actor, and forwards the exact Advise principal
+  contract. The tactical house-view command remains outside that Cockpit capability boundary.
+  Gateway preserves
   Advise-owned action status, priority, owner role, reason codes, SLA, source refs, evidence refs,
   lineage refs, unsupported capabilities, supportability, preparation-packet posture,
   tactical house-view cohort membership, and acknowledgement state.

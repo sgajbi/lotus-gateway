@@ -255,9 +255,10 @@ Authority and integrations:
 
 1. `lotus-advise` remains the advisor cockpit action, preparation-packet, tactical house-view
    cohort, snapshot, supportability, acknowledgement, evidence, and lineage authority.
-2. Gateway forwards portfolio, advisor, caller role, pagination, action id, acknowledgement body,
-   tactical house-view affected-cohort body, idempotency key, and correlation context to
-   `lotus-advise`.
+2. Gateway derives advisor identity and role from trusted server-side caller context. It rejects
+   public `advisor_id` and `role` authority parameters, authorizes an optional portfolio filter
+   against `X-Authorized-Portfolio-Id`, binds the acknowledgement actor to `X-Actor-Id`, and
+   forwards the exact principal contract required by `lotus-advise`.
 3. Gateway preserves Advise-owned action status, priority, owner role, reason codes, SLA, source
    refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
    tactical house-view cohort membership,
@@ -265,6 +266,9 @@ Authority and integrations:
 4. Gateway does not reconstruct advisory policy results, proposal memo blockers, action
    prioritization, meeting preparation, SLA posture, supportability, client-ready publication,
    external client communication, OMS/order/fill/settlement posture, or demo-readiness claims.
+5. The tactical house-view cohort command remains a separate Advise source-product route. Gateway
+   does not manufacture a Cockpit house-view capability or apply Cockpit read authority to that
+   command.
 
 ```mermaid
 flowchart LR
@@ -278,7 +282,9 @@ Operational behavior:
 
 1. action and preparation-packet listing are paginated and bounded by Advise-owned cursor semantics,
 2. acknowledgement writes require `Idempotency-Key`,
-3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
+3. action lookup and acknowledgement require an explicitly entitled portfolio so object-level
+   authorization does not depend on a prior list filter,
+4. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.
 
 ## Advisory Copilot Evidence And Action Runs

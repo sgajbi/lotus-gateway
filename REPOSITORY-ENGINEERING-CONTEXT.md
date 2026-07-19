@@ -43,7 +43,13 @@ Current repository posture:
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
    `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, preparation-packet,
    single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
-   `/advisory/cockpit/*`; advisory-copilot evidence-packet, action-run, review, supportability,
+   `/advisory/cockpit/*`. Those Cockpit reads and acknowledgements derive advisor identity, role,
+   capability, and portfolio scope from trusted server-side caller context: query `advisor_id` and
+   `role` are rejected, advisor actors cannot project another advisor id, portfolio filters must
+   match `X-Authorized-Portfolio-Id`, acknowledgement actors are bound to `X-Actor-Id`, and Gateway
+   translates the result to the exact Advise principal headers. The tactical house-view cohort
+   command remains a separate source-product route and does not receive an invented Cockpit
+   capability. Advisory-copilot evidence-packet, action-run, review, supportability,
    and proposal-version run-lineage routes are routed to `lotus-advise`
    `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`; bank-demo proof
    scenario-contract, supported-claim register, and
