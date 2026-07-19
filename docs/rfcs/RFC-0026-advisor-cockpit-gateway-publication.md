@@ -28,9 +28,31 @@ Supported Gateway routes:
 
 ## Boundary Rules
 
-Gateway forwards portfolio, advisor, caller role, pagination, action id, acknowledgement payload,
-tactical house-view affected-cohort payload, idempotency key, and correlation context. Gateway does
-not reconstruct:
+For every Cockpit read and acknowledgement, Gateway derives advisor identity and role from trusted
+server-side caller context. Public `advisor_id` and `role` query parameters are rejected. An
+optional portfolio remains a business filter only after it matches the singular trusted
+`X-Authorized-Portfolio-Id`; single-action reads and acknowledgements require that portfolio scope.
+Gateway binds `acknowledged_by` to `X-Actor-Id` and does not accept an actor override in the body.
+
+Gateway validates the actor, calling application, tenant, region, booking centre, legal entity,
+role, active-principal posture, capability, authorized advisor, and authorized portfolio before it
+calls Advise. It then translates the trusted context to the exact Advise principal headers:
+`X-Actor-Id`, `X-Role`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Service-Identity`,
+`X-Capabilities`, `X-Principal-Status`, `X-Authorized-Advisor-Id`, and
+`X-Authorized-Portfolio-Id`. Advisor callers are always bound to their authenticated actor id.
+
+The tactical house-view cohort command is a separate source-product route. It is not folded into
+the Advisor Cockpit read/acknowledgement capability model and Gateway does not invent a house-view
+capability that `lotus-advise` does not support.
+
+Workbench must strip browser authority and apply these headers from its server-side BFF principal.
+The configured canonical-runtime principal remains non-production evidence while
+`lotus-workbench#436` and `lotus-platform#563` govern the authenticated session contract; Gateway
+does not restore query-authority compatibility while that platform dependency remains open.
+
+Gateway forwards authorized portfolio filters, pagination, action id, the actor-bound
+acknowledgement payload, tactical house-view affected-cohort payload, idempotency key, and
+correlation context. Gateway does not reconstruct:
 
 1. advisory policy result,
 2. proposal memo posture,
@@ -52,15 +74,15 @@ Advise-owned cockpit supportability posture used by the Workbench canonical proo
    proves Gateway service envelopes preserve Advise-owned payload posture and propagate upstream
    acknowledgement conflicts without rewriting semantics.
 2. `tests/integration/test_advisor_cockpit_router.py`
-   proves routes forward filters, correlation ids, preparation-packet requests,
-   acknowledgement bodies, tactical house-view cohort requests, and `Idempotency-Key` to the Advise
-   client while preserving blocked/supportability posture.
+   proves routes reject browser-selected authority, fail closed for missing capability and
+   cross-portfolio access, bind the acknowledgement actor, forward exact Advise principal headers,
+   and preserve blocked/supportability posture.
 3. `tests/contract/test_advise_gateway_route_coverage.py`
    proves all supported advisor cockpit route keys are present in the FastAPI app.
 4. `tests/unit/test_upstream_clients.py`
    proves the Advise client forwards the tactical house-view cohort request to the source route.
 5. OpenAPI assertions prove the acknowledgement idempotency header and conflict response are
-   documented.
+   documented, authority query parameters are absent, and trusted context headers are visible.
 
 ## No Product Overclaim
 
