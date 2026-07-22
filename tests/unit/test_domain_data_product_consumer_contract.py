@@ -37,6 +37,8 @@ def test_gateway_declares_the_implemented_advisor_book_dependency() -> None:
         "required_trust_metadata": [
             "product_name",
             "product_version",
+            "portfolio_manager_id",
+            "booking_center_code",
             "generated_at",
             "as_of_date",
             "data_quality_status",
