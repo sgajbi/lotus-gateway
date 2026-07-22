@@ -128,6 +128,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    preserves source provenance and legacy-assignment basis, and reports null source tenant scope
    as degraded. It does not use the global catalogue as a fallback or infer delegated, team,
    supervisor, household, assets-under-management, attention, suitability, or execution truth.
+   `contracts/domain-data-products/lotus-gateway-consumers.v1.json` is the repo-native RFC-0084
+   consumer declaration for this direct dependency and records `api_read`, fail-closed behavior,
+   required trust metadata, and feature/PR/platform end-to-end validation ownership. Gateway #509
+   owns the systematic inventory and declaration parity for other direct domain-product reads.
 
 ## Gap Register
 
