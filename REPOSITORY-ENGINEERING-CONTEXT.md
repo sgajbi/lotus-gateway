@@ -81,7 +81,10 @@ Current repository posture:
    consumes Core `PortfolioManagerBookMembership:v1`, preserves assignment basis and provenance,
    rejects cross-scope evidence, reports null Core tenant scope as degraded, and does not fall back
    to the global portfolio catalogue or infer team, delegate, supervisor, household,
-   assets-under-management, attention, suitability, communication, or execution truth,
+   assets-under-management, attention, suitability, communication, or execution truth. Its
+   repo-native RFC-0084 consumer declaration records the direct Core dependency, required trust
+   metadata, protected lanes, and fail-closed posture; Gateway remains an experience API rather
+   than the assignment authority,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
