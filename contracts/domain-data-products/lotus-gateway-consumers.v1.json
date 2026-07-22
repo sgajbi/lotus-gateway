@@ -22,8 +22,8 @@
         "generated_at",
         "as_of_date",
         "data_quality_status",
-        "latest_evidence_timestamp",
-        "snapshot_id",
+        "source_evidence_current",
+        "freshness_status",
         "content_hash"
       ],
       "migration_posture": {
