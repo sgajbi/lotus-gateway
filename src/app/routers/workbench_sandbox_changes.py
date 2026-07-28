@@ -22,7 +22,7 @@ async def _apply_sandbox_changes(
         portfolio_id=portfolio_id,
         session_id=session_id,
         correlation_id=correlation_id,
-        changes=[item.model_dump(exclude_none=True) for item in request.changes],
+        changes=[item.model_dump(exclude_none=True, mode="json") for item in request.changes],
         evaluate_policy=request.evaluate_policy,
     )
 

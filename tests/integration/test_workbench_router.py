@@ -2886,7 +2886,14 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     updated = client.post(
         "/api/v1/workbench/PF_1001/sandbox/sessions/sess_1/changes",
         json={
-            "changes": [{"security_id": "EQ_1", "transaction_type": "BUY", "quantity": 2}],
+            "changes": [
+                {
+                    "security_id": "EQ_1",
+                    "transaction_type": "BUY",
+                    "quantity": "2.0000000000",
+                    "price": "101.2500000000",
+                }
+            ],
             "evaluate_policy": True,
         },
     )
@@ -2904,5 +2911,10 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     assert captured_apply["session_id"] == "sess_1"
     assert captured_apply["correlation_id"]
     assert captured_apply["changes"] == [
-        {"security_id": "EQ_1", "transaction_type": "BUY", "quantity": 2.0}
+        {
+            "security_id": "EQ_1",
+            "transaction_type": "BUY",
+            "quantity": "2.0000000000",
+            "price": "101.2500000000",
+        }
     ]

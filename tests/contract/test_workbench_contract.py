@@ -36,7 +36,7 @@ def test_workbench_sandbox_contract_shape() -> None:
                 "security_id": "EQ_1",
                 "transaction_type": "BUY",
                 "quantity": 2,
-                "price": 101.25,
+                "price": "101.2500000000",
                 "currency": "USD",
                 "effective_date": "2026-02-24",
             }

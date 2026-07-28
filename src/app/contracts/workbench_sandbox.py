@@ -1,10 +1,45 @@
-from pydantic import BaseModel, Field
+from decimal import Decimal
+from numbers import Real
+from typing import Annotated
+
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
 from app.contracts.workbench_common import (
     WorkbenchPartialFailure,
     WorkbenchProjectedPositionView,
     WorkbenchProjectedSummary,
 )
+
+
+def _reject_financial_float(value: object) -> object:
+    if isinstance(value, Real) and not isinstance(value, int):
+        raise ValueError(
+            "floating-point input is not permitted; use a decimal string or lossless integer"
+        )
+    return value
+
+
+def _require_numeric_18_10(value: Decimal) -> Decimal:
+    if not value.is_finite():
+        raise ValueError("financial value must be finite")
+    normalized = value.normalize()
+    exponent = normalized.as_tuple().exponent
+    if not isinstance(exponent, int):
+        raise ValueError("financial value must have a numeric exponent")
+    fractional_digits = max(-exponent, 0)
+    integer_digits = 0 if normalized.is_zero() else max(normalized.adjusted() + 1, 0)
+    if fractional_digits > 10:
+        raise ValueError("financial value exceeds NUMERIC(18,10) scale")
+    if integer_digits > 8:
+        raise ValueError("financial value exceeds NUMERIC(18,10) magnitude")
+    return value
+
+
+ExactSandboxDecimal = Annotated[
+    Decimal,
+    BeforeValidator(_reject_financial_float, json_schema_input_type=str | int),
+    AfterValidator(_require_numeric_18_10),
+]
 
 
 class WorkbenchSandboxSessionCreateRequest(BaseModel):
@@ -40,20 +75,29 @@ class WorkbenchSandboxChangeInput(BaseModel):
         description="Transaction intent applied in the sandbox, such as BUY or SELL.",
         examples=["BUY"],
     )
-    quantity: float | None = Field(
+    quantity: ExactSandboxDecimal | None = Field(
         default=None,
-        description="Proposed transaction quantity when the sandbox change is quantity-based.",
-        examples=[2.0],
+        description=(
+            "Proposed transaction quantity as an exact NUMERIC(18,10) decimal string or lossless "
+            "integer. Fractional JSON numbers, excess scale, and magnitude overflow are rejected."
+        ),
+        examples=["2.0000000000"],
     )
-    price: float | None = Field(
+    price: Annotated[ExactSandboxDecimal, Field(gt=0)] | None = Field(
         default=None,
-        description="Optional unit price used to value the sandbox change.",
-        examples=[101.25],
+        description=(
+            "Positive unit price as an exact NUMERIC(18,10) decimal string or lossless integer. "
+            "Fractional JSON numbers, excess scale, and magnitude overflow are rejected."
+        ),
+        examples=["101.2500000000"],
     )
-    amount: float | None = Field(
+    amount: ExactSandboxDecimal | None = Field(
         default=None,
-        description="Optional monetary amount used when the sandbox change is amount-based.",
-        examples=[5000.0],
+        description=(
+            "Monetary amount as an exact NUMERIC(18,10) decimal string or lossless integer. "
+            "Fractional JSON numbers, excess scale, and magnitude overflow are rejected."
+        ),
+        examples=["5000.0000000000"],
     )
     currency: str | None = Field(
         default=None,
@@ -90,8 +134,8 @@ class WorkbenchSandboxApplyChangesRequest(BaseModel):
                     {
                         "security_id": "EQ_1",
                         "transaction_type": "BUY",
-                        "quantity": 2.0,
-                        "price": 101.25,
+                        "quantity": "2.0000000000",
+                        "price": "101.2500000000",
                         "currency": "USD",
                         "effective_date": "2026-02-24",
                         "metadata": {"ticket_id": "SIM-101", "rebalance": True},
