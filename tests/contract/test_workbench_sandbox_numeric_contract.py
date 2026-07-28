@@ -42,6 +42,7 @@ def test_sandbox_financial_values_preserve_exact_boundaries() -> None:
     [
         0.1,
         "1.00000000001",
+        "99999999.9999999999000000000000000001",
         "100000000.0000000000",
         "NaN",
     ],

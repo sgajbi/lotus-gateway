@@ -22,12 +22,16 @@ def _reject_financial_float(value: object) -> object:
 def _require_numeric_18_10(value: Decimal) -> Decimal:
     if not value.is_finite():
         raise ValueError("financial value must be finite")
-    normalized = value.normalize()
-    exponent = normalized.as_tuple().exponent
+    value_tuple = value.as_tuple()
+    exponent = value_tuple.exponent
     if not isinstance(exponent, int):
         raise ValueError("financial value must have a numeric exponent")
+    significant_digits = list(value_tuple.digits)
+    while significant_digits and significant_digits[-1] == 0:
+        significant_digits.pop()
+        exponent += 1
     fractional_digits = max(-exponent, 0)
-    integer_digits = 0 if normalized.is_zero() else max(normalized.adjusted() + 1, 0)
+    integer_digits = 0 if not significant_digits else max(len(significant_digits) + exponent, 0)
     if fractional_digits > 10:
         raise ValueError("financial value exceeds NUMERIC(18,10) scale")
     if integer_digits > 8:
