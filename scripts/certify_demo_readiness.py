@@ -378,7 +378,13 @@ def _certify_sandbox_policy(client: TestClient, evidence: CertificationEvidence)
         apply_path,
         headers={"X-Correlation-Id": CORRELATION_ID},
         json={
-            "changes": [{"security_id": "EQ_GLOBAL", "transaction_type": "BUY", "quantity": 50.0}],
+            "changes": [
+                {
+                    "security_id": "EQ_GLOBAL",
+                    "transaction_type": "BUY",
+                    "quantity": "50.0000000000",
+                }
+            ],
             "evaluate_policy": True,
         },
     )
