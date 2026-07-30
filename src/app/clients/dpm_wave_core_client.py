@@ -57,11 +57,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/api/v1/rebalance/waves/campaign-discovery",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.campaign_discovery",
         )
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
@@ -48,10 +48,13 @@ class CampaignDiscoveryFilters:
 
 async def _discover_campaigns(
     filters: CampaignDiscoveryFilters,
+    *,
+    tenant_id: str,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().discover_campaigns(
         filters=filters.as_filters(),
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -70,6 +73,14 @@ async def _discover_campaigns(
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
 async def discover_campaigns(
+    tenant_id: Annotated[
+        str,
+        Header(
+            alias="X-Tenant-Id",
+            min_length=1,
+            description="Trusted tenant scope forwarded unchanged to lotus-manage.",
+        ),
+    ],
     campaign_id: str | None = Query(default=None, description="Optional campaign id filter."),
     campaign_status: str | None = Query(
         default="ACTIVE", description="Optional campaign status filter."
@@ -102,5 +113,6 @@ async def discover_campaigns(
             include_expired=include_expired,
             limit=limit,
             offset=offset,
-        )
+        ),
+        tenant_id=tenant_id,
     )

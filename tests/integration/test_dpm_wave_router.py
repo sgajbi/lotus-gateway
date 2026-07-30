@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -474,9 +475,13 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             ],
         }
 
-    async def _fake_discover_campaigns(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_discover_campaigns(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
-        captured["discovery"] = {"params": params, "correlation_id": correlation_id}
+        captured["discovery"] = {
+            "params": params,
+            "correlation_id": correlation_id,
+            "tenant_id": tenant_id,
+        }
         return 200, {
             "items": [
                 {
@@ -623,7 +628,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     discovery_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-discovery"
         "?campaign_status=ACTIVE&active_on=2026-05-16&include_expired=true&limit=25&offset=0",
-        headers={"X-Correlation-Id": "corr-campaign-discovery"},
+        headers={
+            "X-Correlation-Id": "corr-campaign-discovery",
+            "X-Tenant-Id": "tenant-sg",
+        },
     )
 
     assert put_response.status_code == 200
@@ -775,14 +783,22 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
                 "offset": 0,
             },
             "correlation_id": "corr-campaign-discovery",
+            "tenant_id": "tenant-sg",
         },
     }
 
 
-def test_campaign_definition_list_fails_closed_without_trusted_tenant_header() -> None:
-    response = TestClient(app).get(
+@pytest.mark.parametrize(
+    "path",
+    [
         "/api/v1/dpm/command-center/waves/campaign-definitions",
-        headers={"X-Correlation-Id": "corr-campaign-list-missing-tenant"},
+        "/api/v1/dpm/command-center/waves/campaign-discovery",
+    ],
+)
+def test_campaign_reads_fail_closed_without_trusted_tenant_header(path: str) -> None:
+    response = TestClient(app).get(
+        path,
+        headers={"X-Correlation-Id": "corr-campaign-read-missing-tenant"},
     )
 
     assert response.status_code == 422

@@ -182,12 +182,13 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def discover_campaigns(self, params, correlation_id):  # noqa: ANN001
+    async def discover_campaigns(self, params, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "discover_campaigns",
                 "params": params,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
@@ -721,6 +722,7 @@ async def test_dpm_wave_service_preserves_campaign_discovery_payload() -> None:
             "offset": 0,
         },
         correlation_id="corr-campaign-discovery",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-discovery"
@@ -738,6 +740,7 @@ async def test_dpm_wave_service_preserves_campaign_discovery_payload() -> None:
                 "offset": 0,
             },
             "correlation_id": "corr-campaign-discovery",
+            "tenant_id": "tenant-sg",
         }
     ]
 
