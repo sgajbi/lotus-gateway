@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Path
+from typing import Annotated
+
+from fastapi import APIRouter, Header, Path
 
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.middleware.correlation import correlation_id_var
@@ -17,11 +19,13 @@ async def _get_campaign_definition(
     *,
     campaign_id: str,
     campaign_version: str,
+    tenant_id: str,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().get_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -38,10 +42,19 @@ async def _get_campaign_definition(
     responses=UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES,
 )
 async def get_campaign_definition(
+    tenant_id: Annotated[
+        str,
+        Header(
+            alias="X-Tenant-Id",
+            min_length=1,
+            description="Trusted tenant scope forwarded unchanged to lotus-manage.",
+        ),
+    ],
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await _get_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
+        tenant_id=tenant_id,
     )

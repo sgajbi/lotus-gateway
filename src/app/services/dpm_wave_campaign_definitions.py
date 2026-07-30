@@ -55,11 +55,13 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_id: str,
         campaign_version: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_campaign_definition(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
