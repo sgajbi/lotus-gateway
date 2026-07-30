@@ -2128,6 +2128,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "params": {"campaign_status": "ACTIVE", "active_on": "2026-05-16"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-discovery",
         ),
@@ -2297,7 +2298,7 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
         assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
     elif method_name == "get_campaign_definition_preview_readiness":
         assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
-    elif method_name == "list_campaign_definitions":
+    elif method_name in {"list_campaign_definitions", "discover_campaigns"}:
         assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
 
 

@@ -210,10 +210,12 @@ class DpmWaveCampaignDefinitionMixin:
         self,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.discover_campaigns(
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
