@@ -309,6 +309,10 @@ Most relevant current governance:
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
     synthesize `client_communication_boundary`, generate reports, generate AI narrative, infer PM
     quality, or let Workbench call manage directly.
+    Outcome-review creation requires the governed Manage authority headers `X-Actor-Id`,
+    `X-Tenant-Id`, `X-Region`, `X-Role`, `X-Service-Identity`, and `X-Capabilities`; Gateway
+    forwards that explicit allowlist and fails closed before calling Manage when any header is
+    absent.
 11. RFC-0038 mandate command-center Gateway routes are active under
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and
@@ -348,6 +352,8 @@ Most relevant current governance:
     operating queue, approval inbox, workflow board, assignment plan, workflow automation,
     approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
     evidence requests to `lotus-manage`;
+    campaign-definition list/get and campaign-discovery reads require trusted `X-Tenant-Id`
+    scope and fail closed at request validation when it is missing;
     preserves the bounded `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE` request shape
     for Manage/Core `DpmPortfolioUniverseCandidate:v1` consumption while rejecting non-empty
     caller-supplied candidate portfolio fields at the BFF boundary;
