@@ -140,6 +140,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller_headers: dict[str, str],
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def list_outcome_reviews(

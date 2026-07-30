@@ -884,12 +884,13 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
     captured: dict[str, object] = {}
 
     async def _fake_create_outcome_review(  # noqa: ANN001
-        self, body, idempotency_key, correlation_id
+        self, body, idempotency_key, correlation_id, caller_headers
     ):
         _ = self
         captured["body"] = body
         captured["idempotency_key"] = idempotency_key
         captured["correlation_id"] = correlation_id
+        captured["caller_headers"] = caller_headers
         return 200, {
             "outcome_review_id": "or_1",
             "state": "READY",
@@ -915,6 +916,12 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
         headers={
             "Idempotency-Key": "idem-router-outcome-1",
             "X-Correlation-Id": "corr-router-1",
+            "X-Actor-Id": "platform-seed-automation",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "platform-automation",
+            "X-Service-Identity": "lotus-platform.canonical-dpm-command-center-seed",
+            "X-Capabilities": "manage.write",
         },
     )
 
@@ -924,12 +931,46 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
         "body": {"rebalance_run_id": "rr_1", "proof_pack_id": "ppack_1"},
         "idempotency_key": "idem-router-outcome-1",
         "correlation_id": "corr-router-1",
+        "caller_headers": {
+            "X-Actor-Id": "platform-seed-automation",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "platform-automation",
+            "X-Service-Identity": "lotus-platform.canonical-dpm-command-center-seed",
+            "X-Capabilities": "manage.write",
+        },
     }
     assert payload["correlation_id"] == "corr-router-1"
     assert payload["source_service"] == "lotus-manage"
     assert payload["supportability"]["state"] == "SUPPORTED"
     assert payload["data"]["expected_snapshot_hash"] == "sha256:expected"
     assert payload["data"]["realized_snapshot_hash"] == "sha256:realized"
+
+
+def test_dpm_command_center_outcome_review_create_requires_authority_context() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/dpm/command-center/outcome-reviews",
+        json={"body": {"rebalance_run_id": "rr_1", "proof_pack_id": "ppack_1"}},
+        headers={
+            "Idempotency-Key": "idem-router-outcome-missing-authority",
+            "X-Correlation-Id": "corr-router-missing-authority",
+        },
+    )
+
+    assert response.status_code == 422
+    missing_headers = {
+        error["loc"][-1] for error in response.json()["detail"] if error["type"] == "missing"
+    }
+    assert missing_headers == {
+        "X-Actor-Id",
+        "X-Tenant-Id",
+        "X-Region",
+        "X-Role",
+        "X-Service-Identity",
+        "X-Capabilities",
+    }
 
 
 def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> None:
