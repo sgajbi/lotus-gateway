@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Query
+from typing import Annotated
+
+from fastapi import APIRouter, Header, Query
 
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.middleware.correlation import correlation_id_var
@@ -20,6 +22,7 @@ async def _list_campaign_definitions(
     as_of_date: str | None,
     limit: int,
     offset: int,
+    tenant_id: str,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().list_campaign_definitions(
         filters={
@@ -30,6 +33,7 @@ async def _list_campaign_definitions(
             "offset": offset,
         },
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -46,6 +50,14 @@ async def _list_campaign_definitions(
     responses=UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES,
 )
 async def list_campaign_definitions(
+    tenant_id: Annotated[
+        str,
+        Header(
+            alias="X-Tenant-Id",
+            min_length=1,
+            description="Trusted tenant scope forwarded unchanged to lotus-manage.",
+        ),
+    ],
     campaign_id: str | None = Query(default=None, description="Optional campaign id filter."),
     campaign_status: str | None = Query(
         default=None, description="Optional campaign status filter."
@@ -64,4 +76,5 @@ async def list_campaign_definitions(
         as_of_date=as_of_date,
         limit=limit,
         offset=offset,
+        tenant_id=tenant_id,
     )

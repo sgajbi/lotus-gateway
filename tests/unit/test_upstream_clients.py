@@ -2021,6 +2021,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "params": {"campaign_status": "ACTIVE", "campaign_id": None},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions",
         ),
@@ -2296,6 +2297,8 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
         assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
     elif method_name == "get_campaign_definition_preview_readiness":
         assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
+    elif method_name == "list_campaign_definitions":
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
 
 
 @pytest.mark.asyncio

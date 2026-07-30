@@ -61,12 +61,13 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def list_campaign_definitions(self, params, correlation_id):  # noqa: ANN001
+    async def list_campaign_definitions(self, params, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "list_campaign_definitions",
                 "params": params,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
