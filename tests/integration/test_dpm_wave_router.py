@@ -262,13 +262,14 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, correlation_id, tenant_id
     ):
         _ = self
         captured["get"] = {
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
             "correlation_id": correlation_id,
+            "tenant_id": tenant_id,
         }
         return 200, {
             "campaign_id": campaign_id,
@@ -563,7 +564,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     get_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
         "campaign-holdings-202605/versions/2026.05",
-        headers={"X-Correlation-Id": "corr-campaign-get"},
+        headers={
+            "X-Correlation-Id": "corr-campaign-get",
+            "X-Tenant-Id": "tenant-sg",
+        },
     )
     lifecycle_events_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
@@ -712,6 +716,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-get",
+            "tenant_id": "tenant-sg",
         },
         "lifecycle_events": {
             "campaign_id": "campaign-holdings-202605",
@@ -792,6 +797,8 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     "path",
     [
         "/api/v1/dpm/command-center/waves/campaign-definitions",
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05",
         "/api/v1/dpm/command-center/waves/campaign-discovery",
     ],
 )

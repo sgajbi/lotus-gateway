@@ -39,11 +39,15 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_id: str,
         campaign_version: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.campaign_definitions.get",
         )
 

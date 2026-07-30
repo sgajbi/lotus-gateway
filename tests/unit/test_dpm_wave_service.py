@@ -73,7 +73,7 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -81,6 +81,7 @@ class _FakeDpmClient:
                 "campaign_id": campaign_id,
                 "campaign_version": campaign_version,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result

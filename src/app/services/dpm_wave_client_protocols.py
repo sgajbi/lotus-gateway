@@ -47,6 +47,7 @@ class DpmWaveClient(Protocol):
         campaign_id: str,
         campaign_version: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_campaign_definition_lifecycle_events(
