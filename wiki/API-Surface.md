@@ -211,6 +211,8 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
   `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, ready-only launch posture, and
   bounded campaign workflow/audit evidence.
+  Campaign-definition list/get and campaign-discovery reads require `X-Tenant-Id`; requests
+  without trusted tenant scope fail closed with `422`.
   For bounded Core-owned campaign candidate discovery, Gateway preserves
   `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE`,
   `model_portfolio_ids`, `include_inactive_mandates`, and `campaign_candidate_page_size` for
@@ -569,6 +571,12 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: outcome-review-or_20260415_001" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-1" \
+  -H "X-Actor-Id: platform-seed-automation" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: platform-automation" \
+  -H "X-Service-Identity: lotus-platform.canonical-dpm-command-center-seed" \
+  -H "X-Capabilities: manage.write" \
   -d "{\"body\":{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}}"
 ```
 

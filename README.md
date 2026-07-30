@@ -401,6 +401,10 @@ Important current parameter conventions:
    AI-evidence payloads, applied source-lineage filters, source-owner counts, source-type counts,
    and support boundaries without recomputing expected-versus-realized outcome truth or querying
    source-owner stores
+   The outcome-review create route fails closed unless callers supply the governed Manage
+   authority envelope: `X-Actor-Id`, `X-Tenant-Id`, `X-Region`, `X-Role`,
+   `X-Service-Identity`, and `X-Capabilities`; Gateway forwards only that allowlisted context
+   alongside its correlation and the caller's idempotency key.
 14. DPM command-center construction routes under
    `/api/v1/dpm/command-center/construction/alternative-sets*` consume `lotus-manage` RFC-0039
    construction authority APIs and preserve manage-owned alternative-set ids, method ids, method
@@ -423,6 +427,8 @@ Important current parameter conventions:
    without recomputing cohort facts, portfolio eligibility, readiness, task state, approval state,
    maker-checker posture, workflow orchestration, durable replay state, lifecycle state, or
    membership locally.
+   Campaign-definition list/get and campaign-discovery reads require `X-Tenant-Id` and fail
+   closed with request validation errors when trusted tenant scope is absent.
    Gateway also exposes a governed `dpm_wave_pm_memo.pack@v1` handoff to `lotus-ai` from
    manage-owned wave report input; it does not generate memo narrative, score PMs, approve trades,
    contact clients, place orders, or invent missing evidence.
