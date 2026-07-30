@@ -238,9 +238,15 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "content_hash": "sha256:campaign-definition",
         }
 
-    async def _fake_list_campaign_definitions(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_list_campaign_definitions(  # noqa: ANN001
+        self, params, correlation_id, tenant_id
+    ):
         _ = self
-        captured["list"] = {"params": params, "correlation_id": correlation_id}
+        captured["list"] = {
+            "params": params,
+            "correlation_id": correlation_id,
+            "tenant_id": tenant_id,
+        }
         return 200, {
             "items": [
                 {
@@ -544,7 +550,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     list_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions"
         "?campaign_status=ACTIVE&limit=25&offset=0",
-        headers={"X-Correlation-Id": "corr-campaign-list"},
+        headers={
+            "X-Correlation-Id": "corr-campaign-list",
+            "X-Tenant-Id": "tenant-sg",
+        },
     )
     get_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
@@ -689,6 +698,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
                 "offset": 0,
             },
             "correlation_id": "corr-campaign-list",
+            "tenant_id": "tenant-sg",
         },
         "get": {
             "campaign_id": "campaign-holdings-202605",
@@ -767,6 +777,19 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "correlation_id": "corr-campaign-discovery",
         },
     }
+
+
+def test_campaign_definition_list_fails_closed_without_trusted_tenant_header() -> None:
+    response = TestClient(app).get(
+        "/api/v1/dpm/command-center/waves/campaign-definitions",
+        headers={"X-Correlation-Id": "corr-campaign-list-missing-tenant"},
+    )
+
+    assert response.status_code == 422
+    assert any(
+        error["loc"] == ["header", "X-Tenant-Id"] and error["type"] == "missing"
+        for error in response.json()["detail"]
+    )
 
 
 def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) -> None:

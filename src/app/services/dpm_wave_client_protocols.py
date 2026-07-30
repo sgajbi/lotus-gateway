@@ -39,6 +39,7 @@ class DpmWaveClient(Protocol):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_campaign_definition(
