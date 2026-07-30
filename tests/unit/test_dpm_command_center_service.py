@@ -23,13 +23,16 @@ class _FakeDpmClient:
 
         return _missing
 
-    async def create_outcome_review(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def create_outcome_review(  # noqa: ANN001
+        self, body, idempotency_key, correlation_id, caller_headers
+    ):
         self.calls.append(
             {
                 "method": "create",
                 "body": body,
                 "idempotency_key": idempotency_key,
                 "correlation_id": correlation_id,
+                "caller_headers": caller_headers,
             }
         )
         return self.result
@@ -791,6 +794,7 @@ async def test_dpm_command_center_preserves_manage_payload_and_supportability() 
         body={"rebalance_run_id": "rr_1"},
         idempotency_key="idem-outcome-1",
         correlation_id="corr-1",
+        caller_headers={"X-Actor-Id": "platform-seed-automation"},
     )
 
     assert response.correlation_id == "corr-1"
@@ -805,6 +809,7 @@ async def test_dpm_command_center_preserves_manage_payload_and_supportability() 
             "body": {"rebalance_run_id": "rr_1"},
             "idempotency_key": "idem-outcome-1",
             "correlation_id": "corr-1",
+            "caller_headers": {"X-Actor-Id": "platform-seed-automation"},
         }
     ]
 
@@ -923,6 +928,7 @@ async def test_dpm_command_center_preserves_manage_supportability_states(state: 
         body={"rebalance_run_id": "rr_1"},
         idempotency_key=f"idem-{state.lower()}",
         correlation_id=f"corr-{state.lower()}",
+        caller_headers={"X-Actor-Id": "platform-seed-automation"},
     )
 
     assert response.supportability.state == state
@@ -941,6 +947,7 @@ async def test_dpm_command_center_bounds_manage_errors_as_product_safe_detail() 
             body={"rebalance_run_id": "rr_1"},
             idempotency_key="idem-outcome-error",
             correlation_id="corr-3",
+            caller_headers={"X-Actor-Id": "platform-seed-automation"},
         )
 
     assert exc_info.value.status_code == 409

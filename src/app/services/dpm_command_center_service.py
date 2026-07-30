@@ -78,11 +78,13 @@ class DpmCommandCenterService(
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller_headers: dict[str, str],
     ) -> DpmOutcomeReviewGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.create_outcome_review(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 

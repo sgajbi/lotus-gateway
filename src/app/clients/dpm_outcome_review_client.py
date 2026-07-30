@@ -44,11 +44,15 @@ class DpmOutcomeReviewClientMixin:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller_headers: dict[str, str],
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/api/v1/rebalance/outcome-reviews",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=self._headers(
+                correlation_id,
+                {**caller_headers, "Idempotency-Key": idempotency_key},
+            ),
             operation="manage.rebalance.outcome_reviews.create",
         )
 

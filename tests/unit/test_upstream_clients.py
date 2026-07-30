@@ -2352,6 +2352,10 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"rebalance_run_id": "rr_1"},
                 "idempotency_key": "idem-outcome-review-canonical",
                 "correlation_id": "corr-rfc36-canonical",
+                "caller_headers": {
+                    "X-Actor-Id": "platform-seed-automation",
+                    "X-Tenant-Id": "tenant-sg",
+                },
             },
         ),
         (
@@ -2682,6 +2686,10 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"rebalance_run_id": "rr_1"},
                 "idempotency_key": "idem-outcome-review-1",
                 "correlation_id": "corr-5",
+                "caller_headers": {
+                    "X-Actor-Id": "platform-seed-automation",
+                    "X-Tenant-Id": "tenant-sg",
+                },
             },
             "http://dpm/api/v1/rebalance/outcome-reviews",
         ),
@@ -2869,6 +2877,9 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
     if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+    if "caller_headers" in kwargs:
+        for header_name, header_value in kwargs["caller_headers"].items():
+            assert _FakeAsyncClient.calls[0]["headers"][header_name] == header_value
 
 
 @pytest.mark.asyncio
