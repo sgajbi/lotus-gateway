@@ -3,6 +3,23 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def _review_headers(**overrides: str) -> dict[str, str]:
+    headers = {
+        "Idempotency-Key": "idem-copilot-review",
+        "X-Correlation-Id": "corr-copilot-review",
+        "X-Actor-Id": "desk_head_sg_001",
+        "X-Tenant-Id": "tenant-sg-001",
+        "X-Legal-Entity-Code": "PB_SG",
+        "X-Role": "ADVISORY_SUPERVISOR",
+        "X-Caller-Capabilities": "advisory.copilot.review",
+        "X-Principal-Status": "ACTIVE",
+        "X-Authorized-Proposal-Id": "proposal-001",
+        "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+    }
+    headers.update(overrides)
+    return headers
+
+
 def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch):
     captured: dict[str, object] = {}
 
@@ -59,12 +76,20 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
         captured["get_run"] = {"run_id": run_id, "correlation_id": correlation_id}
         return 200, {"run": {"run_id": run_id}}
 
-    async def _fake_review_run(self, run_id, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_review_run(  # noqa: ANN001
+        self,
+        run_id,
+        body,
+        idempotency_key,
+        caller_headers,
+        correlation_id,
+    ):
         _ = self
         captured["review_run"] = {
             "run_id": run_id,
             "body": body,
             "idempotency_key": idempotency_key,
+            "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
         return 200, {
@@ -162,10 +187,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
     review_response = client.post(
         "/api/v1/advisory-copilot/actions/copilot-run-001/reviews",
         json={"body": {"action": "APPROVE_FOR_INTERNAL_USE"}},
-        headers={
-            "Idempotency-Key": "idem-copilot-review",
-            "X-Correlation-Id": "corr-copilot-review",
-        },
+        headers=_review_headers(),
     )
     list_runs_response = client.get(
         "/api/v1/advisory-copilot/proposals/proposal-001/versions/version-001/runs",
@@ -216,6 +238,17 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
             "run_id": "copilot-run-001",
             "body": {"action": "APPROVE_FOR_INTERNAL_USE"},
             "idempotency_key": "idem-copilot-review",
+            "caller_headers": {
+                "X-Actor-Id": "desk_head_sg_001",
+                "X-Role": "ADVISORY_SUPERVISOR",
+                "X-Tenant-Id": "tenant-sg-001",
+                "X-Legal-Entity-Code": "PB_SG",
+                "X-Service-Identity": "lotus-gateway",
+                "X-Capabilities": "advisory.copilot.review",
+                "X-Principal-Status": "ACTIVE",
+                "X-Authorized-Proposal-Id": "proposal-001",
+                "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+            },
             "correlation_id": "corr-copilot-review",
         },
         "list_runs": {
@@ -239,4 +272,28 @@ def test_advisory_copilot_supportability_openapi_documents_source_boundary() -> 
     assert "unsupported claim boundaries" in supportability_operation["description"]
     assert "does not execute AI workflow packs locally" in action_operation["description"]
     assert "internal-use posture only" in review_operation["description"]
+    assert "trusted caller context" in review_operation["description"]
     assert "does not rebuild copilot lineage" in runs_operation["description"]
+
+
+def test_advisory_copilot_review_fails_closed_without_trusted_principal() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/advisory-copilot/actions/copilot-run-001/reviews",
+        json={
+            "body": {
+                "action": "APPROVE_FOR_INTERNAL_USE",
+                "actor_id": "browser_selected_reviewer",
+            }
+        },
+        headers={
+            "Idempotency-Key": "idem-copilot-review",
+            "X-Correlation-Id": "corr-copilot-review",
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "advisory_copilot_review_caller_context_missing"
+    assert "X-Actor-Id" in detail["missing_headers"]

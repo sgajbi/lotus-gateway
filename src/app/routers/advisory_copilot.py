@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Header, Path, Query, status
 
 from app.contracts.advisory_copilot import AdvisoryCopilotEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.advisory_copilot_review_request import AdvisoryCopilotReviewCaller
 from app.services.advisory_service_provider import advisory_copilot_service
 
 router = APIRouter(prefix="/api/v1/advisory-copilot", tags=["advisory-copilot"])
@@ -66,11 +67,13 @@ async def _review_run(
     run_id: str,
     body: dict[str, Any],
     idempotency_key: str,
+    caller: AdvisoryCopilotReviewCaller,
 ) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().review_run(
         run_id=run_id,
         body=body,
         idempotency_key=idempotency_key,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
@@ -190,15 +193,23 @@ async def get_advisory_copilot_run(
     description=(
         "Forwards an idempotent human review action to lotus-advise. Review approval remains "
         "internal-use posture only and does not approve proposals, policy outcomes, orders, "
-        "reports, or client-ready communication."
+        "reports, or client-ready communication. The reviewing actor is derived from trusted "
+        "caller context and forwarded to Advise; Gateway does not accept browser-selected "
+        "review authority."
     ),
 )
 async def review_advisory_copilot_run(
+    caller: AdvisoryCopilotReviewCaller,
     body: dict[str, Any] = Body(...),
     run_id: str = Path(description="Advisory copilot run identifier owned by lotus-advise."),
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _review_run(run_id=run_id, body=body, idempotency_key=idempotency_key)
+    return await _review_run(
+        run_id=run_id,
+        body=body,
+        idempotency_key=idempotency_key,
+        caller=caller,
+    )
 
 
 @router.get(

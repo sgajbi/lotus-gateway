@@ -467,6 +467,73 @@ async def test_await_recent_evidence_completion_polls_and_refreshes_execution_st
 
 
 @pytest.mark.asyncio
+async def test_await_recent_evidence_completion_covers_canonical_worker_latency_window():
+    execution_result = (
+        200,
+        {
+            "status": "running",
+            "stages": [
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+    refreshed_execution = (
+        200,
+        {
+            "status": "complete",
+            "stages": [
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "complete",
+                    "completed_at_utc": "2026-08-01T14:03:04.701268Z",
+                }
+            ],
+        },
+    )
+    client = _EvidenceAnalyticsClient(
+        execution_results=[
+            execution_result,
+            execution_result,
+            execution_result,
+            refreshed_execution,
+        ],
+        lineage_results=[
+            (200, {"calculation_id": "calc-1", "status": "pending", "artifacts": {}}),
+            (200, {"calculation_id": "calc-1", "status": "in_progress", "artifacts": {}}),
+            (200, {"calculation_id": "calc-1", "status": "pending", "artifacts": {}}),
+            (
+                200,
+                {
+                    "calculation_id": "calc-1",
+                    "status": "complete",
+                    "artifacts": {
+                        "request.json": {},
+                        "response.json": {},
+                    },
+                },
+            ),
+        ],
+    )
+
+    refreshed_execution_result, refreshed_lineage_result = await await_recent_evidence_completion(
+        analytics_client=client,
+        calculation_id="calc-1",
+        correlation_id="corr-1",
+        execution_result=execution_result,
+        lineage_result=(200, {"calculation_id": "calc-1", "status": "pending"}),
+        poll_interval_seconds=0,
+    )
+
+    assert refreshed_execution_result == refreshed_execution
+    assert refreshed_lineage_result[1]["status"] == "complete"
+    assert client.execution_calls == ["calc-1", "calc-1", "calc-1", "calc-1"]
+    assert client.lineage_calls == ["calc-1", "calc-1", "calc-1", "calc-1"]
+
+
+@pytest.mark.asyncio
 async def test_fetch_calculation_evidence_returns_partial_lineage_evidence_after_poll_limit():
     client = _EvidenceAnalyticsClient(
         execution_results=[
@@ -484,7 +551,22 @@ async def test_fetch_calculation_evidence_returns_partial_lineage_evidence_after
                     ],
                     "upstream_snapshots": [],
                 },
-            )
+            ),
+            (
+                200,
+                {
+                    "analytics_type": "WORKSPACE_SUMMARY",
+                    "execution_mode": "sync",
+                    "status": "complete",
+                    "stages": [
+                        {
+                            "stage_name": "lineage_materialization",
+                            "status": "in_progress",
+                        }
+                    ],
+                    "upstream_snapshots": [],
+                },
+            ),
         ],
         lineage_results=[
             (200, {"calculation_id": "calc-1", "status": "pending", "artifacts": {}}),
@@ -506,7 +588,7 @@ async def test_fetch_calculation_evidence_returns_partial_lineage_evidence_after
     assert evidence.execution_status == "complete"
     assert evidence.lineage_status == "pending"
     assert evidence.reason == "Lineage is pending in lotus-performance."
-    assert client.execution_calls == ["calc-1"]
+    assert client.execution_calls == ["calc-1", "calc-1"]
     assert client.lineage_calls == ["calc-1", "calc-1"]
 
 

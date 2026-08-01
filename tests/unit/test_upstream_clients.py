@@ -120,6 +120,51 @@ def _fanout_records(records, *, service: str):
 
 
 @pytest.mark.asyncio
+async def test_advise_client_advisory_copilot_review_forwards_trusted_principal_headers() -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "run": {
+                "run_id": "copilot-run-001",
+                "review_posture": "APPROVED_FOR_INTERNAL_USE",
+            }
+        },
+    )
+
+    status_code, payload = await client.review_advisory_copilot_run(
+        run_id="copilot-run-001",
+        body={"action": "APPROVE_FOR_INTERNAL_USE"},
+        idempotency_key="idem-copilot-review",
+        caller_headers={
+            "X-Actor-Id": "desk_head_sg_001",
+            "X-Role": "ADVISORY_SUPERVISOR",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Legal-Entity-Code": "PB_SG",
+            "X-Service-Identity": "lotus-gateway",
+            "X-Capabilities": "advisory.copilot.review",
+            "X-Principal-Status": "ACTIVE",
+            "X-Authorized-Proposal-Id": "proposal-001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+        },
+        correlation_id="corr-copilot-review",
+    )
+
+    assert status_code == 200
+    assert payload["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://advise/advisory/copilot/actions/copilot-run-001/reviews"
+    assert request["json"] == {"action": "APPROVE_FOR_INTERNAL_USE"}
+    assert request["headers"]["Idempotency-Key"] == "idem-copilot-review"
+    assert request["headers"]["X-Correlation-Id"] == "corr-copilot-review"
+    assert request["headers"]["X-Actor-Id"] == "desk_head_sg_001"
+    assert request["headers"]["X-Service-Identity"] == "lotus-gateway"
+    assert request["headers"]["X-Capabilities"] == "advisory.copilot.review"
+    assert request["headers"]["X-Authorized-Proposal-Id"] == "proposal-001"
+    assert request["headers"]["X-Authorized-Portfolio-Id"] == "PB_SG_GLOBAL_BAL_001"
+
+
+@pytest.mark.asyncio
 async def test_lotus_idea_client_omits_active_queue_timestamp_when_not_supplied():
     client = LotusIdeaClient(base_url="http://lotus-idea", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceAuthority": "lotus-idea"})
@@ -689,6 +734,7 @@ async def test_lotus_ai_client_posts_workflow_pack_review_actions():
         "http://ai/platform/workflow-packs/runs/packrun_advisor_brief_req-1/review-actions"
     )
     assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-review-1"
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Caller-App"] == "lotus-gateway"
     assert _FakeAsyncClient.calls[-1]["json"] == {
         "action_type": "SUPERSEDE",
         "caller_app": "lotus-gateway",
@@ -751,6 +797,7 @@ async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract()
     assert payload["execution"]["audit"]["workflow_pack_run_id"] == "packrun_advisor_brief_req-1"
     assert _FakeAsyncClient.calls[-1]["url"] == "http://ai/platform/workflow-packs/execute"
     assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-pack-1"
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Caller-App"] == "lotus-gateway"
     assert _FakeAsyncClient.calls[-1]["json"] == {
         "pack_id": "advisor_brief.pack",
         "version": "v1",
@@ -810,6 +857,7 @@ async def test_lotus_ai_client_lists_workflow_pack_task_flows_with_bounded_filte
         "workflow_surface": "advisor-brief-workspace",
     }
     assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-task-flow-1"
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Caller-App"] == "lotus-gateway"
 
 
 @pytest.mark.asyncio
@@ -2305,6 +2353,14 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
         "discover_campaigns",
     }:
         assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    elif method_name in {"get_portfolio_memory", "search_portfolio_memory"}:
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == (
+            "lotus-gateway-dpm-command-center"
+        )
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg-001"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "SERVICE"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == "pm_quality.read"
 
 
 @pytest.mark.asyncio
@@ -2880,11 +2936,24 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["method"] == "POST"
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
+    assert "manage.write" in _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"].split(",")
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"]
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"]
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Role"]
     if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
     if "caller_headers" in kwargs:
         for header_name, header_value in kwargs["caller_headers"].items():
             assert _FakeAsyncClient.calls[0]["headers"][header_name] == header_value
+    if method_name == "generate_proof_pack":
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == (
+            "lotus-gateway-dpm-command-center"
+        )
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg-001"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "SERVICE"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == "manage.write"
 
 
 @pytest.mark.asyncio
@@ -3356,7 +3425,7 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
             {
                 "policy_pack_id": "policy_pack_sg_private_banking",
                 "policy_version": "2026.05",
-                "body": {"validated_by": "policy_admin_1"},
+                "body": {"requested_by": "policy_steward_1"},
                 "idempotency_key": "idem-policy-validate",
                 "correlation_id": "corr-policy",
             },
@@ -3365,27 +3434,38 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
             "policy_pack_sg_private_banking/versions/2026.05/validate",
         ),
         (
+            "activate_policy_pack_version",
+            {
+                "policy_pack_id": "policy_pack_sg_private_banking",
+                "policy_version": "2026.05",
+                "body": {"activated_by": "policy_checker_1"},
+                "idempotency_key": "idem-policy-activate",
+                "correlation_id": "corr-policy",
+            },
+            "POST",
+            "http://advise/advisory/policy-packs/"
+            "policy_pack_sg_private_banking/versions/2026.05/activate",
+        ),
+        (
             "create_policy_evaluation",
             {
                 "proposal_id": "pp_001",
                 "proposal_version_id": "ppv_001",
-                "body": {"requested_by": "advisor_1"},
+                "body": {
+                    "created_by": "advisor_1",
+                    "evidence_bundle": {
+                        "inputs": {
+                            "portfolio_snapshot": {
+                                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                            },
+                        },
+                    },
+                },
                 "idempotency_key": "idem-policy-evaluation",
                 "correlation_id": "corr-policy",
             },
             "POST",
             "http://advise/advisory/proposals/pp_001/versions/ppv_001/policy-evaluations",
-        ),
-        (
-            "request_policy_ai_evidence",
-            {
-                "evaluation_id": "pev_001",
-                "body": {"requested_by": "advisor_1"},
-                "idempotency_key": "idem-policy-ai",
-                "correlation_id": "corr-policy",
-            },
-            "POST",
-            "http://advise/advisory/policy-evaluations/pev_001/ai-evidence",
         ),
     ],
 )
@@ -3411,6 +3491,146 @@ async def test_advise_client_policy_routes_forward_correlation_and_idempotency(
         assert call["json"] == kwargs["body"]
     if "idempotency_key" in kwargs:
         assert call["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+    if method_name == "validate_policy_pack_version":
+        assert call["headers"]["X-Actor-Id"] == "policy_steward_1"
+        assert call["headers"]["X-Role"] == "POLICY_STEWARD"
+        assert call["headers"]["X-Tenant-Id"] == "tenant_sg_001"
+        assert call["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
+        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert call["headers"]["X-Capabilities"] == "advisory.policy_pack.validate"
+    if method_name == "activate_policy_pack_version":
+        assert call["headers"]["X-Actor-Id"] == "policy_checker_1"
+        assert call["headers"]["X-Role"] == "POLICY_CHECKER"
+        assert call["headers"]["X-Tenant-Id"] == "tenant_sg_001"
+        assert call["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
+        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert call["headers"]["X-Capabilities"] == "advisory.policy_pack.activate"
+    if method_name == "create_policy_evaluation":
+        assert call["headers"]["X-Actor-Id"] == "advisor_1"
+        assert call["headers"]["X-Role"] == "ADVISOR"
+        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert call["headers"]["X-Capabilities"] == "advisory.policy_evaluation.finalize"
+        assert call["headers"]["X-Authorized-Proposal-Id"] == "pp_001"
+        assert call["headers"]["X-Authorized-Portfolio-Id"] == "PB_SG_GLOBAL_BAL_001"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "method_name",
+        "body",
+        "idempotency_key",
+        "expected_url",
+        "expected_actor",
+        "expected_role",
+        "expected_capability",
+    ),
+    [
+        (
+            "record_policy_evaluation_event",
+            {"event_type": "SUPERVISORY_NOTE", "actor_id": "compliance_1"},
+            "idem-policy-event",
+            "http://advise/advisory/policy-evaluations/pev_001/events",
+            "compliance_1",
+            "COMPLIANCE_REVIEWER",
+            "advisory.policy_evaluation.review_event",
+        ),
+        (
+            "record_policy_sign_off_decision",
+            {"decision": "APPROVE", "decided_by": "policy_checker_1"},
+            "idem-policy-signoff",
+            "http://advise/advisory/policy-evaluations/pev_001/sign-off-decisions",
+            "policy_checker_1",
+            "POLICY_CHECKER",
+            "advisory.policy_evaluation.sign_off",
+        ),
+        (
+            "request_policy_report_package",
+            {"audience": "ADVISOR_COMPLIANCE", "requested_by": "policy_checker_1"},
+            "idem-policy-report",
+            "http://advise/advisory/policy-evaluations/pev_001/report-packages",
+            "policy_checker_1",
+            "POLICY_CHECKER",
+            "advisory.policy_evaluation.report_package",
+        ),
+        (
+            "request_policy_ai_evidence",
+            {"requested_by": "compliance_1"},
+            "idem-policy-ai",
+            "http://advise/advisory/policy-evaluations/pev_001/ai-evidence",
+            "compliance_1",
+            "COMPLIANCE_REVIEWER",
+            "advisory.policy_evaluation.ai_evidence",
+        ),
+    ],
+)
+async def test_advise_client_policy_support_actions_bind_trusted_scope_from_record(
+    method_name,
+    body,
+    idempotency_key,
+    expected_url,
+    expected_actor,
+    expected_role,
+    expected_capability,
+) -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "evaluation_id": "pev_001",
+            "proposal_id": "pp_001",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        },
+    )
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    status_code, payload = await method(
+        evaluation_id="pev_001",
+        body=body,
+        idempotency_key=idempotency_key,
+        correlation_id="corr-policy",
+    )
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    scope_read, mutation = _FakeAsyncClient.calls
+    assert scope_read["method"] == "GET"
+    assert scope_read["url"] == "http://advise/advisory/policy-evaluations/pev_001"
+    assert scope_read["headers"]["X-Correlation-Id"] == "corr-policy"
+    assert mutation["method"] == "POST"
+    assert mutation["url"] == expected_url
+    assert mutation["json"] == body
+    assert mutation["headers"]["Idempotency-Key"] == idempotency_key
+    assert mutation["headers"]["X-Correlation-Id"] == "corr-policy"
+    assert mutation["headers"]["X-Actor-Id"] == expected_actor
+    assert mutation["headers"]["X-Role"] == expected_role
+    assert mutation["headers"]["X-Tenant-Id"] == "tenant_sg_001"
+    assert mutation["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
+    assert mutation["headers"]["X-Service-Identity"] == "lotus-gateway"
+    assert mutation["headers"]["X-Capabilities"] == expected_capability
+    assert mutation["headers"]["X-Authorized-Proposal-Id"] == "pp_001"
+    assert mutation["headers"]["X-Authorized-Portfolio-Id"] == "PB_SG_GLOBAL_BAL_001"
+
+
+@pytest.mark.asyncio
+async def test_advise_client_policy_support_action_returns_scope_read_failure() -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(404, {"detail": "missing evaluation"})
+
+    status_code, payload = await client.record_policy_sign_off_decision(
+        evaluation_id="pev_missing",
+        body={"decision": "APPROVE", "decided_by": "policy_checker_1"},
+        idempotency_key="idem-policy-signoff-missing",
+        correlation_id="corr-policy",
+    )
+
+    assert status_code == 404
+    assert payload == {"detail": "missing evaluation"}
+    assert len(_FakeAsyncClient.calls) == 1
+    assert _FakeAsyncClient.calls[0]["url"] == (
+        "http://advise/advisory/policy-evaluations/pev_missing"
+    )
 
 
 @pytest.mark.asyncio

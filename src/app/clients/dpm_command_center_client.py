@@ -1,5 +1,7 @@
 from typing import Any
 
+from app.clients.manage_write_authority import build_manage_pm_quality_read_headers
+
 
 class DpmCommandCenterClientMixin:
     def _headers(
@@ -163,7 +165,7 @@ class DpmCommandCenterClientMixin:
         return await self._get(
             f"/api/v1/rebalance/portfolio-memory/{portfolio_id}",
             params=cleaned_params,
-            headers=self._headers(correlation_id),
+            headers=build_manage_pm_quality_read_headers(correlation_id),
             operation="manage.rebalance.portfolio_memory.get",
         )
 
@@ -176,6 +178,6 @@ class DpmCommandCenterClientMixin:
         return await self._get(
             "/api/v1/rebalance/portfolio-memory/search",
             params=cleaned_params,
-            headers=self._headers(correlation_id),
+            headers=build_manage_pm_quality_read_headers(correlation_id),
             operation="manage.rebalance.portfolio_memory.search",
         )
