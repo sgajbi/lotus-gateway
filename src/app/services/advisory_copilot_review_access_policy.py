@@ -64,6 +64,10 @@ def require_advisory_copilot_review_caller_context(
     normalized_legal_entity_code = required["X-Legal-Entity-Code"].upper()
     cleaned_authorized_proposal_id = _clean(authorized_proposal_id)
     cleaned_authorized_portfolio_id = _clean(authorized_portfolio_id)
+    _require_resource_scope(
+        authorized_proposal_id=cleaned_authorized_proposal_id,
+        authorized_portfolio_id=cleaned_authorized_portfolio_id,
+    )
     _require_valid_identifiers(
         required=required,
         normalized_legal_entity_code=normalized_legal_entity_code,
@@ -83,6 +87,28 @@ def require_advisory_copilot_review_caller_context(
         authorized_proposal_id=cleaned_authorized_proposal_id,
         authorized_portfolio_id=cleaned_authorized_portfolio_id,
     )
+
+
+def _require_resource_scope(
+    *,
+    authorized_proposal_id: str | None,
+    authorized_portfolio_id: str | None,
+) -> None:
+    missing = [
+        header_name
+        for header_name, value in (
+            ("X-Authorized-Proposal-Id", authorized_proposal_id),
+            ("X-Authorized-Portfolio-Id", authorized_portfolio_id),
+        )
+        if value is None
+    ]
+    if missing:
+        _raise_access_error(
+            status.HTTP_403_FORBIDDEN,
+            "advisory_copilot_review_scope_required",
+            "Advisory Copilot review requires trusted proposal and portfolio scope.",
+            missing_headers=missing,
+        )
 
 
 def _required_context_values(

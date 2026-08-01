@@ -2354,13 +2354,11 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
     }:
         assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
     elif method_name in {"get_portfolio_memory", "search_portfolio_memory"}:
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == (
-            "lotus-gateway-dpm-command-center"
-        )
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg-001"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "SERVICE"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == "pm_quality.read"
+        assert "X-Actor-Id" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "X-Tenant-Id" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "X-Role" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "X-Service-Identity" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "X-Capabilities" not in _FakeAsyncClient.calls[0]["headers"]
 
 
 @pytest.mark.asyncio
@@ -2936,24 +2934,15 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["method"] == "POST"
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
-    assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
-    assert "manage.write" in _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"].split(",")
-    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"]
-    assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"]
-    assert _FakeAsyncClient.calls[0]["headers"]["X-Role"]
     if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
     if "caller_headers" in kwargs:
         for header_name, header_value in kwargs["caller_headers"].items():
             assert _FakeAsyncClient.calls[0]["headers"][header_name] == header_value
-    if method_name == "generate_proof_pack":
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == (
-            "lotus-gateway-dpm-command-center"
-        )
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg-001"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "SERVICE"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Service-Identity"] == "lotus-gateway"
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == "manage.write"
+    else:
+        assert "X-Service-Identity" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "X-Capabilities" not in _FakeAsyncClient.calls[0]["headers"]
+        assert "manage.write" not in ",".join(_FakeAsyncClient.calls[0]["headers"].values())
 
 
 @pytest.mark.asyncio

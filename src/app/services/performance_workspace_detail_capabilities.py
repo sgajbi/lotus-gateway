@@ -25,6 +25,9 @@ class PerformanceDetailCapabilityInputs(Protocol):
     def has_attribution_summary(self) -> bool: ...
 
     @property
+    def has_benchmark(self) -> bool: ...
+
+    @property
     def has_benchmark_returns(self) -> bool: ...
 
 
@@ -55,6 +58,7 @@ def build_detail_capabilities(
             include_detail_blocks=include_detail_blocks,
             has_attribution_detail=inputs.has_attribution_detail,
             has_attribution_summary=inputs.has_attribution_summary,
+            has_benchmark=inputs.has_benchmark,
             has_benchmark_returns=inputs.has_benchmark_returns,
         ),
         contribution_detail=build_contribution_capability(
@@ -104,6 +108,7 @@ def build_attribution_capability(
     include_detail_blocks: bool,
     has_attribution_detail: bool,
     has_attribution_summary: bool,
+    has_benchmark: bool,
     has_benchmark_returns: bool,
 ) -> PerformanceModuleCapability:
     if not include_detail_blocks or has_attribution_detail:
@@ -126,7 +131,7 @@ def build_attribution_capability(
             supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
             supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
         )
-    if has_benchmark_returns:
+    if has_benchmark and has_benchmark_returns:
         return build_module_capability(
             "partial",
             (

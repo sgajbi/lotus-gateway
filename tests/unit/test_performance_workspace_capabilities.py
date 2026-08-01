@@ -185,3 +185,22 @@ def test_build_workspace_capabilities_uses_active_return_fallback_for_missing_at
         == "Benchmark-relative active return is available as the governed fallback; "
         "attribution effect detail is not available for the current selection."
     )
+
+
+def test_build_workspace_capabilities_rejects_active_return_fallback_without_benchmark() -> None:
+    capabilities = build_workspace_capabilities(
+        benchmark_code=None,
+        net_performance=PerformanceComparativeSummary(
+            metric_basis="NET",
+            benchmark_return_pct=0.03,
+            active_return_pct=0.01,
+        ),
+        net_chart=[],
+        contribution=None,
+        attribution=AttributionSummaryView(metric_basis="NET"),
+        evidence_view=None,
+    )
+
+    assert capabilities.benchmark_comparison.state == "unavailable"
+    assert capabilities.attribution_detail.state == "unavailable"
+    assert capabilities.attribution_detail.fallback_available is not True
