@@ -385,13 +385,18 @@ Most relevant current governance:
     summary text, reconstruct prompts or model responses, create HR or compensation decisions,
     perform conduct enforcement, approve trades, contact clients, route orders, claim
     OMS/execution, or invent missing evidence.
-17. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+17. Gateway Manage clients must not synthesize `manage.write`, `pm_quality.read`, service actor,
+    tenant, role, or resource-scope authority in the shared transport layer. Route-specific
+    caller authority must be supplied and validated before forwarding privileged Manage commands
+    or scoped memory reads; paths without that implementation-backed authority should fail closed
+    through the upstream/service boundary rather than receiving a generated service principal.
+18. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,
     workflow posture, and error code. Gateway remains the product-facing composition boundary and
     does not calculate supportability, workflow state, or error semantics locally.
-18. RFC-0028 bank-demo proof Gateway routes are active under
+19. RFC-0028 bank-demo proof Gateway routes are active under
     `/api/v1/advisory/bank-demo-proof/*`. Gateway forwards scenario-contract, supported-claim
     register, and proof-pack capture requests to `lotus-advise`, preserves Advise-owned
     classifications, material-review posture, source refs, lineage refs, proof markers, and

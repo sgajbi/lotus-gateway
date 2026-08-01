@@ -45,6 +45,16 @@ def test_review_context_maps_workbench_headers_to_advise_principal_contract() ->
         ({"principal_status": "locked"}, "advisory_copilot_review_principal_invalid", 401),
         ({"role": "ADVISOR"}, "advisory_copilot_review_access_denied", 403),
         ({"capabilities": "portfolio.read"}, "advisory_copilot_review_capability_required", 403),
+        (
+            {"authorized_proposal_id": None},
+            "advisory_copilot_review_scope_required",
+            403,
+        ),
+        (
+            {"authorized_portfolio_id": None},
+            "advisory_copilot_review_scope_required",
+            403,
+        ),
         ({"actor_id": "../../desk"}, "advisory_copilot_review_caller_context_invalid", 400),
         (
             {"authorized_proposal_id": "../../proposal"},
