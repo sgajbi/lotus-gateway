@@ -46,29 +46,34 @@ def test_advisory_workspace_routes_live_in_dedicated_client_mixin() -> None:
     assert not extracted_methods & advise_client_methods
 
 
-def test_advisory_policy_routes_live_in_dedicated_client_mixin() -> None:
+def test_advisory_policy_routes_live_in_dedicated_client_mixins() -> None:
     advise_client_methods = _async_function_names(_CLIENT_ROOT / "advise_client.py")
     policy_methods = _async_function_names(_CLIENT_ROOT / "advise_policy_client.py")
+    policy_pack_methods = _async_function_names(_CLIENT_ROOT / "advise_policy_pack_client.py")
 
-    extracted_methods = {
+    policy_pack_extracted_methods = {
         "activate_policy_pack_version",
+        "get_policy_pack_version",
+        "list_policy_packs",
+        "validate_policy_pack_version",
+    }
+    policy_evaluation_extracted_methods = {
         "create_policy_evaluation",
         "get_policy_evaluation",
         "get_policy_evaluation_lineage",
         "get_policy_evaluation_workflow",
-        "get_policy_pack_version",
         "get_policy_review_queue",
         "get_policy_sign_off_package",
-        "list_policy_packs",
         "record_policy_evaluation_event",
         "record_policy_sign_off_decision",
         "replay_policy_evaluation",
         "request_policy_ai_evidence",
         "request_policy_report_package",
-        "validate_policy_pack_version",
     }
+    extracted_methods = policy_pack_extracted_methods | policy_evaluation_extracted_methods
 
-    assert extracted_methods <= policy_methods
+    assert policy_pack_extracted_methods <= policy_pack_methods
+    assert policy_evaluation_extracted_methods <= policy_methods
     assert not extracted_methods & advise_client_methods
 
 
