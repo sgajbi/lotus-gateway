@@ -101,12 +101,19 @@ class AdvisoryCopilotService:
         run_id: str,
         body: dict[str, Any],
         idempotency_key: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
+        scoped_caller_headers = await self._resource_scoped_review_headers(
+            run_id=run_id,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+        )
         upstream_status, upstream_payload = await self._advise_client.review_advisory_copilot_run(
             run_id=run_id,
             body=self._upstream_body(body),
             idempotency_key=idempotency_key,
+            caller_headers=scoped_caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -173,3 +180,38 @@ class AdvisoryCopilotService:
         if isinstance(inner_body, dict):
             return inner_body
         return body
+
+    async def _resource_scoped_review_headers(
+        self,
+        *,
+        run_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> dict[str, str]:
+        if caller_headers.get("X-Authorized-Portfolio-Id") and caller_headers.get(
+            "X-Authorized-Proposal-Id"
+        ):
+            return caller_headers
+
+        upstream_status, upstream_payload = await self._advise_client.get_advisory_copilot_run(
+            run_id=run_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        run = upstream_payload.get("run")
+        if not isinstance(run, dict):
+            return caller_headers
+
+        scoped_headers = dict(caller_headers)
+        if portfolio_id := self._string_field(run, "portfolio_id"):
+            scoped_headers.setdefault("X-Authorized-Portfolio-Id", portfolio_id)
+        if proposal_id := self._string_field(run, "proposal_id"):
+            scoped_headers.setdefault("X-Authorized-Proposal-Id", proposal_id)
+        return scoped_headers
+
+    def _string_field(self, payload: dict[str, Any], field: str) -> str | None:
+        value = payload.get(field)
+        if not isinstance(value, str):
+            return None
+        stripped = value.strip()
+        return stripped or None

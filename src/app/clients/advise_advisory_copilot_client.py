@@ -76,12 +76,16 @@ class AdviseAdvisoryCopilotClientMixin:
         run_id: str,
         body: dict[str, Any],
         idempotency_key: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/copilot/actions/{run_id}/reviews",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=self._headers(
+                correlation_id,
+                {**caller_headers, "Idempotency-Key": idempotency_key},
+            ),
             operation="advise.advisory.copilot.actions.review",
         )
 

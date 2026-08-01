@@ -9,8 +9,8 @@ from app.services.workspace_client_protocols import PerformanceWorkspaceAnalytic
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
 
-DEFAULT_LINEAGE_COMPLETION_POLL_ATTEMPTS = 3
-DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
+DEFAULT_LINEAGE_COMPLETION_POLL_ATTEMPTS = 8
+DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.35
 
 
 def execution_is_complete(execution_result: UpstreamResult) -> bool:
@@ -18,6 +18,13 @@ def execution_is_complete(execution_result: UpstreamResult) -> bool:
     if status_code >= 400 or not isinstance(payload, Mapping):
         return False
     return str(payload.get("status", "")).lower() == "complete"
+
+
+def execution_is_transient(execution_result: UpstreamResult) -> bool:
+    status_code, payload = execution_result
+    if status_code >= 400 or not isinstance(payload, Mapping):
+        return False
+    return str(payload.get("status", "")).lower() in {"pending", "running"}
 
 
 def lineage_is_complete(lineage_result: UpstreamResult) -> bool:
@@ -77,7 +84,7 @@ async def await_recent_evidence_completion(
     poll_attempts: int = DEFAULT_LINEAGE_COMPLETION_POLL_ATTEMPTS,
     poll_interval_seconds: float = DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
 ) -> tuple[UpstreamResult, UpstreamResult]:
-    if not execution_is_complete(execution_result):
+    if not execution_is_complete(execution_result) and not execution_is_transient(execution_result):
         return execution_result, lineage_result
     if lineage_is_complete(lineage_result):
         refreshed_execution = await refresh_execution_after_lineage_completion(
@@ -90,22 +97,29 @@ async def await_recent_evidence_completion(
     if not lineage_is_transient(lineage_result):
         return execution_result, lineage_result
 
+    latest_execution_result = execution_result
     latest_result = lineage_result
     for _ in range(poll_attempts):
         if poll_interval_seconds > 0:
             await asyncio.sleep(poll_interval_seconds)
-        latest_result = await analytics_client.get_lineage(
-            calculation_id=calculation_id,
-            correlation_id=correlation_id,
+        latest_execution_result, latest_result = await asyncio.gather(
+            analytics_client.get_execution(
+                calculation_id=calculation_id,
+                correlation_id=correlation_id,
+            ),
+            analytics_client.get_lineage(
+                calculation_id=calculation_id,
+                correlation_id=correlation_id,
+            ),
         )
         if lineage_is_complete(latest_result):
             refreshed_execution = await refresh_execution_after_lineage_completion(
                 analytics_client=analytics_client,
                 calculation_id=calculation_id,
                 correlation_id=correlation_id,
-                execution_result=execution_result,
+                execution_result=latest_execution_result,
             )
             return refreshed_execution, latest_result
         if not lineage_is_transient(latest_result):
-            return execution_result, latest_result
-    return execution_result, latest_result
+            return latest_execution_result, latest_result
+    return latest_execution_result, latest_result

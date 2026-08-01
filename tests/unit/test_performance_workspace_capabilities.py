@@ -161,3 +161,27 @@ def test_build_workspace_capabilities_reports_aggregate_only_fallbacks() -> None
     assert capabilities.attribution_detail.fallback_available is True
     assert capabilities.evidence.state == "partial"
     assert capabilities.evidence.coverage_level == "calculation"
+
+
+def test_build_workspace_capabilities_uses_active_return_fallback_for_missing_attribution() -> None:
+    capabilities = build_workspace_capabilities(
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        net_performance=PerformanceComparativeSummary(
+            metric_basis="NET",
+            benchmark_return_pct=0.03,
+            active_return_pct=0.01,
+        ),
+        net_chart=[],
+        contribution=None,
+        attribution=AttributionSummaryView(metric_basis="NET"),
+        evidence_view=None,
+    )
+
+    assert capabilities.attribution_detail.state == "partial"
+    assert capabilities.attribution_detail.coverage_level == "active_return"
+    assert capabilities.attribution_detail.fallback_available is True
+    assert (
+        capabilities.attribution_detail.reason
+        == "Benchmark-relative active return is available as the governed fallback; "
+        "attribution effect detail is not available for the current selection."
+    )

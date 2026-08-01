@@ -8,6 +8,15 @@ from app.clients.upstream_headers import build_upstream_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
+_GATEWAY_CALLER_APP = "lotus-gateway"
+
+
+def _workflow_pack_headers(correlation_id: str) -> dict[str, str]:
+    return build_upstream_headers(
+        correlation_id,
+        extras={"X-Caller-App": _GATEWAY_CALLER_APP},
+    )
+
 
 class LotusAiClient:
     def __init__(
@@ -80,7 +89,7 @@ class LotusAiClient:
                 "workflow_surface": workflow_surface,
                 "task_request": task_request,
             },
-            headers=build_upstream_headers(correlation_id),
+            headers=_workflow_pack_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/execute",
         )
@@ -94,7 +103,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.consumer-view",
             method="GET",
-            headers=build_upstream_headers(correlation_id),
+            headers=_workflow_pack_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/consumer-view",
         )
@@ -108,7 +117,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.operator-profile",
             method="GET",
-            headers=build_upstream_headers(correlation_id),
+            headers=_workflow_pack_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/operator-profile",
         )
@@ -133,7 +142,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.task-flows.list",
             method="GET",
             params=params,
-            headers=build_upstream_headers(correlation_id),
+            headers=_workflow_pack_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/task-flows",
         )
@@ -149,7 +158,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.runs.review-actions",
             method="POST",
             json_body=request_payload,
-            headers=build_upstream_headers(correlation_id),
+            headers=_workflow_pack_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
         )

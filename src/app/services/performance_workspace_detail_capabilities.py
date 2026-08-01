@@ -24,6 +24,9 @@ class PerformanceDetailCapabilityInputs(Protocol):
     @property
     def has_attribution_summary(self) -> bool: ...
 
+    @property
+    def has_benchmark_returns(self) -> bool: ...
+
 
 @dataclass(frozen=True)
 class PerformanceDetailCapabilities:
@@ -52,6 +55,7 @@ def build_detail_capabilities(
             include_detail_blocks=include_detail_blocks,
             has_attribution_detail=inputs.has_attribution_detail,
             has_attribution_summary=inputs.has_attribution_summary,
+            has_benchmark_returns=inputs.has_benchmark_returns,
         ),
         contribution_detail=build_contribution_capability(
             include_detail_blocks=include_detail_blocks,
@@ -100,6 +104,7 @@ def build_attribution_capability(
     include_detail_blocks: bool,
     has_attribution_detail: bool,
     has_attribution_summary: bool,
+    has_benchmark_returns: bool,
 ) -> PerformanceModuleCapability:
     if not include_detail_blocks or has_attribution_detail:
         return build_module_capability(
@@ -117,6 +122,18 @@ def build_attribution_capability(
                 "for the current selection."
             ),
             coverage_level="summary",
+            fallback_available=True,
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+        )
+    if has_benchmark_returns:
+        return build_module_capability(
+            "partial",
+            (
+                "Benchmark-relative active return is available as the governed fallback; "
+                "attribution effect detail is not available for the current selection."
+            ),
+            coverage_level="active_return",
             fallback_available=True,
             supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
             supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,

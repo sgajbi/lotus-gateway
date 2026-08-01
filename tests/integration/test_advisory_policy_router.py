@@ -81,7 +81,7 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
     )
     validate_response = client.post(
         "/api/v1/advisory-policy-packs/policy_pack_sg_private_banking/versions/2026.05/validate",
-        json={"body": {"validated_by": "policy_admin_1", "scope": "pre-activation"}},
+        json={"body": {"requested_by": "policy_steward_1", "scope": "pre-activation"}},
         headers={
             "Idempotency-Key": "idem-policy-validate",
             "X-Correlation-Id": "corr-policy-validate",
@@ -110,7 +110,7 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
         "validate": {
             "policy_pack_id": "policy_pack_sg_private_banking",
             "policy_version": "2026.05",
-            "body": {"validated_by": "policy_admin_1", "scope": "pre-activation"},
+            "body": {"requested_by": "policy_steward_1", "scope": "pre-activation"},
             "idempotency_key": "idem-policy-validate",
             "correlation_id": "corr-policy-validate",
         },

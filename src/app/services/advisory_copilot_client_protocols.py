@@ -44,6 +44,7 @@ class AdvisoryCopilotClient(Protocol):
         run_id: str,
         body: dict[str, Any],
         idempotency_key: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 

@@ -7,6 +7,7 @@ from app.clients.dpm_outcome_review_client import DpmOutcomeReviewClientMixin
 from app.clients.dpm_pm_operating_quality_client import DpmPmOperatingQualityClientMixin
 from app.clients.dpm_proof_pack_client import DpmProofPackClientMixin
 from app.clients.dpm_wave_client import DpmWaveClientMixin
+from app.clients.manage_write_authority import ensure_manage_write_authority
 from app.clients.observed_fanout import request_observed_binary_fanout, request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
 
@@ -153,7 +154,7 @@ class DpmClient(
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            headers=ensure_manage_write_authority(headers),
             json_body=body,
         )
 
@@ -174,6 +175,6 @@ class DpmClient(
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            headers=ensure_manage_write_authority(headers),
             json_body=body,
         )

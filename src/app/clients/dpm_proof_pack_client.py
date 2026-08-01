@@ -1,5 +1,7 @@
 from typing import Any
 
+from app.clients.manage_write_authority import build_manage_write_headers
+
 
 class DpmProofPackClientMixin:
     def _headers(
@@ -44,7 +46,10 @@ class DpmProofPackClientMixin:
         return await self._post(
             "/api/v1/rebalance/proof-packs",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=build_manage_write_headers(
+                correlation_id,
+                extras={"Idempotency-Key": idempotency_key},
+            ),
             operation="manage.rebalance.proof_packs.generate",
         )
 
