@@ -52,7 +52,7 @@ class _FakeAdvisoryCopilotClient:
 
 
 @pytest.mark.asyncio
-async def test_review_run_enriches_missing_resource_scope_from_advise_run() -> None:
+async def test_review_run_forwards_only_validated_caller_scope() -> None:
     client = _FakeAdvisoryCopilotClient()
     service = AdvisoryCopilotService(advise_client=client)
 
@@ -86,8 +86,6 @@ async def test_review_run_enriches_missing_resource_scope_from_advise_run() -> N
                 "X-Service-Identity": "lotus-gateway",
                 "X-Capabilities": "advisory.copilot.review",
                 "X-Principal-Status": "ACTIVE",
-                "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
-                "X-Authorized-Proposal-Id": "proposal-001",
             },
             "correlation_id": "corr-copilot-review",
         }
