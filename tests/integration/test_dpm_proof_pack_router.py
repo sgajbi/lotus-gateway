@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import (
+    UNSAFE_UPSTREAM_MARKER,
+    lotus_ai_workflow_pack_execution_v1,
+)
 
 
 def test_dpm_proof_pack_generate_preserves_manage_truth(monkeypatch) -> None:
@@ -166,44 +170,17 @@ def test_dpm_proof_pack_pm_memo_executes_lotus_ai_workflow_pack(monkeypatch) -> 
             "proof_pack_id": proof_pack_id,
             "correlation_id": correlation_id,
         }
-        return 200, {
-            "contract_version": "DpmProofPackAiEvidenceInput.v1",
-            "proof_pack_id": proof_pack_id,
-            "proof_pack_content_hash": "sha256:proof-pack",
-            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-            "as_of_date": "2026-05-03",
-            "permitted_use": ["pm_memo_support"],
-            "forbidden_actions": [
-                "place_orders",
-                "approve_rebalance",
-                "override_controls",
-                "invent_missing_evidence",
-                "contact_client",
-            ],
-            "forbidden_fields_removed": ["client_name"],
-            "decision_summary": {"decision": "rebalance_ready"},
-            "supportability_status": "SUPPORTED",
-            "reason_codes": ["AI_EVIDENCE_INPUT_READY"],
-            "sections": [{"section_id": "mandate", "state": "READY"}],
-            "source_refs": ["lotus-manage:proof-pack:dpp_rr_001"],
-            "evidence_ref": "ai-evidence:dpp_rr_001",
-            "content_hash": "sha256:ai-evidence",
-        }
+        return 200, _proof_pack_ai_evidence_payload(proof_pack_id)
 
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         _ = self
         captured["ai"] = kwargs
-        return 200, {
-            "execution": {
-                "audit": {"workflow_pack_run_id": "packrun_dpp_rr_001"},
-                "result": {"dpm_pm_memo_status": "REVIEW_REQUIRED"},
-            },
-            "workflow_pack_run": {
-                "run_id": "packrun_dpp_rr_001",
-                "workflow_authority_owner": "lotus-manage",
-                "review_state": "AWAITING_REVIEW",
-            },
-        }
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_pm_memo.pack",
+            workflow_surface="dpm-proof-pack-ai-evidence",
+            correlation_id="corr-proof-pack-memo-router-1",
+            structured_output={"dpm_pm_memo_status": "REVIEW_REQUIRED"},
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_proof_pack_ai_evidence_input",
@@ -242,6 +219,51 @@ def test_dpm_proof_pack_pm_memo_executes_lotus_ai_workflow_pack(monkeypatch) -> 
     assert payload["evidence_source_service"] == "lotus-manage"
     assert payload["ai_evidence_input"]["content_hash"] == "sha256:ai-evidence"
     assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert "output_preview" not in payload["data"]["workflow_pack_run"]
+    assert "storage_reference" not in response.text
+    assert UNSAFE_UPSTREAM_MARKER not in response.text
+
+
+def test_dpm_proof_pack_pm_memo_rejects_malformed_ai_contract_without_leakage(
+    monkeypatch,
+) -> None:
+    async def _fake_ai_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+        _ = self, correlation_id
+        return 200, _proof_pack_ai_evidence_payload(proof_pack_id)
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        _ = self, kwargs
+        payload = lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_pm_memo.pack",
+            workflow_surface="dpm-proof-pack-ai-evidence",
+            correlation_id="corr-proof-pack-invalid-ai-contract",
+        )
+        payload["workflow_pack_run"].pop("review_state")
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_proof_pack_ai_evidence_input",
+        _fake_ai_input,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    response = TestClient(app).post(
+        "/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo",
+        json={"requested_outputs": ["pm_memo"], "audience": ["portfolio_manager"]},
+        headers={"X-Correlation-Id": "corr-proof-pack-invalid-ai-contract"},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == {
+        "source_service": "lotus-ai",
+        "upstream_status": 200,
+        "error_code": "AI_WORKFLOW_EXECUTION_CONTRACT_INVALID",
+        "detail": "AI workflow output could not be safely verified.",
+    }
+    assert UNSAFE_UPSTREAM_MARKER not in response.text
 
 
 def _proof_pack_payload() -> dict[str, object]:
@@ -254,4 +276,30 @@ def _proof_pack_payload() -> dict[str, object]:
             "sections": [{"section_id": "mandate", "state": "READY"}],
         },
         "markdown_url": "/api/v1/rebalance/proof-packs/dpp_rr_001/summary.md",
+    }
+
+
+def _proof_pack_ai_evidence_payload(proof_pack_id: str) -> dict[str, object]:
+    return {
+        "contract_version": "DpmProofPackAiEvidenceInput.v1",
+        "proof_pack_id": proof_pack_id,
+        "proof_pack_content_hash": "sha256:proof-pack",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of_date": "2026-05-03",
+        "permitted_use": ["pm_memo_support"],
+        "forbidden_actions": [
+            "place_orders",
+            "approve_rebalance",
+            "override_controls",
+            "invent_missing_evidence",
+            "contact_client",
+        ],
+        "forbidden_fields_removed": ["client_name"],
+        "decision_summary": {"decision": "rebalance_ready"},
+        "supportability_status": "SUPPORTED",
+        "reason_codes": ["AI_EVIDENCE_INPUT_READY"],
+        "sections": [{"section_id": "mandate", "state": "READY"}],
+        "source_refs": [f"lotus-manage:proof-pack:{proof_pack_id}"],
+        "evidence_ref": f"ai-evidence:{proof_pack_id}",
+        "content_hash": "sha256:ai-evidence",
     }

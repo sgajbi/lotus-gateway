@@ -10,6 +10,7 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 def test_dpm_outcome_review_gateway_response_contract_shape() -> None:
@@ -295,10 +296,11 @@ def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
             },
         },
         narrative_request={"requested_outputs": ["pm_summary"], "audience": ["pm"]},
-        data={
-            "execution": {"status": "COMPLETED"},
-            "workflow_pack_run": {"workflow_authority_owner": "lotus-manage"},
-        },
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="outcome_review_narrative.pack",
+            workflow_surface="dpm-outcome-review-ai-evidence",
+            correlation_id="corr-1",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
@@ -307,7 +309,7 @@ def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     assert response.ai_evidence_input["client_communication_boundary"]["boundary_id"] == (
         "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY"
     )
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
 
 
 def test_dpm_exception_summary_gateway_response_contract_shape() -> None:
@@ -329,17 +331,18 @@ def test_dpm_exception_summary_gateway_response_contract_shape() -> None:
             "requested_outputs": ["exception_summary", "recommended_triage"],
             "audience": ["portfolio_manager", "operations"],
         },
-        data={
-            "execution": {"status": "COMPLETED"},
-            "workflow_pack_run": {"workflow_authority_owner": "lotus-manage"},
-        },
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_exception_summary.pack",
+            workflow_surface="dpm-exception-summary-ai-evidence",
+            correlation_id="corr-exception-summary-1",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
     assert response.evidence_source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0038"
     assert response.exception_summary_input["redaction_policy"] == "NO_RAW_PAYLOADS"
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
 
 
 def test_dpm_pm_operating_quality_summary_gateway_response_contract_shape() -> None:
@@ -374,10 +377,11 @@ def test_dpm_pm_operating_quality_summary_gateway_response_contract_shape() -> N
             "requested_outputs": ["score_run_summary", "support_references"],
             "audience": ["portfolio_manager", "investment_control"],
         },
-        data={
-            "execution": {"status": "COMPLETED"},
-            "workflow_pack_run": {"workflow_authority_owner": "lotus-manage"},
-        },
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="pm_quality_summary.pack",
+            workflow_surface="dpm-pm-quality-ai-evidence",
+            correlation_id="corr-pmq-summary-1",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
@@ -388,7 +392,7 @@ def test_dpm_pm_operating_quality_summary_gateway_response_contract_shape() -> N
         "score_run_summary",
         "support_references",
     ]
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
 
 
 def test_dpm_command_center_openapi_contract_registered() -> None:

@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from app.contracts.dpm_waves import DpmOperationsHandoffSummaryRequest, DpmWaveMemoRequest
 from app.services.dpm_wave_service import DpmWaveService
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 class _FakeDpmClient:
@@ -957,10 +958,12 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
             "item_count": 1,
         },
     }
-    ai_payload = {
-        "run_id": "wf_run_wave_memo_001",
-        "output": {"review_required": True, "memo_sections": ["PM summary"]},
-    }
+    ai_payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id="dpm_wave_pm_memo.pack",
+        workflow_surface="dpm-wave-ai-evidence",
+        correlation_id="corr-wave-ai-memo",
+        structured_output={"review_required": True, "memo_sections": ["PM summary"]},
+    )
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
@@ -986,7 +989,8 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
         "requested_outputs": ["wave_pm_memo", "approval_checklist"],
         "audience": ["portfolio_manager", "investment_control"],
     }
-    assert response.data == ai_payload
+    assert response.data.workflow_pack_run.review_state == "AWAITING_REVIEW"
+    assert response.data.execution.result.structured_output["memo_sections"] == ["PM summary"]
     ai_call = ai_client.calls[0]
     assert ai_call["pack_id"] == "dpm_wave_pm_memo.pack"
     assert ai_call["version"] == "v1"
@@ -1045,10 +1049,12 @@ async def test_dpm_wave_pm_memo_ai_errors_are_product_safe() -> None:
 @pytest.mark.asyncio
 async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_lotus_ai() -> None:
     manage_payload = _wave_report_input_with_handoff()
-    ai_payload = {
-        "run_id": "wf_run_operations_handoff_001",
-        "output": {"review_required": True, "sections": ["Operations summary"]},
-    }
+    ai_payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id="dpm_operations_handoff_summary.pack",
+        workflow_surface="dpm-operations-handoff-ai-evidence",
+        correlation_id="corr-operations-handoff-summary",
+        structured_output={"review_required": True, "sections": ["Operations summary"]},
+    )
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
@@ -1074,7 +1080,8 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
         "requested_outputs": ["operations_summary", "blocking_conditions"],
         "audience": ["operations", "portfolio_manager"],
     }
-    assert response.data == ai_payload
+    assert response.data.workflow_pack_run.review_state == "AWAITING_REVIEW"
+    assert response.data.execution.result.structured_output["sections"] == ["Operations summary"]
     assert dpm_client.calls == [
         {
             "method": "get_wave_report_input",

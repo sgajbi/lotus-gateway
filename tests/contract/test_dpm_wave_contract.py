@@ -7,6 +7,7 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoGatewayResponse,
 )
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 def test_dpm_wave_gateway_response_contract_shape() -> None:
@@ -50,13 +51,18 @@ def test_dpm_wave_memo_gateway_response_contract_shape() -> None:
             "requested_outputs": ["wave_pm_memo", "approval_checklist"],
             "audience": ["portfolio_manager", "investment_control"],
         },
-        data={"run_id": "wf_run_wave_memo_001", "status": "REVIEW_REQUIRED"},
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_wave_pm_memo.pack",
+            workflow_surface="dpm-wave-ai-evidence",
+            correlation_id="corr-wave-ai-memo",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
     assert response.evidence_source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0041"
     assert response.wave_report_input["wave_id"] == "dwv_001"
+    assert response.data.workflow_pack_run.review_state == "AWAITING_REVIEW"
 
 
 def test_dpm_operations_handoff_summary_gateway_response_contract_shape() -> None:
@@ -74,13 +80,18 @@ def test_dpm_operations_handoff_summary_gateway_response_contract_shape() -> Non
             "requested_outputs": ["operations_summary", "blocking_conditions"],
             "audience": ["operations", "portfolio_manager"],
         },
-        data={"run_id": "wf_run_handoff_001", "status": "REVIEW_REQUIRED"},
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_operations_handoff_summary.pack",
+            workflow_surface="dpm-operations-handoff-ai-evidence",
+            correlation_id="corr-wave-handoff-summary",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
     assert response.evidence_source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0041"
     assert response.wave_report_input["external_execution_claimed"] is False
+    assert response.data.workflow_pack_run.review_required is True
 
 
 def test_dpm_campaign_workflow_gateway_response_contract_shape() -> None:

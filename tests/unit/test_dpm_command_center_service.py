@@ -9,6 +9,7 @@ from app.contracts.dpm_command_center import (
     DpmPmOperatingQualitySummaryRequest,
 )
 from app.services.dpm_command_center_service import DpmCommandCenterService
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 class _FakeDpmClient:
@@ -1576,22 +1577,15 @@ async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_
     ai_client = _FakeLotusAiClient(
         (
             200,
-            {
-                "execution": {
-                    "status": "COMPLETED",
-                    "audit": {"workflow_pack_run_id": "packrun_pmq_1"},
-                    "result": {
-                        "structured_output": {
-                            "workflow_pack_family": "pm_quality_summary",
-                            "summary_status": "REVIEW_REQUIRED",
-                        }
-                    },
+            lotus_ai_workflow_pack_execution_v1(
+                pack_id="pm_quality_summary.pack",
+                workflow_surface="dpm-pm-quality-ai-evidence",
+                correlation_id="corr-pmq-summary",
+                structured_output={
+                    "workflow_pack_family": "pm_quality_summary",
+                    "summary_status": "REVIEW_REQUIRED",
                 },
-                "workflow_pack_run": {
-                    "run_id": "packrun_pmq_1",
-                    "workflow_authority_owner": "lotus-manage",
-                },
-            },
+            ),
         )
     )
     service = DpmCommandCenterService(
@@ -1643,7 +1637,7 @@ async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_
     assert "compensation_decision" in payload["supportability"]["unsupported_claims"]
     assert payload["portfolio_memory_context"] == manage_payload["portfolio_memory_context"]
     assert "lotus-manage:pm-quality-score-run:pmq_run_001" in task_request["context"]["source_refs"]
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
 
 
 @pytest.mark.asyncio
@@ -1692,22 +1686,15 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
     ai_client = _FakeLotusAiClient(
         (
             200,
-            {
-                "execution": {
-                    "status": "COMPLETED",
-                    "audit": {"workflow_pack_run_id": "packrun_outcome_1"},
-                    "result": {
-                        "structured_output": {
-                            "outcome_review_narrative_status": "REVIEW_REQUIRED",
-                            "evidence_content_hash": "sha256:outcome-ai-evidence-001",
-                        }
-                    },
+            lotus_ai_workflow_pack_execution_v1(
+                pack_id="outcome_review_narrative.pack",
+                workflow_surface="dpm-outcome-review-ai-evidence",
+                correlation_id="corr-ai-narrative-1",
+                structured_output={
+                    "outcome_review_narrative_status": "REVIEW_REQUIRED",
+                    "evidence_content_hash": "sha256:outcome-ai-evidence-001",
                 },
-                "workflow_pack_run": {
-                    "run_id": "packrun_outcome_1",
-                    "workflow_authority_owner": "lotus-manage",
-                },
-            },
+            ),
         )
     )
     service = DpmCommandCenterService(
@@ -1732,7 +1719,7 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
     assert response.ai_evidence_input["client_communication_boundary"] == (
         _client_communication_boundary()
     )
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
     assert dpm_client.calls == [
         {
             "method": "ai_evidence",
@@ -1834,22 +1821,15 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
     ai_client = _FakeLotusAiClient(
         (
             200,
-            {
-                "execution": {
-                    "status": "COMPLETED",
-                    "audit": {"workflow_pack_run_id": "packrun_exception_1"},
-                    "result": {
-                        "structured_output": {
-                            "exception_summary_status": "REVIEW_REQUIRED",
-                            "exception_count": 1,
-                        }
-                    },
+            lotus_ai_workflow_pack_execution_v1(
+                pack_id="dpm_exception_summary.pack",
+                workflow_surface="dpm-exception-summary-ai-evidence",
+                correlation_id="corr-exception-summary-1",
+                structured_output={
+                    "exception_summary_status": "REVIEW_REQUIRED",
+                    "exception_count": 1,
                 },
-                "workflow_pack_run": {
-                    "run_id": "packrun_exception_1",
-                    "workflow_authority_owner": "lotus-manage",
-                },
-            },
+            ),
         )
     )
     service = DpmCommandCenterService(
@@ -1879,7 +1859,7 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
     assert response.exception_summary_input["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
     assert response.exception_summary_input["exception_count"] == 1
     assert response.exception_summary_input["redaction_policy"] == "NO_RAW_PAYLOADS"
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
     assert dpm_client.calls == [
         {
             "method": "list_exceptions",

@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from app.contracts.dpm_proof_packs import DpmProofPackMemoRequest
 from app.services.dpm_proof_pack_service import DpmProofPackService
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 class _FakeDpmClient:
@@ -223,17 +224,12 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
         "evidence_ref": "ai-evidence:dpp_rr_001",
         "content_hash": "sha256:ai-evidence",
     }
-    ai_payload = {
-        "execution": {
-            "audit": {"workflow_pack_run_id": "packrun_dpp_rr_001"},
-            "result": {"dpm_pm_memo_status": "REVIEW_REQUIRED"},
-        },
-        "workflow_pack_run": {
-            "run_id": "packrun_dpp_rr_001",
-            "workflow_authority_owner": "lotus-manage",
-            "review_state": "AWAITING_REVIEW",
-        },
-    }
+    ai_payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id="dpm_pm_memo.pack",
+        workflow_surface="dpm-proof-pack-ai-evidence",
+        correlation_id="corr-proof-pack-memo-1",
+        structured_output={"dpm_pm_memo_status": "REVIEW_REQUIRED"},
+    )
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmProofPackService(
@@ -260,8 +256,7 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
         "requested_outputs": ["pm_memo", "evidence_gaps"],
         "audience": ["portfolio_manager"],
     }
-    workflow_pack_run = cast(dict[str, Any], response.data["workflow_pack_run"])
-    assert workflow_pack_run["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
     [ai_call] = ai_client.calls
     assert ai_call["pack_id"] == "dpm_pm_memo.pack"
     assert ai_call["version"] == "v1"

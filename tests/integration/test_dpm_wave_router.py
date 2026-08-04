@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
@@ -1111,7 +1112,11 @@ def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN001, ANN003
         _ = self
         captured["ai_kwargs"] = kwargs
-        return 200, {"run_id": "wf_run_wave_memo_001", "status": "REVIEW_REQUIRED"}
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_wave_pm_memo.pack",
+            workflow_surface="dpm-wave-ai-evidence",
+            correlation_id="corr-wave-router-ai-memo",
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_wave_report_input",
@@ -1163,7 +1168,11 @@ def test_dpm_wave_operations_handoff_summary_uses_lotus_ai_workflow_pack(monkeyp
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN001, ANN003
         _ = self
         captured["ai_kwargs"] = kwargs
-        return 200, {"run_id": "wf_run_handoff_001", "status": "REVIEW_REQUIRED"}
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_operations_handoff_summary.pack",
+            workflow_surface="dpm-operations-handoff-ai-evidence",
+            correlation_id="corr-wave-router-handoff-summary",
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_wave_report_input",
