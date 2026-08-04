@@ -386,6 +386,58 @@ Operational behavior:
 3. this route family is a prerequisite for Workbench product proof but does not by itself certify
    the Workbench UI or demo screenshots.
 
+## DPM Governed AI Workflow Execution Boundary
+
+Status: implementation-backed in Gateway for the six DPM workflow-pack handoff families.
+
+Business outcome:
+
+1. portfolio managers, operations users, and supervisors receive one consistent execution-evidence
+   contract for proof-pack PM memos, wave PM memos, operations handoff summaries, exception
+   summaries, outcome-review narratives, and PM operating-quality summaries,
+2. Workbench can distinguish workflow runtime, human-review, supportability, evidence, freshness,
+   and replacement posture without treating request acceptance as output availability,
+3. support teams receive stable source and correlation evidence without exposing raw prompts,
+   ungoverned generated text, internal storage locations, or provider telemetry.
+
+Supported routes:
+
+1. `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`
+2. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+3. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
+4. `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`
+5. `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
+6. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`
+
+Authority and contract boundary:
+
+1. `lotus-ai` remains workflow-pack eligibility, execution, run, review, evidence, artifact,
+   provider, and recovery-lineage authority; `lotus-manage` remains consequence-bearing DPM
+   workflow and source-evidence authority,
+2. Gateway validates the canonical source envelope and returns the bounded
+   `DpmAiWorkflowExecution` projection across all six routes,
+3. Gateway preserves runtime state separately from review state and supportability, including
+   review requirement, allowed review actions, source evidence descriptors, safe artifact
+   metadata, completion/update timestamps, supersession, replacement, and retry/replay lineage,
+4. Gateway verifies pack, version, registration, caller, authenticated caller binding,
+   correlation id, workflow surface, and workflow authority for the requested DPM family,
+5. malformed or cross-boundary source output fails closed with product-safe
+   `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` detail and no raw upstream payload leakage.
+
+Production-readiness controls:
+
+1. raw prompt selection, raw model message and output preview, evidence attributes, internal
+   storage backend/reference, and creator/provider control narratives are excluded,
+2. only the governed task `structured_output` is returned as generated content; Workbench must use
+   a task-specific adapter and must not interpret arbitrary unknown keys,
+3. eligibility, runtime completion, evidence availability, human review, freshness, and client-use
+   suitability remain independent product decisions; no single state or badge implies all six,
+4. missing or invalid source fields are an upstream-contract failure, not permission for Gateway
+   or Workbench to invent a fallback result,
+5. shared fixtures and contract tests pin the complete canonical envelope, live and stub provider
+   posture, review-required and historical/superseded runs, safe projection, and malformed-source
+   rejection.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

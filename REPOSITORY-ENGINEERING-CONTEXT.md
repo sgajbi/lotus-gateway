@@ -129,8 +129,18 @@ Current repository posture:
     `lotus-gateway`; manage remains proof-pack evidence authority, `lotus-ai` remains workflow-pack
     execution authority, and Gateway does not generate memos, score PMs, approve trades, contact
     clients, place orders, or invent evidence,
-14. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
-15. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+14. the six DPM AI handoff families publish one typed, product-safe
+    `DpmAiWorkflowExecution` boundary. Gateway validates lotus-ai service, pack, version, caller,
+    correlation, workflow-surface, authorization, eligibility, task, run, provider, and authority
+    identities before returning source-owned runtime, review, supportability, evidence, artifact,
+    freshness, replacement, and recovery posture. Contract drift fails closed with
+    `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID`; raw prompts, free-text model output, evidence
+    attributes, storage locations, and unbounded provider telemetry are not exposed. Gateway does
+    not infer that an accepted request has produced an available, reviewed, current, or
+    client-usable output,
+15. canonical local startup now depends on environment-scoped service identity and `--app-dir src`
+    to avoid misleading Windows import-path failures.
+16. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
     fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
