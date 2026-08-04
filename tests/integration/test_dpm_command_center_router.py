@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(monkeypatch) -> None:
@@ -1192,22 +1193,15 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         _ = self
         captured["ai"] = kwargs
-        return 200, {
-            "execution": {
-                "status": "COMPLETED",
-                "audit": {"workflow_pack_run_id": "packrun_or_1"},
-                "result": {
-                    "structured_output": {
-                        "outcome_review_narrative_status": "REVIEW_REQUIRED",
-                        "evidence_content_hash": "sha256:or_1-ai-evidence",
-                    }
-                },
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="outcome_review_narrative.pack",
+            workflow_surface="dpm-outcome-review-ai-evidence",
+            correlation_id="corr-ai-router-1",
+            structured_output={
+                "outcome_review_narrative_status": "REVIEW_REQUIRED",
+                "evidence_content_hash": "sha256:or_1-ai-evidence",
             },
-            "workflow_pack_run": {
-                "run_id": "packrun_or_1",
-                "workflow_authority_owner": "lotus-manage",
-            },
-        }
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_outcome_review_ai_evidence_input",
@@ -1258,22 +1252,15 @@ def test_dpm_command_center_exception_summary_executes_lotus_ai(monkeypatch) -> 
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         _ = self
         captured["ai"] = kwargs
-        return 200, {
-            "execution": {
-                "status": "COMPLETED",
-                "audit": {"workflow_pack_run_id": "packrun_exception_1"},
-                "result": {
-                    "structured_output": {
-                        "exception_summary_status": "REVIEW_REQUIRED",
-                        "exception_count": 1,
-                    }
-                },
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_exception_summary.pack",
+            workflow_surface="dpm-exception-summary-ai-evidence",
+            correlation_id="corr-exception-router-1",
+            structured_output={
+                "exception_summary_status": "REVIEW_REQUIRED",
+                "exception_count": 1,
             },
-            "workflow_pack_run": {
-                "run_id": "packrun_exception_1",
-                "workflow_authority_owner": "lotus-manage",
-            },
-        }
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.list_monitoring_exceptions",
@@ -1346,22 +1333,15 @@ def test_dpm_command_center_pm_quality_summary_executes_lotus_ai(monkeypatch) ->
     async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         _ = self
         captured["ai"] = kwargs
-        return 200, {
-            "execution": {
-                "status": "COMPLETED",
-                "audit": {"workflow_pack_run_id": "packrun_pmq_1"},
-                "result": {
-                    "structured_output": {
-                        "workflow_pack_family": "pm_quality_summary",
-                        "summary_status": "REVIEW_REQUIRED",
-                    }
-                },
+        return 200, lotus_ai_workflow_pack_execution_v1(
+            pack_id="pm_quality_summary.pack",
+            workflow_surface="dpm-pm-quality-ai-evidence",
+            correlation_id="corr-pmq-summary-router",
+            structured_output={
+                "workflow_pack_family": "pm_quality_summary",
+                "summary_status": "REVIEW_REQUIRED",
             },
-            "workflow_pack_run": {
-                "run_id": "packrun_pmq_1",
-                "workflow_authority_owner": "lotus-manage",
-            },
-        }
+        )
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_pm_operating_quality_score_run",

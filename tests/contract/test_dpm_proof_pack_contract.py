@@ -5,6 +5,7 @@ from app.contracts.dpm_proof_packs import (
     DpmProofPackMemoGatewayResponse,
 )
 from app.main import app
+from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
 def test_dpm_proof_pack_gateway_response_contract_shape() -> None:
@@ -50,13 +51,17 @@ def test_dpm_proof_pack_pm_memo_gateway_response_contract_shape() -> None:
             "content_hash": "sha256:ai-evidence",
         },
         memo_request={"requested_outputs": ["pm_memo"], "audience": ["portfolio_manager"]},
-        data={"workflow_pack_run": {"workflow_authority_owner": "lotus-manage"}},
+        data=lotus_ai_workflow_pack_execution_v1(
+            pack_id="dpm_pm_memo.pack",
+            workflow_surface="dpm-proof-pack-ai-evidence",
+            correlation_id="corr-proof-pack-memo-1",
+        ),
     )
 
     assert response.source_service == "lotus-ai"
     assert response.evidence_source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0040"
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert response.data.workflow_pack_run.workflow_authority_owner == "lotus-manage"
 
 
 def test_dpm_proof_pack_openapi_contract_registered() -> None:
