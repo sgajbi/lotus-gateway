@@ -1,8 +1,52 @@
 # Codebase Review Ledger
 
-Last updated: 2026-07-18
+Last updated: 2026-08-05
 Repository: `lotus-gateway`
-Current branch: `feat/authenticated-advisor-book-500`
+Current branch: `feat/dpm-ai-execution-contracts`
+
+## Typed DPM AI Workflow Execution Boundary
+
+- Scope: GitHub issue #520, discovered while preparing Workbench issue #528 to extend governed AI
+  disclosure across six DPM workflow outputs.
+- Source authority: `lotus-ai` owns workflow-pack eligibility, execution, run, review,
+  supportability, provider, evidence, artifact, freshness, supersession, replacement, and recovery
+  truth; `lotus-manage` owns consequence-bearing DPM workflow and source evidence. Gateway owns a
+  bounded product-facing validation and projection boundary only.
+- Finding: all six response contracts promised workflow execution and review evidence but exposed
+  `data` as `dict[str, object]`; reduced and inconsistent fixtures allowed source-contract drift and
+  left Workbench unable to distinguish request acceptance from output, evidence, review,
+  supportability, freshness, or client-use posture.
+- Change: introduced reusable `DpmAiWorkflowExecution` models and one expectation-driven validator
+  for proof-pack memo, wave memo, operations handoff, exception summary, outcome-review narrative,
+  and PM-quality summary routes. The validator binds service, pack, version, registration, caller,
+  authenticated identity, correlation, workflow surface, authority owner, task, run, provider, and
+  eligibility identities before returning the typed projection.
+- Measured modularity: the contract is separated into audit/evidence (115 lines), run/lineage (171
+  lines), and execution-envelope (135 lines) modules. The proof-pack facade is reduced from the
+  gate-rejected 325 lines to 178 lines by extracting its AI handoff; all production files remain
+  below the enforced 316-line file and 49-line function ceilings.
+- Projection safety: governed structured task output, runtime/review/supportability posture,
+  bounded evidence descriptors, safe artifact metadata, timestamps, and replacement/recovery
+  lineage are retained. Raw prompt selection, generated message/output preview, evidence
+  attributes, storage locations, creator fields, and unbounded control/provider narratives are
+  stripped. Invalid source output returns product-safe
+  `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` without payload or validation-detail leakage.
+- Regression proof: one versioned complete lotus-ai fixture builder serves all six families; unit,
+  contract, and integration tests cover six success paths, live and stub execution,
+  review-required, historical/superseded/replacement, recovery lineage, raw-field stripping,
+  identity mismatch, missing fields, authorization failure, and route-level product-safe `502`
+  behavior. The execution-envelope and validator modules have 100% line and branch coverage.
+- Repeatable rule: a source-published generated-output envelope must be consumer-typed, identity
+  bound, and allowlist-projected at the Gateway boundary. A generic dictionary, HTTP success, or
+  request id is not evidence that generated output is safe, available, reviewed, current, or fit
+  for client use.
+- Documentation decision: repository context and the authored supported-features wiki are updated
+  because the public Gateway contract and operator-visible failure posture changed. Central skill
+  routing and platform architecture did not change, so no central context or skill edit is needed.
+- Follow-up: containerized validation exposed that the CI-local cleanup target can remove the
+  active product Gateway container because both compose files share a default project identity.
+  The runtime was restored healthy immediately and independent operability hardening is durable in
+  #521; it is not claimed by #520.
 
 ## Authenticated Advisor Own-Book Experience Contract
 
