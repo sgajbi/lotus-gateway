@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
+
 PM_QUALITY_SUMMARY_ALLOWED_OUTPUTS = {
     "score_run_summary",
     "governance_summary",
@@ -261,9 +263,11 @@ class DpmPmOperatingQualitySummaryGatewayResponse(BaseModel):
             }
         ],
     )
-    data: dict[str, object] = Field(
+    data: DpmAiWorkflowExecution = Field(
         description=(
-            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
-            "workflow-pack run posture, review state, and guardrail-supported structured output."
+            "Validated lotus-ai workflow execution with structured PM quality output, distinct "
+            "runtime and review posture, safety evidence, governed artifacts, freshness, and "
+            "lineage. Raw generated messages, prompts, storage locations, and telemetry attributes "
+            "are not exposed."
         ),
     )

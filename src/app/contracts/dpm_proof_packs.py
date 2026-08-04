@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
+
 
 class DpmProofPackGenerateRequest(BaseModel):
     idempotency_key: str = Field(
@@ -204,10 +206,12 @@ class DpmProofPackMemoGatewayResponse(BaseModel):
             }
         ],
     )
-    data: dict[str, object] = Field(
+    data: DpmAiWorkflowExecution = Field(
         description=(
-            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
-            "workflow-pack run posture, review state, and guardrail-supported structured output."
+            "Validated lotus-ai workflow execution with structured output, runtime and review "
+            "posture, safety evidence, governed artifact metadata, freshness, and replacement "
+            "lineage. Raw generated messages, prompts, storage locations, and telemetry attributes "
+            "are not exposed."
         ),
     )
 

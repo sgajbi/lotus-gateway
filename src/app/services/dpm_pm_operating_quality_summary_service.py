@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.config import settings
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_command_center import (
     DpmPmOperatingQualitySummaryGatewayResponse,
     DpmPmOperatingQualitySummaryRequest,
@@ -11,6 +12,10 @@ from app.contracts.dpm_command_center import (
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
 from app.services.ai_client_protocols import LotusAiWorkflowClient
+from app.services.dpm_ai_workflow_execution import (
+    DPM_PM_OPERATING_QUALITY_EXECUTION,
+    validate_dpm_ai_workflow_execution,
+)
 from app.services.dpm_command_center_errors import raise_manage_command_center_error
 from app.services.dpm_pm_operating_quality_client_protocols import (
     DpmPmOperatingQualityClientAccessMixin,
@@ -47,7 +52,7 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
             correlation_id=correlation_id,
         )
 
-        ai_status, ai_payload = await self._execute_pm_operating_quality_summary_workflow(
+        ai_status, ai_execution = await self._execute_pm_operating_quality_summary_workflow(
             lotus_ai_client=lotus_ai_client,
             score_run_id=score_run_id,
             correlation_id=correlation_id,
@@ -57,7 +62,7 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
             correlation_id=correlation_id,
             summary_context=summary_context,
             ai_status=ai_status,
-            ai_payload=ai_payload,
+            ai_execution=ai_execution,
         )
 
     async def _load_pm_operating_quality_summary_context(
@@ -135,7 +140,7 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
         score_run_id: str,
         correlation_id: str,
         summary_context: DpmPmOperatingQualitySummaryContext,
-    ) -> tuple[int, dict[str, Any]]:
+    ) -> tuple[int, DpmAiWorkflowExecution]:
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="pm_quality_summary.pack",
             version="v1",
@@ -163,7 +168,12 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
                 error_code="AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
                 default_detail="lotus-ai PM operating quality summary request failed",
             )
-        return ai_status, ai_payload
+        return ai_status, validate_dpm_ai_workflow_execution(
+            ai_payload,
+            upstream_status=ai_status,
+            correlation_id=correlation_id,
+            expectation=DPM_PM_OPERATING_QUALITY_EXECUTION,
+        )
 
     def _compose_pm_operating_quality_summary_response(
         self,
@@ -171,7 +181,7 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
         correlation_id: str,
         summary_context: DpmPmOperatingQualitySummaryContext,
         ai_status: int,
-        ai_payload: dict[str, Any],
+        ai_execution: DpmAiWorkflowExecution,
     ) -> DpmPmOperatingQualitySummaryGatewayResponse:
         return DpmPmOperatingQualitySummaryGatewayResponse(
             correlation_id=correlation_id,
@@ -181,5 +191,5 @@ class DpmPmOperatingQualitySummaryServiceMixin(DpmPmOperatingQualityClientAccess
             supportability=summary_context.supportability,
             score_run=summary_context.score_run,
             summary_request=summary_context.summary_request,
-            data=ai_payload,
+            data=ai_execution,
         )

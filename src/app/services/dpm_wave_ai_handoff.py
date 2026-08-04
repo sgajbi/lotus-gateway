@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import status
 
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_waves import (
     DpmOperationsHandoffSummaryGatewayResponse,
     DpmOperationsHandoffSummaryRequest,
@@ -10,6 +11,11 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
 )
 from app.services.ai_client_protocols import LotusAiWorkflowClient
+from app.services.dpm_ai_workflow_execution import (
+    DPM_OPERATIONS_HANDOFF_EXECUTION,
+    DPM_WAVE_PM_MEMO_EXECUTION,
+    validate_dpm_ai_workflow_execution,
+)
 from app.services.dpm_wave_ai_payloads import (
     WaveReportInput,
     operations_handoff_summary_request_payload,
@@ -69,7 +75,7 @@ class DpmWaveAiHandoffMixin:
         correlation_id: str,
         report_input: WaveReportInput,
         memo_request: dict[str, object],
-    ) -> tuple[int, dict[str, Any]]:
+    ) -> tuple[int, DpmAiWorkflowExecution]:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
@@ -99,7 +105,12 @@ class DpmWaveAiHandoffMixin:
                 error_code="AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
                 default_detail="lotus-ai wave PM memo request failed",
             )
-        return ai_status, ai_payload
+        return ai_status, validate_dpm_ai_workflow_execution(
+            ai_payload,
+            upstream_status=ai_status,
+            correlation_id=correlation_id,
+            expectation=DPM_WAVE_PM_MEMO_EXECUTION,
+        )
 
     async def request_operations_handoff_summary(
         self,
@@ -134,7 +145,7 @@ class DpmWaveAiHandoffMixin:
         correlation_id: str,
         report_input: WaveReportInput,
         handoff_summary_request: dict[str, object],
-    ) -> tuple[int, dict[str, Any]]:
+    ) -> tuple[int, DpmAiWorkflowExecution]:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
@@ -164,7 +175,12 @@ class DpmWaveAiHandoffMixin:
                 error_code="AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
                 default_detail="lotus-ai operations handoff summary request failed",
             )
-        return ai_status, ai_payload
+        return ai_status, validate_dpm_ai_workflow_execution(
+            ai_payload,
+            upstream_status=ai_status,
+            correlation_id=correlation_id,
+            expectation=DPM_OPERATIONS_HANDOFF_EXECUTION,
+        )
 
     async def _load_wave_report_input(
         self,

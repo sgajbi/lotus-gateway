@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_command_center_core import DpmCommandCenterSupportability
 
 
@@ -107,9 +108,11 @@ class DpmExceptionSummaryGatewayResponse(BaseModel):
             }
         ],
     )
-    data: dict[str, object] = Field(
+    data: DpmAiWorkflowExecution = Field(
         description=(
-            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
-            "workflow-pack run posture, review state, and guardrail-supported structured output."
+            "Validated lotus-ai workflow execution with structured exception output, distinct "
+            "runtime and review posture, safety evidence, governed artifacts, freshness, and "
+            "lineage. Raw generated messages, prompts, storage locations, and telemetry attributes "
+            "are not exposed."
         ),
     )

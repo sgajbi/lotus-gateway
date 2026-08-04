@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_wave_supportability import DpmWaveSupportability
 
 
@@ -123,10 +124,11 @@ class DpmWaveMemoGatewayResponse(BaseModel):
             }
         ],
     )
-    data: dict[str, object] = Field(
+    data: DpmAiWorkflowExecution = Field(
         description=(
-            "lotus-ai workflow-pack execution response. Gateway preserves the AI authority "
-            "payload and does not post-process generated memo content into execution actions."
+            "Validated lotus-ai workflow execution with structured memo output, distinct runtime "
+            "and review posture, safety evidence, governed artifacts, freshness, and lineage. "
+            "Gateway does not expose raw generated messages or turn the result into an action."
         )
     )
 
@@ -185,9 +187,11 @@ class DpmOperationsHandoffSummaryGatewayResponse(BaseModel):
             }
         ],
     )
-    data: dict[str, object] = Field(
+    data: DpmAiWorkflowExecution = Field(
         description=(
-            "lotus-ai workflow-pack execution response. Gateway preserves the AI authority "
-            "payload and does not post-process generated handoff text into execution actions."
+            "Validated lotus-ai workflow execution with structured handoff output, distinct "
+            "runtime and review posture, safety evidence, governed artifacts, freshness, and "
+            "lineage. "
+            "Gateway does not expose raw generated messages or turn the result into an action."
         )
     )
