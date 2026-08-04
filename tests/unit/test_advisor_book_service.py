@@ -220,9 +220,10 @@ async def test_service_translates_source_not_found_to_explicit_empty_book() -> N
         _payload(booking_center_code="Zurich"),
         _payload(members=[_member("PB_001", booking_center_code="Zurich")]),
         _payload(members=[_member("PB_DUPLICATE"), _member("PB_DUPLICATE")]),
+        _payload(members=[_member("PB_UNSUPPORTED", portfolio_type="EXECUTION_ONLY")]),
     ],
 )
-async def test_service_fails_closed_on_cross_scope_or_duplicate_source_rows(
+async def test_service_fails_closed_on_invalid_source_rows(
     payload: dict[str, object],
 ) -> None:
     service = AdvisorBookService(membership_client=_MembershipClient(payload=payload))
