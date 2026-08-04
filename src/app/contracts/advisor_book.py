@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+AdvisorBookMandateType = Literal["ADVISORY", "DISCRETIONARY"]
+
 
 class AdvisorBookScope(BaseModel):
     kind: Literal["own_book"] = Field(
@@ -47,8 +49,11 @@ class AdvisorBookPortfolio(BaseModel):
         description="Booking center from the source-owned membership row.",
         examples=["Singapore"],
     )
-    mandate_type: str = Field(
-        description="Portfolio or mandate classification from the source-owned membership row.",
+    mandate_type: AdvisorBookMandateType = Field(
+        description=(
+            "Supported portfolio or mandate classification verified from the source-owned "
+            "membership row."
+        ),
         examples=["DISCRETIONARY"],
     )
     status: str = Field(

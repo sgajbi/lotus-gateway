@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import ValidationError
 
 from app.contracts.advisor_book import (
+    AdvisorBookMandateType,
     AdvisorBookPage,
     AdvisorBookPortfolio,
     AdvisorBookProvenance,
@@ -24,9 +25,11 @@ from app.services.advisor_book_supportability import (
 
 AdvisorBookSortField = Literal["portfolio_id", "client_id", "mandate_type"]
 AdvisorBookSortOrder = Literal["asc", "desc"]
-AdvisorBookMandateType = Literal["ADVISORY", "DISCRETIONARY"]
 
-_SUPPORTED_PORTFOLIO_TYPES = ["ADVISORY", "DISCRETIONARY"]
+_SUPPORTED_PORTFOLIO_TYPES: tuple[AdvisorBookMandateType, ...] = (
+    "ADVISORY",
+    "DISCRETIONARY",
+)
 
 
 @dataclass(frozen=True)
@@ -67,7 +70,7 @@ class AdvisorBookService:
                 portfolio_manager_id=caller.portfolio_manager_id,
                 as_of_date=query.as_of_date.isoformat(),
                 booking_center_code=caller.booking_center_code,
-                portfolio_types=_SUPPORTED_PORTFOLIO_TYPES,
+                portfolio_types=list(_SUPPORTED_PORTFOLIO_TYPES),
                 correlation_id=correlation_id,
             )
         except Exception as exc:
@@ -105,6 +108,7 @@ def _validate_source_scope(
         or any(
             member.booking_center_code != caller.booking_center_code for member in source.members
         )
+        or any(member.portfolio_type not in _SUPPORTED_PORTFOLIO_TYPES for member in source.members)
         or len({member.portfolio_id for member in source.members}) != len(source.members)
     ):
         raise _source_contract_invalid()
@@ -179,7 +183,7 @@ def _portfolio(member: SourceAdvisorBookMember) -> AdvisorBookPortfolio:
         client_id=member.client_id,
         base_currency=member.base_currency,
         booking_center_code=member.booking_center_code,
-        mandate_type=member.portfolio_type,
+        mandate_type=cast(AdvisorBookMandateType, member.portfolio_type),
         status=member.status,
         opened_on=member.open_date,
         closed_on=member.close_date,
