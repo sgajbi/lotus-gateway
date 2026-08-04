@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import status
 
 from app.config import settings
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_command_center import (
     DpmOutcomeReviewNarrativeGatewayResponse,
     DpmOutcomeReviewNarrativeRequest,
@@ -11,6 +12,10 @@ from app.contracts.dpm_command_center import (
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
 from app.services.ai_client_protocols import LotusAiWorkflowClient
+from app.services.dpm_ai_workflow_execution import (
+    DPM_OUTCOME_REVIEW_NARRATIVE_EXECUTION,
+    validate_dpm_ai_workflow_execution,
+)
 from app.services.dpm_client_protocols import DpmCommandCenterClient
 from app.services.dpm_command_center_errors import raise_manage_command_center_error
 from app.services.lotus_ai_workflow import (
@@ -47,7 +52,7 @@ class DpmCommandCenterOutcomeNarrativeMixin:
             request=request,
             correlation_id=correlation_id,
         )
-        ai_status, ai_payload = await self._execute_outcome_review_narrative_pack(
+        ai_status, ai_execution = await self._execute_outcome_review_narrative_pack(
             lotus_ai_client=lotus_ai_client,
             outcome_review_id=outcome_review_id,
             correlation_id=correlation_id,
@@ -62,7 +67,7 @@ class DpmCommandCenterOutcomeNarrativeMixin:
             supportability=context.supportability,
             ai_evidence_input=context.ai_evidence_input,
             narrative_request=context.narrative_request,
-            data=ai_payload,
+            data=ai_execution,
         )
 
     async def _build_outcome_review_narrative_context(
@@ -110,7 +115,7 @@ class DpmCommandCenterOutcomeNarrativeMixin:
         outcome_review_id: str,
         correlation_id: str,
         context: DpmOutcomeReviewNarrativeContext,
-    ) -> tuple[int, dict[str, Any]]:
+    ) -> tuple[int, DpmAiWorkflowExecution]:
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="outcome_review_narrative.pack",
             version="v1",
@@ -136,4 +141,9 @@ class DpmCommandCenterOutcomeNarrativeMixin:
                 error_code="AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR",
                 default_detail="lotus-ai outcome-review narrative request failed",
             )
-        return ai_status, ai_payload
+        return ai_status, validate_dpm_ai_workflow_execution(
+            ai_payload,
+            upstream_status=ai_status,
+            correlation_id=correlation_id,
+            expectation=DPM_OUTCOME_REVIEW_NARRATIVE_EXECUTION,
+        )

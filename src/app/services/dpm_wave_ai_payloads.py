@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.config import settings
+from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
 from app.contracts.dpm_waves import (
     DpmOperationsHandoffSummaryGatewayResponse,
     DpmOperationsHandoffSummaryRequest,
@@ -154,7 +155,7 @@ def wave_pm_memo_response(
     report_input: WaveReportInput,
     memo_request: dict[str, object],
     ai_upstream_status: int,
-    data: dict[str, Any],
+    data: DpmAiWorkflowExecution,
 ) -> DpmWaveMemoGatewayResponse:
     return DpmWaveMemoGatewayResponse(
         correlation_id=correlation_id,
@@ -195,7 +196,7 @@ def operations_handoff_summary_response(
     report_input: WaveReportInput,
     handoff_summary_request: dict[str, object],
     ai_upstream_status: int,
-    data: dict[str, Any],
+    data: DpmAiWorkflowExecution,
 ) -> DpmOperationsHandoffSummaryGatewayResponse:
     return DpmOperationsHandoffSummaryGatewayResponse(
         correlation_id=correlation_id,
