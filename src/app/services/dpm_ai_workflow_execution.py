@@ -7,6 +7,10 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from app.contracts.dpm_ai_workflow_execution import DpmAiWorkflowExecution
+from app.services.lotus_ai_workflow import (
+    DPM_EXPLANATION_TASK_CONTRACT,
+    LotusAiWorkflowTaskContract,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +21,7 @@ class DpmAiWorkflowExecutionExpectation:
     workflow_surface: str
     pack_version: str = "v1"
     workflow_authority_owner: str = "lotus-manage"
+    task_contract: LotusAiWorkflowTaskContract = DPM_EXPLANATION_TASK_CONTRACT
 
 
 DPM_PROOF_PACK_PM_MEMO_EXECUTION = DpmAiWorkflowExecutionExpectation(
@@ -72,6 +77,8 @@ def validate_dpm_ai_workflow_execution(
         or run.correlation_id != correlation_id
         or run.workflow_surface != expectation.workflow_surface
         or run.workflow_authority_owner != expectation.workflow_authority_owner
+        or execution.execution.task_id != expectation.task_contract.task_id
+        or execution.execution.output_label != expectation.task_contract.output_label
         or audit.authorization.caller_app != "lotus-gateway"
         or audit.authorization.authenticated_caller_app != "lotus-gateway"
     ):

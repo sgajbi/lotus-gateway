@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 
 from app.clients.lotus_ai_client import LotusAiClient
 from app.services.lotus_ai_workflow import (
+    DPM_EXPLANATION_TASK_CONTRACT,
     LOTUS_AI_NOT_CONFIGURED_DETAIL,
     build_workflow_pack_task_request,
     require_lotus_ai_client,
@@ -34,7 +35,7 @@ def test_build_workflow_pack_task_request_uses_gateway_structured_context() -> N
     )
 
     assert request == {
-        "task_id": "explain.v1",
+        "task_id": DPM_EXPLANATION_TASK_CONTRACT.task_id,
         "input_mode": "STRUCTURED_CONTEXT",
         "caller": {
             "caller_app": "lotus-gateway",
@@ -45,5 +46,5 @@ def test_build_workflow_pack_task_request_uses_gateway_structured_context() -> N
             "payload": {"evidence": {"content_hash": "sha256:evidence"}},
             "source_refs": ["lotus-manage:evidence:1"],
         },
-        "expected_output_label": "EXPLANATION_ONLY",
+        "expected_output_label": DPM_EXPLANATION_TASK_CONTRACT.output_label,
     }

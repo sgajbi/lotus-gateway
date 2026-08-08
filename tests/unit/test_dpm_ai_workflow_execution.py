@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any, Callable
 
 import pytest
 from fastapi import HTTPException, status
@@ -28,6 +29,19 @@ _EXPECTATIONS = (
 )
 
 
+def _replace_task_identity(payload: dict[str, Any]) -> None:
+    payload["execution"]["task_id"] = "execute.client_action.v1"
+    payload["execution"]["audit"]["task_id"] = "execute.client_action.v1"
+    payload["execution"]["audit"]["authorization"]["task_id"] = "execute.client_action.v1"
+    payload["workflow_pack_run"]["task_id"] = "execute.client_action.v1"
+
+
+def _replace_output_label(payload: dict[str, Any]) -> None:
+    payload["execution"]["output_label"] = "CLIENT_ACTION"
+    payload["execution"]["audit"]["output_label"] = "CLIENT_ACTION"
+    payload["execution"]["audit"]["safety"]["output_label"] = "CLIENT_ACTION"
+
+
 @pytest.mark.parametrize("expectation", _EXPECTATIONS)
 def test_validate_dpm_ai_execution_preserves_each_governed_family(
     expectation: DpmAiWorkflowExecutionExpectation,
@@ -53,6 +67,39 @@ def test_validate_dpm_ai_execution_preserves_each_governed_family(
     assert execution.workflow_pack_run.review_required is True
     assert execution.workflow_pack_run.stubbed is True
     assert execution.execution.result.structured_output["scope"] == "support_only"
+
+
+@pytest.mark.parametrize("expectation", _EXPECTATIONS)
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        pytest.param(_replace_task_identity, id="consistent-wrong-task"),
+        pytest.param(_replace_output_label, id="consistent-wrong-output-label"),
+    ),
+)
+def test_validate_dpm_ai_execution_binds_response_to_requested_task_contract(
+    expectation: DpmAiWorkflowExecutionExpectation,
+    mutation: Callable[[dict[str, Any]], None],
+) -> None:
+    correlation_id = f"corr-contract-{expectation.pack_id}"
+    payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id=expectation.pack_id,
+        workflow_surface=expectation.workflow_surface,
+        correlation_id=correlation_id,
+    )
+    mutation(payload)
+
+    with pytest.raises(HTTPException) as raised:
+        validate_dpm_ai_workflow_execution(
+            payload,
+            upstream_status=200,
+            correlation_id=correlation_id,
+            expectation=expectation,
+        )
+
+    assert raised.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert raised.value.detail["error_code"] == "AI_WORKFLOW_EXECUTION_CONTRACT_INVALID"
+    assert "structured_output" not in str(raised.value.detail)
 
 
 def test_validate_dpm_ai_execution_strips_untrusted_non_product_fields() -> None:
