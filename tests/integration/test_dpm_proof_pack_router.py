@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from app.main import app
+from tests.support.dpm_caller import governed_dpm_client
 from tests.support.lotus_ai_workflow_pack import (
     UNSAFE_UPSTREAM_MARKER,
     lotus_ai_workflow_pack_execution_v1,
@@ -22,7 +21,7 @@ def test_dpm_proof_pack_generate_preserves_manage_truth(monkeypatch) -> None:
         _fake_generate_proof_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/proof-packs",
         json={
@@ -57,7 +56,7 @@ def test_dpm_proof_pack_get_uses_manage_identifier(monkeypatch) -> None:
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_proof_pack", _fake_get_proof_pack)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/proof-packs/dpp_rr_001",
         headers={"X-Correlation-Id": "corr-proof-pack-get-router-1"},
@@ -85,7 +84,7 @@ def test_dpm_proof_pack_markdown_is_returned_in_gateway_envelope(monkeypatch) ->
         _fake_get_proof_pack_markdown,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/proof-packs/dpp_rr_001/summary.md",
         headers={"X-Correlation-Id": "corr-proof-pack-md-router-1"},
@@ -133,7 +132,7 @@ def test_dpm_proof_pack_handoff_routes_preserve_manage_payload(monkeypatch) -> N
         _fake_ai_input,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     report_response = client.get(
         "/api/v1/dpm/command-center/proof-packs/dpp_rr_001/report-input",
         headers={"X-Correlation-Id": "corr-proof-pack-report-router-1"},
@@ -191,7 +190,7 @@ def test_dpm_proof_pack_pm_memo_executes_lotus_ai_workflow_pack(monkeypatch) -> 
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo",
         json={
@@ -250,7 +249,7 @@ def test_dpm_proof_pack_pm_memo_rejects_malformed_ai_contract_without_leakage(
         _fake_execute_workflow_pack,
     )
 
-    response = TestClient(app).post(
+    response = governed_dpm_client(app).post(
         "/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo",
         json={"requested_outputs": ["pm_memo"], "audience": ["portfolio_manager"]},
         headers={"X-Correlation-Id": "corr-proof-pack-invalid-ai-contract"},

@@ -15,6 +15,22 @@ from app.clients.lotus_core_transaction_params import build_portfolio_transactio
 from app.clients.lotus_idea_client import LotusIdeaClient
 from app.clients.reporting_client import ReportingClient
 from app.middleware.correlation import trace_id_var
+from app.services.dpm_manage_mutation_authority import (
+    DpmManageMutationAuthority,
+    dpm_manage_mutation_authority_scope,
+)
+
+
+@pytest.fixture(autouse=True)
+def _governed_dpm_manage_mutation_scope():
+    authority = DpmManageMutationAuthority(
+        actor_id="pm_sg_001",
+        tenant_id="tenant-sg",
+        role="PORTFOLIO_MANAGER",
+        region="APAC",
+    )
+    with dpm_manage_mutation_authority_scope(authority):
+        yield
 
 
 class _FakeAsyncClient:
@@ -2936,13 +2952,16 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
     if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
-    if "caller_headers" in kwargs:
-        for header_name, header_value in kwargs["caller_headers"].items():
-            assert _FakeAsyncClient.calls[0]["headers"][header_name] == header_value
-    else:
-        assert "X-Service-Identity" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "X-Capabilities" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "manage.write" not in ",".join(_FakeAsyncClient.calls[0]["headers"].values())
+    expected_authority_headers = {
+        "X-Actor-Id": "pm_sg_001",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Role": "PORTFOLIO_MANAGER",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": "manage.write",
+        "X-Region": "APAC",
+    }
+    for header_name, header_value in expected_authority_headers.items():
+        assert _FakeAsyncClient.calls[0]["headers"][header_name] == header_value
 
 
 @pytest.mark.asyncio

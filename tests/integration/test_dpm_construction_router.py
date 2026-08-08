@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from app.main import app
+from tests.support.dpm_caller import governed_dpm_client
 
 
 def test_dpm_construction_generate_preserves_manage_truth(monkeypatch) -> None:
@@ -23,7 +22,7 @@ def test_dpm_construction_generate_preserves_manage_truth(monkeypatch) -> None:
         _fake_generate_construction_alternative_set,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/construction/alternative-sets/generate",
         json={
@@ -111,7 +110,7 @@ def test_dpm_construction_get_uses_manage_identifier(monkeypatch) -> None:
         _fake_get_construction_alternative_set,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/construction/alternative-sets/cas_1",
         headers={"X-Correlation-Id": "corr-construction-get-1"},
@@ -151,7 +150,7 @@ def test_dpm_construction_selection_preserves_manage_decision(monkeypatch) -> No
         _fake_select_construction_alternative,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/construction/alternative-sets/cas_1/selections",
         json={
