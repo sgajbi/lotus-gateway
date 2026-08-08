@@ -133,10 +133,10 @@ or AI truth.
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.
-   Every DPM mutation preserves the authenticated actor, tenant, role, and available region as
-   caller audit evidence, while Gateway derives its own exact `lotus-gateway` / `manage.write`
-   workload authority in request scope. Product-supplied service identity or capabilities are not
-   trusted, and DPM reads are not elevated.
+   Every registered DPM route preserves the authenticated actor, tenant, role, and available region
+   as caller audit evidence. Reads forward only that context and correlation; mutations additionally
+   derive Gateway's exact `lotus-gateway` / `manage.write` workload authority. Product-supplied
+   service identity or capabilities are never trusted.
 13. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for

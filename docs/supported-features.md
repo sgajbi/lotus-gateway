@@ -50,9 +50,10 @@ suitability, recommendation, communication, and execution claims are not support
    families,
 7. wave campaign definitions, queues, approval inbox, workflow board, assignment plan,
    automation, wave report input, AI PM memo, and operations handoff summary.
-8. request-scoped authority for every DPM mutation: authenticated actor, tenant, and role remain
-   caller audit evidence while Gateway derives its own `lotus-gateway` / `manage.write` workload
-   authority; reads remain unprivileged and caller-supplied workload headers are not trusted.
+8. request-scoped authority for every registered DPM route: authenticated actor, tenant, role, and
+   optional region remain caller audit evidence on reads and mutations, while Gateway derives its
+   own `lotus-gateway` / `manage.write` workload authority only for mutations; caller-supplied
+   workload headers are never trusted.
 9. six DPM AI handoff families share the exact `explain.v1` / `EXPLANATION_ONLY` request and
    response boundary, with consistent task or output-label drift rejected before output reaches a
    product client.

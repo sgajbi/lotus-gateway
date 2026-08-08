@@ -321,12 +321,12 @@ Most relevant current governance:
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
     synthesize `client_communication_boundary`, generate reports, generate AI narrative, infer PM
     quality, or let Workbench call manage directly.
-    All DPM mutations require trusted `X-Actor-Id`, `X-Tenant-Id`, and `X-Role` caller audit
+    All registered DPM routes require trusted `X-Actor-Id`, `X-Tenant-Id`, and `X-Role` caller audit
     identity; `X-Region` is preserved when supplied and remains required where a route-specific
-    contract declares it. Gateway replaces any caller-supplied workload authority with the
-    request-scoped `X-Service-Identity: lotus-gateway` and exact `X-Capabilities: manage.write`
-    contract before calling Manage. Missing or malformed caller identity fails closed before the
-    upstream call, and DPM reads do not receive write authority.
+    contract declares it. Reads forward only validated caller audit identity and correlation.
+    Mutations replace any caller-supplied workload authority with the request-scoped
+    `X-Service-Identity: lotus-gateway` and exact `X-Capabilities: manage.write` contract before
+    calling Manage. Missing or malformed caller identity fails closed before the upstream call.
 11. RFC-0038 mandate command-center Gateway routes are active under
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and
@@ -400,11 +400,10 @@ Most relevant current governance:
     perform conduct enforcement, approve trades, contact clients, route orders, claim
     OMS/execution, or invent missing evidence.
 17. Gateway Manage clients must never trust browser-supplied service identity, capability, service
-    actor, tenant, role, or resource-scope authority. The DPM mutation boundary is the bounded
-    exception that derives only Gateway's own `lotus-gateway` workload identity and exact
-    `manage.write` capability after validating the original actor, tenant, and role in request
-    scope. Those caller fields remain separate for Manage audit, DPM reads remain least-privilege,
-    and mutations without the bound request authority fail closed before transport.
+    actor, tenant, role, or resource-scope authority. Registered DPM routes validate actor, tenant,
+    role, and optional region once in request scope. Reads forward only that caller audit context;
+    mutations additionally derive Gateway's own `lotus-gateway` workload identity and exact
+    `manage.write` capability. Missing request scope fails closed before DPM transport.
 18. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up

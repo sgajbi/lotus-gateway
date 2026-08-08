@@ -439,9 +439,9 @@ Production-readiness controls:
    posture, review-required and historical/superseded runs, safe projection, and malformed-source
    rejection.
 
-## DPM Manage Mutation Authority
+## DPM Manage Request Authority
 
-Status: implementation-backed across every registered Gateway DPM mutation route.
+Status: implementation-backed across every registered Gateway DPM read and mutation route.
 
 Business outcome:
 
@@ -453,21 +453,22 @@ Business outcome:
 
 Authority boundary:
 
-1. every DPM `POST`, `PUT`, `PATCH`, and `DELETE` requires trusted `X-Actor-Id`, `X-Tenant-Id`, and
-   `X-Role`; `X-Region` is preserved when present and may be route-required,
+1. every registered DPM route requires trusted `X-Actor-Id`, `X-Tenant-Id`, and `X-Role`;
+   `X-Region` is preserved when present and may be route-required,
 2. Gateway strips caller-supplied actor/tenant/role/region duplicates and all supplied
    `X-Service-Identity` or `X-Capabilities` values before the Manage call,
-3. Gateway re-applies the validated caller audit identity and derives exactly
-   `X-Service-Identity: lotus-gateway` plus `X-Capabilities: manage.write` in request scope,
-4. DPM reads do not receive `manage.write`; a write that escapes the request scope fails closed,
+3. DPM reads re-apply only validated caller audit identity and correlation, never service identity
+   or capabilities,
+4. DPM mutations additionally derive exactly `X-Service-Identity: lotus-gateway` plus
+   `X-Capabilities: manage.write`; a mutation that escapes request scope fails closed,
 5. correlation and idempotency evidence continue unchanged.
 
 Failure and proof posture:
 
 1. missing or malformed caller audit identity returns a stable product-safe Gateway error before
    Manage is called,
-2. router registration tests cover every current DPM mutation family and publish the caller audit
-   headers in OpenAPI,
+2. router registration tests cover every current DPM read and mutation family and publish caller
+   audit headers in OpenAPI,
 3. client tests prove exact workload authority, hostile-header replacement, least-privilege reads,
    request-scope cleanup, and preservation of correlation and idempotency evidence.
 
