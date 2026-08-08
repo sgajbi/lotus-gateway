@@ -137,7 +137,9 @@ Current repository posture:
     `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID`; raw prompts, free-text model output, evidence
     attributes, storage locations, and unbounded provider telemetry are not exposed. Gateway does
     not infer that an accepted request has produced an available, reviewed, current, or
-    client-usable output,
+    client-usable output. Request construction and response validation share the immutable
+    `explain.v1` / `EXPLANATION_ONLY` task contract, so internally consistent task or output-label
+    drift also fails closed,
 15. canonical local startup now depends on environment-scoped service identity and `--app-dir src`
     to avoid misleading Windows import-path failures.
 16. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
@@ -319,10 +321,12 @@ Most relevant current governance:
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
     synthesize `client_communication_boundary`, generate reports, generate AI narrative, infer PM
     quality, or let Workbench call manage directly.
-    Outcome-review creation requires the governed Manage authority headers `X-Actor-Id`,
-    `X-Tenant-Id`, `X-Region`, `X-Role`, `X-Service-Identity`, and `X-Capabilities`; Gateway
-    forwards that explicit allowlist and fails closed before calling Manage when any header is
-    absent.
+    All DPM mutations require trusted `X-Actor-Id`, `X-Tenant-Id`, and `X-Role` caller audit
+    identity; `X-Region` is preserved when supplied and remains required where a route-specific
+    contract declares it. Gateway replaces any caller-supplied workload authority with the
+    request-scoped `X-Service-Identity: lotus-gateway` and exact `X-Capabilities: manage.write`
+    contract before calling Manage. Missing or malformed caller identity fails closed before the
+    upstream call, and DPM reads do not receive write authority.
 11. RFC-0038 mandate command-center Gateway routes are active under
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and
@@ -395,11 +399,12 @@ Most relevant current governance:
     summary text, reconstruct prompts or model responses, create HR or compensation decisions,
     perform conduct enforcement, approve trades, contact clients, route orders, claim
     OMS/execution, or invent missing evidence.
-17. Gateway Manage clients must not synthesize `manage.write`, `pm_quality.read`, service actor,
-    tenant, role, or resource-scope authority in the shared transport layer. Route-specific
-    caller authority must be supplied and validated before forwarding privileged Manage commands
-    or scoped memory reads; paths without that implementation-backed authority should fail closed
-    through the upstream/service boundary rather than receiving a generated service principal.
+17. Gateway Manage clients must never trust browser-supplied service identity, capability, service
+    actor, tenant, role, or resource-scope authority. The DPM mutation boundary is the bounded
+    exception that derives only Gateway's own `lotus-gateway` workload identity and exact
+    `manage.write` capability after validating the original actor, tenant, and role in request
+    scope. Those caller fields remain separate for Manage audit, DPM reads remain least-privilege,
+    and mutations without the bound request authority fail closed before transport.
 18. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up

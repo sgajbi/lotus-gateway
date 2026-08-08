@@ -420,7 +420,8 @@ Authority and contract boundary:
    review requirement, allowed review actions, source evidence descriptors, safe artifact
    metadata, completion/update timestamps, supersession, replacement, and retry/replay lineage,
 4. Gateway verifies pack, version, registration, caller, authenticated caller binding,
-   correlation id, workflow surface, and workflow authority for the requested DPM family,
+   correlation id, workflow surface, workflow authority, the `explain.v1` task identity, and the
+   `EXPLANATION_ONLY` output-use label for the requested DPM family,
 5. malformed or cross-boundary source output fails closed with product-safe
    `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` detail and no raw upstream payload leakage.
 
@@ -437,6 +438,38 @@ Production-readiness controls:
 5. shared fixtures and contract tests pin the complete canonical envelope, live and stub provider
    posture, review-required and historical/superseded runs, safe projection, and malformed-source
    rejection.
+
+## DPM Manage Mutation Authority
+
+Status: implementation-backed across every registered Gateway DPM mutation route.
+
+Business outcome:
+
+1. portfolio managers and operations users can complete governed DPM actions through Workbench
+   while Manage enterprise write authorization remains enabled,
+2. Manage audit retains the authenticated actor, tenant, role, and available operating region,
+3. product callers cannot promote themselves into a Gateway workload or select a broader Manage
+   capability.
+
+Authority boundary:
+
+1. every DPM `POST`, `PUT`, `PATCH`, and `DELETE` requires trusted `X-Actor-Id`, `X-Tenant-Id`, and
+   `X-Role`; `X-Region` is preserved when present and may be route-required,
+2. Gateway strips caller-supplied actor/tenant/role/region duplicates and all supplied
+   `X-Service-Identity` or `X-Capabilities` values before the Manage call,
+3. Gateway re-applies the validated caller audit identity and derives exactly
+   `X-Service-Identity: lotus-gateway` plus `X-Capabilities: manage.write` in request scope,
+4. DPM reads do not receive `manage.write`; a write that escapes the request scope fails closed,
+5. correlation and idempotency evidence continue unchanged.
+
+Failure and proof posture:
+
+1. missing or malformed caller audit identity returns a stable product-safe Gateway error before
+   Manage is called,
+2. router registration tests cover every current DPM mutation family and publish the caller audit
+   headers in OpenAPI,
+3. client tests prove exact workload authority, hostile-header replacement, least-privilege reads,
+   request-scope cleanup, and preservation of correlation and idempotency evidence.
 
 ## DPM Command Center Construction Alternatives
 

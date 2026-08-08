@@ -401,10 +401,11 @@ Important current parameter conventions:
    AI-evidence payloads, applied source-lineage filters, source-owner counts, source-type counts,
    and support boundaries without recomputing expected-versus-realized outcome truth or querying
    source-owner stores
-   The outcome-review create route fails closed unless callers supply the governed Manage
-   authority envelope: `X-Actor-Id`, `X-Tenant-Id`, `X-Region`, `X-Role`,
-   `X-Service-Identity`, and `X-Capabilities`; Gateway forwards only that allowlisted context
-   alongside its correlation and the caller's idempotency key.
+   Every DPM mutation fails closed unless callers supply trusted `X-Actor-Id`, `X-Tenant-Id`, and
+   `X-Role` audit identity; `X-Region` is preserved when present and remains required where the
+   route contract declares it. Gateway does not trust browser workload authority: it derives
+   `X-Service-Identity: lotus-gateway` and the exact `X-Capabilities: manage.write` scope only for
+   the outbound Manage mutation, while DPM reads remain least-privilege.
 14. DPM command-center construction routes under
    `/api/v1/dpm/command-center/construction/alternative-sets*` consume `lotus-manage` RFC-0039
    construction authority APIs and preserve manage-owned alternative-set ids, method ids, method

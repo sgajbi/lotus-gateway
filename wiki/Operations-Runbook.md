@@ -62,6 +62,14 @@ This page summarizes everyday operational checks. Use
   this repository: performance summary, risk summary, and advisor brief. The advisor-brief
   review-action route also requires the same caller context because it records a bounded workflow
   review action through the Gateway boundary.
+- All DPM mutations require `X-Actor-Id`, `X-Tenant-Id`, and `X-Role`; preserve `X-Region` when the
+  authenticated session provides it. Do not configure Workbench or another product caller to send
+  `X-Service-Identity` or `X-Capabilities`: Gateway derives exactly `lotus-gateway` and
+  `manage.write` for the outbound Manage write.
+- Treat `dpm_mutation_caller_context_missing` and `dpm_mutation_caller_context_invalid` as caller
+  session/configuration defects. If Manage still returns `authorization_policy_denied`, verify the
+  deployed Gateway revision and the derived workload headers without disabling Manage enterprise
+  authorization.
 - Advisor-brief read audit records use `operation=advisor_brief.summary` and
   `panel=advisor-brief`. Treat `analytics_read_denied` with `reason=upstream_authorization_denied`
   as a permission-blocked read and investigate upstream entitlement posture without expecting

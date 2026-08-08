@@ -35,6 +35,11 @@ operator evidence rather than broad readiness claims.
   should not bypass Gateway to call `lotus-archive`
 - AI handoffs must use governed `lotus-ai` workflow-pack execution seams and must not expose raw
   prompts, model output, or unsupported generated advice
+- DPM AI response validation must bind the returned task identity and output-use label to the
+  contract Gateway actually requested; internal source-field consistency alone is insufficient
+- DPM product callers provide caller audit identity, never Gateway workload authority; Gateway
+  derives its own exact `lotus-gateway` / `manage.write` authority only for request-scoped Manage
+  mutations and keeps reads least-privilege
 
 ## Operational discipline
 
