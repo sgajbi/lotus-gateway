@@ -28,7 +28,7 @@ def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(mo
         _fake_get_command_center,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center"
         "?tenant_id=default&portfolio_manager_id=PM_SG_DPM_001"
@@ -158,7 +158,7 @@ def test_dpm_command_center_mandate_health_drilldown_preserves_dimensions(monkey
         _fake_get_mandate_health,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/health",
         headers={"X-Correlation-Id": "corr-command-router-health"},
@@ -227,7 +227,7 @@ def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(m
         _fake_get_portfolio_memory,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/portfolios/PB_SG_GLOBAL_BAL_001/memory?limit=20",
         headers={"X-Correlation-Id": "corr-portfolio-memory-router"},
@@ -298,7 +298,7 @@ def test_dpm_command_center_portfolio_memory_search_forwards_source_filters(
         _fake_search_portfolio_memory,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/portfolio-memory/search"
         "?portfolio_ids=PB_SG_GLOBAL_BAL_001&portfolio_ids=PB_SG_GLOBAL_INC_002"
@@ -911,7 +911,7 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
         _fake_create_outcome_review,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/outcome-reviews",
         json={"body": {"rebalance_run_id": "rr_1", "proof_pack_id": "ppack_1"}},
@@ -959,8 +959,8 @@ def test_dpm_command_center_outcome_review_create_requires_authority_context() -
 
     assert response.status_code == 400
     assert response.json()["detail"] == {
-        "code": "dpm_mutation_caller_context_missing",
-        "message": "A governed caller identity is required for this DPM action.",
+        "code": "dpm_caller_context_missing",
+        "message": "A governed caller identity is required for this DPM workflow.",
     }
 
 
@@ -992,7 +992,7 @@ def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> N
         _fake_list_outcome_reviews,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/outcome-reviews"
         "?portfolio_id=PB_SG_GLOBAL_BAL_001&state=READY&limit=10"
@@ -1097,7 +1097,7 @@ def test_dpm_command_center_outcome_review_boundary_is_preserved_in_handoffs(
         _fake_get_outcome_review_ai_evidence_input,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     supportability_response = client.get(
         "/api/v1/dpm/command-center/outcome-reviews/or_1/supportability",
         headers={"X-Correlation-Id": "corr-boundary-supportability"},
@@ -1157,7 +1157,7 @@ def test_dpm_command_center_outcome_review_error_is_not_marked_supported(monkeyp
         _fake_get_outcome_review,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get("/api/v1/dpm/command-center/outcome-reviews/or_missing")
 
     assert response.status_code == 404

@@ -9,7 +9,10 @@ from app.clients.dpm_proof_pack_client import DpmProofPackClientMixin
 from app.clients.dpm_wave_client import DpmWaveClientMixin
 from app.clients.observed_fanout import request_observed_binary_fanout, request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
-from app.services.dpm_manage_mutation_authority import authorize_dpm_manage_mutation_headers
+from app.services.dpm_manage_request_authority import (
+    authorize_dpm_manage_mutation_headers,
+    forward_dpm_manage_read_headers,
+)
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -109,7 +112,7 @@ class DpmClient(
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             params=params,
-            headers=headers,
+            headers=forward_dpm_manage_read_headers(headers),
         )
 
     async def _get_binary_text(
@@ -133,7 +136,7 @@ class DpmClient(
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             params={},
-            headers=headers,
+            headers=forward_dpm_manage_read_headers(headers),
         )
         return status_code, content.decode("utf-8", errors="replace"), error_payload
 

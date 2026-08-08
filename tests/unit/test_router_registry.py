@@ -11,7 +11,7 @@ from app.router_groups.dpm import (
     DPM_WAVE_ROUTERS,
 )
 from app.router_registry import DPM_ROUTER_GROUPS, ROUTER_GROUPS, register_routers
-from app.services.dpm_manage_mutation_authority import bind_dpm_manage_mutation_authority
+from app.services.dpm_manage_request_authority import bind_dpm_manage_request_authority
 
 _MAIN_MODULE = Path(__file__).parents[2] / "src" / "app" / "main.py"
 _ROUTER_REGISTRY_MODULE = Path(__file__).parents[2] / "src" / "app" / "router_registry.py"
@@ -89,7 +89,7 @@ def test_dpm_router_group_facade_keeps_all_route_families_exported() -> None:
     )
 
 
-def test_registered_dpm_routes_share_manage_mutation_authority_dependency() -> None:
+def test_registered_dpm_routes_share_manage_request_authority_dependency() -> None:
     app = FastAPI()
     register_routers(app)
 
@@ -101,27 +101,24 @@ def test_registered_dpm_routes_share_manage_mutation_authority_dependency() -> N
         dependency_calls = {
             dependency.call for dependency in getattr(route, "dependant").dependencies
         }
-        if route.methods & {"POST", "PUT", "PATCH", "DELETE"}:
-            assert bind_dpm_manage_mutation_authority in dependency_calls
-        else:
-            assert bind_dpm_manage_mutation_authority not in dependency_calls
+        assert bind_dpm_manage_request_authority in dependency_calls
 
 
-def test_registered_dpm_mutations_publish_caller_audit_headers() -> None:
+def test_registered_dpm_routes_publish_caller_audit_headers() -> None:
     app = FastAPI()
     register_routers(app)
     schema = app.openapi()
 
-    mutation_operations = []
+    dpm_operations = []
     for path, path_item in schema["paths"].items():
         if not path.startswith("/api/v1/dpm/"):
             continue
-        for method in ("post", "put", "patch", "delete"):
+        for method in ("get", "post", "put", "patch", "delete"):
             if method in path_item:
-                mutation_operations.append(path_item[method])
+                dpm_operations.append(path_item[method])
 
-    assert mutation_operations
-    for operation in mutation_operations:
+    assert dpm_operations
+    for operation in dpm_operations:
         header_names = {
             parameter["name"]
             for parameter in operation.get("parameters", [])

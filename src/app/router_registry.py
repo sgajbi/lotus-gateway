@@ -125,7 +125,7 @@ from app.routers.workbench_risk_drawdown import router as workbench_risk_drawdow
 from app.routers.workbench_risk_rolling import router as workbench_risk_rolling_router
 from app.routers.workbench_sandbox import router as workbench_sandbox_router
 from app.routers.workbench_sandbox_changes import router as workbench_sandbox_changes_router
-from app.services.dpm_manage_mutation_authority import bind_dpm_manage_mutation_authority
+from app.services.dpm_manage_request_authority import bind_dpm_manage_request_authority
 
 RouterGroup = tuple[APIRouter, ...]
 
@@ -262,18 +262,18 @@ DPM_ROUTER_GROUPS: tuple[RouterGroup, ...] = (
     DPM_WAVE_ROUTERS,
 )
 
-_DPM_MUTATION_DEPENDENCIES = (Depends(bind_dpm_manage_mutation_authority),)
+_DPM_REQUEST_DEPENDENCIES = (Depends(bind_dpm_manage_request_authority),)
 
 
 def register_routers(app: FastAPI) -> None:
     for router_group in ROUTER_GROUPS:
-        mutation_dependencies = (
-            _DPM_MUTATION_DEPENDENCIES
+        dependencies = (
+            _DPM_REQUEST_DEPENDENCIES
             if any(router_group is candidate for candidate in DPM_ROUTER_GROUPS)
             else ()
         )
         include_routers(
             app,
             *router_group,
-            mutation_dependencies=mutation_dependencies,
+            dependencies=dependencies,
         )
