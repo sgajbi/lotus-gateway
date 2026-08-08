@@ -50,6 +50,10 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "`/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`" in api_surface
     assert "proof-pack BFF route family" in integrations
     assert "portfolio memory remains `lotus-manage` truth" in integrations
+    assert "Request-scoped policy covers every DPM read and mutation" in rfc
+    assert "Reads forward only that validated business caller context" in api_surface
+    assert "DPM Manage Request Authority" in supported_features
+    assert "Reads forward only that context and correlation" in integrations
     assert "must not calculate affected portfolios" in api_surface
     assert "calculate campaign membership" in api_surface
     assert "DpmPortfolioUniverseCandidate:v1" in rfc

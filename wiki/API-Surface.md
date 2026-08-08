@@ -564,11 +564,11 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/outcome-reviews" \
   -d "{\"outcome_report_input\":{\"outcome_review_id\":\"dor_001\",\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"review_window\":{\"end_date\":\"2026-04-23\"},\"content_hash\":\"sha256:report-input\"},\"requested_output_formats\":[\"pdf\"]}"
 ```
 
-All DPM mutations require trusted caller audit headers `X-Actor-Id`, `X-Tenant-Id`, and `X-Role`;
-send `X-Region` when available. Product callers must not select Gateway workload authority.
-Gateway replaces any supplied service identity or capability and derives exactly
-`X-Service-Identity: lotus-gateway` plus `X-Capabilities: manage.write` for the outbound Manage
-mutation. DPM reads remain least-privilege.
+All registered DPM routes require trusted caller audit headers `X-Actor-Id`, `X-Tenant-Id`, and
+`X-Role`; send `X-Region` when available. Reads forward only that validated business caller context
+and correlation. Product callers must not select Gateway workload authority. Gateway replaces any
+supplied service identity or capability and derives exactly `X-Service-Identity: lotus-gateway`
+plus `X-Capabilities: manage.write` only for outbound Manage mutations.
 
 DPM outcome-review create:
 
