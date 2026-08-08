@@ -120,6 +120,37 @@ async def test_service_requests_authenticated_own_book_and_projects_governed_mem
 
 
 @pytest.mark.asyncio
+async def test_service_normalizes_supported_source_portfolio_type_casing() -> None:
+    payload = _payload(
+        members=[
+            _member(
+                "PB_SG_GLOBAL_BAL_001",
+                client_id="CIF_SG_000184",
+                portfolio_type="discretionary",
+            )
+        ],
+        tenant_id=None,
+    )
+    service = AdvisorBookService(membership_client=_MembershipClient(payload=payload))
+
+    response = await service.get_advisor_book(
+        caller=_caller(),
+        query=AdvisorBookQuery(
+            as_of_date=date(2026, 4, 10),
+            mandate_type="DISCRETIONARY",
+            sort_by="mandate_type",
+        ),
+        correlation_id="corr-lowercase-core-portfolio-type",
+    )
+
+    assert response.page.total_count == 1
+    assert response.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert response.items[0].mandate_type == "DISCRETIONARY"
+    assert response.items[0].membership_basis == "governed_role_assignment"
+    assert response.supportability.reason_code == "advisor_book_tenant_scope_not_reported"
+
+
+@pytest.mark.asyncio
 async def test_service_filters_sorts_and_pages_source_memberships_deterministically() -> None:
     members = [
         _member("PB_003", client_id="CIF_002", portfolio_type="DISCRETIONARY"),
