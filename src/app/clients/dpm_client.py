@@ -9,6 +9,7 @@ from app.clients.dpm_proof_pack_client import DpmProofPackClientMixin
 from app.clients.dpm_wave_client import DpmWaveClientMixin
 from app.clients.observed_fanout import request_observed_binary_fanout, request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
+from app.services.dpm_manage_mutation_authority import authorize_dpm_manage_mutation_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -153,7 +154,7 @@ class DpmClient(
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            headers=authorize_dpm_manage_mutation_headers(headers),
             json_body=body,
         )
 
@@ -174,6 +175,6 @@ class DpmClient(
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            headers=authorize_dpm_manage_mutation_headers(headers),
             json_body=body,
         )

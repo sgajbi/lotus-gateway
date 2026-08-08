@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.dpm_caller import governed_dpm_client
 from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
@@ -20,7 +21,7 @@ def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.preview_wave", _fake_preview_wave)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves/preview",
         json={
@@ -72,7 +73,7 @@ def test_dpm_wave_preview_forwards_core_candidate_source_without_portfolios(monk
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.preview_wave", _fake_preview_wave)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     body = {
         "trigger_type": "BULK_REVIEW_CAMPAIGN",
         "trigger_id": "campaign-core-universe-20260524",
@@ -101,7 +102,7 @@ def test_dpm_wave_preview_forwards_core_candidate_source_without_portfolios(monk
 
 
 def test_dpm_wave_preview_rejects_core_candidate_source_with_caller_portfolios() -> None:
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves/preview",
         json={
@@ -146,7 +147,7 @@ def test_dpm_wave_create_forwards_body_and_idempotency_key(monkeypatch) -> None:
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.create_wave", _fake_create_wave)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves",
         json={
@@ -197,7 +198,7 @@ def test_dpm_wave_list_passes_filters_without_reconstructing_state(monkeypatch) 
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_waves", _fake_list_waves)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/waves"
         "?state=HANDOFF_READY&supportability_state=ready&limit=25&offset=0",
@@ -547,7 +548,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         _fake_discover_campaigns,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     put_response = client.put(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
         "campaign-holdings-202605/versions/2026.05",
@@ -917,7 +918,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
         _fake_transition_campaign_assignment_task,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     queue_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-operating-queue"
         "?campaign_id=campaign-holdings-202605&limit=25&offset=0",
@@ -1016,7 +1017,7 @@ def test_dpm_wave_actions_preserve_manage_payload(monkeypatch) -> None:
         _fake_select_wave_item,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select",
         json={
@@ -1052,7 +1053,7 @@ def test_dpm_wave_error_is_not_marked_ready(monkeypatch) -> None:
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_wave", _fake_get_wave)
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get("/api/v1/dpm/command-center/waves/dwv_missing")
 
     assert response.status_code == 404
@@ -1079,7 +1080,7 @@ def test_dpm_wave_report_input_preserves_manage_evidence(monkeypatch) -> None:
         _fake_get_wave_report_input,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.get(
         "/api/v1/dpm/command-center/waves/dwv_001/report-input",
         headers={"X-Correlation-Id": "corr-wave-router-report-input"},
@@ -1127,7 +1128,7 @@ def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo",
         json={
@@ -1183,7 +1184,7 @@ def test_dpm_wave_operations_handoff_summary_uses_lotus_ai_workflow_pack(monkeyp
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/waves/dwv_001/operations-handoff-summary",
         json={

@@ -24,8 +24,6 @@ class OutcomeReviewCallerContext:
     tenant_id: str
     region: str
     role: str
-    service_identity: str
-    capabilities: str
 
     def as_upstream_headers(self) -> dict[str, str]:
         return {
@@ -33,8 +31,6 @@ class OutcomeReviewCallerContext:
             "X-Tenant-Id": self.tenant_id,
             "X-Region": self.region,
             "X-Role": self.role,
-            "X-Service-Identity": self.service_identity,
-            "X-Capabilities": self.capabilities,
         }
 
 
@@ -43,16 +39,12 @@ def outcome_review_caller_context(
     tenant_id: Annotated[str, Header(alias="X-Tenant-Id", min_length=1)],
     region: Annotated[str, Header(alias="X-Region", min_length=1)],
     role: Annotated[str, Header(alias="X-Role", min_length=1)],
-    service_identity: Annotated[str, Header(alias="X-Service-Identity", min_length=1)],
-    capabilities: Annotated[str, Header(alias="X-Capabilities", min_length=1)],
 ) -> OutcomeReviewCallerContext:
     return OutcomeReviewCallerContext(
         actor_id=actor_id,
         tenant_id=tenant_id,
         region=region,
         role=role,
-        service_identity=service_identity,
-        capabilities=capabilities,
     )
 
 

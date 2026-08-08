@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.dpm_caller import governed_dpm_client
 from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
@@ -71,7 +72,7 @@ def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> 
         _fake_run_monitoring_once,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/monitoring/run-once",
         json={
@@ -122,7 +123,7 @@ def test_dpm_command_center_exception_resolution_forwards_reason(monkeypatch) ->
         _fake_resolve_monitoring_exception,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/exceptions/me_source_1/resolve",
         json={"resolution_reason": "SOURCE_DATA_REPAIRED_AND_RECALCULATED"},
@@ -403,7 +404,7 @@ def test_dpm_command_center_pm_quality_fairness_preview_forwards_segment_refs(
         ],
     }
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview",
         json={"body": request_body},
@@ -517,7 +518,7 @@ def test_dpm_command_center_pm_quality_fairness_lifecycle_routes_preserve_manage
         "score_run_ids": ["pmq_run_001", "pmq_run_002"],
         "segments": [{"segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED"}],
     }
-    client = TestClient(app)
+    client = governed_dpm_client(app)
 
     create_response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses",
@@ -656,7 +657,7 @@ def test_dpm_command_center_pm_quality_review_action_routes_preserve_manage_payl
         "actor_id": "ops",
         "source_refs": [],
     }
-    client = TestClient(app)
+    client = governed_dpm_client(app)
 
     preview_response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/review-actions/preview",
@@ -827,7 +828,7 @@ def test_dpm_command_center_pm_quality_summary_invocation_routes_preserve_manage
         "requested_by": "ops",
         "source_refs": [],
     }
-    client = TestClient(app)
+    client = governed_dpm_client(app)
 
     preview_response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations/preview",
@@ -921,8 +922,6 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
             "X-Tenant-Id": "tenant-sg",
             "X-Region": "APAC",
             "X-Role": "platform-automation",
-            "X-Service-Identity": "lotus-platform.canonical-dpm-command-center-seed",
-            "X-Capabilities": "manage.write",
         },
     )
 
@@ -937,8 +936,6 @@ def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeyp
             "X-Tenant-Id": "tenant-sg",
             "X-Region": "APAC",
             "X-Role": "platform-automation",
-            "X-Service-Identity": "lotus-platform.canonical-dpm-command-center-seed",
-            "X-Capabilities": "manage.write",
         },
     }
     assert payload["correlation_id"] == "corr-router-1"
@@ -960,17 +957,10 @@ def test_dpm_command_center_outcome_review_create_requires_authority_context() -
         },
     )
 
-    assert response.status_code == 422
-    missing_headers = {
-        error["loc"][-1] for error in response.json()["detail"] if error["type"] == "missing"
-    }
-    assert missing_headers == {
-        "X-Actor-Id",
-        "X-Tenant-Id",
-        "X-Region",
-        "X-Role",
-        "X-Service-Identity",
-        "X-Capabilities",
+    assert response.status_code == 400
+    assert response.json()["detail"] == {
+        "code": "dpm_mutation_caller_context_missing",
+        "message": "A governed caller identity is required for this DPM action.",
     }
 
 
@@ -1212,7 +1202,7 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/outcome-reviews/or_1/ai-narrative",
         json={"requested_outputs": ["pm_summary", "evidence_gaps"], "audience": ["pm"]},
@@ -1271,7 +1261,7 @@ def test_dpm_command_center_exception_summary_executes_lotus_ai(monkeypatch) -> 
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/exceptions/me_source_1/ai-summary",
         json={
@@ -1352,7 +1342,7 @@ def test_dpm_command_center_pm_quality_summary_executes_lotus_ai(monkeypatch) ->
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/score-runs/pmq_run_001/ai-summary",
         json={
@@ -1417,7 +1407,7 @@ def test_dpm_command_center_pm_quality_summary_rejects_unsupported_outputs(
         _fake_execute_workflow_pack,
     )
 
-    client = TestClient(app)
+    client = governed_dpm_client(app)
     response = client.post(
         "/api/v1/dpm/command-center/pm-operating-quality/score-runs/pmq_run_001/ai-summary",
         json={
