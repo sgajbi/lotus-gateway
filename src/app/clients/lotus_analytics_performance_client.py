@@ -226,6 +226,7 @@ class LotusAnalyticsPerformanceClientMixin:
             path="/performance/contribution",
             payload=payload,
             correlation_id=correlation_id,
+            async_poll_attempts=40,
         )
 
     async def get_attribution_analytics(

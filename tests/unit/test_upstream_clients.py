@@ -429,6 +429,34 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_uses_extended_contribution_async_poll_budget(
+    monkeypatch,
+) -> None:
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    captured: dict[str, object] = {}
+
+    async def _capture_post_analytics_request(**kwargs):
+        captured.update(kwargs)
+        return 200, {"results_by_period": {"YTD": {}}}
+
+    monkeypatch.setattr(client, "_post_analytics_request", _capture_post_analytics_request)
+
+    status_code, _ = await client.get_contribution_analytics(
+        portfolio_id="P1",
+        report_start_date="2026-01-01",
+        report_end_date="2026-02-24",
+        period="YTD",
+        metric_basis="NET",
+        dimension="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert captured["path"] == "/performance/contribution"
+    assert captured["async_poll_attempts"] == 40
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_calls_composite_performance_routes():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
