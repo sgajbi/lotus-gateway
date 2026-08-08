@@ -15,21 +15,21 @@ from app.clients.lotus_core_transaction_params import build_portfolio_transactio
 from app.clients.lotus_idea_client import LotusIdeaClient
 from app.clients.reporting_client import ReportingClient
 from app.middleware.correlation import trace_id_var
-from app.services.dpm_manage_mutation_authority import (
-    DpmManageMutationAuthority,
-    dpm_manage_mutation_authority_scope,
+from app.services.dpm_manage_request_authority import (
+    DpmManageRequestAuthority,
+    dpm_manage_request_authority_scope,
 )
 
 
 @pytest.fixture(autouse=True)
-def _governed_dpm_manage_mutation_scope():
-    authority = DpmManageMutationAuthority(
+def _governed_dpm_manage_request_scope():
+    authority = DpmManageRequestAuthority(
         actor_id="pm_sg_001",
         tenant_id="tenant-sg",
         role="PORTFOLIO_MANAGER",
         region="APAC",
     )
-    with dpm_manage_mutation_authority_scope(authority):
+    with dpm_manage_request_authority_scope(authority):
         yield
 
 
@@ -2353,28 +2353,33 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
     status_code, payload = await method(**kwargs)
     assert status_code == 200
     assert payload["ok"] is True
-    assert _FakeAsyncClient.calls[0]["url"] == expected_url
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == expected_url
+    assert request["headers"]["X-Actor-Id"] == "pm_sg_001"
+    assert request["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert request["headers"]["X-Role"] == "PORTFOLIO_MANAGER"
+    assert request["headers"]["X-Region"] == "APAC"
+    if request["method"] == "GET":
+        assert "X-Service-Identity" not in request["headers"]
+        assert "X-Capabilities" not in request["headers"]
+    else:
+        assert request["headers"]["X-Service-Identity"] == "lotus-gateway"
+        assert request["headers"]["X-Capabilities"] == "manage.write"
     if method_name == "get_capabilities":
-        assert _FakeAsyncClient.calls[0]["params"] == {
+        assert request["params"] == {
             "consumer_system": "lotus-gateway",
             "tenant_id": "default",
         }
     elif method_name == "get_campaign_definition_launch_history":
-        assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
+        assert request["params"] == kwargs["params"]
     elif method_name == "get_campaign_definition_preview_readiness":
-        assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
+        assert request["params"] == kwargs["params"]
     elif method_name in {
         "list_campaign_definitions",
         "get_campaign_definition",
         "discover_campaigns",
     }:
-        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
-    elif method_name in {"get_portfolio_memory", "search_portfolio_memory"}:
-        assert "X-Actor-Id" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "X-Tenant-Id" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "X-Role" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "X-Service-Identity" not in _FakeAsyncClient.calls[0]["headers"]
-        assert "X-Capabilities" not in _FakeAsyncClient.calls[0]["headers"]
+        assert request["headers"]["X-Tenant-Id"] == "tenant-sg"
 
 
 @pytest.mark.asyncio
@@ -3057,6 +3062,11 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == (
         "corr-proof-pack-md-client-1"
     )
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "pm_sg_001"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "PORTFOLIO_MANAGER"
+    assert "X-Service-Identity" not in _FakeAsyncClient.calls[0]["headers"]
+    assert "X-Capabilities" not in _FakeAsyncClient.calls[0]["headers"]
 
 
 @pytest.mark.asyncio

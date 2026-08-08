@@ -13,14 +13,16 @@ _MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 def include_routers(
     app: FastAPI,
     *routers: APIRouter,
+    dependencies: tuple[DependsParameter, ...] = (),
     mutation_dependencies: tuple[DependsParameter, ...] = (),
 ) -> None:
-    """Clone concrete routes and apply dependencies only to mutations."""
+    """Clone concrete routes and apply shared or mutation-only dependencies."""
 
     for router in routers:
         _include_router_routes(
             app,
             router,
+            dependencies=dependencies,
             mutation_dependencies=mutation_dependencies,
         )
 
@@ -29,21 +31,22 @@ def _include_router_routes(
     app: FastAPI,
     router: APIRouter,
     *,
+    dependencies: tuple[DependsParameter, ...],
     mutation_dependencies: tuple[DependsParameter, ...],
 ) -> None:
     for route in router.routes:
         if not isinstance(route, APIRoute):
             raise TypeError(f"Unsupported router route type: {type(route).__name__}")
-        dependencies = list(route.dependencies)
+        route_dependencies = [*route.dependencies, *dependencies]
         if route.methods & _MUTATION_METHODS:
-            dependencies.extend(mutation_dependencies)
+            route_dependencies.extend(mutation_dependencies)
         app.add_api_route(
             route.path,
             route.endpoint,
             response_model=route.response_model,
             status_code=route.status_code,
             tags=route.tags,
-            dependencies=dependencies,
+            dependencies=route_dependencies,
             summary=route.summary,
             description=route.description,
             response_description=route.response_description,

@@ -804,17 +804,17 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "/api/v1/dpm/command-center/waves/campaign-discovery",
     ],
 )
-def test_campaign_reads_fail_closed_without_trusted_tenant_header(path: str) -> None:
+def test_campaign_reads_fail_closed_without_governed_caller_context(path: str) -> None:
     response = TestClient(app).get(
         path,
         headers={"X-Correlation-Id": "corr-campaign-read-missing-tenant"},
     )
 
-    assert response.status_code == 422
-    assert any(
-        error["loc"] == ["header", "X-Tenant-Id"] and error["type"] == "missing"
-        for error in response.json()["detail"]
-    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == {
+        "code": "dpm_caller_context_missing",
+        "message": "A governed caller identity is required for this DPM workflow.",
+    }
 
 
 def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) -> None:
