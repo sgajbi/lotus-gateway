@@ -1,10 +1,26 @@
-"""Shared guards for governed lotus-ai workflow-pack handoffs."""
+"""Shared guards and task contracts for governed lotus-ai workflow-pack handoffs."""
+
+from dataclasses import dataclass
 
 from fastapi import HTTPException, status
 
 from app.services.ai_client_protocols import LotusAiWorkflowClient
 
 LOTUS_AI_NOT_CONFIGURED_DETAIL = "lotus-ai workflow-pack execution is not configured for Gateway."
+
+
+@dataclass(frozen=True, slots=True)
+class LotusAiWorkflowTaskContract:
+    """Task identity and output-use boundary shared by request and response handling."""
+
+    task_id: str
+    output_label: str
+
+
+DPM_EXPLANATION_TASK_CONTRACT = LotusAiWorkflowTaskContract(
+    task_id="explain.v1",
+    output_label="EXPLANATION_ONLY",
+)
 
 
 def require_lotus_ai_client(client: LotusAiWorkflowClient | None) -> LotusAiWorkflowClient:
@@ -24,9 +40,10 @@ def build_workflow_pack_task_request(
     summary: str,
     payload: dict[str, object],
     source_refs: list[str],
+    task_contract: LotusAiWorkflowTaskContract = DPM_EXPLANATION_TASK_CONTRACT,
 ) -> dict[str, object]:
     return {
-        "task_id": "explain.v1",
+        "task_id": task_contract.task_id,
         "input_mode": "STRUCTURED_CONTEXT",
         "caller": {
             "caller_app": "lotus-gateway",
@@ -37,5 +54,5 @@ def build_workflow_pack_task_request(
             "payload": payload,
             "source_refs": source_refs,
         },
-        "expected_output_label": "EXPLANATION_ONLY",
+        "expected_output_label": task_contract.output_label,
     }
