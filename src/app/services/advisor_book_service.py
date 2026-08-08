@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal, cast
+from typing import Literal
 
 from pydantic import ValidationError
 
@@ -30,6 +30,9 @@ _SUPPORTED_PORTFOLIO_TYPES: tuple[AdvisorBookMandateType, ...] = (
     "ADVISORY",
     "DISCRETIONARY",
 )
+_SUPPORTED_PORTFOLIO_TYPE_BY_SOURCE_VALUE: dict[str, AdvisorBookMandateType] = {
+    value: value for value in _SUPPORTED_PORTFOLIO_TYPES
+}
 
 
 @dataclass(frozen=True)
@@ -108,7 +111,9 @@ def _validate_source_scope(
         or any(
             member.booking_center_code != caller.booking_center_code for member in source.members
         )
-        or any(member.portfolio_type not in _SUPPORTED_PORTFOLIO_TYPES for member in source.members)
+        or any(
+            _canonical_portfolio_type(member.portfolio_type) is None for member in source.members
+        )
         or len({member.portfolio_id for member in source.members}) != len(source.members)
     ):
         raise _source_contract_invalid()
@@ -163,8 +168,9 @@ def _project_response(
 
 
 def _matches(member: SourceAdvisorBookMember, query: AdvisorBookQuery) -> bool:
+    mandate_type = _canonical_portfolio_type(member.portfolio_type)
     return (query.client_id is None or member.client_id == query.client_id) and (
-        query.mandate_type is None or member.portfolio_type == query.mandate_type
+        query.mandate_type is None or mandate_type == query.mandate_type
     )
 
 
@@ -172,18 +178,21 @@ def _sort_value(member: SourceAdvisorBookMember, sort_by: AdvisorBookSortField) 
     if sort_by == "client_id":
         return member.client_id
     if sort_by == "mandate_type":
-        return member.portfolio_type
+        return _canonical_portfolio_type(member.portfolio_type) or member.portfolio_type
     return member.portfolio_id
 
 
 def _portfolio(member: SourceAdvisorBookMember) -> AdvisorBookPortfolio:
+    mandate_type = _canonical_portfolio_type(member.portfolio_type)
+    if mandate_type is None:
+        raise _source_contract_invalid()
     return AdvisorBookPortfolio(
         portfolio_id=member.portfolio_id,
         display_name=member.portfolio_id,
         client_id=member.client_id,
         base_currency=member.base_currency,
         booking_center_code=member.booking_center_code,
-        mandate_type=cast(AdvisorBookMandateType, member.portfolio_type),
+        mandate_type=mandate_type,
         status=member.status,
         opened_on=member.open_date,
         closed_on=member.close_date,
@@ -195,6 +204,10 @@ def _portfolio(member: SourceAdvisorBookMember) -> AdvisorBookPortfolio:
             else "legacy_advisor_projection"
         ),
     )
+
+
+def _canonical_portfolio_type(value: str) -> AdvisorBookMandateType | None:
+    return _SUPPORTED_PORTFOLIO_TYPE_BY_SOURCE_VALUE.get(value.strip().upper())
 
 
 def _empty_response(
