@@ -564,6 +564,12 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/outcome-reviews" \
   -d "{\"outcome_report_input\":{\"outcome_review_id\":\"dor_001\",\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"review_window\":{\"end_date\":\"2026-04-23\"},\"content_hash\":\"sha256:report-input\"},\"requested_output_formats\":[\"pdf\"]}"
 ```
 
+All DPM mutations require trusted caller audit headers `X-Actor-Id`, `X-Tenant-Id`, and `X-Role`;
+send `X-Region` when available. Product callers must not select Gateway workload authority.
+Gateway replaces any supplied service identity or capability and derives exactly
+`X-Service-Identity: lotus-gateway` plus `X-Capabilities: manage.write` for the outbound Manage
+mutation. DPM reads remain least-privilege.
+
 DPM outcome-review create:
 
 ```bash
@@ -575,8 +581,6 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC" \
   -H "X-Role: platform-automation" \
-  -H "X-Service-Identity: lotus-platform.canonical-dpm-command-center-seed" \
-  -H "X-Capabilities: manage.write" \
   -d "{\"body\":{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}}"
 ```
 
@@ -593,6 +597,10 @@ DPM outcome-review AI narrative handoff:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/ai-narrative" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-ai-narrative" \
+  -H "X-Actor-Id: pm_sg_1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: PORTFOLIO_MANAGER" \
   -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
 ```
 
@@ -602,6 +610,10 @@ DPM proof-pack AI PM memo handoff:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc40-proof-pack-ai-pm-memo" \
+  -H "X-Actor-Id: pm_sg_1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: PORTFOLIO_MANAGER" \
   -d "{\"requested_outputs\":[\"pm_memo\",\"rationale_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\"]}"
 ```
 
@@ -611,6 +623,10 @@ DPM rebalance-wave create:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-create" \
+  -H "X-Actor-Id: pm_sg_1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: PORTFOLIO_MANAGER" \
   -d "{\"idempotency_key\":\"wave-idem-001\",\"body\":{\"trigger_type\":\"EXPLICIT_PORTFOLIO_LIST\",\"trigger_id\":\"manual-wave-20260503-001\",\"rationale\":\"CIO model update for the Singapore balanced DPM book.\",\"as_of_date\":\"2026-05-03\",\"actor_id\":\"pm_sg_1\",\"portfolios\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\"}]}}"
 ```
 
@@ -634,6 +650,10 @@ DPM rebalance-wave AI PM memo:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-ai-pm-memo" \
+  -H "X-Actor-Id: pm_sg_1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: PORTFOLIO_MANAGER" \
   -d "{\"requested_outputs\":[\"wave_pm_memo\",\"approval_checklist\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\",\"operations\"]}"
 ```
 
@@ -643,6 +663,10 @@ DPM rebalance-wave selection with proof-pack generation:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select" \
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc41-wave-select" \
+  -H "X-Actor-Id: pm_sg_1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: PORTFOLIO_MANAGER" \
   -d "{\"body\":{\"alternative_id\":\"alt_001\",\"actor_id\":\"pm_sg_1\",\"reason_code\":\"PM_SELECTED\",\"generate_proof_pack\":true}}"
 ```
 

@@ -1,8 +1,46 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-05
+Last updated: 2026-08-08
 Repository: `lotus-gateway`
-Current branch: `feat/dpm-ai-execution-contracts`
+Current branch: `fix/dpm-manage-mutation-authority`
+
+## DPM Mutation And AI Response Trust Boundaries
+
+- Scope: GitHub issues #524 and #525, discovered while producing canonical live evidence for
+  Workbench issue `sgajbi/lotus-workbench#528` and reviewing the late comment on Gateway PR #522.
+- Source authority: authenticated product callers own their actor, tenant, role, and optional
+  operating-region audit identity. Gateway owns its service identity and the exact `manage.write`
+  workload capability. `lotus-ai` owns workflow execution, while Gateway owns the bounded
+  request/response contract that permits a DPM explanation result to reach Workbench.
+- Findings: Gateway-to-Manage mutations did not carry a Gateway-owned workload identity after
+  Manage enabled enterprise write authorization, so canonical DPM actions failed with `403`.
+  Separately, the DPM AI validator checked internal task/label consistency but accepted a
+  consistently wrong task identity or output-use label.
+- Change: one request-scoped mutation-authority dependency now covers every DPM `POST`, `PUT`,
+  `PATCH`, and `DELETE` route. It validates caller audit identity, strips caller-supplied authority,
+  and derives only `X-Service-Identity: lotus-gateway` plus `X-Capabilities: manage.write` for the
+  Manage call; reads remain unprivileged. One immutable DPM explanation task contract now drives
+  both lotus-ai request construction and response validation, pinning `explain.v1` and
+  `EXPLANATION_ONLY` across all six handoff families.
+- Failure posture: missing or malformed DPM mutation caller identity fails before Manage with a
+  stable product-safe error. A mutation outside the request authority scope fails closed inside
+  the client. Consistent lotus-ai task or output-label drift returns
+  `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` without structured-output leakage.
+- Regression proof: 234 focused authority/client/router tests cover every registered DPM mutation,
+  OpenAPI caller-header publication, exact upstream workload authority, hostile header
+  replacement, missing/invalid context, request-scope cleanup, and least-privilege reads. Another
+  53 focused AI contract tests cover every workflow family and consistent task/label drift. Ruff,
+  formatting, and touched-source MyPy are green; full and container/live evidence is recorded on
+  the issues before merge.
+- Repeatable rule: service-to-service authority must be derived at the closest trusted outbound
+  boundary, remain request-scoped, and preserve the human caller separately. A response validator
+  must bind internally consistent source fields to the contract actually requested, not merely to
+  one another.
+- Documentation decision: README, RFC implementation evidence, repository context, API examples,
+  operations guidance, security guidance, and authored wiki truth change because the public caller
+  contract and operator failure posture changed. No central platform architecture or skill routing
+  changed.
+- Independent follow-up: #523 owns duplicate Quality Baseline execution and is not claimed here.
 
 ## Typed DPM AI Workflow Execution Boundary
 
