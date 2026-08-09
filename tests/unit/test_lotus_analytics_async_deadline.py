@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Awaitable
 from typing import Any
 
 import pytest
 
+from app.clients.analytics_poll_budget import AnalyticsPollBudget
+from app.clients.http_json_resilience import JsonRequestOutcome, RequestFailureKind
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 
 
@@ -41,29 +44,32 @@ def _workspace_summary_call(client: LotusAnalyticsClient) -> Awaitable[tuple[int
 
 def _install_transport(
     monkeypatch: pytest.MonkeyPatch,
-    responses: list[tuple[int, dict[str, Any]]],
+    responses: list[tuple[int, dict[str, Any]] | JsonRequestOutcome],
 ) -> list[dict[str, Any]]:
     calls: list[dict[str, Any]] = []
 
-    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
         calls.append(kwargs)
         if not responses:
             raise AssertionError("No queued analytics response available.")
-        return responses.pop(0)
+        response = responses.pop(0)
+        if isinstance(response, JsonRequestOutcome):
+            return response
+        return JsonRequestOutcome(*response)
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry",
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
         _request_with_retry,
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
         _request_with_retry,
     )
     return calls
 
 
 def _install_clock(monkeypatch: pytest.MonkeyPatch, clock: _Clock) -> None:
-    monkeypatch.setattr("app.clients.lotus_analytics_async_polling.time.monotonic", clock.monotonic)
+    monkeypatch.setattr("app.clients.analytics_poll_budget.time.monotonic", clock.monotonic)
     monkeypatch.setattr("app.clients.lotus_analytics_async_polling.asyncio.sleep", clock.sleep)
 
 
@@ -121,21 +127,24 @@ async def test_workspace_summary_waits_for_accepted_response_cadence_before_firs
     accepted_status, accepted_payload = _accepted_response()
     accepted_payload["recommended_poll_after_seconds"] = 1.75
 
-    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
         call_times.append((kwargs["method"], clock.now))
         if kwargs["method"] == "POST":
-            return accepted_status, accepted_payload
-        return 200, {
-            "calculation_id": "calc-workspace-summary",
-            "results_by_period": {"SI": {}},
-        }
+            return JsonRequestOutcome(accepted_status, accepted_payload)
+        return JsonRequestOutcome(
+            200,
+            {
+                "calculation_id": "calc-workspace-summary",
+                "results_by_period": {"SI": {}},
+            },
+        )
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry",
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
         _request_with_retry,
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
         _request_with_retry,
     )
     client = LotusAnalyticsClient(
@@ -229,19 +238,19 @@ async def test_workspace_summary_submission_and_polls_share_one_completion_budge
     _install_clock(monkeypatch, clock)
     calls: list[dict[str, Any]] = []
 
-    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
         calls.append(kwargs)
         if kwargs["method"] == "POST":
             clock.now += 2.0
-            return _accepted_response()
-        return _pending_response()
+            return JsonRequestOutcome(*_accepted_response())
+        return JsonRequestOutcome(*_pending_response())
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry",
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
         _request_with_retry,
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
         _request_with_retry,
     )
     client = LotusAnalyticsClient(
@@ -291,19 +300,23 @@ async def test_final_poll_timeout_is_reported_as_governed_deadline_exhaustion(
     _install_clock(monkeypatch, clock)
     calls: list[dict[str, Any]] = []
 
-    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
         calls.append(kwargs)
         if kwargs["method"] == "POST":
-            return _accepted_response()
+            return JsonRequestOutcome(*_accepted_response())
         clock.now += kwargs["timeout_seconds"]
-        return 503, {"detail": "upstream communication failure: ReadTimeout"}
+        return JsonRequestOutcome(
+            503,
+            {"detail": "upstream communication failure: ReadTimeout"},
+            RequestFailureKind.TIMEOUT,
+        )
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry",
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
         _request_with_retry,
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
         _request_with_retry,
     )
     client = LotusAnalyticsClient(
@@ -341,6 +354,192 @@ async def test_workspace_summary_terminal_poll_failure_returns_without_resubmiss
 
 
 @pytest.mark.asyncio
+async def test_bounded_poll_continues_after_typed_transport_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    final_payload = {
+        "calculation_id": "calc-workspace-summary",
+        "results_by_period": {"YTD": {}},
+    }
+    calls = _install_transport(
+        monkeypatch,
+        [
+            _accepted_response(),
+            JsonRequestOutcome(
+                503,
+                {"detail": "upstream communication failure: NetworkError"},
+                RequestFailureKind.TRANSPORT,
+            ),
+            (200, final_payload),
+        ],
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=5.0,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 200
+    assert payload == final_payload
+    assert [call["method"] for call in calls] == ["POST", "GET", "GET"]
+    assert clock.sleeps == [1.0, 0.35]
+
+
+@pytest.mark.asyncio
+async def test_bounded_poll_transport_failures_stop_at_elapsed_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    transport_failure = JsonRequestOutcome(
+        503,
+        {"detail": "upstream communication failure: RemoteProtocolError"},
+        RequestFailureKind.TRANSPORT,
+    )
+    calls = _install_transport(
+        monkeypatch,
+        [_accepted_response(), transport_failure, transport_failure, transport_failure],
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=2.0,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 504
+    assert payload["error_code"] == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+    assert payload["calculation_id"] == "calc-workspace-summary"
+    assert [call["method"] for call in calls] == ["POST", "GET", "GET", "GET"]
+    assert clock.now == pytest.approx(102.0)
+
+
+@pytest.mark.asyncio
+async def test_source_503_remains_terminal_for_bounded_poll(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    calls = _install_transport(
+        monkeypatch,
+        [_accepted_response(), (503, {"detail": "calculation failed"})],
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=5.0,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 503
+    assert payload == {"detail": "calculation failed"}
+    assert [call["method"] for call in calls] == ["POST", "GET"]
+
+
+@pytest.mark.asyncio
+async def test_submission_timeout_after_budget_expiry_maps_to_deadline_without_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    calls: list[dict[str, Any]] = []
+
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
+        calls.append(kwargs)
+        clock.now += 2.5
+        return JsonRequestOutcome(
+            503,
+            {"detail": "upstream communication failure: ReadTimeout"},
+            RequestFailureKind.TIMEOUT,
+        )
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
+        _request_with_retry,
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=2.5,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 504
+    assert payload["error_code"] == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+    assert "calculation_id" not in payload
+    assert "result_path" not in payload
+    assert [call["method"] for call in calls] == ["POST"]
+
+
+@pytest.mark.asyncio
+async def test_submission_complete_await_is_bounded_by_wall_clock_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _slow_request(**kwargs: Any) -> JsonRequestOutcome:  # noqa: ARG001
+        for _ in range(20):
+            await asyncio.sleep(0.01)
+        return JsonRequestOutcome(*_accepted_response())
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
+        _slow_request,
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=0.04,
+    )
+
+    started_at = time.perf_counter()
+    status_code, payload = await _workspace_summary_call(client)
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert status_code == 504
+    assert payload["error_code"] == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+    assert elapsed_seconds < 0.15
+
+
+@pytest.mark.asyncio
+async def test_poll_complete_await_is_bounded_by_wall_clock_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _slow_request(**kwargs: Any) -> JsonRequestOutcome:  # noqa: ARG001
+        for _ in range(20):
+            await asyncio.sleep(0.01)
+        return JsonRequestOutcome(200, {"status": "ready"})
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
+        _slow_request,
+    )
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)
+    poll_budget = AnalyticsPollBudget.from_timeout(0.04)
+
+    started_at = time.perf_counter()
+    status_code, payload = await client._poll_async_result(
+        result_path="/performance/workspace-summary/results/calc-workspace-summary",
+        correlation_id="corr-wall-clock",
+        service="lotus-performance",
+        operation="performance.workspace-summary",
+        poll_budget=poll_budget,
+        accepted_payload=None,
+    )
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert status_code == 504
+    assert payload["error_code"] == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+    assert payload["result_path"].endswith("calc-workspace-summary")
+    assert elapsed_seconds < 0.15
+
+
+@pytest.mark.asyncio
 async def test_outer_caller_cancellation_does_not_resubmit_workspace_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -348,22 +547,22 @@ async def test_outer_caller_cancellation_does_not_resubmit_workspace_summary(
     release_poll = asyncio.Event()
     calls: list[dict[str, Any]] = []
 
-    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+    async def _request_with_retry(**kwargs: Any) -> JsonRequestOutcome:
         calls.append(kwargs)
         if kwargs["method"] == "POST":
             status_code, payload = _accepted_response()
             payload["recommended_poll_after_seconds"] = 0.01
-            return status_code, payload
+            return JsonRequestOutcome(status_code, payload)
         poll_started.set()
         await release_poll.wait()
-        return _pending_response()
+        return JsonRequestOutcome(*_pending_response())
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry",
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
         _request_with_retry,
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        "app.clients.lotus_analytics_async_polling.request_with_retry_outcome",
         _request_with_retry,
     )
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)

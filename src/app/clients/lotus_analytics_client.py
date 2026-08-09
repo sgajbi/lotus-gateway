@@ -1,10 +1,16 @@
 import logging
 from typing import Any
 
+from app.clients.http_json_resilience import (
+    JsonRequestOutcome,
+    request_with_retry_outcome,
+)
 from app.clients.http_resilience import request_with_retry
 from app.clients.lotus_analytics_async_polling import (
     AnalyticsPollBudget,
+    AnalyticsRequestDeadlineExceeded,
     LotusAnalyticsAsyncPollingMixin,
+    build_async_poll_deadline_payload,
 )
 from app.clients.lotus_analytics_performance_client import LotusAnalyticsPerformanceClientMixin
 from app.clients.lotus_analytics_risk_client import LotusAnalyticsRiskClientMixin
@@ -141,25 +147,53 @@ class LotusAnalyticsClient(
         request_budget: AnalyticsPollBudget,
     ) -> tuple[int, dict[str, Any]]:
         started_at = gateway_analytics_fanout_timer()
-        status_code, response_payload = await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=request_budget.request_timeout(self._timeout),
-            max_retries=request_budget.request_max_retries(self._max_retries),
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-            retry_timeout_exceptions=False,
-        )
+        try:
+            outcome = await request_budget.run_request(
+                lambda: request_with_retry_outcome(
+                    method="POST",
+                    url=url,
+                    timeout_seconds=request_budget.request_timeout(self._timeout),
+                    max_retries=request_budget.request_max_retries(self._max_retries),
+                    backoff_seconds=self._retry_backoff_seconds,
+                    json_body=payload,
+                    headers=headers,
+                    retry_timeout_exceptions=False,
+                )
+            )
+        except AnalyticsRequestDeadlineExceeded:
+            outcome = self._submission_deadline_outcome()
+        if request_budget.is_expired and outcome.status_code != 504:
+            outcome = self._submission_deadline_outcome(outcome)
         emit_gateway_analytics_fanout_log(
             logger=logger,
             started_at=started_at,
             service=service,
             operation=operation,
-            status_code=status_code,
-            payload=response_payload,
+            status_code=outcome.status_code,
+            payload=outcome.payload,
         )
-        return status_code, response_payload
+        return outcome.as_result()
+
+    @classmethod
+    def _submission_deadline_outcome(
+        cls,
+        accepted_outcome: JsonRequestOutcome | None = None,
+    ) -> JsonRequestOutcome:
+        result_path = None
+        accepted_payload = None
+        if accepted_outcome is not None and accepted_outcome.status_code == 202:
+            accepted_payload = accepted_outcome.payload
+            result_path = cls._async_result_path(
+                status_code=accepted_outcome.status_code,
+                response_payload=accepted_outcome.payload,
+            )
+        return JsonRequestOutcome(
+            status_code=504,
+            payload=build_async_poll_deadline_payload(
+                result_path=result_path,
+                accepted_payload=accepted_payload,
+            ),
+        )
 
     @staticmethod
     def _async_result_path(

@@ -1233,14 +1233,21 @@ async def test_lotus_analytics_client_preserves_workspace_summary_conflict_ident
 
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_summary(monkeypatch):
+    from app.clients.http_json_resilience import JsonRequestOutcome, RequestFailureKind
+
     captured: list[dict] = []
 
     async def _fake_request_with_retry(**kwargs):
         captured.append(kwargs)
-        return 503, {"detail": "upstream communication failure: TimeoutException"}
+        return JsonRequestOutcome(
+            503,
+            {"detail": "upstream communication failure: TimeoutException"},
+            RequestFailureKind.TIMEOUT,
+        )
 
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.request_with_retry", _fake_request_with_retry
+        "app.clients.lotus_analytics_client.request_with_retry_outcome",
+        _fake_request_with_retry,
     )
 
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)
