@@ -170,11 +170,12 @@ Current repository posture:
 17. performance workspace-summary orchestration uses
     `PERFORMANCE_SUMMARY_DEADLINE_SECONDS=30` as an end-to-end monotonic budget across submission
     and polling, while `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS=15` remains a per-call ceiling.
-    Result reads are limited to the remaining budget, honor source polling cadence, preserve one
-    calculation identity and caller context, and emit bounded
-    `async_poll_deadline_exhausted` telemetry. Deadline exhaustion becomes the existing explicit
-    Workbench partial-readiness response; it is not masked by a replacement calculation or treated
-    as successful because a later warm retry completes.
+    Result reads are limited to the remaining budget, wait for the accepted response's minimum
+    source polling cadence before the first read, preserve one calculation identity and caller
+    context, and emit bounded `async_poll_deadline_exhausted` telemetry. Deadline exhaustion becomes
+    the specific Workbench `PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED` partial-readiness
+    response and suppresses follow-on execution or lineage evidence reads; it is not masked by a
+    replacement calculation or treated as successful because a later warm retry completes.
 
 ## Architecture And Module Map
 

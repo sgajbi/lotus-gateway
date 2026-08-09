@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeAlias
 
+from app.contracts.analytics_async import ASYNC_RESULT_DEADLINE_EXHAUSTED
 from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_workspace import (
@@ -27,6 +28,10 @@ from app.services.upstream_envelope import safe_upstream_detail
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
 GatheredResult: TypeAlias = UpstreamResult | BaseException
+
+PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED = (
+    "PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED"
+)
 
 
 @dataclass(frozen=True)
@@ -111,6 +116,21 @@ def workspace_summary_payload_from_result(
     if not isinstance(payload, dict):
         warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
         return None
+    if is_workspace_summary_deadline_exhausted(result):
+        warnings.append(PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED)
+        partial_failures.append(
+            build_performance_failure(
+                "lotus-performance",
+                ASYNC_RESULT_DEADLINE_EXHAUSTED,
+                safe_upstream_detail(
+                    payload,
+                    default_detail=(
+                        "Performance summary did not complete within the governed response window."
+                    ),
+                ),
+            )
+        )
+        return None
     if status_code >= 400:
         warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
         partial_failures.append(
@@ -122,6 +142,19 @@ def workspace_summary_payload_from_result(
         )
         return None
     return payload
+
+
+def is_workspace_summary_deadline_exhausted(
+    result: GatheredResult | None,
+) -> bool:
+    if result is None or isinstance(result, BaseException):
+        return False
+    status_code, payload = result
+    return (
+        status_code == 504
+        and isinstance(payload, dict)
+        and payload.get("error_code") == ASYNC_RESULT_DEADLINE_EXHAUSTED
+    )
 
 
 def workspace_summary_period_payload(

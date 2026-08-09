@@ -1,0 +1,4 @@
+from typing import Final
+
+ASYNC_RESULT_DEADLINE_EXHAUSTED: Final = "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+ASYNC_POLL_DEADLINE_EXHAUSTED_REASON: Final = "async_poll_deadline_exhausted"

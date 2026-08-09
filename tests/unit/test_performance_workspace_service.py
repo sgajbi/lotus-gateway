@@ -2206,6 +2206,48 @@ async def test_performance_workspace_service_handles_workspace_summary_failure()
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_deadline_skips_follow_on_evidence_reads():
+    class _DeadlineAnalyticsClient(_StubAnalyticsClient):
+        async def get_workspace_summary(self, **kwargs):  # noqa: ARG002
+            return 504, {
+                "detail": "analytics result did not complete within the governed Gateway deadline",
+                "error_code": "ASYNC_RESULT_DEADLINE_EXHAUSTED",
+                "reason": "async_poll_deadline_exhausted",
+                "result_path": ("/performance/workspace-summary/results/calc-workspace-summary"),
+                "calculation_id": "calc-workspace-summary",
+            }
+
+    analytics_client = _DeadlineAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-deadline",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert analytics_client.execution_calls == []
+    assert analytics_client.lineage_calls == []
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "unavailable"
+    assert response.evidence_view.calculations == []
+    assert "PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED" in response.warnings
+    assert any(
+        failure.error_code == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+        for failure in response.partial_failures
+    )
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_marks_pending_lineage_as_partial_evidence():
     class _PendingLineageAnalyticsClient(_StubAnalyticsClient):
         async def get_lineage(self, *, calculation_id: str, correlation_id: str):

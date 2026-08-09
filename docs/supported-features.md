@@ -17,9 +17,11 @@
 4. portfolio 360 composition.
 
 Performance-summary cold calculations use a governed 30-second elapsed deadline across source
-submission and polling. Gateway preserves one source calculation identity, follows the source
-polling cadence, and returns explicit partial-readiness posture if the calculation remains pending;
-support is not inferred from a successful warm retry.
+submission and polling. Gateway preserves one source calculation identity, waits for the accepted
+response's minimum polling cadence before the first result read, and returns specific
+deadline-exhausted partial-readiness posture if the calculation remains pending. Gateway does not
+start execution or lineage evidence reads after the budget expires, and support is not inferred
+from a successful warm retry.
 
 ## Advisory And Proposals
 
