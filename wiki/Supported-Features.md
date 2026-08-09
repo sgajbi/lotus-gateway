@@ -5,6 +5,31 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
+## Performance Summary Completion
+
+Status: implementation-backed for deterministic cold and warm workspace-summary orchestration.
+
+Business outcome:
+
+1. an advisor receives the same caller-visible completion posture for the same portfolio review
+   request regardless of whether the analytics result was already warm,
+2. Gateway waits within a governed 30-second business-response budget and follows the source-owned
+   polling cadence,
+3. if the source calculation is still pending at the deadline, the screen receives explicit
+   partial-readiness warnings before its connection closes rather than depending on a blind retry.
+
+Authority and boundary:
+
+1. `lotus-performance` owns the calculation, result, lineage, cache, and 30-second production
+   completion objective,
+2. Gateway preserves one calculation identity and the original caller correlation, trace,
+   authorization, tenant, and portfolio scope through polling; it does not submit a replacement
+   calculation after an identity conflict,
+3. Gateway owns the elapsed deadline, remaining-budget request timeouts, caller-visible
+   partial-readiness mapping, and bounded reason-coded telemetry,
+4. deadline exhaustion does not prove a calculation failure, permit duplicate financial work, or
+   make a later warm response valid readiness evidence on its own.
+
 ## Authenticated Advisor Book
 
 Status: implementation-backed in Gateway for an authenticated advisor's own source-backed
