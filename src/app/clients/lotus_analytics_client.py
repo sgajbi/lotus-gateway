@@ -76,6 +76,7 @@ class LotusAnalyticsClient(
             service=service,
             operation=resolved_operation,
             payload=payload,
+            request_budget=poll_budget,
         )
         async_result = await self._poll_async_response_if_available(
             status_code=status_code,
@@ -137,13 +138,14 @@ class LotusAnalyticsClient(
         service: str,
         operation: str,
         payload: dict[str, Any],
+        request_budget: AnalyticsPollBudget,
     ) -> tuple[int, dict[str, Any]]:
         started_at = gateway_analytics_fanout_timer()
         status_code, response_payload = await request_with_retry(
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
+            timeout_seconds=request_budget.request_timeout(self._timeout),
+            max_retries=request_budget.request_max_retries(self._max_retries),
             backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,

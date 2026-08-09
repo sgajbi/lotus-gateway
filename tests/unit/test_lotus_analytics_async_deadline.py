@@ -141,6 +141,8 @@ async def test_workspace_summary_deadline_bounds_poll_reads_and_returns_retrieva
         "calculation_id": "calc-workspace-summary",
     }
     assert [call["method"] for call in calls] == ["POST", "GET", "GET", "GET"]
+    assert calls[0]["timeout_seconds"] == 2.5
+    assert calls[0]["max_retries"] == 0
     assert [call["timeout_seconds"] for call in calls[1:]] == [2.5, 1.5, 0.5]
     assert all(call["max_retries"] == 0 for call in calls[1:])
     assert all(call["retry_timeout_exceptions"] is False for call in calls[1:])
@@ -177,6 +179,107 @@ async def test_workspace_summary_stretched_scheduler_still_stops_on_monotonic_de
     assert payload["reason"] == "async_poll_deadline_exhausted"
     assert [call["method"] for call in calls] == ["POST", "GET", "GET"]
     assert calls[-1]["timeout_seconds"] == pytest.approx(0.75)
+
+
+@pytest.mark.asyncio
+async def test_workspace_summary_submission_and_polls_share_one_completion_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    calls: list[dict[str, Any]] = []
+
+    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+        calls.append(kwargs)
+        if kwargs["method"] == "POST":
+            clock.now += 2.0
+            return _accepted_response()
+        return _pending_response()
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry",
+        _request_with_retry,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        _request_with_retry,
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=2.5,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 504
+    assert payload["calculation_id"] == "calc-workspace-summary"
+    assert [call["method"] for call in calls] == ["POST", "GET"]
+    assert calls[0]["timeout_seconds"] == 2.5
+    assert calls[0]["max_retries"] == 0
+    assert calls[1]["timeout_seconds"] == pytest.approx(0.5)
+
+
+@pytest.mark.asyncio
+async def test_unbounded_async_poll_preserves_configured_transport_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _install_transport(monkeypatch, [(200, {"status": "ready"})])
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=2.0,
+        max_retries=4,
+    )
+
+    status_code, payload = await client._poll_async_result(
+        result_path="/performance/attribution/results/calc-attribution",
+        correlation_id="corr-unbounded-poll",
+        service="lotus-performance",
+        operation="performance.attribution",
+    )
+
+    assert status_code == 200
+    assert payload == {"status": "ready"}
+    assert calls[0]["max_retries"] == 4
+    assert calls[0]["retry_timeout_exceptions"] is True
+
+
+@pytest.mark.asyncio
+async def test_final_poll_timeout_is_reported_as_governed_deadline_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    calls: list[dict[str, Any]] = []
+
+    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+        calls.append(kwargs)
+        if kwargs["method"] == "POST":
+            return _accepted_response()
+        clock.now += kwargs["timeout_seconds"]
+        return 503, {"detail": "upstream communication failure: ReadTimeout"}
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry",
+        _request_with_retry,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        _request_with_retry,
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=2.5,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 504
+    assert payload["reason"] == "async_poll_deadline_exhausted"
+    assert payload["calculation_id"] == "calc-workspace-summary"
+    assert [call["method"] for call in calls] == ["POST", "GET"]
+    assert calls[1]["timeout_seconds"] == 2.5
 
 
 @pytest.mark.asyncio
