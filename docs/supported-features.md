@@ -16,6 +16,11 @@
 3. risk workspace summary, concentration, drawdown, rolling risk, and attribution,
 4. portfolio 360 composition.
 
+Performance-summary cold calculations use a governed 30-second elapsed deadline across source
+submission and polling. Gateway preserves one source calculation identity, follows the source
+polling cadence, and returns explicit partial-readiness posture if the calculation remains pending;
+support is not inferred from a successful warm retry.
+
 ## Advisory And Proposals
 
 1. proposal simulation, lifecycle, workflow, approval, lineage, replay, report request, delivery

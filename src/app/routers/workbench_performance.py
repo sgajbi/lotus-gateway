@@ -135,7 +135,10 @@ async def _get_performance_summary(
         "Returns the first-paint performance workspace payload for overview and benchmark-aware "
         "return panels. Use this route when the consumer needs mandate context, comparative "
         "performance, money-weighted return, benchmark options, and current evidence posture "
-        "without loading the heavier chart, contribution, and attribution tables."
+        "without loading the heavier chart, contribution, and attribution tables. Cold "
+        "workspace-summary calculations are polled within a governed monotonic deadline; if "
+        "the source remains pending, the response completes with explicit partial-readiness "
+        "warnings instead of relying on a warmed retry."
     ),
 )
 async def get_performance_workspace_summary(
