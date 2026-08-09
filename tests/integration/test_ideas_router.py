@@ -393,6 +393,62 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
     assert "authorizedScope" in str(response.json())
 
 
+@pytest.mark.parametrize(
+    ("method_name", "path", "body"),
+    [
+        (
+            "record_candidate_review_action",
+            "/review-actions",
+            {
+                "reviewId": "review-invalid-reason",
+                "action": "approve_for_conversion",
+                "reasonCodes": ["advisor_review"],
+                "decidedAtUtc": "2026-06-21T10:15:00Z",
+            },
+        ),
+        (
+            "record_candidate_feedback",
+            "/feedback",
+            {
+                "feedbackId": "feedback-invalid-reason",
+                "outcome": "useful",
+                "reasonCodes": ["advisor_feedback"],
+                "recordedAtUtc": "2026-06-21T10:16:00Z",
+            },
+        ),
+        (
+            "record_candidate_conversion_intent",
+            "/conversion-intents",
+            {
+                "conversionIntentId": "conversion-invalid-reason",
+                "target": "advise_proposal",
+                "reasonCodes": ["advisor_conversion_intent"],
+                "requestedAtUtc": "2026-06-21T10:17:00Z",
+            },
+        ),
+    ],
+)
+def test_idea_candidate_action_rejects_unknown_reason_before_upstream_call(
+    monkeypatch,
+    method_name,
+    path,
+    body,
+) -> None:
+    async def _action(*args, **kwargs):
+        raise AssertionError("Gateway must reject unknown Idea reasons before fan-out.")
+
+    monkeypatch.setattr(f"app.clients.lotus_idea_client.LotusIdeaClient.{method_name}", _action)
+
+    response = TestClient(app).post(
+        f"/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7{path}",
+        json=body,
+        headers={**_headers(), "Idempotency-Key": "idea-action-invalid-reason"},
+    )
+
+    assert response.status_code == 422
+    assert "reasonCodes" in str(response.json())
+
+
 def test_idea_candidate_action_requires_idempotency_before_upstream_call(monkeypatch) -> None:
     async def _action(*args, **kwargs):
         raise AssertionError("Gateway must not call Lotus Idea without Idempotency-Key.")
