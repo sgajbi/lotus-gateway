@@ -5,6 +5,10 @@ from pathlib import Path
 import httpx
 import pytest
 
+from app.clients.http_json_resilience import (
+    RequestFailureKind,
+    request_with_retry_outcome,
+)
 from app.clients.http_resilience import request_binary_with_retry, request_with_retry
 from app.clients.http_response_payloads import (
     binary_communication_failure_result,
@@ -380,6 +384,41 @@ async def test_request_with_retry_returns_503_after_network_error(monkeypatch):
 
     assert status == 503
     assert payload["detail"] == "upstream communication failure: NetworkError"
+
+
+@pytest.mark.asyncio
+async def test_request_outcome_classifies_transport_failure_without_parsing_payload(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _NetworkErrorAsyncClient)
+
+    outcome = await request_with_retry_outcome(
+        method="GET",
+        url="http://service/health",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+    )
+
+    assert outcome.status_code == 503
+    assert outcome.failure_kind == RequestFailureKind.TRANSPORT
+    assert outcome.is_transient_transport_failure is True
+
+
+@pytest.mark.asyncio
+async def test_request_outcome_keeps_source_503_distinct_from_transport_failure(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _RetryStatusAsyncClient)
+    _RetryStatusAsyncClient.calls = 0
+
+    outcome = await request_with_retry_outcome(
+        method="GET",
+        url="http://service/health",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+    )
+
+    assert outcome.status_code == 503
+    assert outcome.failure_kind is None
+    assert outcome.is_transient_transport_failure is False
 
 
 @pytest.mark.asyncio
