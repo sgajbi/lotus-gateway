@@ -30,16 +30,19 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
   budget is configured by `PERFORMANCE_SUMMARY_DEADLINE_SECONDS`; the separate
   `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS` remains the maximum for one upstream request.
 - Result reads use the smaller of the per-request timeout and the remaining completion budget.
-  Polling honors source `recommended_poll_after_seconds` guidance and is bounded by elapsed time,
-  not an attempt count. Result reads do not add nested transport retries because the outer polling
-  loop owns the remaining budget and next-read decision.
+  Gateway waits for the accepted response's `recommended_poll_after_seconds` minimum cadence
+  before the first result read and honors refreshed guidance after each pending result. Polling is
+  bounded by elapsed time, not an attempt count. Result reads do not add nested transport retries
+  because the outer polling loop owns the remaining budget and next-read decision.
 - One calculation identity, caller correlation, trace, and authorization context are preserved
   from submission through result retrieval. Gateway does not respond to an identity conflict by
   submitting another financial calculation.
 - If the budget expires, the analytics client returns reason code
   `ASYNC_RESULT_DEADLINE_EXHAUSTED` with the original result identity. The Workbench experience API
-  converts that source failure into its existing explicit partial-readiness response before the
-  caller transport closes; a warm-cache retry is not treated as readiness proof.
+  converts that source failure into the specific
+  `PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED` partial-readiness warning and preserves the
+  source error code. It does not start execution or lineage evidence reads after the budget has
+  expired; a warm-cache retry is not treated as readiness proof.
 - Gateway fan-out telemetry records the bounded degraded reason
   `async_poll_deadline_exhausted`. It does not place calculation, portfolio, client, correlation,
   or trace identifiers in metric labels or structured log fields.

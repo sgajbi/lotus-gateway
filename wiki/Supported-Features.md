@@ -14,9 +14,10 @@ Business outcome:
 1. an advisor receives the same caller-visible completion posture for the same portfolio review
    request regardless of whether the analytics result was already warm,
 2. Gateway waits within a governed 30-second business-response budget and follows the source-owned
-   polling cadence,
+   minimum polling cadence before the first and subsequent result reads,
 3. if the source calculation is still pending at the deadline, the screen receives explicit
-   partial-readiness warnings before its connection closes rather than depending on a blind retry.
+   deadline-exhausted partial-readiness warnings before its connection closes rather than depending
+   on a blind retry, and Gateway does not add execution or lineage evidence reads after expiry.
 
 Authority and boundary:
 
@@ -26,7 +27,7 @@ Authority and boundary:
    authorization, tenant, and portfolio scope through polling; it does not submit a replacement
    calculation after an identity conflict,
 3. Gateway owns the elapsed deadline, remaining-budget request timeouts, caller-visible
-   partial-readiness mapping, and bounded reason-coded telemetry,
+   deadline-specific partial-readiness mapping, and bounded reason-coded telemetry,
 4. deadline exhaustion does not prove a calculation failure, permit duplicate financial work, or
    make a later warm response valid readiness evidence on its own.
 

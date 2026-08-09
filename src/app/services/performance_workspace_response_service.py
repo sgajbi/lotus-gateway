@@ -15,6 +15,9 @@ from app.services.performance_workspace_response import (
     WorkspaceResponseComponents,
     WorkspaceSummaryViews,
 )
+from app.services.performance_workspace_summary import (
+    is_workspace_summary_deadline_exhausted,
+)
 from app.services.performance_workspace_summary_views import build_workspace_summary_views
 from app.services.workspace_client_protocols import PerformanceWorkspaceAnalyticsClient
 
@@ -117,6 +120,11 @@ class PerformanceWorkspaceResponseServiceMixin:
         benchmark_code: str | None,
     ) -> PerformanceEvidenceView | None:
         evidence_builder = cast(_PerformanceWorkspaceEvidenceBuilder, self)
+        workspace_summary_calculation_id = (
+            None
+            if is_workspace_summary_deadline_exhausted(summary_views.workspace_summary_result)
+            else extract_calculation_id_from_result(summary_views.workspace_summary_result)
+        )
         return await evidence_builder._build_evidence_view(
             portfolio_id=portfolio_id,
             as_of_date=context.overview.as_of_date,
@@ -128,7 +136,7 @@ class PerformanceWorkspaceResponseServiceMixin:
             calculations=[
                 (
                     "workspace_summary",
-                    extract_calculation_id_from_result(summary_views.workspace_summary_result),
+                    workspace_summary_calculation_id,
                 ),
                 (
                     "contribution",

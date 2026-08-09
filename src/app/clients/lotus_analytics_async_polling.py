@@ -9,6 +9,10 @@ from typing import Any
 
 from app.clients.http_resilience import request_with_retry
 from app.clients.upstream_headers import build_upstream_headers
+from app.contracts.analytics_async import (
+    ASYNC_POLL_DEADLINE_EXHAUSTED_REASON,
+    ASYNC_RESULT_DEADLINE_EXHAUSTED,
+)
 from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
     gateway_analytics_fanout_timer,
@@ -63,9 +67,9 @@ def build_async_poll_deadline_payload(
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "detail": "analytics result did not complete within the governed Gateway deadline",
-        "error_code": "ASYNC_RESULT_DEADLINE_EXHAUSTED",
+        "error_code": ASYNC_RESULT_DEADLINE_EXHAUSTED,
         "state": "degraded",
-        "reason": "async_poll_deadline_exhausted",
+        "reason": ASYNC_POLL_DEADLINE_EXHAUSTED_REASON,
         "result_path": result_path,
     }
     calculation_id = (accepted_payload or {}).get("calculation_id")
@@ -172,6 +176,12 @@ class LotusAnalyticsAsyncPollingMixin:
             status_code=202,
             payload=context.accepted_payload or {"detail": "async analytics result still pending"},
         )
+        initial_deadline_result = await self._wait_for_initial_async_poll(
+            context=context,
+            fallback_seconds=poll_interval_seconds,
+        )
+        if initial_deadline_result is not None:
+            return initial_deadline_result
         while max_attempts is None or state.attempts < max_attempts:
             deadline_result = self._expired_poll_deadline_result(context)
             if deadline_result is not None:
@@ -197,6 +207,20 @@ class LotusAnalyticsAsyncPollingMixin:
             if deadline_result is not None:
                 return deadline_result
         return state.status_code, state.payload
+
+    async def _wait_for_initial_async_poll(
+        self,
+        *,
+        context: _AnalyticsPollContext,
+        fallback_seconds: float,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if context.accepted_payload is None:
+            return None
+        return await self._wait_for_next_async_poll(
+            context=context,
+            payload=context.accepted_payload,
+            fallback_seconds=fallback_seconds,
+        )
 
     def _expired_poll_deadline_result(
         self, context: _AnalyticsPollContext

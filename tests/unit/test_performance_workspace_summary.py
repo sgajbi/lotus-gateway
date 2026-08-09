@@ -145,3 +145,33 @@ def test_parse_workspace_summary_result_records_upstream_failure():
     assert partial_failures[0].detail == "SUMMARY_UNAVAILABLE"
     assert "Private Client" not in str(partial_failures[0])
     assert "secret-token" not in str(partial_failures[0])
+
+
+def test_parse_workspace_summary_result_preserves_completion_deadline_posture():
+    warnings: list[str] = []
+    partial_failures = []
+
+    parsed = parse_workspace_summary_result(
+        result=(
+            504,
+            {
+                "detail": "analytics result did not complete within the governed Gateway deadline",
+                "error_code": "ASYNC_RESULT_DEADLINE_EXHAUSTED",
+                "reason": "async_poll_deadline_exhausted",
+                "calculation_id": "calc-workspace-summary",
+            },
+        ),
+        requested_period="YTD",
+        chart_frequency="monthly",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert parsed.net_performance.portfolio_return_pct is None
+    assert warnings == ["PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "ASYNC_RESULT_DEADLINE_EXHAUSTED"
+    assert partial_failures[0].detail == (
+        "Performance summary did not complete within the governed response window."
+    )

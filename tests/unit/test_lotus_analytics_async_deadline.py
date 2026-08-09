@@ -107,8 +107,48 @@ async def test_workspace_summary_cold_result_uses_elapsed_deadline_not_attempt_c
     assert payload == final_payload
     assert [call["method"] for call in calls].count("POST") == 1
     assert [call["method"] for call in calls].count("GET") == 13
-    assert clock.now == 112.0
+    assert clock.now == 113.0
     assert set(clock.sleeps) == {1.0}
+
+
+@pytest.mark.asyncio
+async def test_workspace_summary_waits_for_accepted_response_cadence_before_first_result_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    call_times: list[tuple[str, float]] = []
+    accepted_status, accepted_payload = _accepted_response()
+    accepted_payload["recommended_poll_after_seconds"] = 1.75
+
+    async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+        call_times.append((kwargs["method"], clock.now))
+        if kwargs["method"] == "POST":
+            return accepted_status, accepted_payload
+        return 200, {
+            "calculation_id": "calc-workspace-summary",
+            "results_by_period": {"SI": {}},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry",
+        _request_with_retry,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_async_polling.request_with_retry",
+        _request_with_retry,
+    )
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=30.0,
+    )
+
+    status_code, _ = await _workspace_summary_call(client)
+
+    assert status_code == 200
+    assert call_times == [("POST", 100.0), ("GET", 101.75)]
+    assert clock.sleeps == [1.75]
 
 
 @pytest.mark.asyncio
@@ -140,10 +180,10 @@ async def test_workspace_summary_deadline_bounds_poll_reads_and_returns_retrieva
         "result_path": "/performance/workspace-summary/results/calc-workspace-summary",
         "calculation_id": "calc-workspace-summary",
     }
-    assert [call["method"] for call in calls] == ["POST", "GET", "GET", "GET"]
+    assert [call["method"] for call in calls] == ["POST", "GET", "GET"]
     assert calls[0]["timeout_seconds"] == 2.5
     assert calls[0]["max_retries"] == 0
-    assert [call["timeout_seconds"] for call in calls[1:]] == [2.5, 1.5, 0.5]
+    assert [call["timeout_seconds"] for call in calls[1:]] == [1.5, 0.5]
     assert all(call["max_retries"] == 0 for call in calls[1:])
     assert all(call["retry_timeout_exceptions"] is False for call in calls[1:])
     deadline_record = next(
@@ -177,7 +217,7 @@ async def test_workspace_summary_stretched_scheduler_still_stops_on_monotonic_de
 
     assert status_code == 504
     assert payload["reason"] == "async_poll_deadline_exhausted"
-    assert [call["method"] for call in calls] == ["POST", "GET", "GET"]
+    assert [call["method"] for call in calls] == ["POST", "GET"]
     assert calls[-1]["timeout_seconds"] == pytest.approx(0.75)
 
 
@@ -214,10 +254,9 @@ async def test_workspace_summary_submission_and_polls_share_one_completion_budge
 
     assert status_code == 504
     assert payload["calculation_id"] == "calc-workspace-summary"
-    assert [call["method"] for call in calls] == ["POST", "GET"]
+    assert [call["method"] for call in calls] == ["POST"]
     assert calls[0]["timeout_seconds"] == 2.5
     assert calls[0]["max_retries"] == 0
-    assert calls[1]["timeout_seconds"] == pytest.approx(0.5)
 
 
 @pytest.mark.asyncio
@@ -279,7 +318,7 @@ async def test_final_poll_timeout_is_reported_as_governed_deadline_exhaustion(
     assert payload["reason"] == "async_poll_deadline_exhausted"
     assert payload["calculation_id"] == "calc-workspace-summary"
     assert [call["method"] for call in calls] == ["POST", "GET"]
-    assert calls[1]["timeout_seconds"] == 2.5
+    assert calls[1]["timeout_seconds"] == 1.5
 
 
 @pytest.mark.asyncio
@@ -312,7 +351,9 @@ async def test_outer_caller_cancellation_does_not_resubmit_workspace_summary(
     async def _request_with_retry(**kwargs: Any) -> tuple[int, dict[str, Any]]:
         calls.append(kwargs)
         if kwargs["method"] == "POST":
-            return _accepted_response()
+            status_code, payload = _accepted_response()
+            payload["recommended_poll_after_seconds"] = 0.01
+            return status_code, payload
         poll_started.set()
         await release_poll.wait()
         return _pending_response()

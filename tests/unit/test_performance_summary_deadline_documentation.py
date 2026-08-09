@@ -25,6 +25,9 @@ def test_performance_summary_deadline_is_durable_across_operator_and_product_tru
     assert "monotonic" in context
     assert "ASYNC_RESULT_DEADLINE_EXHAUSTED" in standard
     assert "async_poll_deadline_exhausted" in standard
+    assert "PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED" in standard
+    assert "before the first result read" in standard
+    assert "execution or lineage evidence reads" in standard
     assert "warm retry" in supported_features
     assert "blind retry" in wiki
     assert "warm response" in wiki
