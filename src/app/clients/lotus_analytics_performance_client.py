@@ -10,6 +10,7 @@ from app.clients.upstream_headers import build_upstream_headers
 class LotusAnalyticsPerformanceClientMixin:
     _base_url: str
     _timeout: float
+    _workspace_summary_deadline_seconds: float
 
     async def _get_analytics_request(
         self,
@@ -28,8 +29,9 @@ class LotusAnalyticsPerformanceClientMixin:
         correlation_id: str,
         service: str = "lotus-performance",
         operation: str | None = None,
-        async_poll_attempts: int = 10,
+        async_poll_attempts: int | None = 10,
         async_poll_interval_seconds: float = 0.35,
+        async_poll_timeout_seconds: float | None = None,
     ) -> tuple[int, dict[str, Any]]:
         raise NotImplementedError
 
@@ -298,5 +300,7 @@ class LotusAnalyticsPerformanceClientMixin:
             path="/performance/workspace-summary",
             payload=payload,
             correlation_id=correlation_id,
+            async_poll_attempts=None,
+            async_poll_timeout_seconds=self._workspace_summary_deadline_seconds,
         )
         return status_code, response_payload

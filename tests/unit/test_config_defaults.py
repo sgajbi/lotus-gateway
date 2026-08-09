@@ -17,6 +17,8 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.portfolio_data_control_plane_base_url == "http://core-control.dev.lotus"
     assert settings.portfolio_data_ingestion_base_url == "http://core-ingestion.dev.lotus"
     assert settings.performance_analytics_base_url == "http://performance.dev.lotus"
+    assert settings.performance_analytics_timeout_seconds == 15.0
+    assert settings.performance_summary_deadline_seconds == 30.0
     assert settings.ai_service_base_url == "http://ai.dev.lotus"
     assert settings.ai_service_timeout_seconds == 45.0
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
@@ -77,6 +79,15 @@ def test_settings_reject_local_loopback_upstream_urls():
             _env_file=None,
             _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
             ai_service_base_url="http://127.0.0.1:8140/",
+        )
+
+
+def test_settings_reject_performance_summary_deadline_beyond_source_slo():
+    with pytest.raises(ValueError, match="less than or equal to 30"):
+        Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+            performance_summary_deadline_seconds=30.1,
         )
 
 

@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     upstream_timeout_seconds: float = Field(default=3.0)
     platform_capabilities_source_timeout_seconds: float = Field(default=5.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
+    performance_summary_deadline_seconds: float = Field(default=30.0, gt=0.0, le=30.0)
     ai_service_timeout_seconds: float = Field(default=45.0)
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)

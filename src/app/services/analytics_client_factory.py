@@ -6,6 +6,7 @@ def performance_analytics_client_signature() -> tuple[object, ...]:
     return (
         settings.performance_analytics_base_url,
         settings.performance_analytics_timeout_seconds,
+        settings.performance_summary_deadline_seconds,
         settings.upstream_max_retries,
         settings.upstream_retry_backoff_seconds,
     )
@@ -24,6 +25,7 @@ def build_performance_analytics_client() -> LotusAnalyticsClient:
     return LotusAnalyticsClient(
         base_url=settings.performance_analytics_base_url,
         timeout_seconds=settings.performance_analytics_timeout_seconds,
+        workspace_summary_deadline_seconds=settings.performance_summary_deadline_seconds,
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
     )

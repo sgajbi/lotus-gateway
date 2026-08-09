@@ -88,6 +88,7 @@ GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY = frozenset(
         "source_supportability_degraded",
         "upstream_warning",
         "partial_failure_code",
+        "async_poll_deadline_exhausted",
         "upstream_unavailable",
         "upstream_error",
         "unknown",
@@ -98,6 +99,7 @@ GATEWAY_ANALYTICS_DEGRADED_REASON_ALIASES = {
     "upstream_unavailable": "upstream_unavailable",
     "upstream-error": "upstream_error",
     "upstream_error": "upstream_error",
+    "async_poll_deadline_exhausted": "async_poll_deadline_exhausted",
 }
 
 GATEWAY_ANALYTICS_UI_LOG_EVENTS = (
