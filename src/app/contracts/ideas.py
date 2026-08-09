@@ -1,7 +1,57 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class IdeaReasonCode(StrEnum):
+    """Lotus Idea-owned reason vocabulary accepted by candidate actions."""
+
+    HIGH_CASH_RATIO = "high_cash_ratio"
+    CASH_SOURCE_READY = "cash_source_ready"
+    CONCENTRATION_ATTENTION = "concentration_attention"
+    UNDERPERFORMANCE_ATTENTION = "underperformance_attention"
+    ALLOCATION_DRIFT_ATTENTION = "allocation_drift_attention"
+    MATURITY_WINDOW = "maturity_window"
+    INCOME_ATTENTION = "income_attention"
+    VOLATILITY_ATTENTION = "volatility_attention"
+    DRAWDOWN_ATTENTION = "drawdown_attention"
+    MISSING_BENCHMARK = "missing_benchmark"
+    MISSING_RISK_PROFILE = "missing_risk_profile"
+    SUITABILITY_CONTEXT_MISSING = "suitability_context_missing"
+    MANDATE_RESTRICTION_REVIEW = "mandate_restriction_review"
+    SOURCE_STALE = "source_stale"
+    SOURCE_DATE_MISMATCH = "source_date_mismatch"
+    SOURCE_GENERATED_AFTER_EVALUATION = "source_generated_after_evaluation"
+    SOURCE_PARTIAL = "source_partial"
+    DUPLICATE_SUPPRESSED = "duplicate_suppressed"
+    BELOW_MATERIALITY = "below_materiality"
+    REVIEW_REQUIRED = "review_required"
+    MATERIALITY_SCORE = "materiality_score"
+    URGENCY_SCORE = "urgency_score"
+    CONFIDENCE_SCORE = "confidence_score"
+    EVIDENCE_QUALITY_SCORE = "evidence_quality_score"
+    FRESHNESS_SCORE = "freshness_score"
+    RELEVANCE_SCORE = "relevance_score"
+    DOWNSTREAM_FIT_SCORE = "downstream_fit_score"
+    CONFLICT_PENALTY = "conflict_penalty"
+    QUEUE_PRIORITY = "queue_priority"
+    QUEUE_EXCLUDED = "queue_excluded"
+    REVIEW_APPROVED_FOR_CONVERSION = "review_approved_for_conversion"
+    REVIEW_REJECTED = "review_rejected"
+    REVIEW_NO_ACTION = "review_no_action"
+    REVIEW_SUPPRESSED = "review_suppressed"
+    REVIEW_SNOOZED = "review_snoozed"
+    REVIEW_ESCALATED = "review_escalated"
+    FEEDBACK_RECORDED = "feedback_recorded"
+    ENTITLEMENT_DENIED = "entitlement_denied"
+    AI_REDACTION_APPLIED = "ai_redaction_applied"
+    AI_FALLBACK_USED = "ai_fallback_used"
+    AI_VERIFIER_PASSED = "ai_verifier_passed"
+    AI_UNSUPPORTED_CLAIM_BLOCKED = "ai_unsupported_claim_blocked"
+    AI_FORBIDDEN_ACTION_BLOCKED = "ai_forbidden_action_blocked"
+    AI_ACTION_CONTENT_BLOCKED = "ai_action_content_blocked"
 
 
 class IdeaGatewayErrorResponse(BaseModel):
@@ -117,7 +167,7 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
         "escalate_to_pm",
         "escalate_to_compliance",
     ]
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
     decided_at_utc: datetime = Field(..., alias="decidedAtUtc")
     suppression_reason: (
         Literal[
@@ -142,14 +192,14 @@ class IdeaCandidateFeedbackRequest(IdeaCandidateActionRequest):
         "missing_context",
         "unsupported_claim",
     ]
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
     recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
 
 
 class IdeaCandidateConversionIntentRequest(IdeaCandidateActionRequest):
     conversion_intent_id: str = Field(..., alias="conversionIntentId", min_length=1)
     target: Literal["advise_proposal", "manage_review", "report_evidence"]
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes", min_length=1)
+    reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
     requested_at_utc: datetime = Field(..., alias="requestedAtUtc")
 
 
