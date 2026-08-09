@@ -101,8 +101,11 @@ Current repository posture:
    recordings are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
    trusted context, correlation/trace context, and for mutations `Idempotency-Key` plus optional
    causation. It preserves `lotus-idea` ranking, source refs, durable-storage posture, accepted or
-   replayed source outcomes, and `supportedFeaturePromoted=false` without generating, ranking,
-   enriching, certifying, authorizing, or promoting ideas locally. These BFF routes do not claim
+   replayed source outcomes, and `supportedFeaturePromoted=false`. Candidate action requests use
+   the closed `IdeaReasonCode` vocabulary reconciled through
+   `contracts/upstream/lotus-idea-reason-codes.v1.json`; unknown values fail at Gateway validation
+   before source fan-out. Gateway does not generate, rank, enrich, certify, authorize, or promote
+   ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client
    communication readiness,
 10. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,

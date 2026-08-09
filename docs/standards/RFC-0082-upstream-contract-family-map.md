@@ -115,7 +115,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 7. Idea review queue/detail reads and candidate-scoped review-action, feedback, and conversion-intent
    recording are exposed through gateway-owned `/api/v1/ideas/*` routes while preserving
    `lotus-idea` as the ranking, lifecycle, review, feedback, conversion, evidence,
-   entitlement-scope enforcement, idempotency, audit, and supported-feature authority.
+   entitlement-scope enforcement, idempotency, audit, reason-code semantic, and supported-feature
+   authority. Gateway reconciles the closed source reason vocabulary through
+   `contracts/upstream/lotus-idea-reason-codes.v1.json`, publishes it in OpenAPI, and rejects
+   unknown values before source fan-out.
 8. Report ordering choices are exposed through gateway-owned
    `/api/v1/report-ordering/options`. Gateway validates the strict
    `report-ordering-catalogue.v1` source contract, filters choices by trusted caller role, applies
