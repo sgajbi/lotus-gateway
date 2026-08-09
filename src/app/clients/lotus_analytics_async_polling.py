@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
-import time
 from dataclasses import dataclass
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.analytics_poll_budget import (
+    AnalyticsPollBudget,
+    AnalyticsRequestDeadlineExceeded,
+)
+from app.clients.http_json_resilience import (
+    JsonRequestOutcome,
+    request_with_retry_outcome,
+)
 from app.clients.upstream_headers import build_upstream_headers
 from app.contracts.analytics_async import (
     ASYNC_POLL_DEADLINE_EXHAUSTED_REASON,
@@ -21,71 +26,21 @@ from app.observability.analytics_ui import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-@dataclass(frozen=True)
-class AnalyticsPollBudget:
-    """Elapsed-time policy for one analytics submission and its result reads."""
-
-    deadline_at: float | None
-
-    @classmethod
-    def from_timeout(cls, timeout_seconds: float | None) -> AnalyticsPollBudget:
-        deadline_at = None if timeout_seconds is None else time.monotonic() + timeout_seconds
-        return cls(deadline_at=deadline_at)
-
-    @classmethod
-    def unbounded(cls) -> AnalyticsPollBudget:
-        return cls(deadline_at=None)
-
-    def remaining_seconds(self) -> float | None:
-        if self.deadline_at is None:
-            return None
-        return self.deadline_at - time.monotonic()
-
-    @property
-    def is_bounded(self) -> bool:
-        return self.deadline_at is not None
-
-    def request_max_retries(self, default_retries: int) -> int:
-        return 0 if self.is_bounded else default_retries
-
-    def request_timeout(self, default_seconds: float) -> float:
-        remaining_seconds = self.remaining_seconds()
-        if remaining_seconds is None:
-            return default_seconds
-        return min(default_seconds, max(remaining_seconds, 0.001))
-
-    def poll_interval(self, *, payload: dict[str, Any], fallback_seconds: float) -> float:
-        interval_seconds = _recommended_poll_interval(payload, fallback_seconds)
-        remaining_seconds = self.remaining_seconds()
-        if remaining_seconds is None:
-            return interval_seconds
-        return min(interval_seconds, max(remaining_seconds, 0.0))
-
-
 def build_async_poll_deadline_payload(
-    *, result_path: str, accepted_payload: dict[str, Any] | None
+    *, result_path: str | None, accepted_payload: dict[str, Any] | None
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "detail": "analytics result did not complete within the governed Gateway deadline",
         "error_code": ASYNC_RESULT_DEADLINE_EXHAUSTED,
         "state": "degraded",
         "reason": ASYNC_POLL_DEADLINE_EXHAUSTED_REASON,
-        "result_path": result_path,
     }
+    if result_path:
+        payload["result_path"] = result_path
     calculation_id = (accepted_payload or {}).get("calculation_id")
     if isinstance(calculation_id, str) and calculation_id:
         payload["calculation_id"] = calculation_id
     return payload
-
-
-def _recommended_poll_interval(payload: dict[str, Any], fallback_seconds: float) -> float:
-    recommended = payload.get("recommended_poll_after_seconds")
-    if isinstance(recommended, bool) or not isinstance(recommended, int | float):
-        return fallback_seconds
-    resolved = float(recommended)
-    if not math.isfinite(resolved) or resolved <= 0:
-        return fallback_seconds
-    return resolved
 
 
 @dataclass(frozen=True)
@@ -186,27 +141,46 @@ class LotusAnalyticsAsyncPollingMixin:
             deadline_result = self._expired_poll_deadline_result(context)
             if deadline_result is not None:
                 return deadline_result
-            state.status_code, state.payload = await self._poll_analytics_result_once(
-                context=context
-            )
+            try:
+                outcome = await self._poll_analytics_result_once(context=context)
+            except AnalyticsRequestDeadlineExceeded:
+                return self._async_poll_deadline_result(context)
+            state.status_code = outcome.status_code
+            state.payload = outcome.payload
             state.attempts += 1
             deadline_result = self._expired_poll_deadline_result(context)
             if deadline_result is not None:
                 return deadline_result
-            if state.status_code != 202:
-                self._emit_analytics_read_audit(
-                    operation=f"{context.operation}.poll",
-                    status_code=state.status_code,
-                )
-                return state.status_code, state.payload
-            deadline_result = await self._wait_for_next_async_poll(
+            poll_result = await self._result_after_poll_outcome(
                 context=context,
-                payload=state.payload,
+                outcome=outcome,
                 fallback_seconds=poll_interval_seconds,
             )
-            if deadline_result is not None:
-                return deadline_result
+            if poll_result is not None:
+                return poll_result
         return state.status_code, state.payload
+
+    async def _result_after_poll_outcome(
+        self,
+        *,
+        context: _AnalyticsPollContext,
+        outcome: JsonRequestOutcome,
+        fallback_seconds: float,
+    ) -> tuple[int, dict[str, Any]] | None:
+        should_continue = outcome.status_code == 202 or (
+            context.budget.is_bounded and outcome.is_transient_transport_failure
+        )
+        if should_continue:
+            return await self._wait_for_next_async_poll(
+                context=context,
+                payload=outcome.payload,
+                fallback_seconds=fallback_seconds,
+            )
+        self._emit_analytics_read_audit(
+            operation=f"{context.operation}.poll",
+            status_code=outcome.status_code,
+        )
+        return outcome.as_result()
 
     async def _wait_for_initial_async_poll(
         self,
@@ -253,26 +227,28 @@ class LotusAnalyticsAsyncPollingMixin:
 
     async def _poll_analytics_result_once(
         self, *, context: _AnalyticsPollContext
-    ) -> tuple[int, dict[str, Any]]:
+    ) -> JsonRequestOutcome:
         started_at = gateway_analytics_fanout_timer()
-        status_code, payload = await request_with_retry(
-            method="GET",
-            url=context.url,
-            timeout_seconds=context.budget.request_timeout(self._timeout),
-            max_retries=context.budget.request_max_retries(self._max_retries),
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=context.headers,
-            retry_timeout_exceptions=not context.budget.is_bounded,
+        outcome = await context.budget.run_request(
+            lambda: request_with_retry_outcome(
+                method="GET",
+                url=context.url,
+                timeout_seconds=context.budget.request_timeout(self._timeout),
+                max_retries=context.budget.request_max_retries(self._max_retries),
+                backoff_seconds=self._retry_backoff_seconds,
+                headers=context.headers,
+                retry_timeout_exceptions=not context.budget.is_bounded,
+            )
         )
         emit_gateway_analytics_fanout_log(
             logger=logger,
             started_at=started_at,
             service=context.service,
             operation=f"{context.operation}.poll",
-            status_code=status_code,
-            payload=payload,
+            status_code=outcome.status_code,
+            payload=outcome.payload,
         )
-        return status_code, payload
+        return outcome
 
     @staticmethod
     def _async_poll_deadline_result(

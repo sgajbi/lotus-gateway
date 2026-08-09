@@ -17,7 +17,11 @@ Business outcome:
    minimum polling cadence before the first and subsequent result reads,
 3. if the source calculation is still pending at the deadline, the screen receives explicit
    deadline-exhausted partial-readiness warnings before its connection closes rather than depending
-   on a blind retry, and Gateway does not add execution or lineage evidence reads after expiry.
+   on a blind retry, and Gateway does not add execution or lineage evidence reads after expiry,
+4. the complete submission and result-read awaits stay inside the elapsed budget even when a
+   connection uses multiple transport phases or returns a slow trickle of response bytes; bounded
+   transient transport failures can be retried by the polling loop without hiding source HTTP
+   failures.
 
 Authority and boundary:
 
@@ -27,9 +31,11 @@ Authority and boundary:
    authorization, tenant, and portfolio scope through polling; it does not submit a replacement
    calculation after an identity conflict,
 3. Gateway owns the elapsed deadline, remaining-budget request timeouts, caller-visible
-   deadline-specific partial-readiness mapping, and bounded reason-coded telemetry,
+   deadline-specific partial-readiness mapping, typed transport outcome handling, complete-await
+   cancellation, and bounded reason-coded telemetry,
 4. deadline exhaustion does not prove a calculation failure, permit duplicate financial work, or
-   make a later warm response valid readiness evidence on its own.
+   make a later warm response valid readiness evidence on its own; if the source has not published
+   acceptance, Gateway omits calculation identity and result location instead of inventing them.
 
 ## Authenticated Advisor Book
 

@@ -29,16 +29,23 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
   budget to the `lotus-performance` workspace-summary submission and result polling flow. The
   budget is configured by `PERFORMANCE_SUMMARY_DEADLINE_SECONDS`; the separate
   `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS` remains the maximum for one upstream request.
-- Result reads use the smaller of the per-request timeout and the remaining completion budget.
+- Submission and result reads use the smaller of the per-request timeout and the remaining
+  completion budget. Gateway also wraps each complete HTTP await in the remaining monotonic
+  budget, so multiple transport phases and slow response-byte trickles cannot extend the
+  caller-visible deadline beyond the configured allowance.
   Gateway waits for the accepted response's `recommended_poll_after_seconds` minimum cadence
   before the first result read and honors refreshed guidance after each pending result. Polling is
   bounded by elapsed time, not an attempt count. Result reads do not add nested transport retries
-  because the outer polling loop owns the remaining budget and next-read decision.
+  because the outer polling loop owns the remaining budget and next-read decision. Typed transient
+  transport and timeout outcomes continue through that outer loop while budget remains; an actual
+  upstream HTTP error response remains terminal and is not reclassified as a transport failure.
 - One calculation identity, caller correlation, trace, and authorization context are preserved
   from submission through result retrieval. Gateway does not respond to an identity conflict by
   submitting another financial calculation.
 - If the budget expires, the analytics client returns reason code
-  `ASYNC_RESULT_DEADLINE_EXHAUSTED` with the original result identity. The Workbench experience API
+  `ASYNC_RESULT_DEADLINE_EXHAUSTED`. It includes the original calculation identity and result path
+  only after the source has published an accepted response; if submission acceptance is unknown,
+  Gateway omits that identity rather than inventing retrievability. The Workbench experience API
   converts that source failure into the specific
   `PERFORMANCE_WORKSPACE_SUMMARY_DEADLINE_EXHAUSTED` partial-readiness warning and preserves the
   source error code. It does not start execution or lineage evidence reads after the budget has
