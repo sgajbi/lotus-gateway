@@ -115,7 +115,9 @@ What is supported:
    conversion intent through Gateway,
 4. Gateway preserves `lotus-idea` ranking, source signal identifiers, redacted source references,
    durable-storage posture, accepted/replayed mutation posture, and `supportedFeaturePromoted=false`,
-5. Gateway maps unsafe upstream failures to product-safe error detail.
+5. review, feedback, and conversion-intent requests expose one closed Lotus Idea reason vocabulary;
+   unknown values fail with `422` at Gateway before source fan-out,
+6. Gateway maps unsafe upstream failures to product-safe error detail.
 
 Supported routes:
 
@@ -127,16 +129,20 @@ Supported routes:
 
 Boundary:
 
-1. Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
+1. The reason vocabulary is reconciled through
+   `contracts/upstream/lotus-idea-reason-codes.v1.json` and published as `IdeaReasonCode` in Gateway
+   OpenAPI. Gateway owns validation and documentation at its consumer boundary; Lotus Idea remains
+   the semantic authority for every reason.
+2. Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
    `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,
    `X-Caller-Client-Ids`, optional `X-Lotus-Trusted-Caller-Context`, and correlation/trace context
    to `lotus-idea` for entitlement-scope enforcement. Mutation routes additionally require and
    forward `Idempotency-Key` and forward optional `X-Causation-Id`.
-2. Gateway does not generate ideas, rank candidates, enrich evidence, certify data-product posture,
+3. Gateway does not generate ideas, rank candidates, enrich evidence, certify data-product posture,
    grant downstream authority, or promote `supportedFeaturePromoted`; a conversion intent does not
    create a downstream proposal, action, report evidence pack, rebalance, execution, or client
    communication.
-3. Workbench idea UI, canonical runtime proof, data-product certification, and full
+4. Workbench idea UI, canonical runtime proof, data-product certification, and full
    supported-feature promotion remain separate proof scopes.
 
 ## Advisory Proposal Narrative Posture

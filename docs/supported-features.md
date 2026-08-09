@@ -108,7 +108,10 @@ communication readiness. Gateway preserves `lotus-idea` ranking, source signal i
 references, durable-storage posture, accepted/replayed mutation outcomes, and
 `supportedFeaturePromoted=false`. For mutations it forwards trusted caller context, entitlement
 scope, `Idempotency-Key`, correlation and trace context, and optional `X-Causation-Id` without
-deriving lifecycle, authorization, audit, or downstream authority locally.
+deriving lifecycle, authorization, audit, or downstream authority locally. All three candidate
+action contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI; unknown
+reason values are rejected with `422` at Gateway before any source call. The versioned
+reconciliation snapshot is `contracts/upstream/lotus-idea-reason-codes.v1.json`.
 
 ## Boundaries
 
