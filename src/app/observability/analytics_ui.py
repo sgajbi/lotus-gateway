@@ -184,6 +184,10 @@ def _resolve_supportability_state(payload: Mapping[str, Any]) -> str | None:
 def _resolve_gateway_analytics_reason(
     *, status_code: int, payload: Mapping[str, Any]
 ) -> str | None:
+    payload_reason = payload.get("reason")
+    if payload_reason == "async_poll_deadline_exhausted":
+        return "async_poll_deadline_exhausted"
+
     calculation_supportability = extract_calculation_supportability(payload)
     if calculation_supportability is not None and calculation_supportability.state not in {
         "ready",

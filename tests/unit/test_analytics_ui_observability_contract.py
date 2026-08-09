@@ -101,6 +101,7 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
             "source_supportability_degraded",
             "upstream_warning",
             "partial_failure_code",
+            "async_poll_deadline_exhausted",
             "upstream_unavailable",
             "upstream_error",
             "unknown",

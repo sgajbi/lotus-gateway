@@ -1,9 +1,11 @@
-import asyncio
 import logging
 from typing import Any
-from uuid import uuid4
 
 from app.clients.http_resilience import request_with_retry
+from app.clients.lotus_analytics_async_polling import (
+    AnalyticsPollBudget,
+    LotusAnalyticsAsyncPollingMixin,
+)
 from app.clients.lotus_analytics_performance_client import LotusAnalyticsPerformanceClientMixin
 from app.clients.lotus_analytics_risk_client import LotusAnalyticsRiskClientMixin
 from app.clients.upstream_headers import build_upstream_headers
@@ -16,16 +18,22 @@ from app.observability.analytics_ui import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsRiskClientMixin):
+class LotusAnalyticsClient(
+    LotusAnalyticsAsyncPollingMixin,
+    LotusAnalyticsPerformanceClientMixin,
+    LotusAnalyticsRiskClientMixin,
+):
     def __init__(
         self,
         base_url: str,
         timeout_seconds: float,
+        workspace_summary_deadline_seconds: float = 30.0,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
     ):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout_seconds
+        self._workspace_summary_deadline_seconds = workspace_summary_deadline_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
 
@@ -46,69 +54,6 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
             headers=build_upstream_headers(correlation_id),
         )
 
-    async def _poll_async_result(
-        self,
-        *,
-        result_path: str,
-        correlation_id: str,
-        service: str,
-        operation: str,
-        max_attempts: int = 10,
-        poll_interval_seconds: float = 0.35,
-    ) -> tuple[int, dict[str, Any]]:
-        headers = build_upstream_headers(correlation_id)
-        url = self._async_result_url(result_path)
-        last_status = 202
-        last_payload: dict[str, Any] = {"detail": "async analytics result still pending"}
-        for _ in range(max_attempts):
-            status_code, payload = await self._poll_analytics_result_once(
-                url=url,
-                headers=headers,
-                service=service,
-                operation=operation,
-            )
-            last_status = status_code
-            last_payload = payload
-            if status_code != 202:
-                self._emit_analytics_read_audit(
-                    operation=f"{operation}.poll", status_code=status_code
-                )
-                return status_code, payload
-            await asyncio.sleep(poll_interval_seconds)
-        return last_status, last_payload
-
-    def _async_result_url(self, result_path: str) -> str:
-        if result_path.startswith("http://") or result_path.startswith("https://"):
-            return result_path
-        return f"{self._base_url}{result_path}"
-
-    async def _poll_analytics_result_once(
-        self,
-        *,
-        url: str,
-        headers: dict[str, str],
-        service: str,
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        started_at = gateway_analytics_fanout_timer()
-        status_code, payload = await request_with_retry(
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
-        )
-        emit_gateway_analytics_fanout_log(
-            logger=logger,
-            started_at=started_at,
-            service=service,
-            operation=f"{operation}.poll",
-            status_code=status_code,
-            payload=payload,
-        )
-        return status_code, payload
-
     async def _post_analytics_request(
         self,
         *,
@@ -117,27 +62,20 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
         correlation_id: str,
         service: str = "lotus-performance",
         operation: str | None = None,
-        async_poll_attempts: int = 10,
+        async_poll_attempts: int | None = 10,
         async_poll_interval_seconds: float = 0.35,
+        async_poll_timeout_seconds: float | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         headers = build_upstream_headers(correlation_id)
         resolved_operation = operation or path.strip("/").replace("/", ".")
+        poll_budget = AnalyticsPollBudget.from_timeout(async_poll_timeout_seconds)
         status_code, response_payload = await self._post_observed_analytics_request(
             url=url,
             headers=headers,
             service=service,
             operation=resolved_operation,
             payload=payload,
-        )
-        status_code, response_payload = await self._retry_duplicate_calculation_request(
-            status_code=status_code,
-            response_payload=response_payload,
-            request_payload=payload,
-            url=url,
-            headers=headers,
-            service=service,
-            operation=resolved_operation,
         )
         async_result = await self._poll_async_response_if_available(
             status_code=status_code,
@@ -147,6 +85,7 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
             operation=resolved_operation,
             async_poll_attempts=async_poll_attempts,
             async_poll_interval_seconds=async_poll_interval_seconds,
+            poll_budget=poll_budget,
         )
         if async_result is not None:
             return async_result
@@ -161,8 +100,9 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
         correlation_id: str,
         service: str,
         operation: str,
-        async_poll_attempts: int,
+        async_poll_attempts: int | None,
         async_poll_interval_seconds: float,
+        poll_budget: AnalyticsPollBudget,
     ) -> tuple[int, dict[str, Any]] | None:
         result_path = self._async_result_path(
             status_code=status_code,
@@ -177,6 +117,8 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
             operation=operation,
             max_attempts=async_poll_attempts,
             poll_interval_seconds=async_poll_interval_seconds,
+            poll_budget=poll_budget,
+            accepted_payload=response_payload,
         )
 
     @staticmethod
@@ -216,47 +158,6 @@ class LotusAnalyticsClient(LotusAnalyticsPerformanceClientMixin, LotusAnalyticsR
             payload=response_payload,
         )
         return status_code, response_payload
-
-    async def _retry_duplicate_calculation_request(
-        self,
-        *,
-        status_code: int,
-        response_payload: dict[str, Any],
-        request_payload: dict[str, Any],
-        url: str,
-        headers: dict[str, str],
-        service: str,
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        if not self._should_retry_duplicate_calculation(
-            status_code=status_code, payload=response_payload, request=request_payload
-        ):
-            return status_code, response_payload
-        replay_payload = dict(request_payload)
-        replay_payload["calculation_id"] = str(uuid4())
-        return await self._post_observed_analytics_request(
-            url=url,
-            headers=headers,
-            service=service,
-            operation=f"{operation}.duplicate-retry",
-            payload=replay_payload,
-        )
-
-    @staticmethod
-    def _should_retry_duplicate_calculation(
-        *,
-        status_code: int,
-        payload: dict[str, Any],
-        request: dict[str, Any],
-    ) -> bool:
-        if status_code != 409:
-            return False
-        if "calculation_id" not in request:
-            return False
-        detail = payload.get("detail")
-        if not isinstance(detail, str):
-            return False
-        return "calculation_id already exists" in detail.lower()
 
     @staticmethod
     def _async_result_path(

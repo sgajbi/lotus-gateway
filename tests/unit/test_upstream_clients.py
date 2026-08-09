@@ -553,7 +553,7 @@ async def test_lotus_analytics_client_allows_slow_stateful_attribution_to_materi
     async def _no_sleep(_seconds: float) -> None:
         return None
 
-    monkeypatch.setattr("app.clients.lotus_analytics_client.asyncio.sleep", _no_sleep)
+    monkeypatch.setattr("app.clients.lotus_analytics_async_polling.asyncio.sleep", _no_sleep)
 
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(202, {"result_path": "/performance/attribution/results/calc-1"})
@@ -601,7 +601,7 @@ async def test_lotus_analytics_client_preserves_absolute_async_result_url(monkey
     async def _no_sleep(_seconds: float) -> None:
         return None
 
-    monkeypatch.setattr("app.clients.lotus_analytics_client.asyncio.sleep", _no_sleep)
+    monkeypatch.setattr("app.clients.lotus_analytics_async_polling.asyncio.sleep", _no_sleep)
 
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(202, {"detail": "pending"})
@@ -1198,7 +1198,7 @@ async def test_lotus_analytics_client_emits_safe_unavailable_fanout_log(caplog):
 
 
 @pytest.mark.asyncio
-async def test_lotus_analytics_client_retries_workspace_summary_when_calculation_id_conflicts():
+async def test_lotus_analytics_client_preserves_workspace_summary_conflict_identity():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
         409,
@@ -1209,20 +1209,6 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
             )
         },
     )
-    _FakeAsyncClient.queue_json(
-        200,
-        {
-            "results_by_period": {
-                "YTD": {
-                    "portfolio_twr": {
-                        "net": {"summary": {"period_return": {"base": 2.1}}},
-                        "gross": {"summary": {"period_return": {"base": 2.2}}},
-                    }
-                }
-            }
-        },
-    )
-
     status_code, payload = await client.get_workspace_summary(
         portfolio_id="P1",
         report_end_date="2026-03-27",
@@ -1236,22 +1222,13 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
         correlation_id="corr-performance",
     )
 
-    assert status_code == 200
-    assert "results_by_period" in payload
-    assert len(_FakeAsyncClient.calls) == 2
-    first_request = _FakeAsyncClient.calls[0]
-    replay_request = _FakeAsyncClient.calls[1]
-    assert (
-        first_request["url"]
-        == replay_request["url"]
-        == "http://analytics/performance/workspace-summary"
-    )
-    assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
-    assert "currency_mode" not in first_request["json"]
-    assert "currency_mode" not in replay_request["json"]
-    assert first_request["json"]["report_ccy"] == replay_request["json"]["report_ccy"] == "USD"
-    assert first_request["json"]["periods"] == replay_request["json"]["periods"]
-    assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
+    assert status_code == 409
+    assert "calculation_id already exists" in payload["detail"]
+    assert len(_FakeAsyncClient.calls) == 1
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://analytics/performance/workspace-summary"
+    assert "currency_mode" not in request["json"]
+    assert request["json"]["report_ccy"] == "USD"
 
 
 @pytest.mark.asyncio
