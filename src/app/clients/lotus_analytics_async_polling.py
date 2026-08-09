@@ -37,6 +37,13 @@ class AnalyticsPollBudget:
             return None
         return self.deadline_at - time.monotonic()
 
+    @property
+    def is_bounded(self) -> bool:
+        return self.deadline_at is not None
+
+    def request_max_retries(self, default_retries: int) -> int:
+        return 0 if self.is_bounded else default_retries
+
     def request_timeout(self, default_seconds: float) -> float:
         remaining_seconds = self.remaining_seconds()
         if remaining_seconds is None:
@@ -99,6 +106,7 @@ class _AnalyticsPollState:
 class LotusAnalyticsAsyncPollingMixin:
     _base_url: str
     _timeout: float
+    _max_retries: int
     _retry_backoff_seconds: float
 
     @staticmethod
@@ -172,6 +180,9 @@ class LotusAnalyticsAsyncPollingMixin:
                 context=context
             )
             state.attempts += 1
+            deadline_result = self._expired_poll_deadline_result(context)
+            if deadline_result is not None:
+                return deadline_result
             if state.status_code != 202:
                 self._emit_analytics_read_audit(
                     operation=f"{context.operation}.poll",
@@ -224,10 +235,10 @@ class LotusAnalyticsAsyncPollingMixin:
             method="GET",
             url=context.url,
             timeout_seconds=context.budget.request_timeout(self._timeout),
-            max_retries=0,
+            max_retries=context.budget.request_max_retries(self._max_retries),
             backoff_seconds=self._retry_backoff_seconds,
             headers=context.headers,
-            retry_timeout_exceptions=False,
+            retry_timeout_exceptions=not context.budget.is_bounded,
         )
         emit_gateway_analytics_fanout_log(
             logger=logger,

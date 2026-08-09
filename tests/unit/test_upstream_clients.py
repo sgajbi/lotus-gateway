@@ -1262,6 +1262,7 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
     assert payload["detail"] == "upstream communication failure: TimeoutException"
     assert captured[0]["retry_timeout_exceptions"] is False
     assert captured[0]["timeout_seconds"] == 15.0
+    assert captured[0]["max_retries"] == 0
 
 
 @pytest.mark.asyncio
