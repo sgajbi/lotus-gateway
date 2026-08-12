@@ -269,6 +269,7 @@ def test_reporting_openapi_contract_registered() -> None:
     snapshot_schema = spec["components"]["schemas"]["ReportingSnapshotResponse"]
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
     review_schema = spec["components"]["schemas"]["ReportingReviewResponse"]
+    batch_request_schema = spec["components"]["schemas"]["BatchCreateRequest"]
 
     assert legacy_snapshot_path["description"]
     assert summary_path["description"]
@@ -283,6 +284,19 @@ def test_reporting_openapi_contract_registered() -> None:
     assert snapshot_lineage_path["summary"] == "Get snapshot lineage"
     assert job_cancel_path["summary"] == "Cancel report job before render or archive"
     assert batch_create_path["summary"] == "Create report batch"
+    assert batch_request_schema["additionalProperties"] is False
+    assert "source_candidates" not in batch_request_schema["properties"]
+    assert "PortfolioBatchCandidate" not in spec["components"]["schemas"]
+    assert batch_request_schema["properties"]["selector_mode"]["const"] == (
+        "explicit_portfolio_list"
+    )
+    batch_headers = {
+        parameter["name"]: parameter
+        for parameter in batch_create_path["parameters"]
+        if parameter["in"] == "header"
+    }
+    assert "X-Caller-Capabilities" in batch_headers
+    assert "source-owned book" in batch_create_path["description"]
     assert batch_status_path["summary"] == "Get report batch status"
     assert batch_run_path["summary"] == "Run one bounded report batch worker pass"
     assert schedule_list_path["summary"] == "List governed report batch schedules"
@@ -308,7 +322,6 @@ def test_reporting_openapi_contract_registered() -> None:
         "ReportUpstreamCallRecord",
         "ReportSnapshotLineageResponse",
         "BatchCreateRequest",
-        "PortfolioBatchCandidate",
         "BatchHandleResponse",
         "ReportingEvidenceSurfaceSupportability",
         "BatchStatusResponse",

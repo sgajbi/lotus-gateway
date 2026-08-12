@@ -1,8 +1,11 @@
 import pytest
 from fastapi import HTTPException
 
+from app.contracts.advisor_book import AdvisorBookPortfolio
 from app.contracts.reporting_batches import BatchCreateRequest
+from app.services.advisor_book_service import AdvisorBookServiceError, ResolvedAdvisorBookSelection
 from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecycleService
+from app.services.reporting_batch_scope import ReportingBatchScopeResolver
 
 
 class _ReportingClient:
@@ -104,12 +107,45 @@ class _RenderClient:
         }
 
 
+class _PortfolioResolver:
+    def __init__(self, *, error: AdvisorBookServiceError | None = None) -> None:
+        self.calls: list[dict[str, object]] = []
+        self.error = error
+
+    async def resolve_portfolios(self, **kwargs) -> ResolvedAdvisorBookSelection:
+        self.calls.append(kwargs)
+        if self.error is not None:
+            raise self.error
+        return ResolvedAdvisorBookSelection(
+            tenant_id="tenant-sg",
+            portfolios=(
+                AdvisorBookPortfolio(
+                    portfolio_id="PB_SG_GLOBAL_BAL_001",
+                    display_name="PB_SG_GLOBAL_BAL_001",
+                    client_id="CIF_SG_001",
+                    base_currency="USD",
+                    booking_center_code="SG",
+                    mandate_type="DISCRETIONARY",
+                    status="ACTIVE",
+                    opened_on="2025-03-31",
+                    closed_on=None,
+                    membership_source="PortfolioManagerBookMembership:v1",
+                    membership_reference="portfolio:PB_SG_GLOBAL_BAL_001",
+                    membership_basis="governed_role_assignment",
+                ),
+            ),
+        )
+
+
 def _caller_headers() -> dict[str, str]:
     return {
         "X-Actor-Id": "operator-123",
         "X-Caller-Application": "lotus-workbench",
         "X-Tenant-Id": "tenant-sg",
         "X-Region": "APAC",
+        "X-Booking-Center-Code": "SG",
+        "X-Role": "ADVISOR",
+        "X-Caller-Capabilities": "advisor.book.read",
     }
 
 
@@ -172,10 +208,14 @@ def _batch_status_payload() -> dict[str, object]:
 def _service(
     reporting_client: _ReportingClient,
     render_client: _RenderClient | None = None,
+    portfolio_resolver: _PortfolioResolver | None = None,
 ) -> ReportingBatchLifecycleService:
     return ReportingBatchLifecycleService(
         reporting_client=reporting_client,
         render_client=render_client or _RenderClient(),
+        scope_resolver=ReportingBatchScopeResolver(
+            portfolio_resolver=portfolio_resolver or _PortfolioResolver()
+        ),
     )
 
 
@@ -201,7 +241,20 @@ async def test_reporting_batch_lifecycle_service_creates_batch_with_supportabili
     assert response.render_supportability.state == "ready"
     assert reporting_client.create_calls == [
         {
-            "payload": _batch_request().model_dump(exclude_none=True, mode="json"),
+            "payload": {
+                **_batch_request().model_dump(exclude_none=True, mode="json"),
+                "source_candidates": [
+                    {
+                        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                        "tenant_id": "tenant-sg",
+                        "region": "APAC",
+                        "active": True,
+                        "selected": True,
+                        "source_system": "lotus-core",
+                        "source_object": "PortfolioManagerBookMembership:v1",
+                    }
+                ],
+            },
             "idempotency_key": "idem-batch",
             "caller_headers": _caller_headers(),
             "correlation_id": "corr-batch",
@@ -215,6 +268,38 @@ async def test_reporting_batch_lifecycle_service_creates_batch_with_supportabili
         }
     ]
     assert render_client.metadata_calls == [{"correlation_id": "corr-batch"}]
+
+
+@pytest.mark.asyncio
+async def test_reporting_batch_lifecycle_service_never_calls_report_for_out_of_book_selection() -> (
+    None
+):
+    reporting_client = _ReportingClient()
+    portfolio_resolver = _PortfolioResolver(
+        error=AdvisorBookServiceError(
+            code="advisor_book_portfolio_not_available",
+            message="unsafe source detail",
+            status_code=403,
+        )
+    )
+    service = _service(reporting_client, portfolio_resolver=portfolio_resolver)
+
+    with pytest.raises(HTTPException) as raised:
+        await service.create_batch(
+            request=_batch_request(),
+            idempotency_key="idem-hostile-selection",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-hostile-selection",
+            tenant_id="tenant-sg",
+        )
+
+    assert raised.value.status_code == 403
+    assert raised.value.detail == {
+        "code": "report_batch_portfolio_not_entitled",
+        "message": "One or more selected portfolios are not available in the authenticated book.",
+    }
+    assert reporting_client.create_calls == []
+    assert reporting_client.capability_calls == []
 
 
 @pytest.mark.asyncio

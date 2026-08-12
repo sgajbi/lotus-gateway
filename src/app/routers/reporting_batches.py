@@ -40,10 +40,11 @@ async def _create_report_batch(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Create report batch",
     description=(
-        "Create a durable report batch through the governed gateway boundary. Use this endpoint "
-        "when operations need idempotent materialization of a portfolio-report batch before the "
-        "batch worker advances items. The lifecycle ledger and item execution remain owned by "
-        "lotus-report."
+        "Create a durable explicit-portfolio report batch from the authenticated advisor's "
+        "source-owned book. Callers provide only portfolio identifiers and report configuration; "
+        "Gateway resolves membership, tenant, region, active state, and provenance from trusted "
+        "caller context and the Core book-membership contract before calling lotus-report. "
+        "The lifecycle ledger and item execution remain owned by lotus-report."
     ),
     openapi_extra={
         "requestBody": {
@@ -77,13 +78,26 @@ async def _create_report_batch(
         ),
         **report_batch_error_response(
             409,
-            example_key="idempotency_conflict",
-            description="Returned when the idempotency key conflicts with another batch request.",
+            example_key="report_batch_portfolio_inactive",
+            description=(
+                "Returned when the idempotency key conflicts or a selected portfolio is not "
+                "active for reporting."
+            ),
+        ),
+        **report_batch_error_response(
+            403,
+            example_key="report_batch_portfolio_not_entitled",
+            description=(
+                "Returned when the caller cannot create an own-book batch or a selected portfolio "
+                "is outside the source-owned book."
+            ),
         ),
         **report_batch_error_response(
             502,
-            example_key="report_batch_upstream_unavailable",
-            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+            example_key="report_batch_scope_unavailable",
+            description=(
+                "Returned when source-owned portfolio eligibility or lotus-report is unavailable."
+            ),
         ),
     },
 )
@@ -105,6 +119,7 @@ async def create_report_batch(
     region: Annotated[str | None, Header(alias="X-Region")] = None,
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
+    capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
 ) -> BatchHandleResponse:
     return await _create_report_batch(
         request=request,
@@ -116,5 +131,6 @@ async def create_report_batch(
             region=region,
             booking_center_code=booking_center_code,
             role=role,
+            capabilities=capabilities,
         ),
     )

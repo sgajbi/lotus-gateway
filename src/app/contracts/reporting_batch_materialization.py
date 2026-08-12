@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.contracts.reporting_batch_common import BatchItemStatus, BatchStatus
 
@@ -13,6 +13,7 @@ __all__ = [
     "BatchRecoveryResponse",
     "BatchStatusResponse",
     "PortfolioBatchCandidate",
+    "ReportBatchMaterializationRequest",
     "RenderSupportabilitySummary",
     "ReportingEvidenceSurfaceSupportability",
 ]
@@ -47,19 +48,20 @@ class PortfolioBatchCandidate(BaseModel):
 
 
 class BatchCreateRequest(BaseModel):
-    selector_mode: str = Field(
+    model_config = ConfigDict(extra="forbid")
+
+    selector_mode: Literal["explicit_portfolio_list"] = Field(
         ...,
         description="Portfolio selector mode used to materialize batch items.",
         examples=["explicit_portfolio_list"],
     )
     portfolio_ids: list[str] = Field(
-        default_factory=list,
-        description="Requested portfolio identifiers for explicit-list selection.",
+        min_length=1,
+        max_length=1000,
+        description=(
+            "Portfolio identifiers requested from the authenticated caller's source-owned book."
+        ),
         examples=[["PB_SG_GLOBAL_BAL_001"]],
-    )
-    source_candidates: list[PortfolioBatchCandidate] = Field(
-        default_factory=list,
-        description="Portfolio candidates resolved from lotus-core before materialization.",
     )
     as_of_date: date = Field(
         ...,
@@ -87,6 +89,32 @@ class BatchCreateRequest(BaseModel):
         le=1000,
         description="Maximum number of materialized items allowed for this request.",
         examples=[250],
+    )
+
+    @field_validator("portfolio_ids")
+    @classmethod
+    def validate_portfolio_ids(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip() for value in values]
+        if any(not value for value in normalized):
+            raise ValueError("portfolio_ids must not contain blank values")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("portfolio_ids must not contain duplicates")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_batch_size(self) -> "BatchCreateRequest":
+        if len(self.portfolio_ids) > self.max_batch_size:
+            raise ValueError("portfolio_ids exceed max_batch_size")
+        return self
+
+
+class ReportBatchMaterializationRequest(BatchCreateRequest):
+    source_candidates: list[PortfolioBatchCandidate] = Field(
+        min_length=1,
+        description=(
+            "Gateway-resolved portfolio candidates forwarded only after source-owned membership "
+            "verification."
+        ),
     )
 
 

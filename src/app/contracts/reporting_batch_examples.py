@@ -16,17 +16,6 @@ __all__ = [
 BATCH_CREATE_REQUEST_EXAMPLE: dict[str, Any] = {
     "selector_mode": "explicit_portfolio_list",
     "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
-    "source_candidates": [
-        {
-            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-            "tenant_id": "tenant-sg",
-            "region": "APAC",
-            "active": True,
-            "selected": True,
-            "source_system": "lotus-core",
-            "source_object": "PortfolioScope",
-        }
-    ],
     "as_of_date": "2026-04-22",
     "requested_output_formats": ["pdf"],
     "reporting_currency": "USD",
