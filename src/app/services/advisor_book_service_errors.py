@@ -22,6 +22,14 @@ def source_contract_invalid() -> AdvisorBookServiceError:
     )
 
 
+def source_incomplete() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_source_incomplete",
+        message="Advisor-book membership is incomplete and cannot verify portfolio selection.",
+        status_code=502,
+    )
+
+
 def tenant_scope_unverified() -> AdvisorBookServiceError:
     return AdvisorBookServiceError(
         code="advisor_book_tenant_scope_unverified",

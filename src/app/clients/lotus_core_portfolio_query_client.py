@@ -46,6 +46,7 @@ class LotusCorePortfolioQueryClientMixin:
         as_of_date: str,
         booking_center_code: str,
         portfolio_types: list[str],
+        include_inactive: bool = False,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         manager_path_segment = quote(portfolio_manager_id, safe="")
@@ -57,7 +58,7 @@ class LotusCorePortfolioQueryClientMixin:
                 "as_of_date": as_of_date,
                 "booking_center_code": booking_center_code,
                 "portfolio_types": portfolio_types,
-                "include_inactive": False,
+                "include_inactive": include_inactive,
             },
         )
 

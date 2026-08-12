@@ -1450,6 +1450,27 @@ async def test_lotus_core_query_client_fetches_portfolio_manager_book_membership
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_can_include_inactive_book_memberships():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(200, {"portfolio_manager_id": "PM_SG_001", "members": []})
+
+    await client.get_portfolio_manager_book_memberships(
+        portfolio_manager_id="PM_SG_001",
+        as_of_date="2026-03-28",
+        booking_center_code="SG",
+        portfolio_types=["ADVISORY", "DISCRETIONARY"],
+        include_inactive=True,
+        correlation_id="corr-report-batch",
+    )
+
+    assert _FakeAsyncClient.calls[0]["json"]["include_inactive"] is True
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
     _FakeAsyncClient.queue_text(503, "lotus-performance unavailable")

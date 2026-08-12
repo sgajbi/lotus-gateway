@@ -1123,12 +1123,14 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         as_of_date,
         booking_center_code,
         portfolio_types,
+        include_inactive,
         correlation_id,
     ):
         assert portfolio_manager_id == "operator-123"
         assert as_of_date == "2026-04-22"
         assert booking_center_code == "SG"
         assert portfolio_types == ["ADVISORY", "DISCRETIONARY"]
+        assert include_inactive is True
         assert correlation_id == "corr-gateway-batch"
         return 200, {
             "product_name": "PortfolioManagerBookMembership",
