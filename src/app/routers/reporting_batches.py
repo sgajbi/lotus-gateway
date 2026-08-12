@@ -74,11 +74,17 @@ async def _create_report_batch(
         **report_batch_error_response(
             400,
             example_key="missing_idempotency_key",
+            additional_example_keys=(
+                "report_batch_caller_context_missing",
+                "report_batch_caller_context_invalid",
+                "invalid_batch_selector",
+            ),
             description="Returned when idempotency, caller context, or selector input is invalid.",
         ),
         **report_batch_error_response(
             409,
             example_key="report_batch_portfolio_inactive",
+            additional_example_keys=("idempotency_conflict",),
             description=(
                 "Returned when the idempotency key conflicts or a selected portfolio is not "
                 "active for reporting."
@@ -87,6 +93,7 @@ async def _create_report_batch(
         **report_batch_error_response(
             403,
             example_key="report_batch_portfolio_not_entitled",
+            additional_example_keys=("report_batch_access_denied",),
             description=(
                 "Returned when the caller cannot create an own-book batch or a selected portfolio "
                 "is outside the source-owned book."
@@ -95,6 +102,10 @@ async def _create_report_batch(
         **report_batch_error_response(
             502,
             example_key="report_batch_scope_unavailable",
+            additional_example_keys=(
+                "report_batch_scope_unverified",
+                "report_batch_upstream_unavailable",
+            ),
             description=(
                 "Returned when source-owned portfolio eligibility or lotus-report is unavailable."
             ),
