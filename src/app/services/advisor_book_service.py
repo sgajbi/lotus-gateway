@@ -14,6 +14,24 @@ from app.contracts.advisor_book import (
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_client_protocols import AdvisorBookMembershipClient
+from app.services.advisor_book_service_errors import (
+    AdvisorBookServiceError,
+)
+from app.services.advisor_book_service_errors import (
+    portfolio_selection_inactive as _portfolio_selection_inactive,
+)
+from app.services.advisor_book_service_errors import (
+    portfolio_selection_unavailable as _portfolio_selection_unavailable,
+)
+from app.services.advisor_book_service_errors import (
+    source_contract_invalid as _source_contract_invalid,
+)
+from app.services.advisor_book_service_errors import (
+    source_unavailable as _source_unavailable,
+)
+from app.services.advisor_book_service_errors import (
+    tenant_scope_unverified as _tenant_scope_unverified,
+)
 from app.services.advisor_book_source_contract import (
     SourceAdvisorBookMember,
     SourceAdvisorBookResponse,
@@ -50,14 +68,6 @@ class AdvisorBookQuery:
 class ResolvedAdvisorBookSelection:
     tenant_id: str
     portfolios: tuple[AdvisorBookPortfolio, ...]
-
-
-class AdvisorBookServiceError(RuntimeError):
-    def __init__(self, *, code: str, message: str, status_code: int):
-        super().__init__(message)
-        self.code = code
-        self.message = message
-        self.status_code = status_code
 
 
 class AdvisorBookService:
@@ -292,44 +302,4 @@ def _scope(caller: AdvisorBookCallerContext, query: AdvisorBookQuery) -> Advisor
         label="My book",
         as_of_date=query.as_of_date,
         booking_center_code=caller.booking_center_code,
-    )
-
-
-def _source_unavailable() -> AdvisorBookServiceError:
-    return AdvisorBookServiceError(
-        code="advisor_book_source_unavailable",
-        message="Advisor-book information is temporarily unavailable.",
-        status_code=502,
-    )
-
-
-def _source_contract_invalid() -> AdvisorBookServiceError:
-    return AdvisorBookServiceError(
-        code="advisor_book_source_contract_invalid",
-        message="Advisor-book information could not be safely verified.",
-        status_code=502,
-    )
-
-
-def _tenant_scope_unverified() -> AdvisorBookServiceError:
-    return AdvisorBookServiceError(
-        code="advisor_book_tenant_scope_unverified",
-        message="Advisor-book tenant scope could not be safely verified.",
-        status_code=502,
-    )
-
-
-def _portfolio_selection_unavailable() -> AdvisorBookServiceError:
-    return AdvisorBookServiceError(
-        code="advisor_book_portfolio_not_available",
-        message="One or more selected portfolios are not available in the authenticated book.",
-        status_code=403,
-    )
-
-
-def _portfolio_selection_inactive() -> AdvisorBookServiceError:
-    return AdvisorBookServiceError(
-        code="advisor_book_portfolio_inactive",
-        message="One or more selected portfolios are not active for reporting.",
-        status_code=409,
     )
