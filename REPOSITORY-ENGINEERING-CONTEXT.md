@@ -90,8 +90,12 @@ Current repository posture:
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
 6. RFC-0104 report batch materialization/status/control/retry/recovery/bounded operator-run routes
    are active under `/api/v1/report-batches` and `/api/v1/report-batches/*`; config-backed
-   scheduler list/run-due routes are active under `/api/v1/report-batch-schedules`; lifecycle,
-   scheduler configuration, and execution truth remain in `lotus-report`,
+   scheduler list/run-due routes are active under `/api/v1/report-batch-schedules`. Explicit batch
+   creation accepts portfolio identifiers only, derives the advisor's own-book authority from
+   trusted caller context, resolves membership through Core `PortfolioManagerBookMembership:v1`,
+   and constructs Report candidate tenant, region, active-state, and source provenance server-side;
+   browser-supplied candidate authority is rejected. Lifecycle, scheduler configuration, and
+   execution truth remain in `lotus-report`,
 7. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,
@@ -328,7 +332,8 @@ Most relevant current governance:
    `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
    deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,
    `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH`.
-10. report batch gateway routes are an RFC-0104 API/operator boundary only; Workbench batch UI,
+10. report batch gateway routes are an RFC-0104 trusted own-book/API/operator boundary only;
+    Workbench batch UI,
    RFC-0105 replay/dashboard operations, and RFC-0106 entitlement certification remain separate
    implementation scopes until explicitly delivered and proven.
 10. RFC-0042 outcome-review Gateway routes are active under
