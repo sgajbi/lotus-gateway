@@ -729,7 +729,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert transaction_view_schema["properties"]["realized_gain_loss_base"]["description"]
     assert transaction_view_schema["properties"]["settlement_status"]["description"] == (
         "Optional source-owned settlement lifecycle status for an FX cash-settlement "
-        "component. It is omitted when the source does not report an applicable "
+        "component. It is null when the source does not report an applicable "
         "settlement lifecycle."
     )
     assert transaction_view_schema["properties"]["settlement_status"]["examples"] == ["PENDING"]
