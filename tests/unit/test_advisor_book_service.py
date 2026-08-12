@@ -42,13 +42,14 @@ def _member(
     portfolio_type: str = "ADVISORY",
     booking_center_code: str = "Singapore",
     membership_source: str = "party_role_assignment",
+    status: str = "ACTIVE",
 ) -> dict[str, object]:
     return {
         "portfolio_id": portfolio_id,
         "client_id": client_id,
         "booking_center_code": booking_center_code,
         "portfolio_type": portfolio_type,
-        "status": "ACTIVE",
+        "status": status,
         "open_date": "2025-03-31",
         "close_date": None,
         "base_currency": "SGD",
@@ -193,6 +194,65 @@ async def test_service_reports_filter_empty_without_claiming_source_book_is_empt
     assert response.items == []
     assert response.supportability.reason_code == "advisor_book_filter_empty"
     assert response.provenance is not None
+
+
+@pytest.mark.asyncio
+async def test_service_resolves_requested_portfolios_in_request_order() -> None:
+    service = AdvisorBookService(
+        membership_client=_MembershipClient(
+            payload=_payload(members=[_member("PB_001"), _member("PB_002")])
+        )
+    )
+
+    selection = await service.resolve_portfolios(
+        caller=_caller(),
+        as_of_date=date(2026, 4, 10),
+        portfolio_ids=("PB_002", "PB_001"),
+        correlation_id="corr-selection",
+    )
+
+    assert selection.tenant_id == "tenant-sg"
+    assert [portfolio.portfolio_id for portfolio in selection.portfolios] == ["PB_002", "PB_001"]
+    assert all(
+        portfolio.membership_source == "PortfolioManagerBookMembership:v1"
+        for portfolio in selection.portfolios
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("payload", "expected_code", "expected_status"),
+    [
+        (_payload(members=[_member("PB_001")]), "advisor_book_portfolio_not_available", 403),
+        (
+            _payload(members=[_member("PB_002", status="CLOSED")]),
+            "advisor_book_portfolio_inactive",
+            409,
+        ),
+        (
+            _payload(members=[_member("PB_002")], tenant_id=None),
+            "advisor_book_tenant_scope_unverified",
+            502,
+        ),
+    ],
+)
+async def test_service_fails_closed_when_report_selection_cannot_be_verified(
+    payload: dict[str, object],
+    expected_code: str,
+    expected_status: int,
+) -> None:
+    service = AdvisorBookService(membership_client=_MembershipClient(payload=payload))
+
+    with pytest.raises(AdvisorBookServiceError) as raised:
+        await service.resolve_portfolios(
+            caller=_caller(),
+            as_of_date=date(2026, 4, 10),
+            portfolio_ids=("PB_002",),
+            correlation_id="corr-selection-blocked",
+        )
+
+    assert raised.value.code == expected_code
+    assert raised.value.status_code == expected_status
 
 
 @pytest.mark.asyncio
