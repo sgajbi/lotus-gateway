@@ -44,7 +44,9 @@ async def _create_report_batch(
         "source-owned book. Callers provide only portfolio identifiers and report configuration; "
         "Gateway resolves membership, tenant, region, active state, and provenance from trusted "
         "caller context and the Core book-membership contract before calling lotus-report. "
-        "The lifecycle ledger and item execution remain owned by lotus-report."
+        "The lifecycle ledger and item execution remain owned by lotus-report. Invalid request "
+        "fields, selector modes, or portfolio lists are rejected with the standard 422 request "
+        "validation contract before batch processing begins."
     ),
     openapi_extra={
         "requestBody": {
@@ -75,11 +77,11 @@ async def _create_report_batch(
             400,
             example_key="missing_idempotency_key",
             additional_example_keys=(
+                "missing_caller_context",
                 "report_batch_caller_context_missing",
                 "report_batch_caller_context_invalid",
-                "invalid_batch_selector",
             ),
-            description="Returned when idempotency, caller context, or selector input is invalid.",
+            description="Returned when idempotency or trusted caller context is invalid.",
         ),
         **report_batch_error_response(
             409,
