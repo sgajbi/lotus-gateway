@@ -27,6 +27,9 @@ from app.services.advisor_book_service_errors import (
     source_contract_invalid as _source_contract_invalid,
 )
 from app.services.advisor_book_service_errors import (
+    source_incomplete as _source_incomplete,
+)
+from app.services.advisor_book_service_errors import (
     source_unavailable as _source_unavailable,
 )
 from app.services.advisor_book_service_errors import (
@@ -84,6 +87,7 @@ class AdvisorBookService:
         source = await self._load_source(
             caller=caller,
             as_of_date=query.as_of_date,
+            include_inactive=False,
             correlation_id=correlation_id,
         )
         if source is None:
@@ -106,12 +110,15 @@ class AdvisorBookService:
         source = await self._load_source(
             caller=caller,
             as_of_date=as_of_date,
+            include_inactive=True,
             correlation_id=correlation_id,
         )
         if source is None:
             raise _portfolio_selection_unavailable()
         if source.tenant_id is None:
             raise _tenant_scope_unverified()
+        if source.supportability.state == "INCOMPLETE":
+            raise _source_incomplete()
 
         members_by_id = {member.portfolio_id: member for member in source.members}
         unavailable_ids = sorted(set(portfolio_ids).difference(members_by_id))
@@ -131,6 +138,7 @@ class AdvisorBookService:
         *,
         caller: AdvisorBookCallerContext,
         as_of_date: date,
+        include_inactive: bool,
         correlation_id: str,
     ) -> SourceAdvisorBookResponse | None:
         try:
@@ -142,6 +150,7 @@ class AdvisorBookService:
                 as_of_date=as_of_date.isoformat(),
                 booking_center_code=caller.booking_center_code,
                 portfolio_types=list(_SUPPORTED_PORTFOLIO_TYPES),
+                include_inactive=include_inactive,
                 correlation_id=correlation_id,
             )
         except Exception as exc:

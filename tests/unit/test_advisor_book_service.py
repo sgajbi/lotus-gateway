@@ -111,6 +111,7 @@ async def test_service_requests_authenticated_own_book_and_projects_governed_mem
             "as_of_date": "2026-04-10",
             "booking_center_code": "Singapore",
             "portfolio_types": ["ADVISORY", "DISCRETIONARY"],
+            "include_inactive": False,
             "correlation_id": "corr-book",
         }
     ]
@@ -198,11 +199,8 @@ async def test_service_reports_filter_empty_without_claiming_source_book_is_empt
 
 @pytest.mark.asyncio
 async def test_service_resolves_requested_portfolios_in_request_order() -> None:
-    service = AdvisorBookService(
-        membership_client=_MembershipClient(
-            payload=_payload(members=[_member("PB_001"), _member("PB_002")])
-        )
-    )
+    client = _MembershipClient(payload=_payload(members=[_member("PB_001"), _member("PB_002")]))
+    service = AdvisorBookService(membership_client=client)
 
     selection = await service.resolve_portfolios(
         caller=_caller(),
@@ -217,6 +215,28 @@ async def test_service_resolves_requested_portfolios_in_request_order() -> None:
         portfolio.membership_source == "PortfolioManagerBookMembership:v1"
         for portfolio in selection.portfolios
     )
+    assert client.calls[0]["include_inactive"] is True
+
+
+@pytest.mark.asyncio
+async def test_service_does_not_deny_entitlement_from_incomplete_membership() -> None:
+    payload = _payload(members=[_member("PB_001")])
+    supportability = payload["supportability"]
+    assert isinstance(supportability, dict)
+    supportability["state"] = "INCOMPLETE"
+    supportability["reason"] = "PM_BOOK_MEMBERSHIP_PARTIAL"
+    service = AdvisorBookService(membership_client=_MembershipClient(payload=payload))
+
+    with pytest.raises(AdvisorBookServiceError) as raised:
+        await service.resolve_portfolios(
+            caller=_caller(),
+            as_of_date=date(2026, 4, 10),
+            portfolio_ids=("PB_002",),
+            correlation_id="corr-incomplete-selection",
+        )
+
+    assert raised.value.code == "advisor_book_source_incomplete"
+    assert raised.value.status_code == 502
 
 
 @pytest.mark.asyncio

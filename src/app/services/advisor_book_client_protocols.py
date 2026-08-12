@@ -9,5 +9,6 @@ class AdvisorBookMembershipClient(Protocol):
         as_of_date: str,
         booking_center_code: str,
         portfolio_types: list[str],
+        include_inactive: bool = False,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
