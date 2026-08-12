@@ -46,6 +46,12 @@ class AdvisorBookQuery:
     limit: int = 25
 
 
+@dataclass(frozen=True)
+class ResolvedAdvisorBookSelection:
+    tenant_id: str
+    portfolios: tuple[AdvisorBookPortfolio, ...]
+
+
 class AdvisorBookServiceError(RuntimeError):
     def __init__(self, *, code: str, message: str, status_code: int):
         super().__init__(message)
@@ -65,13 +71,65 @@ class AdvisorBookService:
         query: AdvisorBookQuery,
         correlation_id: str,
     ) -> AdvisorBookResponse:
+        source = await self._load_source(
+            caller=caller,
+            as_of_date=query.as_of_date,
+            correlation_id=correlation_id,
+        )
+        if source is None:
+            return _empty_response(caller=caller, query=query, correlation_id=correlation_id)
+        return _project_response(
+            source=source,
+            caller=caller,
+            query=query,
+            correlation_id=correlation_id,
+        )
+
+    async def resolve_portfolios(
+        self,
+        *,
+        caller: AdvisorBookCallerContext,
+        as_of_date: date,
+        portfolio_ids: tuple[str, ...],
+        correlation_id: str,
+    ) -> ResolvedAdvisorBookSelection:
+        source = await self._load_source(
+            caller=caller,
+            as_of_date=as_of_date,
+            correlation_id=correlation_id,
+        )
+        if source is None:
+            raise _portfolio_selection_unavailable()
+        if source.tenant_id is None:
+            raise _tenant_scope_unverified()
+
+        members_by_id = {member.portfolio_id: member for member in source.members}
+        unavailable_ids = sorted(set(portfolio_ids).difference(members_by_id))
+        if unavailable_ids:
+            raise _portfolio_selection_unavailable()
+
+        selected = tuple(_portfolio(members_by_id[portfolio_id]) for portfolio_id in portfolio_ids)
+        if any(portfolio.status.strip().upper() != "ACTIVE" for portfolio in selected):
+            raise _portfolio_selection_inactive()
+        return ResolvedAdvisorBookSelection(
+            tenant_id=source.tenant_id,
+            portfolios=selected,
+        )
+
+    async def _load_source(
+        self,
+        *,
+        caller: AdvisorBookCallerContext,
+        as_of_date: date,
+        correlation_id: str,
+    ) -> SourceAdvisorBookResponse | None:
         try:
             (
                 status_code,
                 payload,
             ) = await self._membership_client.get_portfolio_manager_book_memberships(
                 portfolio_manager_id=caller.portfolio_manager_id,
-                as_of_date=query.as_of_date.isoformat(),
+                as_of_date=as_of_date.isoformat(),
                 booking_center_code=caller.booking_center_code,
                 portfolio_types=list(_SUPPORTED_PORTFOLIO_TYPES),
                 correlation_id=correlation_id,
@@ -80,7 +138,7 @@ class AdvisorBookService:
             raise _source_unavailable() from exc
 
         if status_code == 404:
-            return _empty_response(caller=caller, query=query, correlation_id=correlation_id)
+            return None
         if status_code != 200:
             raise _source_unavailable()
 
@@ -88,25 +146,20 @@ class AdvisorBookService:
             source = SourceAdvisorBookResponse.model_validate(payload)
         except ValidationError as exc:
             raise _source_contract_invalid() from exc
-        _validate_source_scope(source=source, caller=caller, query=query)
-        return _project_response(
-            source=source,
-            caller=caller,
-            query=query,
-            correlation_id=correlation_id,
-        )
+        _validate_source_scope(source=source, caller=caller, as_of_date=as_of_date)
+        return source
 
 
 def _validate_source_scope(
     *,
     source: SourceAdvisorBookResponse,
     caller: AdvisorBookCallerContext,
-    query: AdvisorBookQuery,
+    as_of_date: date,
 ) -> None:
     if (
         source.portfolio_manager_id != caller.portfolio_manager_id
         or source.booking_center_code != caller.booking_center_code
-        or source.as_of_date != query.as_of_date
+        or source.as_of_date != as_of_date
         or source.supportability.returned_portfolio_count != len(source.members)
         or any(
             member.booking_center_code != caller.booking_center_code for member in source.members
@@ -255,4 +308,28 @@ def _source_contract_invalid() -> AdvisorBookServiceError:
         code="advisor_book_source_contract_invalid",
         message="Advisor-book information could not be safely verified.",
         status_code=502,
+    )
+
+
+def _tenant_scope_unverified() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_tenant_scope_unverified",
+        message="Advisor-book tenant scope could not be safely verified.",
+        status_code=502,
+    )
+
+
+def _portfolio_selection_unavailable() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_portfolio_not_available",
+        message="One or more selected portfolios are not available in the authenticated book.",
+        status_code=403,
+    )
+
+
+def _portfolio_selection_inactive() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_portfolio_inactive",
+        message="One or more selected portfolios are not active for reporting.",
+        status_code=409,
     )
