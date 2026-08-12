@@ -551,19 +551,23 @@ def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> No
     materialization_contract_classes = _class_names(
         _CONTRACT_ROOT / "reporting_batch_materialization.py"
     )
+    request_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_batch_requests.py")
     worker_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_batch_worker.py")
     scheduler_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_batch_scheduler.py")
 
     expected_materialization_contracts = {
         "BatchControlResponse",
-        "BatchCreateRequest",
         "BatchHandleResponse",
         "BatchItemStatusResponse",
         "BatchRecoveryResponse",
         "BatchStatusResponse",
-        "PortfolioBatchCandidate",
         "RenderSupportabilitySummary",
         "ReportingEvidenceSurfaceSupportability",
+    }
+    expected_request_contracts = {
+        "BatchCreateRequest",
+        "PortfolioBatchCandidate",
+        "ReportBatchMaterializationRequest",
     }
     expected_worker_contracts = {
         "BatchDispatchPolicy",
@@ -581,9 +585,11 @@ def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> No
     }
 
     assert expected_materialization_contracts <= materialization_contract_classes
+    assert expected_request_contracts <= request_contract_classes
     assert expected_worker_contracts <= worker_contract_classes
     assert expected_scheduler_contracts <= scheduler_contract_classes
     assert reporting_batches_facade_classes.isdisjoint(expected_materialization_contracts)
+    assert reporting_batches_facade_classes.isdisjoint(expected_request_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_worker_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_scheduler_contracts)
 
