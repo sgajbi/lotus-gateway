@@ -310,6 +310,12 @@ Most relevant current governance:
 
 ## Known Constraints And Implementation Notes
 
+Portfolio transaction settlement applicability is a joint source contract: `component_type`
+identifies canonical FX cash-settlement components and nullable `settlement_status` carries their
+source-owned lifecycle state. Keep both meanings explicit in Gateway OpenAPI, preserve omission for
+rows without a reported applicable lifecycle, and leave business presentation to Workbench without
+reclassifying arbitrary source codes in the BFF.
+
 1. Windows startup can serve a misleading health-only process if `--app-dir src` is omitted,
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,

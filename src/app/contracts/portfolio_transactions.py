@@ -21,8 +21,12 @@ class PortfolioTransactionView(BaseModel):
     )
     component_type: str | None = Field(
         default=None,
-        description="Optional component type for linked or multi-row economic events.",
-        examples=["FX_CONTRACT_OPEN"],
+        description=(
+            "Optional source-owned component role for linked or multi-row economic events. "
+            "FX cash-settlement components use FX_CASH_SETTLEMENT_BUY or "
+            "FX_CASH_SETTLEMENT_SELL."
+        ),
+        examples=["FX_CASH_SETTLEMENT_BUY"],
     )
     security_id: str = Field(
         description="Security identifier associated with the transaction row.",
@@ -63,8 +67,12 @@ class PortfolioTransactionView(BaseModel):
     )
     settlement_status: str | None = Field(
         default=None,
-        description="Optional settlement status for the transaction row.",
-        examples=["SETTLED"],
+        description=(
+            "Optional source-owned settlement lifecycle status for an FX cash-settlement "
+            "component. It is omitted when the source does not report an applicable "
+            "settlement lifecycle."
+        ),
+        examples=["PENDING"],
     )
     source_system: str | None = Field(
         default=None,
