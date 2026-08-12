@@ -711,7 +711,14 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert transaction_view_schema["properties"]["transaction_date"]["description"]
     assert transaction_view_schema["properties"]["settlement_date"]["description"]
     assert transaction_view_schema["properties"]["transaction_type"]["description"]
-    assert transaction_view_schema["properties"]["component_type"]["description"]
+    assert transaction_view_schema["properties"]["component_type"]["description"] == (
+        "Optional source-owned component role for linked or multi-row economic events. "
+        "FX cash-settlement components use FX_CASH_SETTLEMENT_BUY or "
+        "FX_CASH_SETTLEMENT_SELL."
+    )
+    assert transaction_view_schema["properties"]["component_type"]["examples"] == [
+        "FX_CASH_SETTLEMENT_BUY"
+    ]
     assert transaction_view_schema["properties"]["security_id"]["description"]
     assert transaction_view_schema["properties"]["instrument_id"]["description"]
     assert transaction_view_schema["properties"]["quantity"]["description"]
@@ -720,7 +727,12 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert transaction_view_schema["properties"]["currency"]["description"]
     assert transaction_view_schema["properties"]["net_cost_base"]["description"]
     assert transaction_view_schema["properties"]["realized_gain_loss_base"]["description"]
-    assert transaction_view_schema["properties"]["settlement_status"]["description"]
+    assert transaction_view_schema["properties"]["settlement_status"]["description"] == (
+        "Optional source-owned settlement lifecycle status for an FX cash-settlement "
+        "component. It is omitted when the source does not report an applicable "
+        "settlement lifecycle."
+    )
+    assert transaction_view_schema["properties"]["settlement_status"]["examples"] == ["PENDING"]
     assert transaction_view_schema["properties"]["source_system"]["description"]
     assert transaction_view_schema["properties"]["cash_entry_mode"]["description"]
     assert transaction_view_schema["properties"]["economic_event_id"]["description"]
