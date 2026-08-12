@@ -103,7 +103,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
 - report batch materialization, status, pause, resume, cancel, retry-failed,
   recover-expired-leases, and bounded run-once operator actions are gateway-first under
-  `/api/v1/report-batches`; `lotus-report` remains the batch lifecycle and execution authority
+  `/api/v1/report-batches`. Explicit creation accepts portfolio identifiers only and resolves the
+  authenticated advisor's own-book membership, tenant, region, active state, and source provenance
+  through trusted Gateway/Core contracts; caller-supplied candidate authority is rejected.
+  `lotus-report` remains the batch lifecycle and execution authority
 - report batch materialization, status, and bounded run-once responses preserve
   `supportability.feature_key=report.observability.evidence_surface_supportability` from
   `lotus-report` integration capabilities so Workbench can record report evidence-surface
@@ -697,11 +700,13 @@ Report batch materialization:
 curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: batch-PB_SG_GLOBAL_BAL_001-2026-04-22" \
-  -H "X-Actor-Id: support-operator-1" \
-  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Actor-Id: advisor-123" \
   -H "X-Tenant-Id: tenant-sg" \
   -H "X-Region: APAC" \
-  -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"source_candidates\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"tenant_id\":\"tenant-sg\",\"region\":\"APAC\",\"active\":true,\"selected\":true,\"source_system\":\"lotus-core\",\"source_object\":\"PortfolioScope\"}],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\"]},\"max_batch_size\":250}"
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: ADVISOR" \
+  -H "X-Caller-Capabilities: advisor.book.read" \
+  -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\"]},\"max_batch_size\":250}"
 ```
 
 Report batch status:

@@ -372,9 +372,10 @@ Important current parameter conventions:
    `product_type`, and `instrument_page_limit`
 9. proposal lifecycle write routes require `Idempotency-Key`; narrative review accepts an optional
    `Idempotency-Key` and preserves the reviewed narrative posture returned by `lotus-advise`
-10. report batch materialization uses canonical snake_case body fields and requires
-   `Idempotency-Key`; report batch status/control/operator-run routes require caller context
-   headers and forward the operation to `lotus-report` as the lifecycle authority
+10. explicit report batch materialization accepts portfolio identifiers and report configuration,
+   requires `Idempotency-Key` plus trusted own-book caller context, resolves portfolio membership
+   and candidate provenance through Core before mutation, and rejects caller-supplied candidate
+   authority; status/control/operator-run routes preserve `lotus-report` as lifecycle authority
 11. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
