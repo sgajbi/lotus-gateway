@@ -69,7 +69,7 @@ class PortfolioTransactionView(BaseModel):
         default=None,
         description=(
             "Optional source-owned settlement lifecycle status for an FX cash-settlement "
-            "component. It is omitted when the source does not report an applicable "
+            "component. It is null when the source does not report an applicable "
             "settlement lifecycle."
         ),
         examples=["PENDING"],
