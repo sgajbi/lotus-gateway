@@ -1514,6 +1514,19 @@ def test_report_batch_gateway_rejects_browser_candidate_authority() -> None:
     assert response.json()["detail"][0]["type"] == "extra_forbidden"
 
 
+def test_report_batch_gateway_rejects_invalid_selector_as_request_validation() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/report-batches",
+        json={**_batch_payload(), "selector_mode": "browser_defined_book"},
+        headers={**_batch_headers(), "Idempotency-Key": "idem-invalid-selector"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "selector_mode"]
+    assert response.json()["detail"][0]["type"] == "literal_error"
+
+
 def test_report_batch_gateway_errors_are_product_safe(monkeypatch):
     async def _mock_get_batch(self, *, batch_id, caller_headers, correlation_id):  # noqa: ARG001
         return 500, {"detail": "postgres traceback internal-host report.dev.lotus"}

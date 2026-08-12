@@ -297,6 +297,13 @@ def test_reporting_openapi_contract_registered() -> None:
     }
     assert "X-Caller-Capabilities" in batch_headers
     assert "source-owned book" in batch_create_path["description"]
+    assert "standard 422 request validation contract" in batch_create_path["description"]
+    assert "422" in batch_create_path["responses"]
+    batch_400_examples = batch_create_path["responses"]["400"]["content"]["application/json"][
+        "examples"
+    ]
+    assert "missing_caller_context" in batch_400_examples
+    assert "invalid_batch_selector" not in batch_400_examples
     assert batch_status_path["summary"] == "Get report batch status"
     assert batch_run_path["summary"] == "Run one bounded report batch worker pass"
     assert schedule_list_path["summary"] == "List governed report batch schedules"
