@@ -1020,6 +1020,9 @@ def _batch_headers() -> dict[str, str]:
         "X-Actor-Id": "operator-123",
         "X-Tenant-Id": "tenant-sg",
         "X-Region": "APAC",
+        "X-Booking-Center-Code": "SG",
+        "X-Role": "ADVISOR",
+        "X-Caller-Capabilities": "advisor.book.read",
         "X-Correlation-Id": "corr-gateway-batch",
     }
 
@@ -1028,17 +1031,6 @@ def _batch_payload() -> dict[str, object]:
     return {
         "selector_mode": "explicit_portfolio_list",
         "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
-        "source_candidates": [
-            {
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "tenant_id": "tenant-sg",
-                "region": "APAC",
-                "active": True,
-                "selected": True,
-                "source_system": "lotus-core",
-                "source_object": "PortfolioScope",
-            }
-        ],
         "as_of_date": "2026-04-22",
         "requested_output_formats": ["pdf"],
         "reporting_currency": "USD",
@@ -1101,7 +1093,20 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         correlation_id,
     ):
         calls.append(("create", idempotency_key, caller_headers))
-        assert payload == _batch_payload()
+        assert payload == {
+            **_batch_payload(),
+            "source_candidates": [
+                {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "tenant_id": "tenant-sg",
+                    "region": "APAC",
+                    "active": True,
+                    "selected": True,
+                    "source_system": "lotus-core",
+                    "source_object": "PortfolioManagerBookMembership:v1",
+                }
+            ],
+        }
         assert correlation_id == "corr-gateway-batch"
         return 202, {
             "batch_id": "rbch_1",
@@ -1109,6 +1114,58 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
             "status_url": "/reports/batches/rbch_1",
             "idempotency_key": idempotency_key,
             "item_count": 1,
+        }
+
+    async def _mock_get_book_memberships(
+        self,
+        *,
+        portfolio_manager_id,
+        as_of_date,
+        booking_center_code,
+        portfolio_types,
+        correlation_id,
+    ):
+        assert portfolio_manager_id == "operator-123"
+        assert as_of_date == "2026-04-22"
+        assert booking_center_code == "SG"
+        assert portfolio_types == ["ADVISORY", "DISCRETIONARY"]
+        assert correlation_id == "corr-gateway-batch"
+        return 200, {
+            "product_name": "PortfolioManagerBookMembership",
+            "product_version": "v1",
+            "portfolio_manager_id": "operator-123",
+            "tenant_id": "tenant-sg",
+            "generated_at": "2026-04-22T08:00:00Z",
+            "as_of_date": "2026-04-22",
+            "latest_evidence_timestamp": "2026-04-22T07:59:00Z",
+            "snapshot_id": "pm-book-sg",
+            "content_hash": "sha256:report-batch-book",
+            "data_quality_status": "ACCEPTED",
+            "source_evidence_current": True,
+            "freshness_status": "CURRENT",
+            "booking_center_code": "SG",
+            "members": [
+                {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "client_id": "CIF_SG_001",
+                    "booking_center_code": "SG",
+                    "portfolio_type": "DISCRETIONARY",
+                    "status": "ACTIVE",
+                    "open_date": "2025-03-31",
+                    "close_date": None,
+                    "base_currency": "USD",
+                    "source_record_id": "portfolio:PB_SG_GLOBAL_BAL_001",
+                    "membership_source": "party_role_assignment",
+                    "role_type": "ADVISOR",
+                }
+            ],
+            "supportability": {
+                "state": "READY",
+                "reason": "PM_BOOK_MEMBERSHIP_READY",
+                "returned_portfolio_count": 1,
+                "filters_applied": ["portfolio_manager_id", "as_of_date"],
+            },
+            "lineage": {"source_system": "lotus-core"},
         }
 
     async def _mock_get_batch(self, *, batch_id, caller_headers, correlation_id):
@@ -1212,6 +1269,10 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.create_report_batch",
         _mock_create_batch,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio_manager_book_memberships",
+        _mock_get_book_memberships,
     )
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.get_report_batch",
@@ -1425,6 +1486,32 @@ def test_report_batch_gateway_requires_idempotency_and_caller_context():
     detail = missing_context.json()["detail"]
     assert detail["code"] == "missing_caller_context"
     assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+
+
+def test_report_batch_gateway_rejects_browser_candidate_authority() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/report-batches",
+        json={
+            **_batch_payload(),
+            "source_candidates": [
+                {
+                    "portfolio_id": "PB_GUESSED_001",
+                    "tenant_id": "tenant-sg",
+                    "region": "APAC",
+                    "active": True,
+                    "selected": True,
+                    "source_system": "lotus-core",
+                    "source_object": "PortfolioScope",
+                }
+            ],
+        },
+        headers={**_batch_headers(), "Idempotency-Key": "idem-forged-candidate"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "source_candidates"]
+    assert response.json()["detail"][0]["type"] == "extra_forbidden"
 
 
 def test_report_batch_gateway_errors_are_product_safe(monkeypatch):

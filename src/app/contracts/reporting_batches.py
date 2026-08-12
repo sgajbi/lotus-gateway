@@ -20,6 +20,7 @@ from app.contracts.reporting_batch_materialization import (
     BatchStatusResponse,
     PortfolioBatchCandidate,
     RenderSupportabilitySummary,
+    ReportBatchMaterializationRequest,
     ReportingEvidenceSurfaceSupportability,
 )
 from app.contracts.reporting_batch_scheduler import (
@@ -67,6 +68,7 @@ __all__ = [
     "BatchWorkerRunRequest",
     "BatchWorkerRunResponse",
     "PortfolioBatchCandidate",
+    "ReportBatchMaterializationRequest",
     "RenderSupportabilitySummary",
     "ReportingEvidenceSurfaceSupportability",
 ]

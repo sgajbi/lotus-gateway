@@ -14,6 +14,7 @@ def reporting_context_headers(
     region: str | None,
     booking_center_code: str | None,
     role: str | None,
+    capabilities: str | None = None,
     portfolio_ids: str | None = None,
     client_ids: str | None = None,
     book_ids: str | None = None,
@@ -27,6 +28,7 @@ def reporting_context_headers(
         role=role,
     )
     entitlement_headers = {
+        "X-Caller-Capabilities": capabilities,
         "X-Caller-Portfolio-Ids": portfolio_ids,
         "X-Caller-Client-Ids": client_ids,
         "X-Caller-Book-Ids": book_ids,
@@ -49,6 +51,7 @@ class ReportingCallerHeaderInputs:
     region: str | None
     booking_center_code: str | None
     role: str | None
+    capabilities: str | None = None
     portfolio_ids: str | None = None
     client_ids: str | None = None
     book_ids: str | None = None
@@ -61,6 +64,7 @@ class ReportingCallerHeaderInputs:
             region=self.region,
             booking_center_code=self.booking_center_code,
             role=self.role,
+            capabilities=self.capabilities,
             portfolio_ids=self.portfolio_ids,
             client_ids=self.client_ids,
             book_ids=self.book_ids,

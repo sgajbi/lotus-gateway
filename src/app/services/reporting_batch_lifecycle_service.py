@@ -6,6 +6,10 @@ from app.contracts.reporting_batches import (
     BatchStatusResponse,
 )
 from app.contracts.reporting_errors import REPORT_BATCH_ERROR_EXAMPLES
+from app.services.reporting_batch_scope import (
+    ReportingBatchScopeError,
+    ReportingBatchScopeResolver,
+)
 from app.services.reporting_client_protocols import ReportingBatchLifecycleClient
 from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_links import rewrite_report_batch_status_url
@@ -21,9 +25,11 @@ class ReportingBatchLifecycleService:
         *,
         reporting_client: ReportingBatchLifecycleClient,
         render_client: RenderMetadataClient,
+        scope_resolver: ReportingBatchScopeResolver,
     ) -> None:
         self._reporting_client = reporting_client
         self._render_client = render_client
+        self._scope_resolver = scope_resolver
 
     def require_idempotency_key(self, idempotency_key: str | None) -> str:
         if idempotency_key:
@@ -42,8 +48,19 @@ class ReportingBatchLifecycleService:
         correlation_id: str,
         tenant_id: str | None,
     ) -> BatchHandleResponse:
+        try:
+            materialized_request = await self._scope_resolver.materialize_request(
+                request=request,
+                caller_headers=caller_headers,
+                correlation_id=correlation_id,
+            )
+        except ReportingBatchScopeError as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail={"code": exc.code, "message": exc.message},
+            ) from exc
         status_code, payload = await self._reporting_client.create_report_batch(
-            payload=request.model_dump(exclude_none=True, mode="json"),
+            payload=materialized_request.model_dump(exclude_none=True, mode="json"),
             idempotency_key=idempotency_key,
             caller_headers=caller_headers,
             correlation_id=correlation_id,

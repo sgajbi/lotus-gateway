@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from app.contracts import reporting
 from app.contracts.reporting_batch_materialization import (
     BatchControlResponse as MaterializationBatchControlResponse,
@@ -46,6 +49,7 @@ from app.contracts.reporting_batches import (
     BatchWorkerRunResponse,
     PortfolioBatchCandidate,
     RenderSupportabilitySummary,
+    ReportBatchMaterializationRequest,
     ReportingEvidenceSurfaceSupportability,
 )
 from app.contracts.reporting_errors import (
@@ -86,8 +90,41 @@ def test_reporting_batch_contracts_remain_compatibility_reexports() -> None:
     assert BatchWorkerRunResponse is WorkerBatchWorkerRunResponse
 
 
-def test_batch_request_accepts_extracted_candidate_contract() -> None:
-    request = BatchCreateRequest(
+def test_batch_request_rejects_browser_supplied_candidate_authority() -> None:
+    with pytest.raises(ValidationError):
+        BatchCreateRequest(
+            selector_mode="explicit_portfolio_list",
+            portfolio_ids=["PB_SG_GLOBAL_BAL_001"],
+            source_candidates=[
+                {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "tenant_id": "forged-tenant",
+                    "region": "forged-region",
+                    "active": True,
+                    "selected": True,
+                }
+            ],
+            as_of_date="2026-04-22",
+        )
+
+
+@pytest.mark.parametrize(
+    "portfolio_ids",
+    [[], [""], ["PB_SG_001", " PB_SG_001 "]],
+)
+def test_batch_request_rejects_empty_blank_or_duplicate_portfolio_selection(
+    portfolio_ids: list[str],
+) -> None:
+    with pytest.raises(ValidationError):
+        BatchCreateRequest(
+            selector_mode="explicit_portfolio_list",
+            portfolio_ids=portfolio_ids,
+            as_of_date="2026-04-22",
+        )
+
+
+def test_materialization_request_accepts_gateway_resolved_candidates() -> None:
+    request = ReportBatchMaterializationRequest(
         selector_mode="explicit_portfolio_list",
         portfolio_ids=["PB_SG_GLOBAL_BAL_001"],
         source_candidates=[

@@ -67,6 +67,32 @@ REPORT_BATCH_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
             "message": "Batch selector could not be materialized from eligible portfolios.",
         }
     },
+    "report_batch_access_denied": {
+        "detail": {
+            "code": "report_batch_access_denied",
+            "message": "Report batch creation is not available for this caller.",
+        }
+    },
+    "report_batch_portfolio_not_entitled": {
+        "detail": {
+            "code": "report_batch_portfolio_not_entitled",
+            "message": (
+                "One or more selected portfolios are not available in the authenticated book."
+            ),
+        }
+    },
+    "report_batch_portfolio_inactive": {
+        "detail": {
+            "code": "report_batch_portfolio_inactive",
+            "message": "One or more selected portfolios are not active for reporting.",
+        }
+    },
+    "report_batch_scope_unavailable": {
+        "detail": {
+            "code": "report_batch_scope_unavailable",
+            "message": "Report batch portfolio eligibility is temporarily unavailable.",
+        }
+    },
     "report_batch_not_found": {
         "detail": {
             "code": "report_batch_not_found",
