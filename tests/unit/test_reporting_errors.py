@@ -193,3 +193,22 @@ def test_report_batch_error_response_uses_governed_example() -> None:
         ]
         == "idempotency_conflict"
     )
+
+
+def test_report_batch_error_response_publishes_all_governed_examples() -> None:
+    response = report_batch_error_response(
+        status.HTTP_403_FORBIDDEN,
+        example_key="report_batch_portfolio_not_entitled",
+        additional_example_keys=("report_batch_access_denied",),
+        description="Caller or portfolio is outside the trusted book scope.",
+    )
+
+    examples = response[status.HTTP_403_FORBIDDEN]["content"]["application/json"]["examples"]
+
+    assert set(examples) == {
+        "report_batch_portfolio_not_entitled",
+        "report_batch_access_denied",
+    }
+    assert examples["report_batch_access_denied"]["value"]["detail"]["code"] == (
+        "report_batch_access_denied"
+    )

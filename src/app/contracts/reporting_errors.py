@@ -67,6 +67,18 @@ REPORT_BATCH_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
             "message": "Batch selector could not be materialized from eligible portfolios.",
         }
     },
+    "report_batch_caller_context_missing": {
+        "detail": {
+            "code": "report_batch_caller_context_missing",
+            "message": "Required trusted report-batch caller context is missing or invalid.",
+        }
+    },
+    "report_batch_caller_context_invalid": {
+        "detail": {
+            "code": "report_batch_caller_context_invalid",
+            "message": "Required trusted report-batch caller context is missing or invalid.",
+        }
+    },
     "report_batch_access_denied": {
         "detail": {
             "code": "report_batch_access_denied",
@@ -91,6 +103,12 @@ REPORT_BATCH_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
         "detail": {
             "code": "report_batch_scope_unavailable",
             "message": "Report batch portfolio eligibility is temporarily unavailable.",
+        }
+    },
+    "report_batch_scope_unverified": {
+        "detail": {
+            "code": "report_batch_scope_unverified",
+            "message": "The selected portfolio scope could not be safely verified.",
         }
     },
     "report_batch_not_found": {
