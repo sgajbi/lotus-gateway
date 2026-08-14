@@ -19,6 +19,8 @@ class EvidenceViewRequestContext:
     portfolio_id: str
     as_of_date: str
     period: str
+    report_start_date: str
+    report_end_date: str
     basis: str
     benchmark_code: str | None
     contract_version: str

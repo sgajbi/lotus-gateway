@@ -1192,6 +1192,8 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.evidence_view.calculations[0].lineage_status == "complete"
     assert response.evidence_view.as_of_date == "2026-03-27"
     assert response.evidence_view.period == "YTD"
+    assert response.evidence_view.report_start_date == "2026-01-01"
+    assert response.evidence_view.report_end_date == "2026-03-27"
     assert response.evidence_view.basis == "NET"
     assert response.evidence_view.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.evidence_view.calculation_scope == "performance_workspace"
@@ -2163,9 +2165,33 @@ async def test_performance_workspace_service_skips_reference_lookup_for_explicit
     assert response.period == "EXPLICIT"
     assert response.report_start_date == "2026-01-15"
     assert response.report_end_date == "2026-03-20"
+    assert response.evidence_view is not None
+    assert response.evidence_view.report_start_date == "2026-01-15"
+    assert response.evidence_view.report_end_date == "2026-03-20"
     assert query_client.reference_calls == 0
     assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-15"
+
+    alternative_response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-alternative-window",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        explicit_start_date="2026-02-01",
+        explicit_end_date="2026-03-20",
+    )
+
+    assert alternative_response.evidence_view is not None
+    assert alternative_response.evidence_view.report_start_date == "2026-02-01"
+    assert alternative_response.evidence_view.report_end_date == "2026-03-20"
+    assert (
+        alternative_response.evidence_view.report_start_date
+        != response.evidence_view.report_start_date
+    )
 
 
 @pytest.mark.asyncio

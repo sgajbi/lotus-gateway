@@ -2142,6 +2142,14 @@ def test_workbench_performance_evidence_openapi_contract():
     assert evidence_schema["properties"]["state"]["description"]
     assert evidence_schema["properties"]["as_of_date"]["description"]
     assert evidence_schema["properties"]["period"]["description"]
+    assert evidence_schema["properties"]["report_start_date"]["description"]
+    assert evidence_schema["properties"]["report_end_date"]["description"]
+    assert "report_start_date" in evidence_schema["required"]
+    assert "report_end_date" in evidence_schema["required"]
+    assert summary_schema["example"]["evidence_view"]["report_start_date"] == "2026-01-01"
+    assert summary_schema["example"]["evidence_view"]["report_end_date"] == "2026-02-24"
+    assert details_schema["example"]["evidence_view"]["report_start_date"] == "2026-01-01"
+    assert details_schema["example"]["evidence_view"]["report_end_date"] == "2026-02-24"
     assert evidence_schema["properties"]["basis"]["description"]
     assert evidence_schema["properties"]["benchmark_code"]["description"]
     assert evidence_schema["properties"]["calculation_scope"]["description"]

@@ -150,6 +150,8 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                 },
                 "evidence_view": {
                     "state": "partial",
+                    "report_start_date": "2026-01-01",
+                    "report_end_date": "2026-02-24",
                     "reason": (
                         "Lineage artifacts are available, but execution evidence is incomplete."
                     ),

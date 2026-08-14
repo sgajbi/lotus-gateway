@@ -206,6 +206,8 @@ def _evidence_request_context() -> EvidenceViewRequestContext:
         portfolio_id="PORT-1",
         as_of_date="2026-03-27",
         period="YTD",
+        report_start_date="2026-01-01",
+        report_end_date="2026-03-27",
         basis="NET",
         benchmark_code="BMK-1",
         contract_version="v1",
@@ -231,6 +233,8 @@ def test_resolve_evidence_view_response_returns_empty_unavailable_view() -> None
     )
 
     assert evidence.state == "unavailable"
+    assert evidence.report_start_date == "2026-01-01"
+    assert evidence.report_end_date == "2026-03-27"
     assert (
         evidence.reason == "No durable calculation evidence is available for the current selection."
     )
@@ -263,6 +267,8 @@ def test_resolve_evidence_view_response_records_unavailable_warning() -> None:
     assert evidence.reason == (
         "Gateway could not resolve execution or lineage evidence from lotus-performance."
     )
+    assert evidence.report_start_date == "2026-01-01"
+    assert evidence.report_end_date == "2026-03-27"
     assert warnings == ["PERFORMANCE_EVIDENCE_UNAVAILABLE"]
     assert partial_failures == []
 
@@ -296,6 +302,8 @@ def test_resolve_evidence_view_response_downgrades_supported_source_posture() ->
 
     assert evidence.state == "partial"
     assert evidence.reason == "Source data window stale"
+    assert evidence.report_start_date == "2026-01-01"
+    assert evidence.report_end_date == "2026-03-27"
     assert evidence.limitations == ["Source data window stale"]
     assert evidence.source_supportability == [stale_item]
 
@@ -327,6 +335,8 @@ def test_resolve_evidence_view_response_records_partial_failure() -> None:
         "One or more performance calculations still have pending, failed, "
         "or unavailable lineage evidence."
     )
+    assert evidence.report_start_date == "2026-01-01"
+    assert evidence.report_end_date == "2026-03-27"
     assert warnings == ["PERFORMANCE_EVIDENCE_PARTIAL"]
     assert [failure.error_code for failure in partial_failures] == ["PERFORMANCE_EVIDENCE_PARTIAL"]
 
@@ -671,6 +681,8 @@ def test_build_performance_evidence_view_marks_stale_source_dates():
         reason="Evidence ready",
         as_of_date="2026-03-27",
         period="YTD",
+        report_start_date="2026-01-01",
+        report_end_date="2026-03-27",
         basis="NET",
         benchmark_code="BMK-1",
         contract_version="v1",
@@ -683,6 +695,8 @@ def test_build_performance_evidence_view_marks_stale_source_dates():
         "performance": "stale",
         "benchmark": "stale",
     }
+    assert evidence.report_start_date == "2026-01-01"
+    assert evidence.report_end_date == "2026-03-27"
     assert evidence.source_services == ["lotus-performance"]
     assert evidence.calculation_versions == {
         "gateway_contract": "v1",
