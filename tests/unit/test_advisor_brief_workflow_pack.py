@@ -176,19 +176,32 @@ async def test_load_advisor_brief_workflow_pack_run_preserves_review_posture() -
 
 
 @pytest.mark.parametrize(
-    "review_timestamp",
+    ("evidence_field", "malformed_value"),
     [
-        "not-a-date",
-        "2026-06-01T00:05:00",
-        "2026-06-01T08:05:00+08:00",
-        "2026-02-30T00:05:00Z",
+        ("latest_review_event_at", "not-a-date"),
+        ("latest_review_event_at", "2026-06-01T00:05:00"),
+        ("latest_review_event_at", "2026-06-01T08:05:00+08:00"),
+        ("latest_review_event_at", "2026-02-30T00:05:00Z"),
+        ("latest_review_actor", " "),
+        ("review_transition_count", True),
+        ("review_transition_count", 0),
+        ("has_review_history", "true"),
+        ("has_review_history", False),
     ],
 )
 @pytest.mark.asyncio
 async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evidence_closed(
-    review_timestamp: str,
+    evidence_field: str,
+    malformed_value: Any,
 ) -> None:
     client = _AdvisorBriefAiClientStub()
+    review_evidence: dict[str, Any] = {
+        "latest_review_event_at": "2026-06-01T00:05:00Z",
+        "latest_review_actor": "advisor_1",
+        "review_transition_count": 1,
+        "has_review_history": True,
+    }
+    review_evidence[evidence_field] = malformed_value
 
     async def _malformed_consumer_view(**kwargs: Any) -> tuple[int, dict[str, Any]]:
         return (
@@ -196,10 +209,7 @@ async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evide
             {
                 "review": {
                     "allowed_actions": ["ACCEPT"],
-                    "latest_review_event_at": review_timestamp,
-                    "latest_review_actor": " ",
-                    "review_transition_count": True,
-                    "has_review_history": "true",
+                    **review_evidence,
                 },
                 "lineage": {"workflow_authority_owner": "lotus-ai"},
             },
@@ -217,6 +227,41 @@ async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evide
     assert run.latest_review_actor is None
     assert run.review_transition_count is None
     assert run.has_review_history is None
+
+
+@pytest.mark.asyncio
+async def test_load_advisor_brief_workflow_pack_run_preserves_coherent_no_history_evidence() -> (
+    None
+):
+    client = _AdvisorBriefAiClientStub()
+
+    async def _no_history_consumer_view(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+        return (
+            200,
+            {
+                "review": {
+                    "allowed_actions": ["ACCEPT"],
+                    "latest_review_event_at": None,
+                    "latest_review_actor": None,
+                    "review_transition_count": 0,
+                    "has_review_history": False,
+                },
+                "lineage": {"workflow_authority_owner": "lotus-ai"},
+            },
+        )
+
+    client.get_workflow_pack_run_consumer_view = _no_history_consumer_view  # type: ignore[method-assign]
+    run = await load_advisor_brief_workflow_pack_run(
+        lotus_ai_client=client,
+        ai_audit={"workflow_pack_run_id": "packrun-advisor-brief-1"},
+        correlation_id="corr-1",
+    )
+
+    assert run is not None
+    assert run.latest_review_event_at is None
+    assert run.latest_review_actor is None
+    assert run.review_transition_count == 0
+    assert run.has_review_history is False
 
 
 @pytest.mark.asyncio

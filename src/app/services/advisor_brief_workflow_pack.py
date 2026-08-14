@@ -25,6 +25,14 @@ class _WorkflowPackRunProfile:
     operator_payload: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class _ReviewEvidence:
+    latest_event_at: str | None = None
+    latest_actor: str | None = None
+    transition_count: int | None = None
+    has_history: bool | None = None
+
+
 def assert_advisor_brief_review_action_allowed(
     *,
     workflow_pack_run: AdvisorBriefWorkflowPackRun | None,
@@ -106,6 +114,7 @@ def _parse_workflow_pack_run_profile(
     profile: _WorkflowPackRunProfile,
 ) -> AdvisorBriefWorkflowPackRun:
     review = _safe_dict(profile.consumer_payload.get("review"))
+    review_evidence = _parse_review_evidence(review)
     lineage = _safe_dict(profile.consumer_payload.get("lineage"))
     operator_payload = profile.operator_payload
     findings = [
@@ -120,10 +129,10 @@ def _parse_workflow_pack_run_profile(
         run_id=_safe_str(operator_payload.get("run_id")) or profile.run_id,
         runtime_state=_safe_str(operator_payload.get("runtime_state")) or "UNKNOWN",
         review_state=_safe_str(operator_payload.get("review_state")) or "UNKNOWN",
-        latest_review_event_at=_safe_utc_timestamp(review.get("latest_review_event_at")),
-        latest_review_actor=_safe_str(review.get("latest_review_actor")),
-        review_transition_count=_safe_non_negative_int(review.get("review_transition_count")),
-        has_review_history=_safe_bool(review.get("has_review_history")),
+        latest_review_event_at=review_evidence.latest_event_at,
+        latest_review_actor=review_evidence.latest_actor,
+        review_transition_count=review_evidence.transition_count,
+        has_review_history=review_evidence.has_history,
         allowed_review_actions=[
             action
             for action in (_safe_str(value) for value in _safe_list(review.get("allowed_actions")))
@@ -222,6 +231,44 @@ def _safe_utc_timestamp(value: Any) -> str | None:
     except ValueError:
         return None
     return timestamp if parsed.utcoffset() == timedelta(0) else None
+
+
+def _parse_review_evidence(review: dict[str, Any]) -> _ReviewEvidence:
+    raw_values = (
+        review.get("latest_review_event_at"),
+        review.get("latest_review_actor"),
+        review.get("review_transition_count"),
+        review.get("has_review_history"),
+    )
+    if all(value is None for value in raw_values):
+        return _ReviewEvidence()
+
+    latest_event_at = _safe_utc_timestamp(raw_values[0])
+    latest_actor = _safe_str(raw_values[1])
+    transition_count = _safe_non_negative_int(raw_values[2])
+    has_history = _safe_bool(raw_values[3])
+
+    if (
+        has_history is True
+        and latest_event_at is not None
+        and latest_actor is not None
+        and transition_count is not None
+        and transition_count > 0
+    ):
+        return _ReviewEvidence(
+            latest_event_at=latest_event_at,
+            latest_actor=latest_actor,
+            transition_count=transition_count,
+            has_history=True,
+        )
+    if (
+        has_history is False
+        and latest_event_at is None
+        and latest_actor is None
+        and transition_count == 0
+    ):
+        return _ReviewEvidence(transition_count=0, has_history=False)
+    return _ReviewEvidence()
 
 
 def _safe_non_negative_int(value: Any) -> int | None:
