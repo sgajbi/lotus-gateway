@@ -1215,6 +1215,8 @@ def test_workbench_performance_summary_router(monkeypatch):
             },
             "evidence_view": {
                 "state": "supported",
+                "report_start_date": "2026-01-01",
+                "report_end_date": "2026-02-24",
                 "reason": "Execution and lineage evidence are exposed.",
                 "calculations": [
                     {
@@ -1362,6 +1364,8 @@ def test_workbench_performance_details_router(monkeypatch):
             },
             "evidence_view": {
                 "state": "partial",
+                "report_start_date": "2026-01-01",
+                "report_end_date": "2026-02-24",
                 "reason": "Lineage is still pending for one or more calculations.",
                 "calculations": [
                     {
@@ -1537,7 +1541,13 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
             },
             "warnings": [],
             "partial_failures": [],
-            "evidence_view": {"state": "supported", "reason": None, "calculations": []},
+            "evidence_view": {
+                "state": "supported",
+                "report_start_date": explicit_start_date,
+                "report_end_date": explicit_end_date,
+                "reason": None,
+                "calculations": [],
+            },
         }
 
     monkeypatch.setattr(
@@ -1631,6 +1641,8 @@ def test_workbench_performance_details_router_preserves_query_context(monkeypatc
             },
             "evidence_view": {
                 "state": "partial",
+                "report_start_date": explicit_start_date,
+                "report_end_date": explicit_end_date,
                 "reason": "Lineage is still pending for one or more calculations.",
                 "calculations": [],
             },
