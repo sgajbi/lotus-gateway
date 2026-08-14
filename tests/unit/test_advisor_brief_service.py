@@ -124,6 +124,10 @@ class _StubLotusAiClient:
             "run_id": "packrun_advisor_brief_req-1",
             "review": {
                 "allowed_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE", "ABANDON"],
+                "latest_review_event_at": None,
+                "latest_review_actor": None,
+                "review_transition_count": 0,
+                "has_review_history": False,
             },
             "lineage": {"workflow_authority_owner": "lotus-gateway"},
         }
@@ -242,6 +246,16 @@ class _StubLotusAiClient:
             request_payload = kwargs["request_payload"]
             replacement_run_id = request_payload.get("replacement_run_id")
             action_type = request_payload["action_type"]
+            self.consumer_view_payload = {
+                **self.consumer_view_payload,
+                "review": {
+                    **self.consumer_view_payload["review"],
+                    "latest_review_event_at": "2026-04-21T03:22:00Z",
+                    "latest_review_actor": request_payload["reviewed_by"],
+                    "review_transition_count": 1,
+                    "has_review_history": True,
+                },
+            }
             if action_type == "ACCEPT":
                 self.operator_profile_payload = {
                     **self.operator_profile_payload,
@@ -1112,6 +1126,10 @@ async def test_advisor_brief_service_applies_review_action_and_returns_updated_r
     assert response.workflow_pack_run.review_state == "ACCEPTED"
     assert response.workflow_pack_run.supportability_status == "READY"
     assert response.workflow_pack_run.review_pending is False
+    assert response.workflow_pack_run.latest_review_event_at == "2026-04-21T03:22:00Z"
+    assert response.workflow_pack_run.latest_review_actor == "advisor_1"
+    assert response.workflow_pack_run.review_transition_count == 1
+    assert response.workflow_pack_run.has_review_history is True
     assert (
         response.workflow_pack_run.current_summary_note
         == "Run accepted for bounded downstream workflow use."

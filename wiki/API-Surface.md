@@ -293,6 +293,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - Workbench advisor-brief reads emit bounded analytics read audit records with
   `operation=advisor_brief.summary` and `panel=advisor-brief`; upstream authorization denials are
   recorded as permission-blocked without restricted identifiers or raw entitlement text
+- Workbench advisor-brief workflow-pack posture preserves Lotus AI's bounded review evidence:
+  latest review actor, latest review event time, transition count, and review-history state.
+  Missing or malformed evidence remains absent; a terminal review state alone is not proof of a
+  source-recorded human decision
 - legal-hold summary is returned as metadata for support posture; gateway retrieval does not expose
   legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
