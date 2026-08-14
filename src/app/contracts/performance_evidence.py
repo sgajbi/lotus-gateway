@@ -147,6 +147,20 @@ class PerformanceEvidenceView(BaseModel):
         description="Canonical performance period represented by this evidence context.",
         examples=["YTD"],
     )
+    report_start_date: str = Field(
+        description=(
+            "Inclusive start date of the Gateway-resolved performance review window "
+            "covered by this evidence context."
+        ),
+        examples=["2026-01-01"],
+    )
+    report_end_date: str = Field(
+        description=(
+            "Inclusive end date of the Gateway-resolved performance review window "
+            "covered by this evidence context."
+        ),
+        examples=["2026-04-10"],
+    )
     basis: str | None = Field(
         default=None,
         description="Performance basis represented by this evidence context.",

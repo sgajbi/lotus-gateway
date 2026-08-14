@@ -38,7 +38,12 @@ def test_build_workspace_capabilities_reports_supported_benchmark_history() -> N
         ],
         contribution=None,
         attribution=None,
-        evidence_view=PerformanceEvidenceView(state="supported", reason="Evidence complete."),
+        evidence_view=PerformanceEvidenceView(
+            state="supported",
+            report_start_date="2026-01-01",
+            report_end_date="2026-03-27",
+            reason="Evidence complete.",
+        ),
     )
 
     assert capabilities.return_path.state == "supported"
@@ -149,7 +154,12 @@ def test_build_workspace_capabilities_reports_aggregate_only_fallbacks() -> None
                 )
             ],
         ),
-        evidence_view=PerformanceEvidenceView(state="partial", reason="Evidence partial."),
+        evidence_view=PerformanceEvidenceView(
+            state="partial",
+            report_start_date="2026-01-01",
+            report_end_date="2026-03-27",
+            reason="Evidence partial.",
+        ),
     )
 
     assert capabilities.contribution_ranking.state == "partial"
