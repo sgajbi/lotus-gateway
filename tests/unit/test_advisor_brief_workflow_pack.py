@@ -44,7 +44,13 @@ class _AdvisorBriefAiClientStub:
         return (
             200,
             {
-                "review": {"allowed_actions": ["ACCEPT"]},
+                "review": {
+                    "allowed_actions": ["ACCEPT"],
+                    "latest_review_event_at": "2026-06-01T00:05:00Z",
+                    "latest_review_actor": "advisor_1",
+                    "review_transition_count": 1,
+                    "has_review_history": True,
+                },
                 "lineage": {"workflow_authority_owner": "lotus-ai"},
             },
         )
@@ -161,8 +167,47 @@ async def test_load_advisor_brief_workflow_pack_run_preserves_review_posture() -
     assert run is not None
     assert run.run_id == "packrun-advisor-brief-1"
     assert run.allowed_review_actions == ["ACCEPT"]
+    assert run.latest_review_event_at == "2026-06-01T00:05:00Z"
+    assert run.latest_review_actor == "advisor_1"
+    assert run.review_transition_count == 1
+    assert run.has_review_history is True
     assert run.workflow_authority_owner == "lotus-ai"
     assert run.findings[0].finding_id == "finding-1"
+
+
+@pytest.mark.asyncio
+async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evidence_closed() -> (
+    None
+):
+    client = _AdvisorBriefAiClientStub()
+
+    async def _malformed_consumer_view(**kwargs: Any) -> tuple[int, dict[str, Any]]:
+        return (
+            200,
+            {
+                "review": {
+                    "allowed_actions": ["ACCEPT"],
+                    "latest_review_event_at": 123,
+                    "latest_review_actor": " ",
+                    "review_transition_count": True,
+                    "has_review_history": "true",
+                },
+                "lineage": {"workflow_authority_owner": "lotus-ai"},
+            },
+        )
+
+    client.get_workflow_pack_run_consumer_view = _malformed_consumer_view  # type: ignore[method-assign]
+    run = await load_advisor_brief_workflow_pack_run(
+        lotus_ai_client=client,
+        ai_audit={"workflow_pack_run_id": "packrun-advisor-brief-1"},
+        correlation_id="corr-1",
+    )
+
+    assert run is not None
+    assert run.latest_review_event_at is None
+    assert run.latest_review_actor is None
+    assert run.review_transition_count is None
+    assert run.has_review_history is None
 
 
 @pytest.mark.asyncio

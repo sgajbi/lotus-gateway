@@ -174,6 +174,10 @@ Current repository posture:
     `top_position_weight_current`, `top_position_weight_proposed`, `top_position_weight_delta`,
     `top_position_current`, and `top_position_proposed`; `TOP_POSITION_WEIGHT` methodology truth
     remains owned by `lotus-risk`.
+    Advisor-brief workflow-pack mapping preserves Lotus AI's source-recorded latest review actor,
+    latest review event time, transition count, and history flag. Consumers must fail closed when
+    that evidence is absent or malformed; terminal `review_state` is not sufficient evidence of a
+    recorded human decision.
 17. performance workspace-summary orchestration uses
     `PERFORMANCE_SUMMARY_DEADLINE_SECONDS=30` as an end-to-end monotonic budget across submission
     and polling, while `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS=15` remains a per-call ceiling.

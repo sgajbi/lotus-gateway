@@ -118,6 +118,10 @@ def _parse_workflow_pack_run_profile(
         run_id=_safe_str(operator_payload.get("run_id")) or profile.run_id,
         runtime_state=_safe_str(operator_payload.get("runtime_state")) or "UNKNOWN",
         review_state=_safe_str(operator_payload.get("review_state")) or "UNKNOWN",
+        latest_review_event_at=_safe_str(review.get("latest_review_event_at")),
+        latest_review_actor=_safe_str(review.get("latest_review_actor")),
+        review_transition_count=_safe_non_negative_int(review.get("review_transition_count")),
+        has_review_history=_safe_bool(review.get("has_review_history")),
         allowed_review_actions=[
             action
             for action in (_safe_str(value) for value in _safe_list(review.get("allowed_actions")))
@@ -198,3 +202,13 @@ def _safe_str(value: Any) -> str | None:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
+
+
+def _safe_non_negative_int(value: Any) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _safe_bool(value: Any) -> bool | None:
+    return value if isinstance(value, bool) else None

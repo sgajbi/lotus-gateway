@@ -145,6 +145,10 @@ ADVISOR_BRIEF_RESPONSE_EXAMPLE: dict[str, Any] = {
         "run_id": "packrun_advisor_brief_air_123",
         "runtime_state": "COMPLETED",
         "review_state": "AWAITING_REVIEW",
+        "latest_review_event_at": None,
+        "latest_review_actor": None,
+        "review_transition_count": 0,
+        "has_review_history": False,
         "allowed_review_actions": [
             "ACCEPT",
             "REJECT",

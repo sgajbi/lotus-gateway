@@ -2305,6 +2305,8 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response_schema["example"]["supportability"][1]["value"] == "Unavailable"
     assert response_schema["example"]["ai_audit"]["model_id"] == "qwen3:8b"
     assert response_schema["example"]["workflow_pack_run"]["review_state"] == "AWAITING_REVIEW"
+    assert response_schema["example"]["workflow_pack_run"]["review_transition_count"] == 0
+    assert response_schema["example"]["workflow_pack_run"]["has_review_history"] is False
     assert (
         response_schema["example"]["workflow_pack_run"]["findings"][0]["finding_id"]
         == "review_pending"

@@ -61,6 +61,38 @@ class AdvisorBriefWorkflowPackRun(BaseModel):
         description="Current lotus-ai review state for the workflow-pack run.",
         examples=["AWAITING_REVIEW"],
     )
+    latest_review_event_at: str | None = Field(
+        default=None,
+        description=(
+            "UTC timestamp of the latest source-recorded lotus-ai review transition, when "
+            "review history is available."
+        ),
+        examples=["2026-04-21T03:22:00Z"],
+    )
+    latest_review_actor: str | None = Field(
+        default=None,
+        description=(
+            "Actor recorded by lotus-ai on the latest review transition, when review history "
+            "is available."
+        ),
+        examples=["advisor_1"],
+    )
+    review_transition_count: int | None = Field(
+        default=None,
+        ge=0,
+        description=(
+            "Source-reported count of review-state transitions linked to the workflow-pack run."
+        ),
+        examples=[1],
+    )
+    has_review_history: bool | None = Field(
+        default=None,
+        description=(
+            "Source-reported indication that lotus-ai retains review-transition history for "
+            "the run."
+        ),
+        examples=[True],
+    )
     allowed_review_actions: list[str] = Field(
         default_factory=list,
         description=(
