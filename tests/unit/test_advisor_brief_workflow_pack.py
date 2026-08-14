@@ -175,10 +175,19 @@ async def test_load_advisor_brief_workflow_pack_run_preserves_review_posture() -
     assert run.findings[0].finding_id == "finding-1"
 
 
+@pytest.mark.parametrize(
+    "review_timestamp",
+    [
+        "not-a-date",
+        "2026-06-01T00:05:00",
+        "2026-06-01T08:05:00+08:00",
+        "2026-02-30T00:05:00Z",
+    ],
+)
 @pytest.mark.asyncio
-async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evidence_closed() -> (
-    None
-):
+async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evidence_closed(
+    review_timestamp: str,
+) -> None:
     client = _AdvisorBriefAiClientStub()
 
     async def _malformed_consumer_view(**kwargs: Any) -> tuple[int, dict[str, Any]]:
@@ -187,7 +196,7 @@ async def test_load_advisor_brief_workflow_pack_run_fails_malformed_review_evide
             {
                 "review": {
                     "allowed_actions": ["ACCEPT"],
-                    "latest_review_event_at": 123,
+                    "latest_review_event_at": review_timestamp,
                     "latest_review_actor": " ",
                     "review_transition_count": True,
                     "has_review_history": "true",

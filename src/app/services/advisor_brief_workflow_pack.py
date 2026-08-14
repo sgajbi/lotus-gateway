@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -118,7 +120,7 @@ def _parse_workflow_pack_run_profile(
         run_id=_safe_str(operator_payload.get("run_id")) or profile.run_id,
         runtime_state=_safe_str(operator_payload.get("runtime_state")) or "UNKNOWN",
         review_state=_safe_str(operator_payload.get("review_state")) or "UNKNOWN",
-        latest_review_event_at=_safe_str(review.get("latest_review_event_at")),
+        latest_review_event_at=_safe_utc_timestamp(review.get("latest_review_event_at")),
         latest_review_actor=_safe_str(review.get("latest_review_actor")),
         review_transition_count=_safe_non_negative_int(review.get("review_transition_count")),
         has_review_history=_safe_bool(review.get("has_review_history")),
@@ -202,6 +204,24 @@ def _safe_str(value: Any) -> str | None:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
+
+
+def _safe_utc_timestamp(value: Any) -> str | None:
+    timestamp = _safe_str(value)
+    if (
+        timestamp is None
+        or re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|\+00:00)",
+            timestamp,
+        )
+        is None
+    ):
+        return None
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return timestamp if parsed.utcoffset() == timedelta(0) else None
 
 
 def _safe_non_negative_int(value: Any) -> int | None:
