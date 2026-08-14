@@ -88,10 +88,11 @@ or AI truth.
 1. gateway contracts are product-facing and may differ intentionally from upstream parameter shapes
 2. RFC-0082 governs how upstream dependency families are classified
 3. supportability, readiness, and partial-failure metadata should survive composition
-4. performance `evidence_view` payloads expose UI-safe product context for as-of date, period,
-   basis, benchmark, source services, freshness, methodology, calculation versions, source
-   calculation supportability, coverage, fallbacks, and limitations; `lotus-performance` remains
-   the calculation, lineage, and methodology authority
+4. performance `evidence_view` payloads expose UI-safe product context for as-of date, period, the
+   inclusive Gateway-resolved report start and end dates, basis, benchmark, source services,
+   freshness, methodology, calculation versions, source calculation supportability, coverage,
+   fallbacks, and limitations; `lotus-performance` remains the calculation, lineage, and
+   methodology authority
 5. risk workspace module payloads preserve source calculation supportability from `lotus-risk`
    alongside dependency-specific supportability entries; Gateway does not recompute risk
    supportability

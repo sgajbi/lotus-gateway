@@ -98,10 +98,11 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 1. `workbench/performance/summary` and `workbench/performance/details` expose a gateway-owned
    `evidence_view` sourced from lotus-performance execution polling and lineage inventory.
 2. the performance `evidence_view` includes RFC-0108/RFC-0079-facing product context for as-of date,
-   period, basis, benchmark, calculation scope, source services, freshness posture, methodology
-   references, calculation versions, source calculation supportability, coverage, fallbacks, and
-   limitations. Gateway derives only UI-safe evidence context from upstream payloads; it does not
-   become the calculation or methodology authority.
+   period, the inclusive Gateway-resolved report start and end dates, basis, benchmark, calculation
+   scope, source services, freshness posture, methodology references, calculation versions, source
+   calculation supportability, coverage, fallbacks, and limitations. Gateway derives only UI-safe
+   evidence context from its resolved workspace request and upstream payloads; it does not become
+   the calculation or methodology authority.
 3. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
    route rather than exposing direct lotus-performance URLs.
 4. archived generated-document metadata and binary links are exposed through gateway-owned document

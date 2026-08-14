@@ -192,6 +192,11 @@ Current repository posture:
     partial-readiness response and suppresses follow-on execution or lineage evidence reads; it is
     not masked by a replacement calculation or treated as successful because a later warm retry
     completes.
+18. performance `evidence_view` responses carry the inclusive `report_start_date` and
+    `report_end_date` from the same Gateway-resolved workspace request context used for analytics.
+    These boundaries are required across supported, partial, and unavailable evidence postures so
+    Workbench can fail closed when calculation evidence does not match the advisor's review window;
+    Workbench must not infer or reconstruct them.
 
 ## Architecture And Module Map
 
