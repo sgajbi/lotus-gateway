@@ -286,22 +286,25 @@ Important validation expectations:
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
    with a warning when the token is absent so an authorized human or release actor can perform the
    rebase merge without leaving a false red helper check,
-7. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
+7. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
+   a pull request is merged into `main`, preserving exact-main release evidence for authorized
+   human or release-actor merges as well as token-backed auto-merge,
+8. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
-8. Docker parity matters because the gateway is a live integration boundary,
-9. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
+9. Docker parity matters because the gateway is a live integration boundary,
+10. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
    release manifest. Main Releasability is the only lane that pushes to GHCR; it captures the
    digest after push, signs the digest-pinned image, creates provenance attestation evidence, and
    requires Kubernetes deployment by digest while preserving the same image for environment
    promotion,
-10. `/version` exposes the same non-secret build and deployment metadata expected in release
+11. `/version` exposes the same non-secret build and deployment metadata expected in release
     manifests: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
     version. Image digest is deployment/runtime metadata captured after push and must not be baked
     into Docker build args, ENV, or OCI labels as `unknown`,
-11. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+12. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository

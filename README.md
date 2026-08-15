@@ -336,6 +336,10 @@ PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper u
 `LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
 available, the helper emits a warning and exits successfully so an authorized human or release actor
 can perform the rebase merge without leaving a false red CI check.
+Merged PRs into `main` also trigger `Merged PR Main Releasability Dispatch`, a bounded
+`pull_request_target` closed-event workflow that dispatches `main-releasability.yml` against
+`main`. This preserves exact-main release evidence when a PR is merged by an authorized human or
+release actor rather than the auto-merge helper.
 
 The Quality Baseline workflow is intentionally report-only. It publishes complexity,
 maintainability, dead-code, dependency, security, import-boundary, documentation, coverage, and

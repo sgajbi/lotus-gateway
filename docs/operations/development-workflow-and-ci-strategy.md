@@ -18,3 +18,8 @@ PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper u
 `LOTUS_AUTOMERGE_TOKEN` with `gh pr merge --auto --rebase --delete-branch`; when that token is not
 available, the helper emits a warning and exits successfully so an authorized human or release actor
 can perform the rebase merge without leaving a false red CI check.
+
+Merged PRs into `main` are followed by the `Merged PR Main Releasability Dispatch` workflow, which
+dispatches `main-releasability.yml` against `main` after GitHub reports a closed pull request as
+merged. This preserves exact-main Main Releasability evidence across both automated and authorized
+manual rebase merges.

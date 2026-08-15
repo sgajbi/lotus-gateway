@@ -48,6 +48,11 @@ PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper u
 available, the helper emits a warning and exits successfully so an authorized human or release actor
 can perform the rebase merge without leaving a false red CI check.
 
+Merged PRs into `main` also trigger the `Merged PR Main Releasability Dispatch` workflow. It listens
+only to closed pull-request events, verifies that the pull request was merged into `main`, and then
+dispatches `main-releasability.yml` against `main`. That keeps exact-main release evidence
+available for authorized human merges and release-actor merges, not only token-backed auto-merge.
+
 ## What the gates protect
 
 - workbench-facing contract integrity
