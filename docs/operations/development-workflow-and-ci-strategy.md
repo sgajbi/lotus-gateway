@@ -23,3 +23,6 @@ Merged PRs into `main` are followed by the `Merged PR Main Releasability Dispatc
 dispatches `main-releasability.yml` against `main` after GitHub reports a closed pull request as
 merged. This preserves exact-main Main Releasability evidence across both automated and authorized
 manual rebase merges.
+The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR dispatcher
+is the single automatic post-merge path and prevents duplicate push-triggered and dispatch-triggered
+main releasability runs for the same merge.

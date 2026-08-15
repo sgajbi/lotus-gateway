@@ -25,5 +25,5 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
 
     assert "name: Main Releasability Gate" in text
     assert "workflow_dispatch:" in text
-    assert "push:" in text
-    assert "branches: [ main ]" in text
+    assert "  push:\n" not in text
+    assert "branches: [ main ]" not in text

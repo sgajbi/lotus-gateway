@@ -288,7 +288,9 @@ Important validation expectations:
    rebase merge without leaving a false red helper check,
 7. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
    a pull request is merged into `main`, preserving exact-main release evidence for authorized
-   human or release-actor merges as well as token-backed auto-merge,
+   human or release-actor merges as well as token-backed auto-merge; `main-releasability.yml` is
+   intentionally `workflow_dispatch`-only so this dispatcher remains the single automatic
+   post-merge path and does not duplicate a push-triggered release run,
 8. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
