@@ -16,7 +16,11 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert "github.event.pull_request.merged == true" in text
     assert "github.event.pull_request.base.ref == 'main'" in text
     assert "timeout-minutes: 10" in text
-    assert 'gh workflow run main-releasability.yml --repo "$GITHUB_REPOSITORY" --ref main' in text
+    assert "gh workflow run main-releasability.yml" in text
+    assert "--ref main" in text
+    assert "github.event.pull_request.merge_commit_sha" in text
+    assert '-f expected_sha="$MERGE_COMMIT_SHA"' in text
+    assert '-f triggering_pr="$PR_NUMBER"' in text
 
 
 def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
@@ -25,5 +29,8 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
 
     assert "name: Main Releasability Gate" in text
     assert "workflow_dispatch:" in text
+    assert "expected_sha:" in text
+    assert "triggering_pr:" in text
+    assert "git rev-parse HEAD" in text
     assert "  push:\n" not in text
     assert "branches: [ main ]" not in text
