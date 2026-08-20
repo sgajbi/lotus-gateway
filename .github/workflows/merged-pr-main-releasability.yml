@@ -48,4 +48,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --ref "$dispatch_ref" \
             -f expected_sha="$MERGE_COMMIT_SHA" \
-            -f triggering_pr="$PR_NUMBER"
+            -f triggering_pr="$PR_NUMBER" \
+            -f source_branch="main"

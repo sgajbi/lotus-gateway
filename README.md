@@ -337,9 +337,11 @@ PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper u
 available, the helper emits a warning and exits successfully so an authorized human or release actor
 can perform the rebase merge without leaving a false red CI check.
 Merged PRs into `main` also trigger `Merged PR Main Releasability Dispatch`, a bounded
-`pull_request_target` closed-event workflow that dispatches `main-releasability.yml` against
-`main`. This preserves exact-main release evidence when a PR is merged by an authorized human or
-release actor rather than the auto-merge helper.
+`pull_request_target` closed-event workflow that dispatches `main-releasability.yml` through an
+immutable `main-releasability-<sha>` tag for the exact merged pull request SHA while stamping
+`main` as the release source branch in build metadata, provenance, manifests, and `/version`. This
+preserves exact-main release evidence when a PR is merged by an authorized human or release actor
+rather than the auto-merge helper without mislabelling release artifacts as tag-origin builds.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR
 dispatcher owns the automatic post-merge path so human or release-actor merges do not start both a
 push-triggered run and a dispatched run for the same main SHA.

@@ -28,6 +28,7 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert "github.event.pull_request.merge_commit_sha" in text
     assert '-f expected_sha="$MERGE_COMMIT_SHA"' in text
     assert '-f triggering_pr="$PR_NUMBER"' in text
+    assert '-f source_branch="main"' in text
 
 
 def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
@@ -38,6 +39,10 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
     assert "workflow_dispatch:" in text
     assert "expected_sha:" in text
     assert "triggering_pr:" in text
+    assert "source_branch:" in text
+    assert "LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}" in text
+    assert '--build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
+    assert '--git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
     assert "group: ${{ github.workflow }}-${{ github.ref }}" in text
     assert "git rev-parse HEAD" in text
     assert "  push:\n" not in text
