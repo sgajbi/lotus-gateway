@@ -14,7 +14,6 @@ on:
       source_branch:
         description: "Source branch name to stamp into release metadata when dispatch uses an immutable tag."
         required: false
-        default: "main"
         type: string
 
 concurrency:
