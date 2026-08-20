@@ -20,9 +20,13 @@ available, the helper emits a warning and exits successfully so an authorized hu
 can perform the rebase merge without leaving a false red CI check.
 
 Merged PRs into `main` are followed by the `Merged PR Main Releasability Dispatch` workflow, which
-dispatches `main-releasability.yml` against `main` after GitHub reports a closed pull request as
-merged. This preserves exact-main Main Releasability evidence across both automated and authorized
-manual rebase merges.
+creates or reuses an immutable `main-releasability-<merge-sha>` validation tag and dispatches
+`main-releasability.yml` through that tag after GitHub reports a closed pull request as merged. The
+dispatcher passes `expected_sha=<merge-sha>` and `source_branch=main`, so the workflow validates the
+exact merged commit while release metadata, provenance, manifests, and `/version` continue to
+describe the mainline source branch instead of the synthetic dispatch tag. This preserves exact-main
+Main Releasability evidence across both automated and authorized manual rebase merges without a
+mutable-`main` race.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR dispatcher
 is the single automatic post-merge path and prevents duplicate push-triggered and dispatch-triggered
 main releasability runs for the same merge.
