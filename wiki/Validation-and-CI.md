@@ -50,8 +50,10 @@ can perform the rebase merge without leaving a false red CI check.
 
 Merged PRs into `main` also trigger the `Merged PR Main Releasability Dispatch` workflow. It listens
 only to closed pull-request events, verifies that the pull request was merged into `main`, and then
-dispatches `main-releasability.yml` against `main`. That keeps exact-main release evidence
-available for authorized human merges and release-actor merges, not only token-backed auto-merge.
+dispatches `main-releasability.yml` through an immutable `main-releasability-<sha>` tag. That keeps
+exact-main release evidence available for authorized human merges and release-actor merges, not only
+token-backed auto-merge. The dispatcher passes `source_branch=main`, so build metadata, provenance,
+manifests, and `/version` describe the merged mainline source rather than the synthetic dispatch tag.
 `main-releasability.yml` is intentionally `workflow_dispatch`-only so this dispatcher is the single
 automatic post-merge path and does not race or cancel a duplicate push-triggered release run.
 

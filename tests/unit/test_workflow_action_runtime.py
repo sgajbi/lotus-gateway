@@ -302,6 +302,10 @@ def test_main_releasability_retains_release_and_container_evidence() -> None:
         "2>&1 | tee output/container-security/provenance-attestation.txt",
         "python scripts/write_container_release_manifest.py",
         "python scripts/check_container_release_evidence.py",
+        "LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}",
+        '--build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}"',
+        '"git_branch": "${LOTUS_RELEASE_SOURCE_BRANCH}"',
+        '--git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}"',
     ):
         assert fragment in workflow
 

@@ -11,6 +11,11 @@ on:
         description: "Optional pull request number that dispatched this mainline validation."
         required: false
         type: string
+      source_branch:
+        description: "Source branch name to stamp into release metadata when dispatch uses an immutable tag."
+        required: false
+        default: "main"
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,6 +30,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
   IMAGE_TAG: ${{ github.sha }}
+  LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}
   SYFT_IMAGE: anchore/syft:v1.42.3
   TRIVY_IMAGE: aquasec/trivy:0.72.0
 
@@ -172,7 +178,7 @@ jobs:
             -t lotus-gateway:ci-test \
             --build-arg LOTUS_APP_VERSION=0.1.0 \
             --build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}" \
-            --build-arg LOTUS_GIT_BRANCH="${GITHUB_REF_NAME}" \
+            --build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}" \
             --build-arg LOTUS_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
             --build-arg LOTUS_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
             --build-arg LOTUS_CI_RUN_ID="${GITHUB_RUN_ID}" \
@@ -229,7 +235,7 @@ jobs:
               },
               "parameters": {
                 "service": "lotus-gateway",
-                "git_branch": "${GITHUB_REF_NAME}",
+                "git_branch": "${LOTUS_RELEASE_SOURCE_BRANCH}",
                 "ci_run_id": "${GITHUB_RUN_ID}",
                 "image_digest": "${LOTUS_IMAGE_DIGEST}",
                 "sbom": "output/container-security/sbom.spdx.json"
@@ -273,7 +279,7 @@ jobs:
             --image-tag "${IMAGE_TAG}" \
             --image-digest "${LOTUS_IMAGE_DIGEST}" \
             --git-commit-sha "${GITHUB_SHA}" \
-            --git-branch "${GITHUB_REF_NAME}" \
+            --git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}" \
             --build-timestamp "${LOTUS_BUILD_TIMESTAMP}" \
             --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
             --ci-run-id "${GITHUB_RUN_ID}"
