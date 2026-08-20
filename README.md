@@ -344,7 +344,9 @@ preserves exact-main release evidence when a PR is merged by an authorized human
 rather than the auto-merge helper without mislabelling release artifacts as tag-origin builds.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR
 dispatcher owns the automatic post-merge path so human or release-actor merges do not start both a
-push-triggered run and a dispatched run for the same main SHA.
+push-triggered run and a dispatched run for the same main SHA. Manual dispatches intentionally have
+no `source_branch` default; release metadata inherits the selected workflow ref unless an operator
+explicitly provides a source branch override.
 
 The Quality Baseline workflow is intentionally report-only. It publishes complexity,
 maintainability, dead-code, dependency, security, import-boundary, documentation, coverage, and

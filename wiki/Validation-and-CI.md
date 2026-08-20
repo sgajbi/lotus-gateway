@@ -55,7 +55,9 @@ exact-main release evidence available for authorized human merges and release-ac
 token-backed auto-merge. The dispatcher passes `source_branch=main`, so build metadata, provenance,
 manifests, and `/version` describe the merged mainline source rather than the synthetic dispatch tag.
 `main-releasability.yml` is intentionally `workflow_dispatch`-only so this dispatcher is the single
-automatic post-merge path and does not race or cancel a duplicate push-triggered release run.
+automatic post-merge path and does not race or cancel a duplicate push-triggered release run. Manual
+dispatches intentionally have no `source_branch` default; release metadata inherits the selected
+workflow ref unless an operator explicitly provides a source branch override.
 
 ## What the gates protect
 

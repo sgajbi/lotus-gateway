@@ -40,6 +40,7 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
     assert "expected_sha:" in text
     assert "triggering_pr:" in text
     assert "source_branch:" in text
+    assert 'default: "main"' not in text
     assert "LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}" in text
     assert '--build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
     assert '--git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
