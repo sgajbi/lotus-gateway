@@ -72,6 +72,8 @@ def test_dockerfile_labels_build_metadata_without_secret_args() -> None:
         "org.opencontainers.image.source",
         "com.lotus.ci.run-id",
         "LOTUS_GIT_COMMIT_SHA",
+        "apt-get upgrade --yes --no-install-recommends",
+        "rm -rf /var/lib/apt/lists/*",
         "pip uninstall --yes wheel jaraco.context setuptools",
     ):
         assert fragment in dockerfile
