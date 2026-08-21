@@ -67,6 +67,7 @@ def validated_discussion_narrative(
             or review.proposal_version_no != detail.current_version.version_no
             or review.narrative_id != narrative.narrative_id
             or review.source_narrative_hash != source.source_narrative_hash
+            or review.reviewed_at < detail.current_version.created_at
         )
     ):
         raise_proposal_discussion_pack_contract_invalid()

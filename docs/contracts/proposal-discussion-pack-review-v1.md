@@ -40,7 +40,9 @@ fails closed with `ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID` and HTTP `5
 | Gateway request trace | Gateway correlation context | binds lineage to the exact request correlation id |
 
 Gateway performs five bounded concurrent reads for the selected record: proposal detail, narrative,
-memo, approvals, and delivery summary. It never fans out across the proposal worklist.
+memo, approvals, and delivery summary. It retries that bounded set once when lifecycle and consent
+facts show a transition-time mixed snapshot; a repeated contradiction fails closed. It never fans
+out across the proposal worklist.
 
 ## Independent supportability
 
@@ -81,6 +83,7 @@ approval, or consent record cannot override that boundary.
 The projection rejects:
 
 - source proposal, portfolio, version, version-id, narrative, memo, or approval identity mismatch,
+- narrative review evidence recorded before the selected immutable version was created,
 - current-version approval evidence recorded before the selected immutable version was created,
 - malformed or unknown closed-enum state,
 - duplicated disclosure or approval identifiers,
