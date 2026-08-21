@@ -28,8 +28,8 @@ evidence reads after the budget expires, and support is not inferred from a succ
 
 ## Advisory And Proposals
 
-1. proposal simulation, lifecycle, workflow, approval, lineage, replay, report request, delivery
-   posture, and execution updates,
+1. proposal simulation, lifecycle, typed selected-proposal risk-and-impact evidence, workflow,
+   approval, lineage, replay, report request, delivery posture, and execution updates,
 2. advisory workspace create, draft, save, resume, compare, rationale, review, and handoff,
 3. advisory policy packs, evaluations, review queue, workflow, sign-off, report package, lineage,
    replay, event, and AI evidence,

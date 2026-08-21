@@ -33,8 +33,9 @@ Current repository posture:
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, advisory-workspace, advisory-policy, advisory-copilot,
    advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
-   routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, async
-   operation support, idempotency lookup, replay evidence, reviewed narrative posture, execution
+   routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, typed
+   selected-proposal risk-and-impact evidence, async operation support, idempotency lookup, replay
+   evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
    routes routed to `lotus-advise` `/advisory/proposals/*`; advisory workspace create/draft/save,
    saved-version replay, resume, compare, rationale request/review, and handoff routes are routed
@@ -60,10 +61,11 @@ Current repository posture:
    owner role, reason codes, preparation-packet posture, copilot action-run posture, evidence
    refs, lineage refs,
    acknowledgement state, supported-claim classifications, material-review conflicts, backend
-   proof-pack posture, and delivery event posture
+   proof-pack posture, proposal allocation/risk/decision source authority, and delivery event posture
    without generating narrative, evaluating policy rules, inferring client-ready publication,
-   rendering reports, archiving documents, sourcing portfolio positions locally, or recomputing
-   advisory delivery truth, generating copilot recommendations, or turning support output into
+   rendering reports, archiving documents, sourcing portfolio positions locally, calculating
+   proposal risk or allocation deltas, or recomputing advisory delivery truth, generating copilot
+   recommendations, or turning support output into
    client-ready advice;
    `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center

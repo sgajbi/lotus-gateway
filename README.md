@@ -150,7 +150,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
 - `source-products`
   `/api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `proposals`
-  `/api/v1/proposals/*`
+  `/api/v1/proposals/*`, including the typed selected-record
+  `/api/v1/proposals/{proposal_id}/risk-impact` experience contract
 - `advisory-policy`
   `/api/v1/advisory-policy-packs/*`,
   `/api/v1/advisory-policy-evaluations/*`,
@@ -490,10 +491,11 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
   `lotus-archive`, `lotus-idea`, `lotus-ai`
 - downstream ownership rule:
-  proposal routes call `lotus-advise` `/advisory/proposals/*`, including reviewed narrative
-  posture, report-request, and delivery-posture routes; Gateway does not generate narrative,
-  infer client-ready publication, render reports, archive documents, or recompute advisory
-  delivery truth. `lotus-manage` calls are limited to
+  proposal routes call `lotus-advise` `/advisory/proposals/*`, including typed risk-and-impact,
+  reviewed narrative posture, report-request, and delivery-posture routes; Gateway validates and
+  reshapes source evidence but does not calculate risk, infer approval, generate narrative, infer
+  client-ready publication, render reports, archive documents, or recompute advisory delivery
+  truth. `lotus-manage` calls are limited to
   certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
   platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs,
   RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,
