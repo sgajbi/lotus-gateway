@@ -76,6 +76,20 @@ def test_projection_marks_missing_optional_handoff_evidence_as_partial() -> None
     assert provider.state == "not_available"
 
 
+def test_projection_marks_missing_handoff_time_as_partial() -> None:
+    payload = build_proposal_implementation_status_source_payload(status="ACCEPTED")
+    payload["handoff_requested_at"] = None
+
+    result = project_proposal_implementation_status(
+        payload,
+        expected_proposal_id="pp_implementation_001",
+        correlation_id="corr-implementation-missing-request-time",
+    )
+
+    assert result.evidence_state == "partial"
+    assert result.reason_code == "implementation_evidence_partial"
+
+
 def test_projection_preserves_valid_status_when_event_evidence_is_missing() -> None:
     payload = build_proposal_implementation_status_source_payload(status="ACCEPTED")
     payload["latest_workflow_event"] = None
@@ -107,6 +121,43 @@ def test_projection_preserves_executed_status_when_event_evidence_is_missing() -
     assert result.evidence_state == "partial"
     assert result.executed_at is not None
     assert result.latest_workflow_event is None
+
+
+@pytest.mark.parametrize("status", ["ACCEPTED", "PARTIALLY_EXECUTED", "REJECTED"])
+def test_projection_rejects_completion_time_before_execution(
+    status: ProposalImplementationHandoffStatus,
+) -> None:
+    payload = build_proposal_implementation_status_source_payload(status=status)
+    payload["executed_at"] = "2026-08-20T09:10:00+00:00"
+
+    with pytest.raises(HTTPException) as exc_info:
+        project_proposal_implementation_status(
+            payload,
+            expected_proposal_id="pp_implementation_001",
+            correlation_id="corr-implementation-premature-completion-time",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_IMPLEMENTATION_STATUS_CONTRACT_INVALID"
+    )
+
+
+def test_projection_rejects_executed_status_without_completion_time() -> None:
+    payload = build_proposal_implementation_status_source_payload(status="EXECUTED")
+    payload["executed_at"] = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        project_proposal_implementation_status(
+            payload,
+            expected_proposal_id="pp_implementation_001",
+            correlation_id="corr-implementation-missing-completion-time",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_IMPLEMENTATION_STATUS_CONTRACT_INVALID"
+    )
 
 
 def test_projection_preserves_historical_handoff_after_later_version_transition() -> None:

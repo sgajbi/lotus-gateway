@@ -49,9 +49,12 @@ change workflow state or create execution authority.
 
 ## Supportability and freshness
 
-- `supported`: the source status is valid and the references expected after handoff are present.
-- `partial`: the source status is valid, but request, provider, related-version, or event evidence is
-  absent. Workbench must show the gap and must not infer it.
+- `supported`: the source status is valid and the request, provider, related-version, handoff-time,
+  and event evidence expected after handoff are present.
+- `partial`: the source status is valid, but request, provider, related-version, handoff-time, or
+  event evidence is absent. Workbench must show the gap and must not infer it.
+- `executed_at`: is required only for `EXECUTED`; a completed status without this source timestamp,
+  or any earlier/exception status carrying it, is contract-invalid rather than partial evidence.
 - `freshness.observed_at`: the latest source execution-event time, or the proposal's source
   `last_event_at` when no handoff has been requested.
 - `version_posture`: distinguishes current-version, historical-version, and not-correlated evidence.
