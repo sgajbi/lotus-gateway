@@ -61,7 +61,7 @@ def _source_capabilities(
             state=workflow_gate.state,
             reason_code=workflow_gate.reason_code,
             source_service="lotus-advise",
-            support_reference="last_gate_decision",
+            support_reference=workflow_gate.support_reference,
         ),
     ]
 

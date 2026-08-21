@@ -1,13 +1,11 @@
 from app.contracts.proposal_risk_impact import (
     ProposalRiskImpactData,
     ProposalRiskImpactDecisionEvidence,
-    ProposalRiskImpactGateReason,
     ProposalRiskImpactLineage,
     ProposalRiskImpactMaterialChange,
     ProposalRiskImpactMissingEvidence,
     ProposalRiskImpactRequirement,
     ProposalRiskImpactRiskEvidence,
-    ProposalRiskImpactWorkflowGate,
 )
 from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactAllocationBucket,
@@ -28,7 +26,6 @@ from app.services.proposal_risk_impact_source_contract import (
     ProposalRiskImpactAllocationDimension,
     SourceProposalRiskImpactAllocationView,
     SourceProposalRiskImpactDecisionSummary,
-    SourceProposalRiskImpactGateDecision,
     SourceProposalRiskImpactMoney,
     SourceProposalRiskImpactResult,
     SourceProposalRiskImpactRiskLens,
@@ -36,6 +33,9 @@ from app.services.proposal_risk_impact_source_contract import (
 )
 from app.services.proposal_risk_impact_source_validation import (
     validated_proposal_risk_impact_source,
+)
+from app.services.proposal_risk_impact_workflow_gate import (
+    project_proposal_risk_impact_workflow_gate,
 )
 
 
@@ -52,7 +52,7 @@ def project_proposal_risk_impact(
         source.current_version.proposal_result.proposal_decision_summary,
         source.current_version.artifact.proposal_decision_summary,
     )
-    workflow_gate = _workflow_gate(
+    workflow_gate = project_proposal_risk_impact_workflow_gate(
         source.last_gate_decision,
         source.current_version.gate_decision,
         source.current_version.proposal_result.gate_decision,
@@ -286,29 +286,6 @@ def _decision_support_reference(
     if result_decision is not None:
         return "current_version.proposal_result.proposal_decision_summary"
     return "current_version.artifact.proposal_decision_summary"
-
-
-def _workflow_gate(
-    *gates: SourceProposalRiskImpactGateDecision | None,
-) -> ProposalRiskImpactWorkflowGate:
-    available = [gate for gate in gates if gate is not None]
-    if not available:
-        return ProposalRiskImpactWorkflowGate(
-            state="unavailable",
-            reason_code="workflow_gate_unavailable",
-        )
-    selected = available[0]
-    mismatch = any(gate != selected for gate in available[1:])
-    return ProposalRiskImpactWorkflowGate(
-        state="partial" if mismatch else "ready",
-        reason_code="workflow_gate_source_mismatch" if mismatch else "workflow_gate_available",
-        gate=selected.gate,
-        recommended_next_step=selected.recommended_next_step,
-        reasons=[
-            ProposalRiskImpactGateReason.model_validate(reason.model_dump())
-            for reason in selected.reasons
-        ],
-    )
 
 
 __all__ = ["project_proposal_risk_impact"]

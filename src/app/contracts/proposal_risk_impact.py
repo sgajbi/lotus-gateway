@@ -118,6 +118,10 @@ class ProposalRiskImpactWorkflowGate(BaseModel):
         description="Supportability of the source-owned workflow gate snapshot."
     )
     reason_code: str
+    support_reference: str | None = Field(
+        default=None,
+        description="Exact selected workflow-gate source path, when evidence is available.",
+    )
     gate: ProposalRiskImpactGate | None = Field(
         default=None,
         description="Workflow gate only; this is not proof that an approval was recorded.",
