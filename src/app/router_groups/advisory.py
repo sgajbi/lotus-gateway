@@ -106,6 +106,7 @@ from app.routers.proposal_create import router as proposal_create_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
 from app.routers.proposal_delivery_events import router as proposal_delivery_events_router
 from app.routers.proposal_detail import router as proposal_detail_router
+from app.routers.proposal_discussion_pack import router as proposal_discussion_pack_router
 from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_execution_status import router as proposal_execution_status_router
 from app.routers.proposal_execution_updates import router as proposal_execution_updates_router
@@ -219,6 +220,7 @@ PROPOSAL_ROUTERS: RouterGroup = (
     proposal_create_router,
     proposals_router,
     proposal_detail_router,
+    proposal_discussion_pack_router,
     proposal_operations_router,
     proposal_operation_lookups_router,
     proposal_operation_support_lookups_router,
