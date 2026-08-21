@@ -380,6 +380,84 @@ def test_projection_selects_same_decision_ties_deterministically() -> None:
     assert result.consent.approval_id == "approval_consent_z_002"
 
 
+@pytest.mark.parametrize(
+    "occurred_at",
+    ["2026-08-21T09:20:00Z", "2026-08-21T09:21:00Z"],
+)
+def test_projection_marks_latest_uncorrelated_consent_partial(
+    occurred_at: str,
+) -> None:
+    payloads = _prepared_payloads(state="AWAITING_CLIENT_CONSENT")
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_uncorrelated_003",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": False,
+            "actor_id": "client_1",
+            "occurred_at": occurred_at,
+            "related_version_no": None,
+        }
+    )
+    approvals["approval_count"] = 4
+    approvals["latest_approval_at"] = max(
+        "2026-08-21T09:20:00Z",
+        occurred_at,
+    )
+
+    result = _project(payloads)
+
+    assert result.consent.state == "partial"
+    assert result.consent.consent_state == "not_recorded"
+    assert result.consent.reason_code == "client_consent_version_not_correlated"
+    assert result.attention_required is True
+
+
+def test_projection_rejects_execution_when_latest_consent_is_uncorrelated() -> None:
+    payloads = _prepared_payloads(state="EXECUTION_READY")
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_uncorrelated_003",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": False,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:21:00Z",
+            "related_version_no": None,
+        }
+    )
+    approvals["approval_count"] = 4
+    approvals["latest_approval_at"] = "2026-08-21T09:21:00Z"
+
+    with pytest.raises(ProposalDiscussionPackSnapshotConflict):
+        _project(payloads)
+
+
+def test_projection_retains_newer_correlated_consent_over_older_uncorrelated_record() -> None:
+    payloads = _prepared_payloads(state="EXECUTION_READY")
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_uncorrelated_001",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": False,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:19:00Z",
+            "related_version_no": None,
+        }
+    )
+    approvals["approval_count"] = 4
+
+    result = _project(payloads)
+
+    assert result.consent.state == "supported"
+    assert result.consent.consent_state == "approved"
+    assert result.consent.approval_id == "approval_consent_002"
+
+
 def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:
     result = _project(_prepared_payloads())
 
