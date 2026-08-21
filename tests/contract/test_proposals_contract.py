@@ -1,5 +1,10 @@
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
+from app.contracts.proposal_implementation_status import (
+    ProposalImplementationStatusEnvelopeResponse,
+)
 from app.contracts.proposal_risk_impact import ProposalRiskImpactEnvelopeResponse
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
@@ -126,6 +131,72 @@ def test_proposal_risk_impact_openapi_contract_is_typed_and_additive() -> None:
         "capabilities",
         "lineage",
     }.issubset(data_schema["properties"])
+
+
+def test_proposal_implementation_status_openapi_contract_is_closed_and_typed() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    operation = spec["paths"]["/api/v1/proposals/{proposal_id}/execution-status"]["get"]
+    response_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    assert response_ref.endswith("/ProposalImplementationStatusEnvelopeResponse")
+
+    response_schema = spec["components"]["schemas"]["ProposalImplementationStatusEnvelopeResponse"]
+    data_ref = response_schema["properties"]["data"]["$ref"]
+    assert data_ref.endswith("/ProposalImplementationStatusData")
+    data_schema = spec["components"]["schemas"]["ProposalImplementationStatusData"]
+    assert data_schema["additionalProperties"] is False
+    assert {
+        "handoff_status",
+        "status_family",
+        "next_action",
+        "evidence_state",
+        "ownership",
+        "freshness",
+        "capabilities",
+        "lineage",
+    }.issubset(data_schema["properties"])
+
+
+def test_proposal_implementation_status_contract_rejects_oms_render_fields() -> None:
+    payload = {
+        "correlation_id": "corr-implementation-contract",
+        "data": {
+            "proposal_id": "pp_001",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "current_state": "EXECUTION_READY",
+            "current_version_no": 2,
+            "handoff_status": "NOT_REQUESTED",
+            "status_family": "not_started",
+            "next_action": "REQUEST_HANDOFF",
+            "attention_required": False,
+            "terminal": False,
+            "evidence_state": "supported",
+            "reason_code": "implementation_handoff_not_requested",
+            "version_posture": "not_correlated",
+            "ownership": {
+                "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+            },
+            "freshness": {
+                "observed_at": "2026-08-20T08:30:00+00:00",
+                "basis": "PROPOSAL_LAST_EVENT",
+            },
+            "capabilities": [],
+            "lineage": {
+                "proposal_id": "pp_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "gateway_correlation_id": "corr-implementation-contract",
+            },
+        },
+    }
+    response = ProposalImplementationStatusEnvelopeResponse.model_validate(payload)
+    assert response.contract_version == "proposal-implementation-status.v1"
+
+    data = payload["data"]
+    assert isinstance(data, dict)
+    data["filled_quantity"] = "100"
+    with pytest.raises(ValidationError):
+        ProposalImplementationStatusEnvelopeResponse.model_validate(payload)
 
 
 def test_proposal_risk_impact_contract_rejects_opaque_render_fields() -> None:

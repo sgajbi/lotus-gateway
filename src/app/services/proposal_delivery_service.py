@@ -1,5 +1,8 @@
 from typing import Any
 
+from app.contracts.proposal_implementation_status import (
+    ProposalImplementationStatusEnvelopeResponse,
+)
 from app.contracts.proposals import (
     ProposalDeliveryEventsEnvelopeResponse,
     ProposalDeliverySummaryEnvelopeResponse,
@@ -8,6 +11,9 @@ from app.contracts.proposals import (
     ProposalReportRequestEnvelopeResponse,
 )
 from app.services.proposal_client_protocols import ProposalClient
+from app.services.proposal_implementation_status_projection import (
+    project_proposal_implementation_status,
+)
 from app.services.upstream_envelope import build_gateway_envelope
 
 
@@ -150,13 +156,20 @@ class ProposalDeliveryServiceMixin:
         self,
         proposal_id: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalImplementationStatusEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_execution_status(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._opaque_envelope(correlation_id, upstream_payload)
+        return ProposalImplementationStatusEnvelopeResponse(
+            correlation_id=correlation_id,
+            data=project_proposal_implementation_status(
+                upstream_payload,
+                expected_proposal_id=proposal_id,
+                correlation_id=correlation_id,
+            ),
+        )
 
     async def record_execution_update(
         self,
