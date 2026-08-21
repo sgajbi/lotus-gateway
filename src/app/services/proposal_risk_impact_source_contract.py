@@ -1,9 +1,10 @@
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from app.contracts.proposal_risk_impact_allocation import (
+    ProposalRiskImpactAllocationDimension,
     ProposalRiskImpactApprovalType,
     ProposalRiskImpactDecisionStatus,
     ProposalRiskImpactGate,
@@ -13,25 +14,24 @@ from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactWorkflowState,
 )
 
-ProposalRiskImpactAllocationDimension = Literal[
-    "asset_class",
-    "currency",
-    "sector",
-    "country",
-    "region",
-    "product_type",
-    "rating",
-]
+
+def _require_decimal_string(value: object) -> object:
+    if not isinstance(value, str):
+        raise ValueError("source decimal values must be strings")
+    return value
+
+
+SourceDecimalString = Annotated[Decimal, BeforeValidator(_require_decimal_string)]
 
 
 class SourceProposalRiskImpactMoney(BaseModel):
-    amount: Decimal
-    currency: str = Field(min_length=3, max_length=3)
+    amount: SourceDecimalString
+    currency: str = Field(pattern=r"^[A-Z]{3}$")
 
 
 class SourceProposalRiskImpactAllocationBucket(BaseModel):
     key: str = Field(min_length=1)
-    weight: Decimal
+    weight: SourceDecimalString
     value: SourceProposalRiskImpactMoney
     position_count: int = Field(ge=0)
 
@@ -47,8 +47,9 @@ class SourceProposalRiskImpactSimulatedState(BaseModel):
 
 
 class SourceProposalRiskImpactAllocationLens(BaseModel):
-    contract_version: str
-    calculator_version: str
+    contract_version: str = Field(min_length=1)
+    calculator_version: str = Field(min_length=1)
+    dimensions: list[ProposalRiskImpactAllocationDimension] = Field(min_length=1)
     source: Literal["LOTUS_CORE", "LOTUS_ADVISE_LOCAL_FALLBACK"]
 
 

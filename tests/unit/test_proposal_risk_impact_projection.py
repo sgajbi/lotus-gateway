@@ -179,13 +179,35 @@ def test_marks_currency_or_risk_authority_gaps_as_partial() -> None:
     assert result.risk.reason_code == "proposal_risk_lens_source_unavailable"
 
 
+def test_marks_missing_declared_allocation_dimensions_as_partial() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    proposal_result = current_version["proposal_result"]
+    assert isinstance(proposal_result, dict)
+    allocation_lens = proposal_result["allocation_lens"]
+    assert isinstance(allocation_lens, dict)
+    allocation_lens["dimensions"] = ["asset_class", "currency"]
+
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
+
+    assert result.allocation.state == "partial"
+    assert result.allocation.reason_code == ("allocation_comparison_dimension_coverage_partial")
+    assert result.allocation.expected_dimensions == ["asset_class", "currency"]
+
+
 @pytest.mark.parametrize(
     "mutation",
     [
         "proposal_version_identity_mismatch",
         "duplicate_allocation_dimension",
         "duplicate_allocation_bucket",
+        "duplicate_declared_dimension",
         "invalid_decimal",
+        "numeric_decimal",
         "unknown_decision_vocabulary",
     ],
 )
@@ -215,7 +237,13 @@ def test_fails_closed_when_source_contract_cannot_be_verified(mutation: str) -> 
         buckets = view["buckets"]
         assert isinstance(buckets, list)
         buckets.append(deepcopy(buckets[0]))
-    elif mutation == "invalid_decimal":
+    elif mutation == "duplicate_declared_dimension":
+        proposal_result = current_version["proposal_result"]
+        assert isinstance(proposal_result, dict)
+        allocation_lens = proposal_result["allocation_lens"]
+        assert isinstance(allocation_lens, dict)
+        allocation_lens["dimensions"] = ["asset_class", "asset_class"]
+    elif mutation in {"invalid_decimal", "numeric_decimal"}:
         proposal_result = current_version["proposal_result"]
         assert isinstance(proposal_result, dict)
         before = proposal_result["before"]
@@ -228,7 +256,7 @@ def test_fails_closed_when_source_contract_cannot_be_verified(mutation: str) -> 
         assert isinstance(buckets, list)
         bucket = buckets[0]
         assert isinstance(bucket, dict)
-        bucket["weight"] = "not-a-decimal"
+        bucket["weight"] = "not-a-decimal" if mutation == "invalid_decimal" else 0.68
     else:
         proposal_result = current_version["proposal_result"]
         assert isinstance(proposal_result, dict)

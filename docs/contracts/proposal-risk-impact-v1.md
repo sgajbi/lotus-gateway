@@ -29,6 +29,10 @@ section is `partial` with a stable source-mismatch reason. Invalid identity, dup
 dimensions, or malformed typed values fail closed with
 `ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID`.
 
+The allocation projection validates the source lens's ordered declared dimensions against both
+snapshots. Missing or unexpected dimensions keep the section partial, duplicated declarations fail
+closed, and money or weight values must arrive as exact decimal strings rather than JSON floats.
+
 Decision and workflow-gate evidence publish the exact selected source path in both the section and
 its capability posture. Consumers therefore never receive provenance for an absent copy when
 another validated source copy supplied the visible evidence.
