@@ -125,6 +125,12 @@ def validated_discussion_approvals(
         for item in source.approvals
     ):
         raise_proposal_discussion_pack_contract_invalid()
+    if any(
+        item.related_version_no == detail.current_version.version_no
+        and item.occurred_at < detail.current_version.created_at
+        for item in source.approvals
+    ):
+        raise_proposal_discussion_pack_contract_invalid()
     if source.approvals and source.latest_approval_at != source.approvals[-1].occurred_at:
         raise_proposal_discussion_pack_contract_invalid()
     return source

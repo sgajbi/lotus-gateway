@@ -81,6 +81,7 @@ approval, or consent record cannot override that boundary.
 The projection rejects:
 
 - source proposal, portfolio, version, version-id, narrative, memo, or approval identity mismatch,
+- current-version approval evidence recorded before the selected immutable version was created,
 - malformed or unknown closed-enum state,
 - duplicated disclosure or approval identifiers,
 - narrative review whose id or hash does not match the selected narrative,
