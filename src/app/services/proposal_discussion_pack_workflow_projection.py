@@ -5,6 +5,7 @@ from app.contracts.proposal_discussion_pack import (
 )
 from app.services.proposal_discussion_pack_errors import (
     raise_proposal_discussion_pack_contract_invalid,
+    raise_proposal_discussion_pack_snapshot_conflict,
 )
 from app.services.proposal_discussion_pack_source_contract import (
     SourceDiscussionApprovals,
@@ -166,12 +167,12 @@ def validate_discussion_consent_lifecycle(
         consent.consent_state == "approved"
         and detail.proposal.current_state == "AWAITING_CLIENT_CONSENT"
     ):
-        raise_proposal_discussion_pack_contract_invalid()
+        raise_proposal_discussion_pack_snapshot_conflict()
     if (
         detail.proposal.current_state in {"EXECUTION_READY", "EXECUTED"}
         and consent.consent_state != "approved"
     ):
-        raise_proposal_discussion_pack_contract_invalid()
+        raise_proposal_discussion_pack_snapshot_conflict()
 
 
 __all__ = [

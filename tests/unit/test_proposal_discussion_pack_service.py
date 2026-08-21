@@ -71,6 +71,47 @@ class _DiscussionPackClient:
         return 200, self.payloads["delivery"]
 
 
+def _add_current_consent(payloads: dict[str, dict[str, object]]) -> None:
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_002",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": True,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:20:00Z",
+            "related_version_no": 2,
+        }
+    )
+    approvals["approval_count"] = 3
+    approvals["latest_approval_at"] = "2026-08-21T09:20:00Z"
+
+
+class _SnapshotTransitionClient(_DiscussionPackClient):
+    def __init__(self, *, persistent_conflict: bool = False) -> None:
+        super().__init__()
+        self.detail_reads = 0
+        self.persistent_conflict = persistent_conflict
+        _add_current_consent(self.payloads)
+
+    async def get_proposal(
+        self,
+        proposal_id: str,
+        include_evidence: bool,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        self.detail_reads += 1
+        if self.detail_reads == 2 and not self.persistent_conflict:
+            self.payloads = build_discussion_pack_source_payloads(state="EXECUTION_READY")
+            _add_current_consent(self.payloads)
+        return await super().get_proposal(
+            proposal_id,
+            include_evidence,
+            correlation_id,
+        )
+
+
 @pytest.mark.asyncio
 async def test_service_reads_one_selected_proposal_without_worklist_fan_out() -> None:
     client = _DiscussionPackClient()
@@ -94,6 +135,45 @@ async def test_service_reads_one_selected_proposal_without_worklist_fan_out() ->
         "delivery",
     ]
     assert client.calls[0][1]["include_evidence"] is False
+
+
+@pytest.mark.asyncio
+async def test_service_retries_one_transition_time_mixed_snapshot() -> None:
+    client = _SnapshotTransitionClient()
+    service = ProposalService(cast(ProposalClient, client))
+
+    result = await service.get_proposal_discussion_pack(
+        proposal_id="pp_discussion_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        version_no=2,
+        correlation_id="corr-discussion-retry",
+    )
+
+    assert result.data.current_state == "EXECUTION_READY"
+    assert result.data.consent.consent_state == "approved"
+    assert client.detail_reads == 2
+    assert len(client.calls) == 10
+
+
+@pytest.mark.asyncio
+async def test_service_fails_closed_after_repeated_snapshot_conflict() -> None:
+    client = _SnapshotTransitionClient(persistent_conflict=True)
+    service = ProposalService(cast(ProposalClient, client))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_discussion_pack(
+            proposal_id="pp_discussion_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            version_no=2,
+            correlation_id="corr-discussion-retry-exhausted",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+    assert client.detail_reads == 2
+    assert len(client.calls) == 10
 
 
 @pytest.mark.parametrize("status_code", [403, 404, 503])

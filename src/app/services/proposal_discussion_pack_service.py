@@ -5,6 +5,10 @@ from app.contracts.proposal_discussion_pack import (
     ProposalDiscussionPackEnvelopeResponse,
 )
 from app.services.proposal_client_protocols import ProposalClient
+from app.services.proposal_discussion_pack_errors import (
+    ProposalDiscussionPackSnapshotConflict,
+    raise_proposal_discussion_pack_contract_invalid,
+)
 from app.services.proposal_discussion_pack_projection import (
     ProposalDiscussionSourceResponse,
     project_proposal_discussion_pack,
@@ -29,20 +33,26 @@ class ProposalDiscussionPackServiceMixin:
         version_no: int,
         correlation_id: str,
     ) -> ProposalDiscussionPackEnvelopeResponse:
-        results = await self._read_discussion_pack_sources(
-            proposal_id=proposal_id,
-            version_no=version_no,
-            correlation_id=correlation_id,
-        )
-        detail_status, detail_payload = results[0]
-        self._raise_for_upstream_error(detail_status, detail_payload)
-        return _discussion_pack_envelope(
-            results=results,
-            proposal_id=proposal_id,
-            portfolio_id=portfolio_id,
-            version_no=version_no,
-            correlation_id=correlation_id,
-        )
+        for attempt in range(2):
+            results = await self._read_discussion_pack_sources(
+                proposal_id=proposal_id,
+                version_no=version_no,
+                correlation_id=correlation_id,
+            )
+            detail_status, detail_payload = results[0]
+            self._raise_for_upstream_error(detail_status, detail_payload)
+            try:
+                return _discussion_pack_envelope(
+                    results=results,
+                    proposal_id=proposal_id,
+                    portfolio_id=portfolio_id,
+                    version_no=version_no,
+                    correlation_id=correlation_id,
+                )
+            except ProposalDiscussionPackSnapshotConflict as exc:
+                if attempt == 1:
+                    raise_proposal_discussion_pack_contract_invalid(exc)
+        raise AssertionError("Discussion-pack snapshot retry did not terminate.")
 
     async def _read_discussion_pack_sources(
         self,

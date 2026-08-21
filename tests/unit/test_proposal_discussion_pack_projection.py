@@ -3,6 +3,9 @@ from copy import deepcopy
 import pytest
 from fastapi import HTTPException
 
+from app.services.proposal_discussion_pack_errors import (
+    ProposalDiscussionPackSnapshotConflict,
+)
 from app.services.proposal_discussion_pack_projection import (
     ProposalDiscussionSourceResponse,
     project_proposal_discussion_pack,
@@ -138,6 +141,15 @@ def test_projection_rejects_duplicate_disclosure_identifiers() -> None:
         _project(payloads)
 
 
+def test_projection_rejects_narrative_review_before_selected_version() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    review = payloads["narrative"]["narrative_review"]
+    review["reviewed_at"] = "2026-08-21T08:00:00Z"
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
 def test_projection_rejects_consent_that_conflicts_with_lifecycle_state() -> None:
     payloads = build_discussion_pack_source_payloads()
     approvals = payloads["approvals"]
@@ -154,7 +166,7 @@ def test_projection_rejects_consent_that_conflicts_with_lifecycle_state() -> Non
     approvals["approval_count"] = 3
     approvals["latest_approval_at"] = "2026-08-21T09:20:00Z"
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(ProposalDiscussionPackSnapshotConflict):
         _project(payloads)
 
 
@@ -162,7 +174,7 @@ def test_projection_rejects_consent_that_conflicts_with_lifecycle_state() -> Non
 def test_projection_rejects_declined_consent_for_execution_state(state: str) -> None:
     payloads = _prepared_payloads(state=state, consent_approved=False)
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(ProposalDiscussionPackSnapshotConflict):
         _project(payloads)
 
 

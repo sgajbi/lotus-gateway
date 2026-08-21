@@ -3,6 +3,14 @@ from typing import NoReturn
 from fastapi import HTTPException, status
 
 
+class ProposalDiscussionPackSnapshotConflict(RuntimeError):
+    """Signals a retryable disagreement between concurrently read source facts."""
+
+
+def raise_proposal_discussion_pack_snapshot_conflict() -> NoReturn:
+    raise ProposalDiscussionPackSnapshotConflict
+
+
 def raise_proposal_discussion_pack_contract_invalid(
     exc: Exception | None = None,
 ) -> NoReturn:
@@ -20,4 +28,8 @@ def raise_proposal_discussion_pack_contract_invalid(
     raise error from exc
 
 
-__all__ = ["raise_proposal_discussion_pack_contract_invalid"]
+__all__ = [
+    "ProposalDiscussionPackSnapshotConflict",
+    "raise_proposal_discussion_pack_contract_invalid",
+    "raise_proposal_discussion_pack_snapshot_conflict",
+]
