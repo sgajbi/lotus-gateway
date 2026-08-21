@@ -130,7 +130,11 @@ def _current_version_consent(
         and item.related_version_no == detail.current_version.version_no
     ]
     if current:
-        latest = max(current, key=lambda item: item.occurred_at)
+        latest_at = max(item.occurred_at for item in current)
+        latest_records = [item for item in current if item.occurred_at == latest_at]
+        if len({item.approved for item in latest_records}) > 1:
+            raise_proposal_discussion_pack_contract_invalid()
+        latest = max(latest_records, key=lambda item: item.approval_id)
         return ProposalDiscussionConsentEvidence(
             state="supported",
             reason_code=(
