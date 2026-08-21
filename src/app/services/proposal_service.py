@@ -16,6 +16,7 @@ from app.contracts.proposals import (
 )
 from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_delivery_service import ProposalDeliveryServiceMixin
+from app.services.proposal_discussion_pack_service import ProposalDiscussionPackServiceMixin
 from app.services.proposal_lifecycle_query_service import ProposalLifecycleQueryServiceMixin
 from app.services.proposal_memo_service import ProposalMemoServiceMixin
 from app.services.proposal_risk_impact_projection import project_proposal_risk_impact
@@ -30,6 +31,7 @@ from app.services.upstream_envelope import (
 class ProposalService(
     ProposalTransitionServiceMixin,
     ProposalLifecycleQueryServiceMixin,
+    ProposalDiscussionPackServiceMixin,
     ProposalMemoServiceMixin,
     ProposalDeliveryServiceMixin,
 ):
