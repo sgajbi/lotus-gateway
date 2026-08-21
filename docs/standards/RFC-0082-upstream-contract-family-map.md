@@ -92,6 +92,18 @@ fill, settlement, owner, SLA, or priority truth. The downstream execution provid
 execution system of record. The governed field and failure map is
 `docs/contracts/proposal-implementation-status-v1.md`.
 
+### Proposal discussion-pack-review experience projection
+
+`GET /api/v1/proposals/{proposal_id}/discussion-pack-review` is an Operational Read experience
+projection over five bounded, concurrent selected-record reads from `lotus-advise`: proposal
+detail, immutable-version narrative, persisted memo, structured approvals, and delivery summary.
+Gateway binds proposal, portfolio, and version identity, validates source hashes and closed states,
+and preserves independent restricted/unavailable capability posture. It keeps advisor-use review,
+report materialization, current-version consent, client release, and client delivery separate. It
+does not infer discussion readiness, generate content, publish, contact a client, or fan out across
+the worklist. The governed field, authority, and failure map is
+`docs/contracts/proposal-discussion-pack-review-v1.md`.
+
 ## Current Evidence
 
 Existing tests that cover this posture include:

@@ -34,7 +34,8 @@ Current repository posture:
 3. performance, proposal, advisory-workspace, advisory-policy, advisory-copilot,
    advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
    routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, typed
-   selected-proposal risk-and-impact and implementation-status evidence, async operation support,
+   selected-proposal risk-and-impact, implementation-status, and discussion-pack-review evidence,
+   async operation support,
    idempotency lookup, replay evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
    routes routed to `lotus-advise` `/advisory/proposals/*`; advisory workspace create/draft/save,
@@ -62,7 +63,8 @@ Current repository posture:
    refs, lineage refs,
    acknowledgement state, supported-claim classifications, material-review conflicts, backend
    proof-pack posture, proposal allocation/risk/decision source authority, typed implementation
-   handoff state/version/event/ownership posture, and delivery event posture
+   handoff state/version/event/ownership posture, request-bound discussion narrative/memo/
+   disclosure/package/consent evidence, and delivery event posture
    without generating narrative, evaluating policy rules, inferring client-ready publication,
    rendering reports, archiving documents, sourcing portfolio positions locally, calculating
    proposal risk or allocation deltas, claiming downstream order/fill/settlement authority, or
