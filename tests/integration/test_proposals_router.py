@@ -2,6 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.shared.proposal_implementation_status_payload import (
+    build_proposal_implementation_status_source_payload,
+)
 from tests.shared.proposal_risk_impact_payload import build_proposal_risk_impact_source_payload
 
 
@@ -321,7 +324,10 @@ def test_proposal_narrative_execution_and_memo_support_routes_forward_to_advise(
             "proposal_id": proposal_id,
             "correlation_id": correlation_id,
         }
-        return 200, {"proposal_id": proposal_id, "handoff_status": "REQUESTED"}
+        return 200, build_proposal_implementation_status_source_payload(
+            status="REQUESTED",
+            proposal_id=proposal_id,
+        )
 
     async def _fake_memo_report_event(
         self,
@@ -430,6 +436,12 @@ def test_proposal_narrative_execution_and_memo_support_routes_forward_to_advise(
     }
     assert regenerated.json()["data"]["status"] == "READY_FOR_ADVISOR_REVIEW"
     assert handoff.json()["data"]["execution_request_id"] == "pex_001"
+    assert execution_status.json()["contract_version"] == "proposal-implementation-status.v1"
+    assert execution_status.json()["data"]["handoff_status"] == "REQUESTED"
+    assert execution_status.json()["data"]["next_action"] == "MONITOR_HANDOFF"
+    assert execution_status.json()["data"]["lineage"]["gateway_correlation_id"] == (
+        "corr-exec-status"
+    )
     assert memo_event.json()["data"]["event_type"] == "ARCHIVED"
 
 
