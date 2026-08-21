@@ -1,0 +1,141 @@
+from copy import deepcopy
+
+import pytest
+from fastapi import HTTPException
+
+from app.services.proposal_discussion_pack_projection import (
+    ProposalDiscussionSourceResponse,
+    project_proposal_discussion_pack,
+)
+from tests.shared.proposal_discussion_pack_payload import (
+    build_discussion_pack_source_payloads,
+)
+
+
+def _response(
+    payload: dict[str, object], status_code: int = 200
+) -> ProposalDiscussionSourceResponse:
+    return ProposalDiscussionSourceResponse(status_code=status_code, payload=payload)
+
+
+def _project(payloads: dict[str, dict[str, object]]):
+    return project_proposal_discussion_pack(
+        detail_payload=payloads["detail"],
+        narrative_response=_response(payloads["narrative"]),
+        memo_response=_response(payloads["memo"]),
+        approvals_response=_response(payloads["approvals"]),
+        delivery_response=_response(payloads["delivery"]),
+        expected_proposal_id="pp_discussion_001",
+        expected_portfolio_id="PB_SG_GLOBAL_BAL_001",
+        expected_version_no=2,
+        correlation_id="corr-discussion-pack",
+    )
+
+
+def test_projection_separates_advisor_evidence_from_client_release() -> None:
+    result = _project(build_discussion_pack_source_payloads())
+
+    assert result.overall_state == "supported"
+    assert result.narrative.review_state == "APPROVED_FOR_ADVISOR_USE"
+    assert result.memo.latest_review_action == "APPROVE_FOR_ADVISOR_USE"
+    assert result.package.package_state == "not_requested"
+    assert result.consent.consent_state == "not_recorded"
+    assert result.client_release.state == "blocked"
+    assert result.client_release.publication_supported is False
+    assert result.client_release.delivery_supported is False
+    assert result.lineage.narrative_hash == "sha256:narrative-002"
+
+
+def test_projection_preserves_independent_source_failure() -> None:
+    payloads = build_discussion_pack_source_payloads()
+
+    result = project_proposal_discussion_pack(
+        detail_payload=payloads["detail"],
+        narrative_response=ProposalDiscussionSourceResponse(503, {}),
+        memo_response=_response(payloads["memo"]),
+        approvals_response=ProposalDiscussionSourceResponse(403, {}),
+        delivery_response=_response(payloads["delivery"]),
+        expected_proposal_id="pp_discussion_001",
+        expected_portfolio_id="PB_SG_GLOBAL_BAL_001",
+        expected_version_no=2,
+        correlation_id="corr-discussion-partial",
+    )
+
+    assert result.overall_state == "partial"
+    assert result.narrative.state == "unavailable"
+    assert result.memo.state == "supported"
+    assert result.consent.state == "restricted"
+    assert result.package.state == "not_available"
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("detail", "proposal", "portfolio_id"), "PF_OTHER"),
+        (("narrative", "proposal_version_no"), 1),
+        (("memo", "projection", "client_ready_publication"), "AVAILABLE"),
+    ],
+)
+def test_projection_fails_closed_on_identity_or_release_contradiction(
+    path: tuple[str, ...],
+    value: object,
+) -> None:
+    payloads = build_discussion_pack_source_payloads()
+    target: dict[str, object] = payloads[path[0]]
+    for key in path[1:-1]:
+        target = target[key]  # type: ignore[assignment]
+    target[path[-1]] = value
+
+    with pytest.raises(HTTPException) as exc_info:
+        _project(payloads)
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+
+
+def test_projection_rejects_duplicate_disclosure_identifiers() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    narrative = payloads["narrative"]["proposal_narrative"]
+    assert isinstance(narrative, dict)
+    narrative["disclosures"].append(deepcopy(narrative["disclosures"][0]))
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+def test_projection_rejects_consent_that_conflicts_with_lifecycle_state() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    approvals = payloads["approvals"]
+    approval = {
+        "approval_id": "approval_consent_002",
+        "proposal_id": "pp_discussion_001",
+        "approval_type": "CLIENT_CONSENT",
+        "approved": True,
+        "actor_id": "client_1",
+        "occurred_at": "2026-08-21T09:20:00Z",
+        "related_version_no": 2,
+    }
+    approvals["approvals"].append(approval)
+    approvals["approval_count"] = 3
+    approvals["latest_approval_at"] = "2026-08-21T09:20:00Z"
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+def test_projection_rejects_unknown_report_status() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    payloads["delivery"]["reporting"] = {
+        "report_request_id": "prr_002",
+        "report_service": "lotus-report",
+        "status": "MYSTERY",
+        "report_reference_id": "report_002",
+        "related_version_no": 2,
+        "include_reviewed_narrative": True,
+        "generated_at": "2026-08-21T09:15:00Z",
+    }
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
