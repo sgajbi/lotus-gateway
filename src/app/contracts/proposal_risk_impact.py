@@ -87,6 +87,10 @@ class ProposalRiskImpactDecisionEvidence(BaseModel):
         description="Stable reason code explaining decision-evidence supportability."
     )
     source_service: Literal["lotus-advise"] = "lotus-advise"
+    support_reference: str | None = Field(
+        default=None,
+        description="Exact selected decision-summary source path, when evidence is available.",
+    )
     decision_status: ProposalRiskImpactDecisionStatus | None = None
     top_level_status: Literal["READY", "PENDING_REVIEW", "BLOCKED"] | None = None
     primary_reason_code: str | None = None

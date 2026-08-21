@@ -95,8 +95,34 @@ def test_marks_source_copy_mismatch_as_partial_and_preserves_primary_source() ->
 
     assert result.overall_state == "partial"
     assert result.decision.reason_code == "proposal_decision_source_mismatch"
+    assert result.decision.support_reference == (
+        "current_version.proposal_result.proposal_decision_summary"
+    )
     assert result.decision.primary_summary == (
         "Review the proposed reduction in concentrated equity exposure."
+    )
+
+
+def test_reports_artifact_path_when_decision_evidence_uses_fallback_copy() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    proposal_result = current_version["proposal_result"]
+    assert isinstance(proposal_result, dict)
+    proposal_result["proposal_decision_summary"] = None
+
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
+    capabilities = {item.key: item for item in result.capabilities}
+
+    assert result.decision.state == "ready"
+    assert result.decision.support_reference == (
+        "current_version.artifact.proposal_decision_summary"
+    )
+    assert capabilities["decision_posture"].support_reference == (
+        "current_version.artifact.proposal_decision_summary"
     )
 
 
