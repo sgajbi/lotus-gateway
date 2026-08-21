@@ -88,11 +88,7 @@ def project_proposal_implementation_status(
         attention_required=semantics.attention_required,
         terminal=semantics.terminal,
         evidence_state=evidence_state,
-        reason_code=(
-            semantics.reason_code
-            if evidence_state == "supported"
-            else "implementation_evidence_partial"
-        ),
+        reason_code=_reason_code(semantics, evidence_state),
         execution_request_id=source.execution_request_id,
         execution_provider=source.execution_provider,
         related_version_no=source.related_version_no,
@@ -101,21 +97,49 @@ def project_proposal_implementation_status(
         executed_at=source.executed_at,
         external_execution_id=source.external_execution_id,
         latest_workflow_event=event,
-        ownership=ProposalImplementationOwnership.model_validate(
-            source.execution_ownership.model_dump()
-        ),
-        freshness=ProposalImplementationFreshness(
-            observed_at=(source.proposal.last_event_at if event is None else event.occurred_at),
-            basis="PROPOSAL_LAST_EVENT" if event is None else "LATEST_EXECUTION_EVENT",
-        ),
+        ownership=_ownership(source),
+        freshness=_freshness(source, event),
         capabilities=_capabilities(source),
-        lineage=ProposalImplementationLineage(
-            proposal_id=source.proposal.proposal_id,
-            portfolio_id=source.proposal.portfolio_id,
-            related_version_no=source.related_version_no,
-            latest_event_id=None if event is None else event.event_id,
-            gateway_correlation_id=correlation_id,
-        ),
+        lineage=_lineage(source, event, correlation_id),
+    )
+
+
+def _reason_code(
+    semantics: _StatusSemantics,
+    evidence_state: ProposalImplementationEvidenceState,
+) -> str:
+    if evidence_state == "supported":
+        return semantics.reason_code
+    return "implementation_evidence_partial"
+
+
+def _ownership(
+    source: SourceProposalImplementationStatus,
+) -> ProposalImplementationOwnership:
+    return ProposalImplementationOwnership.model_validate(source.execution_ownership.model_dump())
+
+
+def _freshness(
+    source: SourceProposalImplementationStatus,
+    event: ProposalImplementationLatestEvent | None,
+) -> ProposalImplementationFreshness:
+    return ProposalImplementationFreshness(
+        observed_at=source.proposal.last_event_at if event is None else event.occurred_at,
+        basis="PROPOSAL_LAST_EVENT" if event is None else "LATEST_EXECUTION_EVENT",
+    )
+
+
+def _lineage(
+    source: SourceProposalImplementationStatus,
+    event: ProposalImplementationLatestEvent | None,
+    correlation_id: str,
+) -> ProposalImplementationLineage:
+    return ProposalImplementationLineage(
+        proposal_id=source.proposal.proposal_id,
+        portfolio_id=source.proposal.portfolio_id,
+        related_version_no=source.related_version_no,
+        latest_event_id=None if event is None else event.event_id,
+        gateway_correlation_id=correlation_id,
     )
 
 
