@@ -97,7 +97,7 @@ def _validate_identity(
 def _validate_status_correlation(source: SourceProposalImplementationStatus) -> None:
     expected_event = _EXPECTED_EVENT_BY_STATUS[source.handoff_status]
     event = source.latest_workflow_event
-    if (event is None) != (expected_event is None):
+    if expected_event is None and event is not None:
         raise_proposal_implementation_status_contract_invalid()
     if event is not None and event.event_type != expected_event:
         raise_proposal_implementation_status_contract_invalid()
