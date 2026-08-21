@@ -130,8 +130,6 @@ class ProposalService(
         proposal_id: str,
         correlation_id: str,
     ) -> ProposalRiskImpactEnvelopeResponse:
-        """Return one selected proposal's typed source-owned decision evidence."""
-
         upstream_status, upstream_payload = await self._advise_client.get_proposal(
             proposal_id=proposal_id,
             include_evidence=False,
@@ -140,7 +138,10 @@ class ProposalService(
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return ProposalRiskImpactEnvelopeResponse(
             correlation_id=correlation_id,
-            data=project_proposal_risk_impact(upstream_payload),
+            data=project_proposal_risk_impact(
+                upstream_payload,
+                expected_proposal_id=proposal_id,
+            ),
         )
 
     async def get_proposal_version(

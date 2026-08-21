@@ -37,7 +37,7 @@ def _source_capabilities(
             state=allocation.state,
             reason_code=allocation.reason_code,
             source_service=allocation.source_service,
-            support_reference="current_version.proposal_result.allocation_views",
+            support_reference="current_version.proposal_result",
         ),
         ProposalRiskImpactCapability(
             key="proposal_risk_lens",

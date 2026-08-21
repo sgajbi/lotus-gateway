@@ -1,5 +1,3 @@
-from pydantic import ValidationError
-
 from app.contracts.proposal_risk_impact import (
     ProposalRiskImpactData,
     ProposalRiskImpactDecisionEvidence,
@@ -30,19 +28,24 @@ from app.services.proposal_risk_impact_source_contract import (
     ProposalRiskImpactAllocationDimension,
     SourceProposalRiskImpactAllocationView,
     SourceProposalRiskImpactDecisionSummary,
-    SourceProposalRiskImpactDetail,
     SourceProposalRiskImpactGateDecision,
     SourceProposalRiskImpactMoney,
     SourceProposalRiskImpactResult,
     SourceProposalRiskImpactRiskLens,
     SourceProposalRiskImpactSimulatedState,
 )
+from app.services.proposal_risk_impact_source_validation import (
+    validated_proposal_risk_impact_source,
+)
 
 
-def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpactData:
+def project_proposal_risk_impact(
+    payload: dict[str, object],
+    expected_proposal_id: str,
+) -> ProposalRiskImpactData:
     """Project source-owned proposal evidence without recalculating investment meaning."""
 
-    source = _validated_source(payload)
+    source = validated_proposal_risk_impact_source(payload, expected_proposal_id)
     allocation = _allocation_evidence(source.current_version.proposal_result)
     risk = _risk_evidence(source.current_version.artifact.risk_lens)
     decision = _decision_evidence(
@@ -85,19 +88,6 @@ def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpa
             simulation_hash=source.current_version.simulation_hash,
         ),
     )
-
-
-def _validated_source(payload: dict[str, object]) -> SourceProposalRiskImpactDetail:
-    try:
-        source = SourceProposalRiskImpactDetail.model_validate(payload)
-    except ValidationError as exc:
-        raise_proposal_risk_impact_contract_invalid(exc)
-    if (
-        source.proposal.proposal_id != source.current_version.proposal_id
-        or source.proposal.current_version_no != source.current_version.version_no
-    ):
-        raise_proposal_risk_impact_contract_invalid()
-    return source
 
 
 def _overall_state(*states: ProposalRiskImpactSectionState) -> ProposalRiskImpactOverallState:

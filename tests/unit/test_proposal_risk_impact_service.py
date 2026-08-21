@@ -9,8 +9,14 @@ from tests.shared.proposal_risk_impact_payload import build_proposal_risk_impact
 
 
 class _ProposalRiskImpactClient:
-    def __init__(self, *, status_code: int = 200) -> None:
+    def __init__(
+        self,
+        *,
+        status_code: int = 200,
+        source_proposal_id: str | None = None,
+    ) -> None:
         self.status_code = status_code
+        self.source_proposal_id = source_proposal_id
         self.calls: list[dict[str, object]] = []
 
     async def get_proposal(
@@ -28,7 +34,9 @@ class _ProposalRiskImpactClient:
         )
         if self.status_code >= 400:
             return self.status_code, {"detail": "Proposal source is unavailable."}
-        return self.status_code, build_proposal_risk_impact_source_payload(proposal_id=proposal_id)
+        return self.status_code, build_proposal_risk_impact_source_payload(
+            proposal_id=self.source_proposal_id or proposal_id
+        )
 
 
 @pytest.mark.asyncio
@@ -71,3 +79,18 @@ async def test_service_preserves_product_safe_upstream_failure() -> None:
         "error_code": "ADVISE_PROPOSAL_UPSTREAM_ERROR",
         "detail": "lotus-advise proposal request failed.",
     }
+
+
+@pytest.mark.asyncio
+async def test_service_rejects_source_payload_for_a_different_proposal() -> None:
+    client = _ProposalRiskImpactClient(source_proposal_id="pp_risk_other")
+    service = ProposalService(advise_client=cast(ProposalClient, client))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_risk_impact(
+            proposal_id="pp_risk_001",
+            correlation_id="corr-risk-impact-identity-mismatch",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == ("ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID")
