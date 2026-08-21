@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.contracts.proposal_risk_impact import ProposalRiskImpactEnvelopeResponse
 from app.contracts.proposals import (
     ProposalCreateData,
     ProposalCreateEnvelopeResponse,
@@ -17,6 +18,7 @@ from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_delivery_service import ProposalDeliveryServiceMixin
 from app.services.proposal_lifecycle_query_service import ProposalLifecycleQueryServiceMixin
 from app.services.proposal_memo_service import ProposalMemoServiceMixin
+from app.services.proposal_risk_impact_projection import project_proposal_risk_impact
 from app.services.proposal_transition_service import ProposalTransitionServiceMixin
 from app.services.upstream_envelope import (
     build_gateway_envelope,
@@ -121,6 +123,24 @@ class ProposalService(
             ProposalDetailData,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
+        )
+
+    async def get_proposal_risk_impact(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalRiskImpactEnvelopeResponse:
+        """Return one selected proposal's typed source-owned decision evidence."""
+
+        upstream_status, upstream_payload = await self._advise_client.get_proposal(
+            proposal_id=proposal_id,
+            include_evidence=False,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalRiskImpactEnvelopeResponse(
+            correlation_id=correlation_id,
+            data=project_proposal_risk_impact(upstream_payload),
         )
 
     async def get_proposal_version(

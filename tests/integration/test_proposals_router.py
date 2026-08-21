@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.shared.proposal_risk_impact_payload import build_proposal_risk_impact_source_payload
 
 
 def test_proposal_simulate_success(monkeypatch):
@@ -588,6 +589,61 @@ def test_get_proposal_preserves_query_context(monkeypatch):
         "include_evidence": True,
         "correlation_id": "corr-proposal-detail",
     }
+
+
+def test_get_proposal_risk_impact_returns_typed_selected_proposal_evidence(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
+        _ = self
+        captured.update(
+            proposal_id=proposal_id,
+            include_evidence=include_evidence,
+            correlation_id=correlation_id,
+        )
+        return 200, build_proposal_risk_impact_source_payload(proposal_id=proposal_id)
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal",
+        _fake_get_proposal,
+    )
+
+    response = TestClient(app).get(
+        "/api/v1/proposals/pp_risk_001/risk-impact",
+        headers={"X-Correlation-Id": "corr-risk-impact-router"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["contract_version"] == "proposal-risk-impact.v1"
+    assert payload["data"]["proposal_id"] == "pp_risk_001"
+    assert payload["data"]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert payload["data"]["allocation"]["views"][0]["current"]["buckets"][0]["weight"] == "0.6800"
+    assert payload["data"]["risk"]["source_service"] == "lotus-risk"
+    assert payload["data"]["decision"]["recommended_next_action"] == "REVIEW_RISK"
+    assert captured == {
+        "proposal_id": "pp_risk_001",
+        "include_evidence": False,
+        "correlation_id": "corr-risk-impact-router",
+    }
+
+
+def test_get_proposal_risk_impact_fails_closed_on_source_contract_drift(monkeypatch):
+    async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
+        _ = self, proposal_id, include_evidence, correlation_id
+        return 200, {"proposal": {"proposal_id": proposal_id}, "current_version": {}}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal",
+        _fake_get_proposal,
+    )
+
+    response = TestClient(app).get("/api/v1/proposals/pp_risk_001/risk-impact")
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["error_code"] == (
+        "ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID"
+    )
 
 
 def test_get_proposal_version_success(monkeypatch):

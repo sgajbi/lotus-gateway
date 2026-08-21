@@ -144,6 +144,7 @@ from app.routers.proposal_operation_support_lookups import (
 from app.routers.proposal_operations import router as proposal_operations_router
 from app.routers.proposal_report_requests import router as proposal_report_requests_router
 from app.routers.proposal_risk_approval import router as proposal_risk_approval_router
+from app.routers.proposal_risk_impact import router as proposal_risk_impact_router
 from app.routers.proposal_version_async import router as proposal_version_async_router
 from app.routers.proposal_version_commands import router as proposal_version_commands_router
 from app.routers.proposal_version_replay_evidence import (
@@ -229,6 +230,7 @@ PROPOSAL_ROUTERS: RouterGroup = (
     proposal_workflow_router,
     proposal_workflow_decisions_router,
     proposal_risk_approval_router,
+    proposal_risk_impact_router,
     proposal_approvals_router,
     proposal_lineage_router,
     proposal_client_consent_router,
