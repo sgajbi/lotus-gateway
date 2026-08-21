@@ -84,6 +84,8 @@ The projection rejects:
 
 - source proposal, portfolio, version, version-id, narrative, memo, or approval identity mismatch,
 - narrative review evidence recorded before the selected immutable version was created,
+- memo review or report-package event evidence recorded before the selected version was created,
+- current-version report evidence generated before the selected version was created,
 - current-version approval evidence recorded before the selected immutable version was created,
 - malformed or unknown closed-enum state,
 - duplicated disclosure or approval identifiers,
@@ -93,7 +95,7 @@ The projection rejects:
 - memo event posture that claims recorded state without event identity, actor, and time,
 - report status outside the governed normalized status families,
 - current-version consent approved while lifecycle still says `AWAITING_CLIENT_CONSENT`,
-- `EXECUTION_READY` or `EXECUTED` without a current-version consent record.
+- `EXECUTION_READY` or `EXECUTED` without source-confirmed approved current-version consent.
 
 ## Workbench handoff
 

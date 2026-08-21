@@ -101,6 +101,11 @@ def validated_discussion_memo(
         raise_proposal_discussion_pack_contract_invalid()
     _validate_event_posture(source.review_posture)
     _validate_event_posture(source.report_package_posture)
+    if any(
+        posture.occurred_at is not None and posture.occurred_at < detail.current_version.created_at
+        for posture in (source.review_posture, source.report_package_posture)
+    ):
+        raise_proposal_discussion_pack_contract_invalid()
     return source
 
 
@@ -153,6 +158,12 @@ def validated_discussion_delivery(
         source.reporting is not None
         and source.reporting.related_version_no is not None
         and source.reporting.related_version_no > detail.current_version.version_no
+    ):
+        raise_proposal_discussion_pack_contract_invalid()
+    if (
+        source.reporting is not None
+        and source.reporting.related_version_no == detail.current_version.version_no
+        and source.reporting.generated_at < detail.current_version.created_at
     ):
         raise_proposal_discussion_pack_contract_invalid()
     return source
