@@ -29,13 +29,29 @@ class ProposalDiscussionPackServiceMixin:
         version_no: int,
         correlation_id: str,
     ) -> ProposalDiscussionPackEnvelopeResponse:
-        (
-            detail_result,
-            narrative_result,
-            memo_result,
-            approvals_result,
-            delivery_result,
-        ) = await asyncio.gather(
+        results = await self._read_discussion_pack_sources(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+        detail_status, detail_payload = results[0]
+        self._raise_for_upstream_error(detail_status, detail_payload)
+        return _discussion_pack_envelope(
+            results=results,
+            proposal_id=proposal_id,
+            portfolio_id=portfolio_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+
+    async def _read_discussion_pack_sources(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> tuple[tuple[int, dict[str, Any]], ...]:
+        return await asyncio.gather(
             self._advise_client.get_proposal(
                 proposal_id=proposal_id,
                 include_evidence=False,
@@ -60,22 +76,31 @@ class ProposalDiscussionPackServiceMixin:
                 correlation_id=correlation_id,
             ),
         )
-        detail_status, detail_payload = detail_result
-        self._raise_for_upstream_error(detail_status, detail_payload)
-        return ProposalDiscussionPackEnvelopeResponse(
+
+
+def _discussion_pack_envelope(
+    *,
+    results: tuple[tuple[int, dict[str, Any]], ...],
+    proposal_id: str,
+    portfolio_id: str,
+    version_no: int,
+    correlation_id: str,
+) -> ProposalDiscussionPackEnvelopeResponse:
+    detail, narrative, memo, approvals, delivery = results
+    return ProposalDiscussionPackEnvelopeResponse(
+        correlation_id=correlation_id,
+        data=project_proposal_discussion_pack(
+            detail_payload=detail[1],
+            narrative_response=_source_response(narrative),
+            memo_response=_source_response(memo),
+            approvals_response=_source_response(approvals),
+            delivery_response=_source_response(delivery),
+            expected_proposal_id=proposal_id,
+            expected_portfolio_id=portfolio_id,
+            expected_version_no=version_no,
             correlation_id=correlation_id,
-            data=project_proposal_discussion_pack(
-                detail_payload=detail_payload,
-                narrative_response=_source_response(narrative_result),
-                memo_response=_source_response(memo_result),
-                approvals_response=_source_response(approvals_result),
-                delivery_response=_source_response(delivery_result),
-                expected_proposal_id=proposal_id,
-                expected_portfolio_id=portfolio_id,
-                expected_version_no=version_no,
-                correlation_id=correlation_id,
-            ),
-        )
+        ),
+    )
 
 
 def _source_response(
