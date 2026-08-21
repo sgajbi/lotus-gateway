@@ -83,6 +83,7 @@ approval, or consent record cannot override that boundary.
 The projection rejects:
 
 - source proposal, portfolio, version, version-id, narrative, memo, or approval identity mismatch,
+- source chronology timestamps without an explicit timezone offset,
 - narrative review evidence recorded before the selected immutable version was created,
 - memo review or report-package event evidence recorded before the selected version was created,
 - current-version report evidence generated before the selected version was created,
