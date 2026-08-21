@@ -126,6 +126,21 @@ def test_reports_artifact_path_when_decision_evidence_uses_fallback_copy() -> No
     )
 
 
+def test_reports_current_version_path_when_latest_gate_snapshot_is_absent() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    payload["last_gate_decision"] = None
+
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
+    capabilities = {item.key: item for item in result.capabilities}
+
+    assert result.workflow_gate.state == "ready"
+    assert result.workflow_gate.support_reference == "current_version.gate_decision"
+    assert capabilities["workflow_gate"].support_reference == "current_version.gate_decision"
+
+
 def test_marks_currency_or_risk_authority_gaps_as_partial() -> None:
     payload = build_proposal_risk_impact_source_payload()
     current_version = payload["current_version"]
