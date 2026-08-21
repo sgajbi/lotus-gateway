@@ -857,6 +857,23 @@ order, fill, or settlement evidence. See the
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-implementation-status-v1.md)
 for the full state, authority, supportability, and failure map.
 
+Proposal discussion pack review evidence:
+
+Endpoint: `GET /api/v1/proposals/{proposal_id}/discussion-pack-review` with required
+`portfolio_id` and `version_no` query identity.
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/discussion-pack-review?portfolio_id=PB_SG_GLOBAL_BAL_001&version_no=2" \
+  -H "X-Correlation-Id: corr-proposal-discussion-pack-001"
+```
+
+The response contract is `proposal-discussion-pack-review.v1`. It binds proposal, portfolio, and
+immutable version identity while keeping advisor-use narrative/memo review, disclosures,
+report-package posture, consent, client release, and client delivery independent. Its
+`overall_state` is source supportability, not discussion readiness. See the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-discussion-pack-review-v1.md)
+for the full authority, supportability, and contradiction map.
+
 Proposal narrative review:
 
 ```bash

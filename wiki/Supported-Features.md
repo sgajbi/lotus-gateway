@@ -127,6 +127,32 @@ or a universal execute action. Missing optional evidence is `partial`; malformed
 vocabulary, chronology, event correlation, or ownership fails closed. Detailed behavior is in the
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-implementation-status-v1.md).
 
+## Proposal Discussion Pack Review Evidence
+
+Status: implementation-backed in Gateway for one selected proposal and immutable version. The
+Workbench client-conversation workspace and canonical browser proof remain owned by
+`lotus-workbench#749`. The response discriminator is `proposal-discussion-pack-review.v1`.
+
+Business outcome:
+
+1. an advisor can review the source narrative, memo, disclosures, report-package posture, and
+   current-version consent evidence in one request-bound view,
+2. internal advisor-use review is visibly separate from client release, publication, communication,
+   delivery, and consent,
+3. restricted, unavailable, absent, historical-version, and malformed source evidence cannot be
+   converted into a reassuring readiness state.
+
+Supported route:
+
+1. `GET /api/v1/proposals/{proposal_id}/discussion-pack-review?portfolio_id={portfolio_id}&version_no={version_no}`
+
+Gateway performs five bounded concurrent reads for the selected record only. It does not fan out
+across the worklist, generate narrative or memo content, infer suitability or discussion readiness,
+publish or archive a document, contact a client, or treat a report artifact as client delivery.
+Client-ready publication remains blocked and client-delivery capability remains not supported in
+v1. Detailed authority and failure behavior are documented in the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-discussion-pack-review-v1.md).
+
 ## Report Ordering Options
 
 Status: implementation-backed in Gateway for source-backed configuration discovery and

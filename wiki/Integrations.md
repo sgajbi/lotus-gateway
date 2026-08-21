@@ -109,11 +109,15 @@ authority remains with the named downstream execution provider as the execution 
 9. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise`,
    `lotus-manage`, or `lotus-idea` directly for proposal, management, or idea workflow data
 9. RFC-0023 advisory narrative posture remains `lotus-advise` truth. Gateway exposes reviewed
-   narrative, report-request, delivery-summary, and delivery-event routes for Workbench and
+   narrative, report-request, delivery-summary, delivery-event, and the request-bound typed
+   discussion-pack-review route for Workbench and
    preserves Advise-owned source hashes, review state, policy/guardrail/disclosure posture,
    report narrative-package posture, and append-only delivery events. Gateway does not generate
-   narrative, infer client-ready publication, render reports, archive documents, contact clients,
-   or recompute advisory delivery truth.
+   narrative, infer discussion readiness or client-ready publication, render reports, archive
+   documents, contact clients, treat report materialization as client delivery, or recompute
+   advisory delivery truth. The discussion-pack projection composes only the selected proposal's
+   detail, narrative, memo, approvals, and delivery summary; `lotus-advise` remains semantic
+   authority and `lotus-report` remains report-materialization authority.
 10. RFC-0025 suitability and best-interest policy posture remains `lotus-advise` truth. Gateway
    exposes policy-pack, policy-evaluation, review-queue, workflow, sign-off, report-package,
    lineage, replay, event, and AI-evidence routes for Workbench and preserves Advise-owned
