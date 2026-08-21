@@ -37,10 +37,13 @@ _EXPECTED_CORRELATION_BY_STATUS: dict[ProposalImplementationHandoffStatus, str] 
     "CANCELLED": "EXECUTION_REQUESTED_AND_CANCELLED_EVENTS",
     "EXPIRED": "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
 }
-_EXPECTED_TERMINAL_STATE: dict[
+_EXPECTED_PROPOSAL_STATE: dict[
     ProposalImplementationHandoffStatus,
     ProposalImplementationWorkflowState,
 ] = {
+    "REQUESTED": "EXECUTION_READY",
+    "ACCEPTED": "EXECUTION_READY",
+    "PARTIALLY_EXECUTED": "EXECUTION_READY",
     "EXECUTED": "EXECUTED",
     "REJECTED": "REJECTED",
     "CANCELLED": "CANCELLED",
@@ -72,7 +75,11 @@ def _validate_identity(
     event = source.latest_workflow_event
     if source.proposal.proposal_id != expected_proposal_id:
         raise_proposal_implementation_status_contract_invalid()
+    if not source.proposal.portfolio_id.strip():
+        raise_proposal_implementation_status_contract_invalid()
     if event is not None and event.proposal_id != source.proposal.proposal_id:
+        raise_proposal_implementation_status_contract_invalid()
+    if event is not None and (not event.event_id.strip() or not event.actor_id.strip()):
         raise_proposal_implementation_status_contract_invalid()
     if (
         source.related_version_no is not None
@@ -129,11 +136,13 @@ def _validate_status_correlation(source: SourceProposalImplementationStatus) -> 
         )
     ):
         raise_proposal_implementation_status_contract_invalid()
-    expected_terminal_state = _EXPECTED_TERMINAL_STATE.get(source.handoff_status)
+    expected_proposal_state = _EXPECTED_PROPOSAL_STATE.get(source.handoff_status)
     if (
-        expected_terminal_state is not None
-        and source.proposal.current_state != expected_terminal_state
+        expected_proposal_state is not None
+        and source.proposal.current_state != expected_proposal_state
     ):
+        raise_proposal_implementation_status_contract_invalid()
+    if event is not None and event.to_state != source.proposal.current_state:
         raise_proposal_implementation_status_contract_invalid()
     if source.handoff_status == "EXECUTED":
         if event is None or source.executed_at != event.occurred_at:
