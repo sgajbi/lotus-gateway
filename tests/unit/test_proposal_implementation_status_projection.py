@@ -76,6 +76,23 @@ def test_projection_marks_missing_optional_handoff_evidence_as_partial() -> None
     assert provider.state == "not_available"
 
 
+def test_projection_preserves_valid_status_when_event_evidence_is_missing() -> None:
+    payload = build_proposal_implementation_status_source_payload(status="ACCEPTED")
+    payload["latest_workflow_event"] = None
+
+    result = project_proposal_implementation_status(
+        payload,
+        expected_proposal_id="pp_implementation_001",
+        correlation_id="corr-implementation-missing-event",
+    )
+
+    assert result.handoff_status == "ACCEPTED"
+    assert result.evidence_state == "partial"
+    assert result.latest_workflow_event is None
+    event_lineage = next(item for item in result.capabilities if item.key == "event_lineage")
+    assert event_lineage.state == "not_available"
+
+
 def test_projection_identifies_historical_version_without_calling_it_current() -> None:
     result = project_proposal_implementation_status(
         build_proposal_implementation_status_source_payload(
