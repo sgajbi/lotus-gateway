@@ -72,8 +72,15 @@ def validated_discussion_narrative(
     ):
         raise_proposal_discussion_pack_contract_invalid()
     disclosure_ids = [item.disclosure_id for item in narrative.disclosures]
-    required_ids = [item.disclosure_id for item in narrative.narrative_policy.required_disclosures]
-    if len(disclosure_ids) != len(set(disclosure_ids)) or disclosure_ids != required_ids:
+    required_disclosures = narrative.narrative_policy.required_disclosures
+    required_ids = [item.disclosure_id for item in required_disclosures]
+    disclosed_by_id = {item.disclosure_id: item.model_dump() for item in narrative.disclosures}
+    required_by_id = {item.disclosure_id: item.model_dump() for item in required_disclosures}
+    if (
+        len(disclosure_ids) != len(set(disclosure_ids))
+        or len(required_ids) != len(set(required_ids))
+        or disclosed_by_id != required_by_id
+    ):
         raise_proposal_discussion_pack_contract_invalid()
     return source
 

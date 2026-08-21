@@ -141,6 +141,25 @@ def test_projection_rejects_duplicate_disclosure_identifiers() -> None:
         _project(payloads)
 
 
+@pytest.mark.parametrize(
+    "field",
+    ["jurisdiction", "product_type", "required_for", "text", "source_authority", "policy_version"],
+)
+def test_projection_rejects_disclosure_content_that_differs_from_policy(
+    field: str,
+) -> None:
+    payloads = build_discussion_pack_source_payloads()
+    narrative = payloads["narrative"]["proposal_narrative"]
+    narrative["disclosures"][0][field] = f"altered-{field}"
+
+    with pytest.raises(HTTPException) as exc_info:
+        _project(payloads)
+
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+
+
 def test_projection_rejects_narrative_review_before_selected_version() -> None:
     payloads = build_discussion_pack_source_payloads()
     review = payloads["narrative"]["narrative_review"]
@@ -282,6 +301,51 @@ def test_projection_uses_latest_consent_by_time_not_source_order() -> None:
 
     assert result.consent.consent_state == "approved"
     assert result.consent.approval_id == "approval_consent_002"
+
+
+def test_projection_rejects_conflicting_consent_at_the_latest_timestamp() -> None:
+    payloads = _prepared_payloads()
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_conflict_002",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": False,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:20:00Z",
+            "related_version_no": 2,
+        }
+    )
+    approvals["approval_count"] = 4
+
+    with pytest.raises(HTTPException) as exc_info:
+        _project(payloads)
+
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+
+
+def test_projection_selects_same_decision_ties_deterministically() -> None:
+    payloads = _prepared_payloads()
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_z_002",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": True,
+            "actor_id": "client_2",
+            "occurred_at": "2026-08-21T09:20:00Z",
+            "related_version_no": 2,
+        }
+    )
+    approvals["approval_count"] = 4
+
+    result = _project(payloads)
+
+    assert result.consent.approval_id == "approval_consent_z_002"
 
 
 def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:
