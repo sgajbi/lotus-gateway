@@ -17,6 +17,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/domain-products/trust-certification`
 - `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
+- `GET /api/v1/proposals/{proposal_id}/risk-impact`
 - `GET` and `POST /api/v1/advisory-copilot/*`
 - `GET /api/v1/advisor-book/portfolios`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
@@ -307,6 +308,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - proposal simulation, create, list, detail, version, workflow-event, approval, lineage, reviewed
   narrative, report-request, delivery-summary, and delivery-event routes call `lotus-advise`
   `/advisory/proposals/*`; they do not call `lotus-manage`
+- proposal risk-and-impact reads use one Advise proposal-detail call and return typed selected-record
+  allocation, risk-lens, decision, workflow-gate, capability, and lineage evidence. Gateway does
+  not calculate risk or allocation deltas, infer approval, or fill unsupported benchmark/limit,
+  scenario, or valuation-date evidence
 - reviewed narrative Gateway routes preserve `lotus-advise` review state, source-hash,
   policy/guardrail/disclosure posture, report narrative-package posture, and append-only delivery
   events. Gateway does not generate narrative, infer client-ready publication, render reports,
@@ -820,6 +825,19 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals" \
   -H "Idempotency-Key: idem-create-1" \
   -d @docs/demo/payloads/proposal-create.json
 ```
+
+Proposal risk and impact evidence:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/risk-impact" \
+  -H "X-Correlation-Id: corr-proposal-risk-impact-001"
+```
+
+The response contract is `proposal-risk-impact.v1`. `overall_state` and section states describe
+evidence supportability only; they are not approval, suitability, client consent, or execution
+readiness. See the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-risk-impact-v1.md)
+for field authority and v1 boundaries.
 
 Proposal narrative review:
 

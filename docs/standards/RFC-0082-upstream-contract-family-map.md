@@ -71,6 +71,16 @@ outputs.
 6. Transport optimization discussions start with query shape, payload shape, caching, export semantics,
    and contract boundaries. gRPC is not a default answer for gateway integration.
 
+### Proposal risk-and-impact experience projection
+
+`GET /api/v1/proposals/{proposal_id}/risk-impact` is an Operational Read experience projection over
+one existing `lotus-advise` proposal-detail response. Gateway validates and reshapes the typed
+proposal/version identity, Core-calculated allocation views, Advise decision posture, concise
+Risk-owned lens, workflow gate, and immutable lineage. It makes no direct Core/Risk call, does not
+calculate deltas or risk, and keeps unsupported benchmark/limit, scenario, and valuation-date
+evidence explicit. The governed field and supportability map is
+`docs/contracts/proposal-risk-impact-v1.md`.
+
 ## Current Evidence
 
 Existing tests that cover this posture include:

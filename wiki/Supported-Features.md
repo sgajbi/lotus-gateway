@@ -69,6 +69,40 @@ Authority and boundary:
 5. team, delegate, supervisor, household, assets-under-management, attention, suitability,
    recommendation, client communication, order, and execution coverage are not claimed.
 
+## Proposal Risk And Impact Evidence
+
+Status: implementation-backed in Gateway for one selected proposal. The Workbench decision
+workspace and canonical browser proof remain owned by `lotus-workbench#748`.
+
+Business outcome:
+
+1. an advisor can inspect source-owned current and proposed allocation snapshots, risk posture,
+   decision requirements, workflow gate, and immutable version lineage through one typed Gateway
+   contract,
+2. evidence absence and source-copy mismatches remain visible instead of being converted into a
+   reassuring UI success state,
+3. Workbench does not need to parse the general proposal-detail route's opaque artifact,
+   simulation, or evidence dictionaries.
+
+Supported route:
+
+1. `GET /api/v1/proposals/{proposal_id}/risk-impact`
+
+Authority and boundary:
+
+1. `lotus-advise` owns proposal, version, decision, workflow-gate, and lineage truth,
+2. the allocation calculator named by Advise owns before/proposed allocation values; the proposal
+   risk-lens source, normally `lotus-risk`, owns risk meaning,
+3. Gateway performs one selected-record Advise read, validates identity and typed values, preserves
+   exact decimal strings, and reports ready, partial, unavailable, or not-supported evidence,
+4. Gateway does not call Core/Risk directly, calculate allocation deltas or risk, infer approval,
+   or treat lifecycle state as a recorded maker-checker decision,
+5. benchmark/limit, scenario, and valuation effective-date evidence remain explicitly not
+   supported in v1 because the current producer contract does not publish them.
+
+Detailed source authority and failure behavior are documented in the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-risk-impact-v1.md).
+
 ## Report Ordering Options
 
 Status: implementation-backed in Gateway for source-backed configuration discovery and
