@@ -166,6 +166,16 @@ def test_projection_rejects_declined_consent_for_execution_state(state: str) -> 
         _project(payloads)
 
 
+def test_projection_rejects_consent_recorded_before_selected_version() -> None:
+    payloads = _prepared_payloads()
+    consent = payloads["approvals"]["approvals"][-1]
+    consent["occurred_at"] = "2026-08-21T08:00:00Z"
+    payloads["approvals"]["latest_approval_at"] = "2026-08-21T08:00:00Z"
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
 def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:
     result = _project(_prepared_payloads())
 
