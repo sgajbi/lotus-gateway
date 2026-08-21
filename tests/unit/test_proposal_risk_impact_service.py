@@ -1,6 +1,9 @@
+from typing import cast
+
 import pytest
 from fastapi import HTTPException
 
+from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_service import ProposalService
 from tests.shared.proposal_risk_impact_payload import build_proposal_risk_impact_source_payload
 
@@ -31,7 +34,7 @@ class _ProposalRiskImpactClient:
 @pytest.mark.asyncio
 async def test_service_uses_one_bounded_detail_read_without_requesting_opaque_evidence() -> None:
     client = _ProposalRiskImpactClient()
-    service = ProposalService(advise_client=client)  # type: ignore[arg-type]
+    service = ProposalService(advise_client=cast(ProposalClient, client))
 
     response = await service.get_proposal_risk_impact(
         proposal_id="pp_risk_001",
@@ -53,7 +56,7 @@ async def test_service_uses_one_bounded_detail_read_without_requesting_opaque_ev
 @pytest.mark.asyncio
 async def test_service_preserves_product_safe_upstream_failure() -> None:
     client = _ProposalRiskImpactClient(status_code=503)
-    service = ProposalService(advise_client=client)  # type: ignore[arg-type]
+    service = ProposalService(advise_client=cast(ProposalClient, client))
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_proposal_risk_impact(
