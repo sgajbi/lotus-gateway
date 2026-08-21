@@ -82,6 +82,12 @@ def _validate_identity(
     if (
         event is not None
         and event.related_version_no is not None
+        and event.related_version_no > source.proposal.current_version_no
+    ):
+        raise_proposal_implementation_status_contract_invalid()
+    if (
+        event is not None
+        and event.related_version_no is not None
         and source.related_version_no is not None
         and event.related_version_no != source.related_version_no
     ):
@@ -101,6 +107,15 @@ def _validate_status_correlation(source: SourceProposalImplementationStatus) -> 
     ):
         raise_proposal_implementation_status_contract_invalid()
     if source.execution_ownership != source.explanation.execution_ownership:
+        raise_proposal_implementation_status_contract_invalid()
+    if any(
+        value is not None and not value.strip()
+        for value in (
+            source.execution_request_id,
+            source.execution_provider,
+            source.external_execution_id,
+        )
+    ):
         raise_proposal_implementation_status_contract_invalid()
     if source.handoff_status == "NOT_REQUESTED" and any(
         value is not None
