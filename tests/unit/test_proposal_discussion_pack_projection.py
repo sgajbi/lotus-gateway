@@ -32,6 +32,38 @@ def _project(payloads: dict[str, dict[str, object]]):
     )
 
 
+def _prepared_payloads(
+    *,
+    state: str = "EXECUTION_READY",
+    consent_approved: bool = True,
+) -> dict[str, dict[str, object]]:
+    payloads = build_discussion_pack_source_payloads(state=state)
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_002",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": consent_approved,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:20:00Z",
+            "related_version_no": 2,
+        }
+    )
+    approvals["approval_count"] = 3
+    approvals["latest_approval_at"] = "2026-08-21T09:20:00Z"
+    payloads["delivery"]["reporting"] = {
+        "report_request_id": "prr_002",
+        "report_service": "lotus-report",
+        "status": "READY",
+        "report_reference_id": "report_002",
+        "related_version_no": 2,
+        "include_reviewed_narrative": True,
+        "generated_at": "2026-08-21T09:15:00Z",
+    }
+    return payloads
+
+
 def test_projection_separates_advisor_evidence_from_client_release() -> None:
     result = _project(build_discussion_pack_source_payloads())
 
@@ -40,6 +72,7 @@ def test_projection_separates_advisor_evidence_from_client_release() -> None:
     assert result.memo.latest_review_action == "APPROVE_FOR_ADVISOR_USE"
     assert result.package.package_state == "not_requested"
     assert result.consent.consent_state == "not_recorded"
+    assert result.attention_required is True
     assert result.client_release.state == "blocked"
     assert result.client_release.publication_supported is False
     assert result.client_release.delivery_supported is False
@@ -123,6 +156,67 @@ def test_projection_rejects_consent_that_conflicts_with_lifecycle_state() -> Non
 
     with pytest.raises(HTTPException):
         _project(payloads)
+
+
+@pytest.mark.parametrize("state", ["EXECUTION_READY", "EXECUTED"])
+def test_projection_rejects_declined_consent_for_execution_state(state: str) -> None:
+    payloads = _prepared_payloads(state=state, consent_approved=False)
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:
+    result = _project(_prepared_payloads())
+
+    assert result.attention_required is False
+
+
+def test_projection_requires_attention_for_declined_consent() -> None:
+    result = _project(
+        _prepared_payloads(
+            state="AWAITING_CLIENT_CONSENT",
+            consent_approved=False,
+        )
+    )
+
+    assert result.consent.consent_state == "declined"
+    assert result.attention_required is True
+
+
+def test_projection_requires_attention_while_report_package_is_pending() -> None:
+    payloads = _prepared_payloads()
+    payloads["delivery"]["reporting"]["status"] = "PENDING"
+
+    result = _project(payloads)
+
+    assert result.package.package_state == "pending"
+    assert result.attention_required is True
+
+
+@pytest.mark.parametrize(
+    ("evidence", "field", "value"),
+    [
+        ("narrative", "review_state", "REJECTED"),
+        ("narrative", "review_state", "REGENERATION_REQUESTED"),
+        ("memo", "review_action", "REQUEST_CHANGES"),
+        ("memo", "review_action", "REJECT"),
+    ],
+)
+def test_projection_requires_attention_for_unresolved_advisor_review(
+    evidence: str,
+    field: str,
+    value: str,
+) -> None:
+    payloads = _prepared_payloads()
+    if evidence == "narrative":
+        payloads["narrative"]["narrative_review"][field] = value
+    else:
+        payloads["memo"]["review_posture"][field] = value
+
+    result = _project(payloads)
+
+    assert result.attention_required is True
 
 
 def test_projection_rejects_unknown_report_status() -> None:
