@@ -99,8 +99,8 @@ def validated_discussion_memo(
         or source.projection.get("client_ready_publication") != "BLOCKED"
     ):
         raise_proposal_discussion_pack_contract_invalid()
-    _validate_event_posture(source.review_posture)
-    _validate_event_posture(source.report_package_posture)
+    _validate_event_posture(source.review_posture, event_kind="review")
+    _validate_event_posture(source.report_package_posture, event_kind="report_package")
     if any(
         posture.occurred_at is not None and posture.occurred_at < detail.current_version.created_at
         for posture in (source.review_posture, source.report_package_posture)
@@ -137,7 +137,11 @@ def validated_discussion_approvals(
         for item in source.approvals
     ):
         raise_proposal_discussion_pack_contract_invalid()
-    if source.approvals and source.latest_approval_at != source.approvals[-1].occurred_at:
+    latest_approval_at = max(
+        (item.occurred_at for item in source.approvals),
+        default=None,
+    )
+    if source.latest_approval_at != latest_approval_at:
         raise_proposal_discussion_pack_contract_invalid()
     return source
 
@@ -206,7 +210,11 @@ def _validate_child_identity(
     )
 
 
-def _validate_event_posture(posture: SourceMemoEventPosture) -> None:
+def _validate_event_posture(
+    posture: SourceMemoEventPosture,
+    *,
+    event_kind: str,
+) -> None:
     if posture.status == "NOT_RECORDED" and any(
         value is not None
         for value in (
@@ -218,10 +226,22 @@ def _validate_event_posture(posture: SourceMemoEventPosture) -> None:
         )
     ):
         raise_proposal_discussion_pack_contract_invalid()
-    if posture.status == "RECORDED" and not all(
-        value is not None for value in (posture.event_id, posture.actor_id, posture.occurred_at)
-    ):
-        raise_proposal_discussion_pack_contract_invalid()
+    if posture.status == "RECORDED":
+        required_detail = (
+            posture.review_action if event_kind == "review" else posture.report_package_status
+        )
+        forbidden_detail = (
+            posture.report_package_status if event_kind == "review" else posture.review_action
+        )
+        if (
+            not all(
+                value is not None
+                for value in (posture.event_id, posture.actor_id, posture.occurred_at)
+            )
+            or required_detail is None
+            or forbidden_detail is not None
+        ):
+            raise_proposal_discussion_pack_contract_invalid()
 
 
 __all__ = [

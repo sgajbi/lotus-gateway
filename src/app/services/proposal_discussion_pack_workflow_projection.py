@@ -73,10 +73,16 @@ def _available_package(
     detail: SourceDiscussionDetail,
 ) -> ProposalDiscussionPackageEvidence:
     package_state, reason_code = _package_status(reporting.status)
+    if package_state == "available" and reporting.report_reference_id is None:
+        raise_proposal_discussion_pack_contract_invalid()
     current_version = reporting.related_version_no == detail.current_version.version_no
+    if reporting.related_version_no is None:
+        reason_code = "report_package_version_not_correlated"
+    elif not current_version:
+        reason_code = "report_package_for_historical_version"
     return ProposalDiscussionPackageEvidence(
         state="supported" if current_version else "partial",
-        reason_code=reason_code if current_version else "report_package_for_historical_version",
+        reason_code=reason_code,
         package_state=package_state,
         report_request_id=reporting.report_request_id,
         report_reference_id=reporting.report_reference_id,
@@ -124,7 +130,7 @@ def _current_version_consent(
         and item.related_version_no == detail.current_version.version_no
     ]
     if current:
-        latest = current[-1]
+        latest = max(current, key=lambda item: item.occurred_at)
         return ProposalDiscussionConsentEvidence(
             state="supported",
             reason_code=(
