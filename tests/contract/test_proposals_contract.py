@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.contracts.proposal_risk_impact import ProposalRiskImpactEnvelopeResponse
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
     ProposalApprovalsEnvelopeResponse,
@@ -105,6 +106,66 @@ def test_proposal_read_envelope_contract_shapes() -> None:
     assert workflow_payload.data.proposal_id == "pp_1"
     assert approvals_payload.data.current_state == "RISK_REVIEW"
     assert lineage_payload.data.versions[0].version_no == 1
+
+
+def test_proposal_risk_impact_openapi_contract_is_typed_and_additive() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    operation = spec["paths"]["/api/v1/proposals/{proposal_id}/risk-impact"]["get"]
+    response_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    assert response_ref.endswith("/ProposalRiskImpactEnvelopeResponse")
+
+    response_schema = spec["components"]["schemas"]["ProposalRiskImpactEnvelopeResponse"]
+    data_ref = response_schema["properties"]["data"]["$ref"]
+    assert data_ref.endswith("/ProposalRiskImpactData")
+    data_schema = spec["components"]["schemas"]["ProposalRiskImpactData"]
+    assert {
+        "allocation",
+        "risk",
+        "decision",
+        "workflow_gate",
+        "capabilities",
+        "lineage",
+    }.issubset(data_schema["properties"])
+
+
+def test_proposal_risk_impact_contract_rejects_opaque_render_fields() -> None:
+    response = ProposalRiskImpactEnvelopeResponse.model_validate(
+        {
+            "correlation_id": "corr-risk-impact-contract",
+            "data": {
+                "proposal_id": "pp_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "current_state": "RISK_REVIEW",
+                "version_no": 2,
+                "overall_state": "unavailable",
+                "allocation": {
+                    "state": "unavailable",
+                    "reason_code": "allocation_comparison_unavailable",
+                    "views": [],
+                },
+                "risk": {
+                    "state": "unavailable",
+                    "reason_code": "proposal_risk_lens_unavailable",
+                    "summary": "Risk evidence is unavailable.",
+                },
+                "decision": {
+                    "state": "unavailable",
+                    "reason_code": "proposal_decision_unavailable",
+                },
+                "workflow_gate": {
+                    "state": "unavailable",
+                    "reason_code": "workflow_gate_unavailable",
+                },
+                "capabilities": [],
+                "lineage": {"proposal_version_id": "ppv_002"},
+            },
+        }
+    )
+
+    dumped = response.model_dump()
+    assert "proposal_result" not in dumped["data"]
+    assert "artifact" not in dumped["data"]
+    assert "evidence_bundle" not in dumped["data"]
 
 
 def test_proposal_write_envelope_contract_shape() -> None:
