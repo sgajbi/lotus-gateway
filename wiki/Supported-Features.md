@@ -103,6 +103,30 @@ Authority and boundary:
 Detailed source authority and failure behavior are documented in the
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-risk-impact-v1.md).
 
+## Proposal Implementation Status Evidence
+
+Status: implementation-backed in Gateway for one selected proposal. The Workbench implementation
+workspace and canonical browser proof remain owned by `lotus-workbench#750`.
+The response discriminator is `proposal-implementation-status.v1`.
+
+Business outcome:
+
+1. an advisor or operations user can distinguish not requested, pending, accepted, partially
+   executed, executed, rejected, cancelled, and expired handoff states without lifecycle inference,
+2. exception and partial-evidence posture remain explicit, with exact source observation time,
+   immutable-version posture, provider/request references, and latest event lineage,
+3. ownership remains truthful: Advise owns handoff/reconciliation posture and the downstream
+   provider owns execution truth.
+
+Supported route:
+
+1. `GET /api/v1/proposals/{proposal_id}/execution-status`
+
+Gateway does not expose or invent current owner, SLA, priority, order, quantity, fill, settlement,
+or a universal execute action. Missing optional evidence is `partial`; malformed identity,
+vocabulary, chronology, event correlation, or ownership fails closed. Detailed behavior is in the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-implementation-status-v1.md).
+
 ## Report Ordering Options
 
 Status: implementation-backed in Gateway for source-backed configuration discovery and

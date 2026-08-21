@@ -81,6 +81,17 @@ calculate deltas or risk, and keeps unsupported benchmark/limit, scenario, and v
 evidence explicit. The governed field and supportability map is
 `docs/contracts/proposal-risk-impact-v1.md`.
 
+### Proposal implementation-status experience projection
+
+`GET /api/v1/proposals/{proposal_id}/execution-status` is an Operational Read experience projection
+over the existing `lotus-advise` execution-status response. Gateway validates proposal and event
+identity, immutable version correlation, the complete eight-state handoff vocabulary, chronology,
+ownership boundary, and correlation lineage. It publishes explicit business status family,
+attention, next-action, supportability, capability, and freshness posture without claiming order,
+fill, settlement, owner, SLA, or priority truth. The downstream execution provider remains the
+execution system of record. The governed field and failure map is
+`docs/contracts/proposal-implementation-status-v1.md`.
+
 ## Current Evidence
 
 Existing tests that cover this posture include:
