@@ -216,12 +216,72 @@ def test_projection_rejects_memo_review_before_selected_version() -> None:
         _project(payloads)
 
 
+def test_projection_rejects_memo_package_event_before_selected_version() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    payloads["memo"]["report_package_posture"] = {
+        "status": "RECORDED",
+        "event_id": "memo_package_002",
+        "actor_id": "advisor_1",
+        "occurred_at": "2026-08-21T08:00:00Z",
+        "report_package_status": "RECORDED",
+    }
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+@pytest.mark.parametrize("posture_key", ["review_posture", "report_package_posture"])
+def test_projection_rejects_recorded_memo_event_without_typed_detail(
+    posture_key: str,
+) -> None:
+    payloads = build_discussion_pack_source_payloads()
+    payloads["memo"][posture_key] = {
+        "status": "RECORDED",
+        "event_id": f"{posture_key}_002",
+        "actor_id": "advisor_1",
+        "occurred_at": "2026-08-21T09:10:00Z",
+    }
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
 def test_projection_rejects_report_package_before_selected_version() -> None:
     payloads = _prepared_payloads()
     payloads["delivery"]["reporting"]["generated_at"] = "2026-08-21T08:00:00Z"
 
     with pytest.raises(HTTPException):
         _project(payloads)
+
+
+def test_projection_rejects_available_package_without_source_reference() -> None:
+    payloads = _prepared_payloads()
+    payloads["delivery"]["reporting"]["report_reference_id"] = None
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+def test_projection_uses_latest_consent_by_time_not_source_order() -> None:
+    payloads = _prepared_payloads()
+    approvals = payloads["approvals"]
+    approvals["approvals"].append(
+        {
+            "approval_id": "approval_consent_earlier_002",
+            "proposal_id": "pp_discussion_001",
+            "approval_type": "CLIENT_CONSENT",
+            "approved": False,
+            "actor_id": "client_1",
+            "occurred_at": "2026-08-21T09:00:00Z",
+            "related_version_no": 2,
+        }
+    )
+    approvals["approval_count"] = 4
+
+    result = _project(payloads)
+
+    assert result.consent.consent_state == "approved"
+    assert result.consent.approval_id == "approval_consent_002"
 
 
 def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:

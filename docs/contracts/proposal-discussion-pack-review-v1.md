@@ -93,6 +93,9 @@ The projection rejects:
 - disclosure inventory that differs from the source policy requirement inventory,
 - memo publication posture other than `BLOCKED`,
 - memo event posture that claims recorded state without event identity, actor, and time,
+- memo review/report-package events with a missing or cross-populated typed action/status,
+- available report-package evidence without a source report reference,
+- an approval ledger whose declared latest timestamp is not the latest recorded event,
 - report status outside the governed normalized status families,
 - current-version consent approved while lifecycle still says `AWAITING_CLIENT_CONSENT`,
 - `EXECUTION_READY` or `EXECUTED` without source-confirmed approved current-version consent.
