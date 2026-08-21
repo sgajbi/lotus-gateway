@@ -176,6 +176,7 @@ def _evidence_state(
         source.execution_request_id,
         source.execution_provider,
         source.related_version_no,
+        source.handoff_requested_at,
         source.latest_workflow_event,
     )
     return "supported" if all(value is not None for value in required_values) else "partial"

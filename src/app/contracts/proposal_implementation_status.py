@@ -170,6 +170,7 @@ class ProposalImplementationStatusEnvelopeResponse(BaseModel):
                     "related_version_no": 2,
                     "version_posture": "current_version",
                     "handoff_requested_at": "2026-08-20T09:00:00Z",
+                    "executed_at": None,
                     "latest_workflow_event": {
                         "event_id": "pwe_002",
                         "event_type": "EXECUTION_ACCEPTED",
