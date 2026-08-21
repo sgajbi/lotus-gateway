@@ -93,6 +93,43 @@ def test_projection_preserves_valid_status_when_event_evidence_is_missing() -> N
     assert event_lineage.state == "not_available"
 
 
+def test_projection_preserves_executed_status_when_event_evidence_is_missing() -> None:
+    payload = build_proposal_implementation_status_source_payload(status="EXECUTED")
+    payload["latest_workflow_event"] = None
+
+    result = project_proposal_implementation_status(
+        payload,
+        expected_proposal_id="pp_implementation_001",
+        correlation_id="corr-implementation-executed-without-event",
+    )
+
+    assert result.handoff_status == "EXECUTED"
+    assert result.evidence_state == "partial"
+    assert result.executed_at is not None
+    assert result.latest_workflow_event is None
+
+
+def test_projection_preserves_historical_handoff_after_later_version_transition() -> None:
+    payload = build_proposal_implementation_status_source_payload(
+        status="ACCEPTED",
+        current_version_no=3,
+        related_version_no=2,
+    )
+    proposal = payload["proposal"]
+    assert isinstance(proposal, dict)
+    proposal["current_state"] = "DRAFT"
+
+    result = project_proposal_implementation_status(
+        payload,
+        expected_proposal_id="pp_implementation_001",
+        correlation_id="corr-implementation-historical-transition",
+    )
+
+    assert result.handoff_status == "ACCEPTED"
+    assert result.current_state == "DRAFT"
+    assert result.version_posture == "historical_version"
+
+
 def test_projection_identifies_historical_version_without_calling_it_current() -> None:
     result = project_proposal_implementation_status(
         build_proposal_implementation_status_source_payload(
