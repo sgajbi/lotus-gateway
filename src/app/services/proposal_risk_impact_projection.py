@@ -1,24 +1,30 @@
-from typing import Literal, NoReturn
-
-from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from app.contracts.proposal_risk_impact import (
-    ProposalRiskImpactAllocationBucket,
-    ProposalRiskImpactAllocationEvidence,
-    ProposalRiskImpactAllocationSnapshot,
-    ProposalRiskImpactAllocationView,
-    ProposalRiskImpactCapability,
     ProposalRiskImpactData,
     ProposalRiskImpactDecisionEvidence,
     ProposalRiskImpactGateReason,
     ProposalRiskImpactLineage,
     ProposalRiskImpactMaterialChange,
     ProposalRiskImpactMissingEvidence,
-    ProposalRiskImpactMoney,
     ProposalRiskImpactRequirement,
     ProposalRiskImpactRiskEvidence,
     ProposalRiskImpactWorkflowGate,
+)
+from app.contracts.proposal_risk_impact_allocation import (
+    ProposalRiskImpactAllocationBucket,
+    ProposalRiskImpactAllocationEvidence,
+    ProposalRiskImpactAllocationSnapshot,
+    ProposalRiskImpactAllocationView,
+    ProposalRiskImpactMoney,
+    ProposalRiskImpactOverallState,
+    ProposalRiskImpactSectionState,
+)
+from app.services.proposal_risk_impact_capabilities import (
+    proposal_risk_impact_capabilities,
+)
+from app.services.proposal_risk_impact_errors import (
+    raise_proposal_risk_impact_contract_invalid,
 )
 from app.services.proposal_risk_impact_source_contract import (
     ProposalRiskImpactAllocationDimension,
@@ -32,24 +38,11 @@ from app.services.proposal_risk_impact_source_contract import (
     SourceProposalRiskImpactSimulatedState,
 )
 
-SectionState = Literal["ready", "partial", "unavailable", "not_supported"]
-OverallState = Literal["ready", "partial", "unavailable"]
-
 
 def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpactData:
     """Project source-owned proposal evidence without recalculating investment meaning."""
 
-    try:
-        source = SourceProposalRiskImpactDetail.model_validate(payload)
-    except ValidationError as exc:
-        _raise_contract_invalid(exc)
-
-    if (
-        source.proposal.proposal_id != source.current_version.proposal_id
-        or source.proposal.current_version_no != source.current_version.version_no
-    ):
-        _raise_contract_invalid()
-
+    source = _validated_source(payload)
     allocation = _allocation_evidence(source.current_version.proposal_result)
     risk = _risk_evidence(source.current_version.artifact.risk_lens)
     decision = _decision_evidence(
@@ -62,14 +55,6 @@ def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpa
         source.current_version.proposal_result.gate_decision,
         source.current_version.artifact.gate_decision,
     )
-    available_states = [allocation.state, risk.state, decision.state, workflow_gate.state]
-    if all(value == "ready" for value in available_states):
-        overall_state: OverallState = "ready"
-    elif all(value == "unavailable" for value in available_states):
-        overall_state = "unavailable"
-    else:
-        overall_state = "partial"
-
     return ProposalRiskImpactData(
         proposal_id=source.proposal.proposal_id,
         portfolio_id=source.proposal.portfolio_id,
@@ -77,12 +62,22 @@ def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpa
         current_state=source.proposal.current_state,
         version_no=source.current_version.version_no,
         version_created_at=source.current_version.created_at,
-        overall_state=overall_state,
+        overall_state=_overall_state(
+            allocation.state,
+            risk.state,
+            decision.state,
+            workflow_gate.state,
+        ),
         allocation=allocation,
         risk=risk,
         decision=decision,
         workflow_gate=workflow_gate,
-        capabilities=_capabilities(allocation, risk, decision, workflow_gate),
+        capabilities=proposal_risk_impact_capabilities(
+            allocation,
+            risk,
+            decision,
+            workflow_gate,
+        ),
         lineage=ProposalRiskImpactLineage(
             proposal_version_id=source.current_version.proposal_version_id,
             request_hash=source.current_version.request_hash,
@@ -90,6 +85,27 @@ def project_proposal_risk_impact(payload: dict[str, object]) -> ProposalRiskImpa
             simulation_hash=source.current_version.simulation_hash,
         ),
     )
+
+
+def _validated_source(payload: dict[str, object]) -> SourceProposalRiskImpactDetail:
+    try:
+        source = SourceProposalRiskImpactDetail.model_validate(payload)
+    except ValidationError as exc:
+        raise_proposal_risk_impact_contract_invalid(exc)
+    if (
+        source.proposal.proposal_id != source.current_version.proposal_id
+        or source.proposal.current_version_no != source.current_version.version_no
+    ):
+        raise_proposal_risk_impact_contract_invalid()
+    return source
+
+
+def _overall_state(*states: ProposalRiskImpactSectionState) -> ProposalRiskImpactOverallState:
+    if all(value == "ready" for value in states):
+        return "ready"
+    if all(value == "unavailable" for value in states):
+        return "unavailable"
+    return "partial"
 
 
 def _allocation_evidence(
@@ -108,7 +124,7 @@ def _allocation_evidence(
     ]
     lens = result.allocation_lens
     if not views:
-        state: SectionState = "unavailable"
+        state: ProposalRiskImpactSectionState = "unavailable"
         reason_code = "allocation_comparison_unavailable"
     elif lens is None or set(before) != set(proposed):
         state = "partial"
@@ -147,7 +163,7 @@ def _views_by_dimension(
     views: dict[ProposalRiskImpactAllocationDimension, SourceProposalRiskImpactAllocationView] = {}
     for view in state.allocation_views:
         if view.dimension in views:
-            _raise_contract_invalid()
+            raise_proposal_risk_impact_contract_invalid()
         views[view.dimension] = view
     return views
 
@@ -159,9 +175,9 @@ def _snapshot(
         return None
     bucket_keys = [bucket.key for bucket in view.buckets]
     if len(bucket_keys) != len(set(bucket_keys)):
-        _raise_contract_invalid()
+        raise_proposal_risk_impact_contract_invalid()
     if any(bucket.value.currency != view.total_value.currency for bucket in view.buckets):
-        _raise_contract_invalid()
+        raise_proposal_risk_impact_contract_invalid()
     return ProposalRiskImpactAllocationSnapshot(
         total_value=_money(view.total_value),
         buckets=[
@@ -294,84 +310,6 @@ def _workflow_gate(
             for reason in selected.reasons
         ],
     )
-
-
-def _capabilities(
-    allocation: ProposalRiskImpactAllocationEvidence,
-    risk: ProposalRiskImpactRiskEvidence,
-    decision: ProposalRiskImpactDecisionEvidence,
-    workflow_gate: ProposalRiskImpactWorkflowGate,
-) -> list[ProposalRiskImpactCapability]:
-    return [
-        ProposalRiskImpactCapability(
-            key="allocation_comparison",
-            label="Current and proposed allocation",
-            state=allocation.state,
-            reason_code=allocation.reason_code,
-            source_service=allocation.source_service,
-            support_reference="current_version.proposal_result.allocation_views",
-        ),
-        ProposalRiskImpactCapability(
-            key="proposal_risk_lens",
-            label="Proposal risk evidence",
-            state=risk.state,
-            reason_code=risk.reason_code,
-            source_service=risk.source_service,
-            support_reference="current_version.artifact.risk_lens",
-        ),
-        ProposalRiskImpactCapability(
-            key="decision_posture",
-            label="Proposal decision posture",
-            state=decision.state,
-            reason_code=decision.reason_code,
-            source_service="lotus-advise",
-            support_reference="current_version.proposal_result.proposal_decision_summary",
-        ),
-        ProposalRiskImpactCapability(
-            key="workflow_gate",
-            label="Workflow gate",
-            state=workflow_gate.state,
-            reason_code=workflow_gate.reason_code,
-            source_service="lotus-advise",
-            support_reference="last_gate_decision",
-        ),
-        ProposalRiskImpactCapability(
-            key="benchmark_and_limits",
-            label="Benchmark and limit evidence",
-            state="not_supported",
-            reason_code="proposal_benchmark_limit_contract_not_available",
-            source_service="lotus-advise",
-        ),
-        ProposalRiskImpactCapability(
-            key="scenario_analysis",
-            label="Scenario analysis",
-            state="not_supported",
-            reason_code="proposal_scenario_contract_not_available",
-            source_service="lotus-advise",
-        ),
-        ProposalRiskImpactCapability(
-            key="valuation_as_of",
-            label="Valuation effective date",
-            state="not_supported",
-            reason_code="proposal_valuation_date_contract_not_available",
-            source_service="lotus-advise",
-        ),
-    ]
-
-
-def _raise_contract_invalid(exc: Exception | None = None) -> NoReturn:
-    error = HTTPException(
-        status_code=status.HTTP_502_BAD_GATEWAY,
-        detail={
-            "source_service": "lotus-advise",
-            "upstream_status": status.HTTP_200_OK,
-            "error_code": "ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID",
-            "detail": "Proposal risk and impact evidence could not be safely verified.",
-        },
-    )
-    if exc is None:
-        raise error
-    raise error from exc
 
 
 __all__ = ["project_proposal_risk_impact"]

@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.contracts.proposal_risk_impact import (
+from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactApprovalType,
     ProposalRiskImpactDecisionStatus,
     ProposalRiskImpactGate,
