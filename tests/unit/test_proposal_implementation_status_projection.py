@@ -163,6 +163,7 @@ def test_projection_identifies_historical_version_without_calling_it_current() -
         "event_state_contradiction",
         "historical_event_state_contradiction",
         "unversioned_event_state_contradiction",
+        "current_event_without_top_level_version_contradiction",
         "status_event",
         "state_correlation",
         "ownership",
@@ -213,6 +214,9 @@ def test_projection_fails_closed_for_unverifiable_source_contract(mutation: str)
         payload["related_version_no"] = None
         event["related_version_no"] = None
         event["to_state"] = "REJECTED"
+    elif mutation == "current_event_without_top_level_version_contradiction":
+        payload["related_version_no"] = None
+        proposal["current_state"] = "REJECTED"
     elif mutation == "status_event":
         event["event_type"] = "EXECUTION_ACCEPTED"
     elif mutation == "state_correlation":

@@ -145,7 +145,10 @@ def _validate_versioned_state_correlation(
 ) -> None:
     event = source.latest_workflow_event
     expected_proposal_state = _EXPECTED_PROPOSAL_STATE.get(source.handoff_status)
-    evidence_is_current_version = source.related_version_no == source.proposal.current_version_no
+    evidence_version_no = source.related_version_no
+    if evidence_version_no is None and event is not None:
+        evidence_version_no = event.related_version_no
+    evidence_is_current_version = evidence_version_no == source.proposal.current_version_no
     if (
         event is not None
         and expected_proposal_state is not None
