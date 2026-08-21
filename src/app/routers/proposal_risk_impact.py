@@ -7,6 +7,16 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_risk_impact(
+    *,
+    proposal_id: str,
+) -> ProposalRiskImpactEnvelopeResponse:
+    return await proposal_service().get_proposal_risk_impact(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{proposal_id}/risk-impact",
     response_model=ProposalRiskImpactEnvelopeResponse,
@@ -25,7 +35,4 @@ async def get_proposal_risk_impact(
         examples=["pp_001"],
     ),
 ) -> ProposalRiskImpactEnvelopeResponse:
-    return await proposal_service().get_proposal_risk_impact(
-        proposal_id=proposal_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_proposal_risk_impact(proposal_id=proposal_id)
