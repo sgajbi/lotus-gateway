@@ -131,6 +131,17 @@ def _current_version_consent(
     ]
     if current:
         latest_at = max(item.occurred_at for item in current)
+        if any(
+            item.approval_type == "CLIENT_CONSENT"
+            and item.related_version_no is None
+            and item.occurred_at >= latest_at
+            for item in source.approvals
+        ):
+            return ProposalDiscussionConsentEvidence(
+                state="partial",
+                reason_code="client_consent_version_not_correlated",
+                consent_state="not_recorded",
+            )
         latest_records = [item for item in current if item.occurred_at == latest_at]
         if len({item.approved for item in latest_records}) > 1:
             raise_proposal_discussion_pack_contract_invalid()
