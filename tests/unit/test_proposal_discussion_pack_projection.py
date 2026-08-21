@@ -188,6 +188,42 @@ def test_projection_rejects_consent_recorded_before_selected_version() -> None:
         _project(payloads)
 
 
+@pytest.mark.parametrize("status_code", [403, 404, 503])
+def test_projection_requires_supported_consent_for_execution_state(
+    status_code: int,
+) -> None:
+    payloads = build_discussion_pack_source_payloads(state="EXECUTION_READY")
+
+    with pytest.raises(ProposalDiscussionPackSnapshotConflict):
+        project_proposal_discussion_pack(
+            detail_payload=payloads["detail"],
+            narrative_response=_response(payloads["narrative"]),
+            memo_response=_response(payloads["memo"]),
+            approvals_response=ProposalDiscussionSourceResponse(status_code, {}),
+            delivery_response=_response(payloads["delivery"]),
+            expected_proposal_id="pp_discussion_001",
+            expected_portfolio_id="PB_SG_GLOBAL_BAL_001",
+            expected_version_no=2,
+            correlation_id="corr-discussion-consent-unavailable",
+        )
+
+
+def test_projection_rejects_memo_review_before_selected_version() -> None:
+    payloads = build_discussion_pack_source_payloads()
+    payloads["memo"]["review_posture"]["occurred_at"] = "2026-08-21T08:00:00Z"
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
+def test_projection_rejects_report_package_before_selected_version() -> None:
+    payloads = _prepared_payloads()
+    payloads["delivery"]["reporting"]["generated_at"] = "2026-08-21T08:00:00Z"
+
+    with pytest.raises(HTTPException):
+        _project(payloads)
+
+
 def test_projection_clears_attention_only_when_review_controls_are_resolved() -> None:
     result = _project(_prepared_payloads())
 

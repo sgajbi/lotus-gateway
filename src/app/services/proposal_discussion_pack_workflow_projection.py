@@ -161,16 +161,15 @@ def validate_discussion_consent_lifecycle(
     consent: ProposalDiscussionConsentEvidence,
     detail: SourceDiscussionDetail,
 ) -> None:
+    if detail.proposal.current_state in {"EXECUTION_READY", "EXECUTED"} and (
+        consent.state != "supported" or consent.consent_state != "approved"
+    ):
+        raise_proposal_discussion_pack_snapshot_conflict()
     if consent.state != "supported":
         return
     if (
         consent.consent_state == "approved"
         and detail.proposal.current_state == "AWAITING_CLIENT_CONSENT"
-    ):
-        raise_proposal_discussion_pack_snapshot_conflict()
-    if (
-        detail.proposal.current_state in {"EXECUTION_READY", "EXECUTED"}
-        and consent.consent_state != "approved"
     ):
         raise_proposal_discussion_pack_snapshot_conflict()
 

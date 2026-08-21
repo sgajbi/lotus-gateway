@@ -112,6 +112,20 @@ class _SnapshotTransitionClient(_DiscussionPackClient):
         )
 
 
+class _ExecutionConsentUnavailableClient(_DiscussionPackClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.payloads = build_discussion_pack_source_payloads(state="EXECUTION_READY")
+
+    async def get_approvals(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        self.calls.append(("approvals", {"proposal_id": proposal_id}))
+        return 503, {"detail": "Approval register unavailable."}
+
+
 @pytest.mark.asyncio
 async def test_service_reads_one_selected_proposal_without_worklist_fan_out() -> None:
     client = _DiscussionPackClient()
@@ -173,6 +187,27 @@ async def test_service_fails_closed_after_repeated_snapshot_conflict() -> None:
         "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
     )
     assert client.detail_reads == 2
+    assert len(client.calls) == 10
+
+
+@pytest.mark.asyncio
+async def test_service_fails_closed_when_execution_consent_stays_unavailable() -> None:
+    client = _ExecutionConsentUnavailableClient()
+    service = ProposalService(cast(ProposalClient, client))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_discussion_pack(
+            proposal_id="pp_discussion_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            version_no=2,
+            correlation_id="corr-discussion-consent-unavailable",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+    assert [name for name, _ in client.calls].count("approvals") == 2
     assert len(client.calls) == 10
 
 
