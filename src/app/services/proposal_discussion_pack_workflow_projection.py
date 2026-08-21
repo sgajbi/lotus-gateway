@@ -167,10 +167,10 @@ def validate_discussion_consent_lifecycle(
         and detail.proposal.current_state == "AWAITING_CLIENT_CONSENT"
     ):
         raise_proposal_discussion_pack_contract_invalid()
-    if consent.consent_state == "not_recorded" and detail.proposal.current_state in {
-        "EXECUTION_READY",
-        "EXECUTED",
-    }:
+    if (
+        detail.proposal.current_state in {"EXECUTION_READY", "EXECUTED"}
+        and consent.consent_state != "approved"
+    ):
         raise_proposal_discussion_pack_contract_invalid()
 
 

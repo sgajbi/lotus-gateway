@@ -2,6 +2,7 @@ from typing import Any
 
 from app.contracts.proposal_discussion_pack import (
     ProposalDiscussionClientReleaseBoundary,
+    ProposalDiscussionConsentEvidence,
     ProposalDiscussionLineage,
     ProposalDiscussionMemoEvidence,
     ProposalDiscussionNarrativeEvidence,
@@ -106,15 +107,16 @@ def _attention_required(
     narrative: ProposalDiscussionNarrativeEvidence,
     memo: ProposalDiscussionMemoEvidence,
     package: ProposalDiscussionPackageEvidence,
-    consent: object,
+    consent: ProposalDiscussionConsentEvidence,
 ) -> bool:
     return (
         _overall_state(narrative, memo, package, consent) == "partial"
-        or narrative.status is not None
-        and narrative.status != "READY_FOR_ADVISOR_REVIEW"
-        or memo.memo_status is not None
-        and memo.memo_status != "READY"
-        or package.package_state == "attention"
+        or narrative.status != "READY_FOR_ADVISOR_REVIEW"
+        or narrative.review_state != "APPROVED_FOR_ADVISOR_USE"
+        or memo.memo_status != "READY"
+        or memo.latest_review_action != "APPROVE_FOR_ADVISOR_USE"
+        or package.package_state != "available"
+        or consent.consent_state != "approved"
     )
 
 
