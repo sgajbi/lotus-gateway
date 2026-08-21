@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.contracts.proposal_discussion_pack import (
     ProposalDiscussionMemoLifecycleStatus,
@@ -14,6 +14,24 @@ from app.contracts.proposal_discussion_pack import (
 
 class _SourceModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
+
+    @model_validator(mode="after")
+    def require_timezone_aware_timestamps(self) -> "_SourceModel":
+        if any(_contains_naive_datetime(value) for value in self.__dict__.values()):
+            raise ValueError("source timestamps must include a timezone offset")
+        return self
+
+
+def _contains_naive_datetime(value: object) -> bool:
+    if isinstance(value, datetime):
+        return value.tzinfo is None or value.utcoffset() is None
+    if isinstance(value, BaseModel):
+        return any(_contains_naive_datetime(item) for item in value.__dict__.values())
+    if isinstance(value, dict):
+        return any(_contains_naive_datetime(item) for item in value.values())
+    if isinstance(value, (list, tuple, set)):
+        return any(_contains_naive_datetime(item) for item in value)
+    return False
 
 
 class SourceDiscussionProposal(_SourceModel):

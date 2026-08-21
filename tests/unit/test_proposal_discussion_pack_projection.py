@@ -131,6 +131,38 @@ def test_projection_fails_closed_on_identity_or_release_contradiction(
     )
 
 
+@pytest.mark.parametrize(
+    ("payload", "path"),
+    [
+        ("detail", ("proposal", "created_at")),
+        ("detail", ("current_version", "created_at")),
+        ("narrative", ("narrative_review", "reviewed_at")),
+        ("memo", ("review_posture", "occurred_at")),
+        ("approvals", ("approvals", 0, "occurred_at")),
+        ("delivery", ("reporting", "generated_at")),
+    ],
+)
+def test_projection_rejects_timezone_naive_source_chronology(
+    payload: str,
+    path: tuple[str | int, ...],
+) -> None:
+    payloads = (
+        _prepared_payloads() if payload == "delivery" else build_discussion_pack_source_payloads()
+    )
+    target: object = payloads[payload]
+    for key in path[:-1]:
+        target = target[key]  # type: ignore[index]
+    target[path[-1]] = "2026-08-21T08:30:00"  # type: ignore[index]
+
+    with pytest.raises(HTTPException) as exc_info:
+        _project(payloads)
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == (
+        "ADVISE_PROPOSAL_DISCUSSION_PACK_CONTRACT_INVALID"
+    )
+
+
 def test_projection_rejects_duplicate_disclosure_identifiers() -> None:
     payloads = build_discussion_pack_source_payloads()
     narrative = payloads["narrative"]["proposal_narrative"]
