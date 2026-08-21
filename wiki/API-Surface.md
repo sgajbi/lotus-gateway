@@ -18,6 +18,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
 - `GET /api/v1/proposals/{proposal_id}/risk-impact`
+- `GET /api/v1/proposals/{proposal_id}/execution-status`
 - `GET` and `POST /api/v1/advisory-copilot/*`
 - `GET /api/v1/advisor-book/portfolios`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
@@ -312,6 +313,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   allocation, risk-lens, decision, workflow-gate, capability, and lineage evidence. Gateway does
   not calculate risk or allocation deltas, infer approval, or fill unsupported benchmark/limit,
   scenario, or valuation-date evidence
+- proposal implementation-status reads use one Advise execution-status call and preserve all eight
+  source handoff states, immutable-version posture, exact event/reference time, capability gaps,
+  and the downstream execution ownership boundary. Gateway classifies attention and next action for
+  Workbench but does not create order, fill, settlement, owner, SLA, or priority truth
 - reviewed narrative Gateway routes preserve `lotus-advise` review state, source-hash,
   policy/guardrail/disclosure posture, report narrative-package posture, and append-only delivery
   events. Gateway does not generate narrative, infer client-ready publication, render reports,
@@ -838,6 +843,19 @@ evidence supportability only; they are not approval, suitability, client consent
 readiness. See the
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-risk-impact-v1.md)
 for field authority and v1 boundaries.
+
+Proposal implementation status evidence:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/execution-status" \
+  -H "X-Correlation-Id: corr-proposal-implementation-001"
+```
+
+The response contract is `proposal-implementation-status.v1`. Its status family, attention flag,
+and next action classify the preserved Advise handoff state for advisor follow-up; they are not OMS,
+order, fill, or settlement evidence. See the
+[repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-implementation-status-v1.md)
+for the full state, authority, supportability, and failure map.
 
 Proposal narrative review:
 

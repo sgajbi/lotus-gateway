@@ -28,13 +28,18 @@ or AI truth.
   stateful risk workspace analytics
 - `lotus-advise`
   proposal simulation, proposal persistence, workflow events, approvals, lineage, reviewed
-  narrative posture, report-request, proposal delivery posture, and RFC-0025 policy-pack /
+  narrative posture, report-request, proposal delivery posture, typed advisory execution-handoff
+  reconciliation, and RFC-0025 policy-pack /
   policy-evaluation posture, and RFC-0026 advisor-cockpit action/snapshot/supportability/
   acknowledgement posture plus tactical house-view cohort evidence, and RFC-0028 bank-demo proof
   scenario/supported-claim/proof-pack posture through
   `/advisory/proposals/*`, `/advisory/policy-packs/*`, `/advisory/policy-evaluations/*`,
   `/advisory/cockpit/*`, `/advisory/tactical-house-view/cohorts/evaluate`, and
   `/advisory/bank-demo-proof/*`
+
+The proposal implementation-status contract validates and classifies Advise handoff evidence for
+Workbench. It does not make Gateway or Advise the order, fill, or settlement system of record; that
+authority remains with the named downstream execution provider as the execution system of record.
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
