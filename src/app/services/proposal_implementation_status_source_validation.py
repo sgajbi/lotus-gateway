@@ -147,15 +147,15 @@ def _validate_versioned_state_correlation(
     expected_proposal_state = _EXPECTED_PROPOSAL_STATE.get(source.handoff_status)
     evidence_is_current_version = source.related_version_no == source.proposal.current_version_no
     if (
-        expected_proposal_state is not None
-        and evidence_is_current_version
-        and source.proposal.current_state != expected_proposal_state
+        event is not None
+        and expected_proposal_state is not None
+        and event.to_state != expected_proposal_state
     ):
         raise_proposal_implementation_status_contract_invalid()
     if (
-        event is not None
-        and event.related_version_no == source.proposal.current_version_no
-        and event.to_state != source.proposal.current_state
+        expected_proposal_state is not None
+        and evidence_is_current_version
+        and source.proposal.current_state != expected_proposal_state
     ):
         raise_proposal_implementation_status_contract_invalid()
 
