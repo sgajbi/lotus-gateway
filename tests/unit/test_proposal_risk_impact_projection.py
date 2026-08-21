@@ -8,7 +8,10 @@ from tests.shared.proposal_risk_impact_payload import build_proposal_risk_impact
 
 
 def test_projects_source_owned_current_and_proposed_evidence() -> None:
-    result = project_proposal_risk_impact(build_proposal_risk_impact_source_payload())
+    result = project_proposal_risk_impact(
+        build_proposal_risk_impact_source_payload(),
+        expected_proposal_id="pp_risk_001",
+    )
 
     assert result.proposal_id == "pp_risk_001"
     assert result.portfolio_id == "PB_SG_GLOBAL_BAL_001"
@@ -28,13 +31,19 @@ def test_projects_source_owned_current_and_proposed_evidence() -> None:
 
 
 def test_keeps_unsupported_analytics_explicit_and_separate_from_workflow() -> None:
-    result = project_proposal_risk_impact(build_proposal_risk_impact_source_payload())
+    result = project_proposal_risk_impact(
+        build_proposal_risk_impact_source_payload(),
+        expected_proposal_id="pp_risk_001",
+    )
     capabilities = {item.key: item for item in result.capabilities}
 
     assert capabilities["benchmark_and_limits"].state == "not_supported"
     assert capabilities["scenario_analysis"].state == "not_supported"
     assert capabilities["valuation_as_of"].state == "not_supported"
     assert capabilities["workflow_gate"].state == "ready"
+    assert capabilities["allocation_comparison"].support_reference == (
+        "current_version.proposal_result"
+    )
     assert result.workflow_gate.reason_code == "workflow_gate_available"
 
 
@@ -56,7 +65,10 @@ def test_marks_valid_source_absence_as_unavailable_without_fabricating_evidence(
     current_version["gate_decision"] = None
     payload["last_gate_decision"] = None
 
-    result = project_proposal_risk_impact(payload)
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
 
     assert result.overall_state == "unavailable"
     assert result.allocation.reason_code == "allocation_comparison_unavailable"
@@ -76,7 +88,10 @@ def test_marks_source_copy_mismatch_as_partial_and_preserves_primary_source() ->
     artifact_decision["primary_summary"] = "A stale artifact decision summary."
     artifact["proposal_decision_summary"] = artifact_decision
 
-    result = project_proposal_risk_impact(payload)
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
 
     assert result.overall_state == "partial"
     assert result.decision.reason_code == "proposal_decision_source_mismatch"
@@ -113,7 +128,10 @@ def test_marks_currency_or_risk_authority_gaps_as_partial() -> None:
     assert isinstance(risk_lens, dict)
     risk_lens["source_service"] = None
 
-    result = project_proposal_risk_impact(payload)
+    result = project_proposal_risk_impact(
+        payload,
+        expected_proposal_id="pp_risk_001",
+    )
 
     assert result.overall_state == "partial"
     assert result.allocation.reason_code == "allocation_comparison_currency_mismatch"
@@ -178,7 +196,10 @@ def test_fails_closed_when_source_contract_cannot_be_verified(mutation: str) -> 
         decision["decision_status"] = "LOOKS_FINE"
 
     with pytest.raises(HTTPException) as exc_info:
-        project_proposal_risk_impact(payload)
+        project_proposal_risk_impact(
+            payload,
+            expected_proposal_id="pp_risk_001",
+        )
 
     assert exc_info.value.status_code == 502
     assert exc_info.value.detail["error_code"] == ("ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID")
