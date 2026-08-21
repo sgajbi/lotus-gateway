@@ -98,7 +98,11 @@ def test_projection_identifies_historical_version_without_calling_it_current() -
         "proposal_identity",
         "event_identity",
         "future_version",
+        "future_event_version_without_top_level_version",
         "event_version",
+        "blank_request_reference",
+        "blank_provider_reference",
+        "blank_downstream_reference",
         "status_event",
         "state_correlation",
         "ownership",
@@ -122,8 +126,17 @@ def test_projection_fails_closed_for_unverifiable_source_contract(mutation: str)
         event["proposal_id"] = "pp_other"
     elif mutation == "future_version":
         payload["related_version_no"] = 3
+    elif mutation == "future_event_version_without_top_level_version":
+        payload["related_version_no"] = None
+        event["related_version_no"] = 3
     elif mutation == "event_version":
         event["related_version_no"] = 1
+    elif mutation == "blank_request_reference":
+        payload["execution_request_id"] = " "
+    elif mutation == "blank_provider_reference":
+        payload["execution_provider"] = ""
+    elif mutation == "blank_downstream_reference":
+        payload["external_execution_id"] = " "
     elif mutation == "status_event":
         event["event_type"] = "EXECUTION_ACCEPTED"
     elif mutation == "state_correlation":
