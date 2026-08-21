@@ -120,6 +120,10 @@ def test_projection_identifies_historical_version_without_calling_it_current() -
         "blank_request_reference",
         "blank_provider_reference",
         "blank_downstream_reference",
+        "blank_event_id",
+        "blank_event_actor",
+        "proposal_state_contradiction",
+        "event_state_contradiction",
         "status_event",
         "state_correlation",
         "ownership",
@@ -130,14 +134,14 @@ def test_projection_identifies_historical_version_without_calling_it_current() -
 )
 def test_projection_fails_closed_for_unverifiable_source_contract(mutation: str) -> None:
     payload = build_proposal_implementation_status_source_payload(status="EXECUTED")
+    proposal = payload["proposal"]
+    assert isinstance(proposal, dict)
     event = payload["latest_workflow_event"]
     assert isinstance(event, dict)
     explanation = payload["explanation"]
     assert isinstance(explanation, dict)
 
     if mutation == "proposal_identity":
-        proposal = payload["proposal"]
-        assert isinstance(proposal, dict)
         proposal["proposal_id"] = "pp_other"
     elif mutation == "event_identity":
         event["proposal_id"] = "pp_other"
@@ -154,6 +158,14 @@ def test_projection_fails_closed_for_unverifiable_source_contract(mutation: str)
         payload["execution_provider"] = ""
     elif mutation == "blank_downstream_reference":
         payload["external_execution_id"] = " "
+    elif mutation == "blank_event_id":
+        event["event_id"] = " "
+    elif mutation == "blank_event_actor":
+        event["actor_id"] = ""
+    elif mutation == "proposal_state_contradiction":
+        proposal["current_state"] = "REJECTED"
+    elif mutation == "event_state_contradiction":
+        event["to_state"] = "REJECTED"
     elif mutation == "status_event":
         event["event_type"] = "EXECUTION_ACCEPTED"
     elif mutation == "state_correlation":
