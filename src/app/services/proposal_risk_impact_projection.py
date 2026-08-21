@@ -1,3 +1,5 @@
+from typing import Literal
+
 from app.contracts.proposal_risk_impact import (
     ProposalRiskImpactData,
     ProposalRiskImpactDecisionEvidence,
@@ -103,6 +105,7 @@ def _allocation_evidence(
 ) -> ProposalRiskImpactAllocationEvidence:
     before = _views_by_dimension(result.before)
     proposed = _views_by_dimension(result.after_simulated)
+    expected_dimensions = _expected_dimensions(result)
     dimensions = list(dict.fromkeys([*before, *proposed]))
     views = [
         ProposalRiskImpactAllocationView(
@@ -119,6 +122,9 @@ def _allocation_evidence(
     elif lens is None or set(before) != set(proposed):
         state = "partial"
         reason_code = "allocation_comparison_partial"
+    elif set(before) != set(expected_dimensions):
+        state = "partial"
+        reason_code = "allocation_comparison_dimension_coverage_partial"
     elif _allocation_currency_mismatch(before, proposed):
         state = "partial"
         reason_code = "allocation_comparison_currency_mismatch"
@@ -131,18 +137,34 @@ def _allocation_evidence(
     return ProposalRiskImpactAllocationEvidence(
         state=state,
         reason_code=reason_code,
-        source_service=(
-            None
-            if lens is None
-            else "lotus-core"
-            if lens.source == "LOTUS_CORE"
-            else "lotus-advise"
-        ),
+        source_service=_allocation_source_service(result),
         source_mode=None if lens is None else lens.source,
         contract_version=None if lens is None else lens.contract_version,
         calculator_version=None if lens is None else lens.calculator_version,
+        expected_dimensions=expected_dimensions,
         views=views,
     )
+
+
+def _allocation_source_service(
+    result: SourceProposalRiskImpactResult,
+) -> Literal["lotus-core", "lotus-advise"] | None:
+    if result.allocation_lens is None:
+        return None
+    if result.allocation_lens.source == "LOTUS_CORE":
+        return "lotus-core"
+    return "lotus-advise"
+
+
+def _expected_dimensions(
+    result: SourceProposalRiskImpactResult,
+) -> list[ProposalRiskImpactAllocationDimension]:
+    if result.allocation_lens is None:
+        return []
+    dimensions = result.allocation_lens.dimensions
+    if len(dimensions) != len(set(dimensions)):
+        raise_proposal_risk_impact_contract_invalid()
+    return dimensions
 
 
 def _views_by_dimension(

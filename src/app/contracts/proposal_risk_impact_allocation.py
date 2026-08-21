@@ -9,6 +9,15 @@ ProposalRiskImpactSectionState = Literal[
     "not_supported",
 ]
 ProposalRiskImpactOverallState = Literal["ready", "partial", "unavailable"]
+ProposalRiskImpactAllocationDimension = Literal[
+    "asset_class",
+    "currency",
+    "sector",
+    "country",
+    "region",
+    "product_type",
+    "rating",
+]
 ProposalRiskImpactWorkflowState = Literal[
     "DRAFT",
     "RISK_REVIEW",
@@ -120,15 +129,9 @@ class ProposalRiskImpactAllocationSnapshot(BaseModel):
 
 
 class ProposalRiskImpactAllocationView(BaseModel):
-    dimension: Literal[
-        "asset_class",
-        "currency",
-        "sector",
-        "country",
-        "region",
-        "product_type",
-        "rating",
-    ] = Field(description="Governed dimension used for the before/proposed comparison.")
+    dimension: ProposalRiskImpactAllocationDimension = Field(
+        description="Governed dimension used for the before/proposed comparison."
+    )
     current: ProposalRiskImpactAllocationSnapshot | None = Field(
         default=None,
         description="Current portfolio snapshot when supplied by the source contract.",
@@ -162,6 +165,10 @@ class ProposalRiskImpactAllocationEvidence(BaseModel):
         default=None,
         description="Source allocation calculator version used for replay and audit.",
     )
+    expected_dimensions: list[ProposalRiskImpactAllocationDimension] = Field(
+        default_factory=list,
+        description="Ordered allocation dimensions declared by the source calculation lens.",
+    )
     views: list[ProposalRiskImpactAllocationView] = Field(
         default_factory=list,
         description=(
@@ -173,6 +180,7 @@ class ProposalRiskImpactAllocationEvidence(BaseModel):
 
 __all__ = [
     "ProposalRiskImpactAllocationBucket",
+    "ProposalRiskImpactAllocationDimension",
     "ProposalRiskImpactAllocationEvidence",
     "ProposalRiskImpactAllocationSnapshot",
     "ProposalRiskImpactAllocationView",

@@ -187,6 +187,7 @@ class ProposalRiskImpactEnvelopeResponse(BaseModel):
                         "source_mode": "LOTUS_CORE",
                         "contract_version": "advisory-simulation.v1",
                         "calculator_version": "lotus-core.allocation-calculator.v1",
+                        "expected_dimensions": ["asset_class"],
                         "views": [],
                     },
                     "risk": {
