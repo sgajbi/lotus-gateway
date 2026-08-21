@@ -53,7 +53,7 @@ def _source_capabilities(
             state=decision.state,
             reason_code=decision.reason_code,
             source_service="lotus-advise",
-            support_reference="current_version.proposal_result.proposal_decision_summary",
+            support_reference=decision.support_reference,
         ),
         ProposalRiskImpactCapability(
             key="workflow_gate",

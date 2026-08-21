@@ -29,6 +29,10 @@ section is `partial` with a stable source-mismatch reason. Invalid identity, dup
 dimensions, or malformed typed values fail closed with
 `ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID`.
 
+Decision evidence and its capability posture publish the exact selected proposal-result or artifact
+source path. Consumers therefore never receive provenance for an absent copy when the other
+validated copy supplied the visible decision evidence.
+
 ## Supportability states
 
 - `ready`: the typed source evidence required for that section is present and internally aligned.

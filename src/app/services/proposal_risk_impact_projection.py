@@ -249,6 +249,7 @@ def _decision_evidence(
         reason_code=(
             "proposal_decision_source_mismatch" if mismatch else "proposal_decision_available"
         ),
+        support_reference=_decision_support_reference(result_decision),
         decision_status=decision.decision_status,
         top_level_status=decision.top_level_status,
         primary_reason_code=decision.primary_reason_code,
@@ -277,6 +278,14 @@ def _decision_evidence(
         ],
         evidence_refs=decision.evidence_refs,
     )
+
+
+def _decision_support_reference(
+    result_decision: SourceProposalRiskImpactDecisionSummary | None,
+) -> str:
+    if result_decision is not None:
+        return "current_version.proposal_result.proposal_decision_summary"
+    return "current_version.artifact.proposal_decision_summary"
 
 
 def _workflow_gate(
