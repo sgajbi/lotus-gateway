@@ -215,6 +215,9 @@ def test_dpm_wave_campaign_definition_contracts_live_outside_dpm_waves_facade() 
 
 def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() -> None:
     dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    campaign_command_type_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_wave_campaign_command_types.py"
+    )
     campaign_workflow_contract_classes = _class_names(
         _CONTRACT_ROOT / "dpm_wave_campaign_workflow.py"
     )
@@ -230,11 +233,11 @@ def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() ->
         "DpmCampaignAssignmentTaskTransitionRequest",
         "DpmCampaignMakerCheckerControlBody",
         "DpmCampaignMakerCheckerControlRequest",
-        "DpmCampaignSourceRef",
         "DpmCampaignWorkflowGatewayResponse",
     }
 
     assert expected_campaign_workflow_contracts <= campaign_workflow_contract_classes
+    assert {"DpmCampaignSourceRef"} <= campaign_command_type_classes
     assert dpm_waves_facade_classes.isdisjoint(expected_campaign_workflow_contracts)
 
 
