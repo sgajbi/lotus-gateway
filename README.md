@@ -343,8 +343,9 @@ immutable `main-releasability-<sha>` tag for the exact merged pull request SHA w
 `main` as the release source branch in build metadata, provenance, manifests, and `/version`. This
 preserves exact-main release evidence when a PR is merged by an authorized human or release actor
 rather than the auto-merge helper without mislabelling release artifacts as tag-origin builds.
-The lane's concurrency identity uses the expected merge SHA, with the checked-out SHA as the manual
-fallback, so a newer merge cannot cancel validation evidence for an earlier revision.
+The lane's concurrency identity always uses GitHub's checked-out SHA. The caller-supplied expected
+SHA remains an assertion only, so an invalid manual input cannot cancel validation evidence for a
+different revision and a newer merge cannot cancel evidence for an earlier revision.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR
 dispatcher owns the automatic post-merge path so human or release-actor merges do not start both a
 push-triggered run and a dispatched run for the same main SHA. Manual dispatches intentionally have

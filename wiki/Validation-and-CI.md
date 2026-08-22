@@ -80,6 +80,10 @@ only reruns of the same revision may supersede one another.
 
 ## Container release evidence
 
+Main Releasability concurrency is keyed only by the checked-out GitHub SHA. The optional
+`expected_sha` dispatch input is verified after checkout but never controls cancellation identity,
+so an invalid operator input cannot cancel release evidence for another revision.
+
 PR Merge Gate builds `ghcr.io/<owner>/lotus-gateway:${{ github.sha }}` locally, also tags
 `lotus-gateway:ci-test` for Docker parity, generates an SBOM with pinned `anchore/syft:v1.42.3`,
 runs a pinned `aquasec/trivy:0.72.0` image scan that fails on fixable HIGH/CRITICAL findings,

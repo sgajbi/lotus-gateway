@@ -44,7 +44,8 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
     assert "LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}" in text
     assert '--build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
     assert '--git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
-    assert "group: ${{ github.workflow }}-${{ inputs.expected_sha || github.sha }}" in text
+    assert "group: ${{ github.workflow }}-${{ github.sha }}" in text
+    assert "inputs.expected_sha || github.sha" not in text
     assert "group: ${{ github.workflow }}-${{ github.ref }}" not in text
     assert "git rev-parse HEAD" in text
     assert "  push:\n" not in text
