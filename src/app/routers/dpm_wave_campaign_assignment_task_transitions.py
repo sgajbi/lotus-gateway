@@ -27,7 +27,7 @@ async def _transition_campaign_assignment_task(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         task_ref=task_ref,
-        body=request.body.model_dump(mode="json"),
+        body=request.body.model_dump(mode="json", exclude_unset=True),
         correlation_id=correlation_id_var.get(),
     )
 
