@@ -196,14 +196,17 @@ authority remains with the named downstream execution provider as the execution 
     nodes, inferring mandate exceptions, calculating source-owner methods, or letting Workbench
     call `lotus-manage` directly.
 16. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
-    `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
+    `/api/v1/dpm/command-center/waves*` for Workbench. Gateway validates campaign launch,
+    lifecycle, approval, assignment, task, transition, and maker-checker writes against distinct
+    closed request contracts, then forwards the accepted request bodies,
     idempotency keys, query filters, campaign-definition payloads, and correlation context to
     manage, then preserves wave ids, lifecycle state, item states, aggregate metrics,
     selected-alternative refs, proof-pack refs, internal handoff refs, campaign definition payloads,
     campaign workflow/audit payloads, count/page metadata, source refs, hashes, report-input
     evidence, supportability issues, remediation routes, and no-external-execution posture without
     discovering affected portfolios, discovering cohorts, recomputing campaign membership,
-    calculating task state, approval state, maker-checker state, SLA posture, or workflow
+    deciding command eligibility, calculating task state, approval state, maker-checker state, SLA
+    posture, or workflow
     orchestration, classifying readiness, generating alternatives, approving/staging locally,
     rebuilding proof packs, generating report evidence, or claiming execution. The wave AI PM memo
     route first reads manage-owned

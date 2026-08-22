@@ -954,14 +954,18 @@ Authority and integrations:
    assignment plan, workflow automation, approval-decision, assignment-action, assignment-task,
    task-transition, and maker-checker evidence with Manage-owned count/page metadata,
    supportability, source refs, reason codes, operating boundaries, and hashes exactly.
-6. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
+6. Campaign launch, retirement, supersession, approval-decision, assignment-action,
+   assignment-task, task-transition, and maker-checker writes use distinct closed request schemas.
+   Gateway rejects stale fields and unsupported bounded values before upstream dispatch without
+   reimplementing Manage command-eligibility or transition rules.
+7. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
    issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
-7. Gateway reads manage-owned wave report input before calling `lotus-ai`
+8. Gateway reads manage-owned wave report input before calling `lotus-ai`
    `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
-8. Gateway reads manage-owned wave report input with internal handoff refs before calling
+9. Gateway reads manage-owned wave report input with internal handoff refs before calling
    `lotus-ai` `dpm_operations_handoff_summary.pack@v1`.
-9. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
+10. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
    recompute campaign membership, generate alternatives, select alternatives, approve items, stage
    items, create handoff evidence, rebuild proof packs, generate report evidence, generate AI
    narrative locally, calculate task state, approval state, maker-checker state, SLA posture,
