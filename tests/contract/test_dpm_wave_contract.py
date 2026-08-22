@@ -238,9 +238,14 @@ def test_dpm_wave_openapi_models_are_described() -> None:
         "DpmWaveCreateRequest",
         "DpmCampaignDefinitionForwardRequest",
         "DpmCampaignDefinitionLaunchRequest",
-        "DpmCampaignDefinitionLifecycleCommandRequest",
+        "DpmCampaignDefinitionRetirementRequest",
+        "DpmCampaignDefinitionSupersessionRequest",
         "DpmCampaignDefinitionGatewayResponse",
-        "DpmCampaignWorkflowForwardRequest",
+        "DpmCampaignApprovalDecisionRequest",
+        "DpmCampaignAssignmentActionRequest",
+        "DpmCampaignAssignmentTaskRequest",
+        "DpmCampaignAssignmentTaskTransitionRequest",
+        "DpmCampaignMakerCheckerControlRequest",
         "DpmCampaignWorkflowGatewayResponse",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",
@@ -261,3 +266,37 @@ def test_dpm_wave_openapi_models_are_described() -> None:
     assert "DpmPortfolioUniverseCandidate:v1" in wave_forward_body["description"]
     assert "CORE_DPM_PORTFOLIO_UNIVERSE" in str(wave_forward_body["examples"])
     assert "caller-supplied candidate portfolios" in wave_forward_body["description"]
+
+
+def test_dpm_campaign_command_openapi_uses_distinct_typed_request_contracts() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    path_prefix = (
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "{campaign_id}/versions/{campaign_version}"
+    )
+    expected_requests = {
+        "/launch": "DpmCampaignDefinitionLaunchRequest",
+        "/retire": "DpmCampaignDefinitionRetirementRequest",
+        "/supersede": "DpmCampaignDefinitionSupersessionRequest",
+        "/approval-decisions": "DpmCampaignApprovalDecisionRequest",
+        "/assignment-actions": "DpmCampaignAssignmentActionRequest",
+        "/assignment-tasks": "DpmCampaignAssignmentTaskRequest",
+        "/assignment-tasks/{task_ref}/transitions": ("DpmCampaignAssignmentTaskTransitionRequest"),
+        "/maker-checker-controls": "DpmCampaignMakerCheckerControlRequest",
+    }
+
+    for suffix, request_name in expected_requests.items():
+        request_schema = spec["paths"][path_prefix + suffix]["post"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]
+        assert request_schema == {"$ref": f"#/components/schemas/{request_name}"}
+
+        envelope_schema = spec["components"]["schemas"][request_name]
+        assert envelope_schema["additionalProperties"] is False
+        body_schema_name = envelope_schema["properties"]["body"]["$ref"].rsplit("/", 1)[-1]
+        body_schema = spec["components"]["schemas"][body_schema_name]
+        assert body_schema["additionalProperties"] is False
+        assert all(
+            property_schema.get("description")
+            for property_schema in body_schema["properties"].values()
+        )
