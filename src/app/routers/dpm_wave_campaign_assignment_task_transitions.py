@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Path
 
 from app.contracts.dpm_waves import (
-    DpmCampaignWorkflowForwardRequest,
+    DpmCampaignAssignmentTaskTransitionRequest,
     DpmCampaignWorkflowGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
@@ -21,13 +21,13 @@ async def _transition_campaign_assignment_task(
     campaign_id: str,
     campaign_version: str,
     task_ref: str,
-    request: DpmCampaignWorkflowForwardRequest,
+    request: DpmCampaignAssignmentTaskTransitionRequest,
 ) -> DpmCampaignWorkflowGatewayResponse:
     return await dpm_wave_service().transition_campaign_assignment_task(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         task_ref=task_ref,
-        body=request.body,
+        body=request.body.model_dump(mode="json"),
         correlation_id=correlation_id_var.get(),
     )
 
@@ -46,7 +46,7 @@ async def _transition_campaign_assignment_task(
     responses=UPSTREAM_CAMPAIGN_ASSIGNMENT_ERROR_RESPONSES,
 )
 async def transition_campaign_assignment_task(
-    request: DpmCampaignWorkflowForwardRequest,
+    request: DpmCampaignAssignmentTaskTransitionRequest,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
     task_ref: str = Path(..., description="Manage-owned campaign assignment task reference."),
