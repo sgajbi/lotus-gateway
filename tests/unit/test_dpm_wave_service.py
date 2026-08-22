@@ -597,9 +597,9 @@ async def test_dpm_wave_service_preserves_campaign_retire_lifecycle_truth() -> N
         "campaign_id": "campaign-holdings-202605",
         "campaign_version": "2026.05",
         "status": "RETIRED",
-        "actor_id": "pm_sg_1",
-        "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
-        "correlation_id": "corr-campaign-retire",
+        "retired_by": "pm_sg_1",
+        "retirement_reason": "Campaign review completed.",
+        "retirement_correlation_id": "corr-campaign-retire",
         "content_hash": "sha256:campaign-retired",
         "reason_codes": ["campaign_definition_retired"],
         "operating_boundaries": [
@@ -609,8 +609,8 @@ async def test_dpm_wave_service_preserves_campaign_retire_lifecycle_truth() -> N
         ],
     }
     body = {
-        "actor_id": "pm_sg_1",
-        "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+        "retired_by": "pm_sg_1",
+        "retirement_reason": "Campaign review completed.",
         "correlation_id": "corr-campaign-retire",
     }
     client = _FakeDpmClient((200, manage_payload))
@@ -647,11 +647,11 @@ async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -
         "campaign_id": "campaign-holdings-202605",
         "campaign_version": "2026.05",
         "status": "SUPERSEDED",
-        "actor_id": "pm_sg_1",
-        "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
-        "replacement_campaign_version": "2026.06",
-        "replacement_content_hash": "sha256:campaign-replacement",
-        "correlation_id": "corr-campaign-supersede",
+        "superseded_by": "pm_sg_1",
+        "supersession_reason": "Candidate evidence was refreshed.",
+        "superseded_by_campaign_version": "2026.06",
+        "superseded_by_content_hash": "sha256:campaign-replacement",
+        "supersession_correlation_id": "corr-campaign-supersede",
         "content_hash": "sha256:campaign-superseded",
         "reason_codes": ["campaign_definition_superseded"],
         "operating_boundaries": [
@@ -661,10 +661,9 @@ async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -
         ],
     }
     body = {
-        "actor_id": "pm_sg_1",
-        "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
-        "replacement_campaign_version": "2026.06",
-        "replacement_content_hash": "sha256:campaign-replacement",
+        "superseded_by_campaign_version": "2026.06",
+        "superseded_by": "pm_sg_1",
+        "supersession_reason": "Candidate evidence was refreshed.",
         "correlation_id": "corr-campaign-supersede",
     }
     client = _FakeDpmClient((200, manage_payload))
@@ -681,7 +680,7 @@ async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -
     assert response.source_service == "lotus-manage"
     assert response.upstream_status == 200
     assert response.data == manage_payload
-    assert response.data["replacement_content_hash"] == "sha256:campaign-replacement"
+    assert response.data["superseded_by_content_hash"] == "sha256:campaign-replacement"
     assert client.calls == [
         {
             "method": "supersede_campaign_definition",
@@ -802,9 +801,9 @@ async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_pa
         "campaign_id": "campaign-holdings-202605",
         "campaign_version": "2026.05",
         "task_ref": "task-review-001",
-        "transition_type": "MARK_SUPPORTABLE",
-        "from_status": "READY_FOR_REVIEW",
-        "to_status": "SUPPORTABLE",
+        "transition_type": "ACKNOWLEDGED",
+        "from_status": "OPEN",
+        "to_status": "ACKNOWLEDGED",
         "reason_codes": ["campaign_assignment_task_transition_recorded"],
         "source_refs": [{"source_system": "lotus-manage"}],
         "content_hash": "sha256:task-transition",
@@ -815,9 +814,12 @@ async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_pa
         ],
     }
     body = {
-        "transition_type": "MARK_SUPPORTABLE",
-        "actor_id": "pm_sg_1",
-        "reason_code": "campaign_assignment_task_transition_recorded",
+        "transition_type": "ACKNOWLEDGED",
+        "transition_ref": "task-review-001:ack",
+        "transitioned_by": "pm_sg_1",
+        "transition_reason": "Portfolio manager acknowledged the task.",
+        "correlation_id": "corr-campaign-task-transition",
+        "source_refs": [],
     }
     client = _FakeDpmClient((201, manage_payload))
     service = DpmWaveService(dpm_client=client)
@@ -832,8 +834,8 @@ async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_pa
 
     assert response.upstream_status == 201
     assert response.data == manage_payload
-    assert response.data["from_status"] == "READY_FOR_REVIEW"
-    assert response.data["to_status"] == "SUPPORTABLE"
+    assert response.data["from_status"] == "OPEN"
+    assert response.data["to_status"] == "ACKNOWLEDGED"
     assert "NO_CLIENT_CONTACT_WORKFLOW" in response.data["operating_boundaries"]
     assert client.calls == [
         {

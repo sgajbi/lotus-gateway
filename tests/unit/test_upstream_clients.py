@@ -2201,7 +2201,11 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
-                "body": {"actor_id": "pm_sg_1", "reason_code": "CAMPAIGN_RETIRED"},
+                "body": {
+                    "retired_by": "pm_sg_1",
+                    "retirement_reason": "Campaign review completed.",
+                    "correlation_id": "corr-retire",
+                },
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
@@ -2213,9 +2217,10 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
                 "body": {
-                    "actor_id": "pm_sg_1",
-                    "reason_code": "CAMPAIGN_SUPERSEDED",
-                    "replacement_campaign_version": "2026.06",
+                    "superseded_by_campaign_version": "2026.06",
+                    "superseded_by": "pm_sg_1",
+                    "supersession_reason": "Candidate evidence was refreshed.",
+                    "correlation_id": "corr-supersede",
                 },
                 "correlation_id": "corr-5",
             },
@@ -2316,7 +2321,16 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
-                "body": {"task_ref": "task-review-001"},
+                "body": {
+                    "task_ref": "task-review-001",
+                    "task_type": "ASSIGNMENT",
+                    "opened_by": "ops",
+                    "task_reason": "Portfolio manager acknowledgement is required.",
+                    "assigned_actor_ids": ["pm_sg_1"],
+                    "escalation_tier": "PM",
+                    "sla_posture": "ON_TRACK",
+                    "correlation_id": "corr-task",
+                },
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
@@ -2328,7 +2342,13 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
                 "task_ref": "task-review-001",
-                "body": {"transition_type": "MARK_SUPPORTABLE"},
+                "body": {
+                    "transition_type": "ACKNOWLEDGED",
+                    "transition_ref": "task-review-001:ack",
+                    "transitioned_by": "pm_sg_1",
+                    "transition_reason": "Portfolio manager acknowledged the task.",
+                    "correlation_id": "corr-transition",
+                },
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
@@ -2620,7 +2640,16 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
-                "body": {"task_ref": "task-review-001"},
+                "body": {
+                    "task_ref": "task-review-001",
+                    "task_type": "ASSIGNMENT",
+                    "opened_by": "ops",
+                    "task_reason": "Portfolio manager acknowledgement is required.",
+                    "assigned_actor_ids": ["pm_sg_1"],
+                    "escalation_tier": "PM",
+                    "sla_posture": "ON_TRACK",
+                    "correlation_id": "corr-task",
+                },
                 "correlation_id": "corr-rfc36-canonical",
             },
         ),
@@ -2630,7 +2659,13 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
                 "task_ref": "task-review-001",
-                "body": {"transition_type": "MARK_SUPPORTABLE"},
+                "body": {
+                    "transition_type": "ACKNOWLEDGED",
+                    "transition_ref": "task-review-001:ack",
+                    "transitioned_by": "pm_sg_1",
+                    "transition_reason": "Portfolio manager acknowledged the task.",
+                    "correlation_id": "corr-transition",
+                },
                 "correlation_id": "corr-rfc36-canonical",
             },
         ),
