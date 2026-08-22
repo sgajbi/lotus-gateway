@@ -25,7 +25,7 @@ async def _supersede_campaign_definition(
     return await dpm_wave_service().supersede_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        body=request.body.model_dump(mode="json"),
+        body=request.body.model_dump(mode="json", exclude_unset=True),
         correlation_id=correlation_id_var.get(),
     )
 

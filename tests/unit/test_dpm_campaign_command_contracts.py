@@ -51,3 +51,14 @@ def test_stale_campaign_command_shapes_fail_closed(
 ) -> None:
     with pytest.raises(ValidationError):
         request_model.model_validate({"body": body})
+
+
+def test_optional_campaign_command_fields_remain_omitted_for_forwarding() -> None:
+    request = DpmCampaignDefinitionLaunchRequest.model_validate(
+        {"body": {"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"}}
+    )
+
+    assert request.body.model_dump(mode="json", exclude_unset=True) == {
+        "requested_as_of_date": "2026-05-10",
+        "actor_id": "pm_sg_1",
+    }
