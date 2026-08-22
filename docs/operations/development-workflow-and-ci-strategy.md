@@ -26,7 +26,9 @@ dispatcher passes `expected_sha=<merge-sha>` and `source_branch=main`, so the wo
 exact merged commit while release metadata, provenance, manifests, and `/version` continue to
 describe the mainline source branch instead of the synthetic dispatch tag. This preserves exact-main
 Main Releasability evidence across both automated and authorized manual rebase merges without a
-mutable-`main` race.
+mutable-`main` race. Main Releasability concurrency is keyed by `expected_sha` (falling back to the
+checked-out GitHub SHA for operator dispatches), so reruns for one revision supersede only that
+revision and cannot cancel evidence for a different merged commit.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR dispatcher
 is the single automatic post-merge path and prevents duplicate push-triggered and dispatch-triggered
 main releasability runs for the same merge.

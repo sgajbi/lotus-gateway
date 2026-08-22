@@ -57,7 +57,9 @@ manifests, and `/version` describe the merged mainline source rather than the sy
 `main-releasability.yml` is intentionally `workflow_dispatch`-only so this dispatcher is the single
 automatic post-merge path and does not race or cancel a duplicate push-triggered release run. Manual
 dispatches intentionally have no `source_branch` default; release metadata inherits the selected
-workflow ref unless an operator explicitly provides a source branch override.
+workflow ref unless an operator explicitly provides a source branch override. Concurrency is
+isolated by the expected merge SHA, falling back to the checked-out SHA for operator dispatches, so
+only reruns of the same revision may supersede one another.
 
 ## What the gates protect
 
