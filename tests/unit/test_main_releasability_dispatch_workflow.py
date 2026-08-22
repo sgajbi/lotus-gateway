@@ -50,3 +50,11 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
     assert "git rev-parse HEAD" in text
     assert "  push:\n" not in text
     assert "branches: [ main ]" not in text
+
+
+def test_operator_guidance_keeps_expected_sha_validation_only() -> None:
+    text = (REPO_ROOT / "wiki" / "Validation-and-CI.md").read_text(encoding="utf-8")
+
+    assert "isolated by the checked-out GitHub SHA" in text
+    assert "expected_sha` is validation-only" in text
+    assert "isolated by the expected merge SHA" not in text
