@@ -61,7 +61,9 @@ suitability, recommendation, communication, and execution claims are not support
 6. PM operating quality policy, score-run, fairness, review-action, and summary-invocation route
    families,
 7. wave campaign definitions, queues, approval inbox, workflow board, assignment plan,
-   automation, wave report input, AI PM memo, and operations handoff summary.
+   automation, typed lifecycle and workflow command requests, wave report input, AI PM memo, and
+   operations handoff summary. Gateway rejects obsolete command fields and unsupported enums at the
+   BFF boundary; `lotus-manage` remains authoritative for command eligibility and state changes.
 8. request-scoped authority for every registered DPM route: authenticated actor, tenant, role, and
    optional region remain caller audit evidence on reads and mutations, while Gateway derives its
    own `lotus-gateway` / `manage.write` workload authority only for mutations; caller-supplied

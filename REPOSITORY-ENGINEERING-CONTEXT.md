@@ -414,6 +414,10 @@ reclassifying arbitrary source codes in the BFF.
     operating queue, approval inbox, workflow board, assignment plan, workflow automation,
     approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
     evidence requests to `lotus-manage`;
+    validates launch, retirement, supersession, approval-decision, assignment-action,
+    assignment-task, task-transition, and maker-checker request shape and bounded vocabulary with
+    distinct closed OpenAPI schemas before forwarding, while leaving command eligibility and state
+    transition rules to `lotus-manage`;
     campaign-definition list/get and campaign-discovery reads require trusted `X-Tenant-Id`
     scope and fail closed at request validation when it is missing;
     preserves the bounded `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE` request shape

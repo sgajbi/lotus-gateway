@@ -216,6 +216,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
   `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, ready-only launch posture, and
   bounded campaign workflow/audit evidence.
+  Each launch, retirement, supersession, approval-decision, assignment-action, assignment-task,
+  task-transition, and maker-checker write has a distinct closed request schema. Gateway rejects
+  obsolete fields and unsupported bounded values before calling Manage; Manage remains the sole
+  authority for command eligibility, lifecycle rules, and resulting source evidence.
   Campaign-definition list/get and campaign-discovery reads require `X-Tenant-Id`; requests
   without trusted tenant scope fail closed with `422`.
   For bounded Core-owned campaign candidate discovery, Gateway preserves
