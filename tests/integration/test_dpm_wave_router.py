@@ -436,9 +436,9 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
             "status": "RETIRED",
-            "actor_id": body["actor_id"],
-            "reason_code": body["reason_code"],
-            "correlation_id": body["correlation_id"],
+            "retired_by": body["retired_by"],
+            "retirement_reason": body["retirement_reason"],
+            "retirement_correlation_id": body["correlation_id"],
             "content_hash": "sha256:campaign-retired",
             "reason_codes": ["campaign_definition_retired"],
             "operating_boundaries": [
@@ -464,11 +464,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
             "status": "SUPERSEDED",
-            "actor_id": body["actor_id"],
-            "reason_code": body["reason_code"],
-            "replacement_campaign_version": body["replacement_campaign_version"],
-            "replacement_content_hash": body["replacement_content_hash"],
-            "correlation_id": body["correlation_id"],
+            "superseded_by": body["superseded_by"],
+            "supersession_reason": body["supersession_reason"],
+            "superseded_by_campaign_version": body["superseded_by_campaign_version"],
+            "superseded_by_content_hash": "sha256:campaign-replacement",
+            "supersession_correlation_id": body["correlation_id"],
             "content_hash": "sha256:campaign-superseded",
             "reason_codes": ["campaign_definition_superseded"],
             "operating_boundaries": [
@@ -610,8 +610,8 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "campaign-holdings-202605/versions/2026.05/retire",
         json={
             "body": {
-                "actor_id": "pm_sg_1",
-                "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+                "retired_by": "pm_sg_1",
+                "retirement_reason": "Campaign review completed.",
                 "correlation_id": "corr-campaign-retire",
             }
         },
@@ -622,10 +622,9 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "campaign-holdings-202605/versions/2026.05/supersede",
         json={
             "body": {
-                "actor_id": "pm_sg_1",
-                "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
-                "replacement_campaign_version": "2026.06",
-                "replacement_content_hash": "sha256:campaign-replacement",
+                "superseded_by_campaign_version": "2026.06",
+                "superseded_by": "pm_sg_1",
+                "supersession_reason": "Candidate evidence was refreshed.",
                 "correlation_id": "corr-campaign-supersede",
             }
         },
@@ -688,8 +687,8 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     assert supersede_response.status_code == 200
     supersede_data = supersede_response.json()["data"]
     assert supersede_data["status"] == "SUPERSEDED"
-    assert supersede_data["replacement_campaign_version"] == "2026.06"
-    assert supersede_data["replacement_content_hash"] == "sha256:campaign-replacement"
+    assert supersede_data["superseded_by_campaign_version"] == "2026.06"
+    assert supersede_data["superseded_by_content_hash"] == "sha256:campaign-replacement"
     assert "NO_OMS_EXECUTION_CLAIM" in supersede_data["operating_boundaries"]
     assert discovery_response.status_code == 200
     assert (
@@ -761,8 +760,8 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "body": {
-                "actor_id": "pm_sg_1",
-                "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+                "retired_by": "pm_sg_1",
+                "retirement_reason": "Campaign review completed.",
                 "correlation_id": "corr-campaign-retire",
             },
             "correlation_id": "corr-gateway-retire",
@@ -771,10 +770,9 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "body": {
-                "actor_id": "pm_sg_1",
-                "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
-                "replacement_campaign_version": "2026.06",
-                "replacement_content_hash": "sha256:campaign-replacement",
+                "superseded_by_campaign_version": "2026.06",
+                "superseded_by": "pm_sg_1",
+                "supersession_reason": "Candidate evidence was refreshed.",
                 "correlation_id": "corr-campaign-supersede",
             },
             "correlation_id": "corr-gateway-supersede",
@@ -867,7 +865,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
             "task_ref": "task-review-001",
-            "status": "READY_FOR_REVIEW",
+            "status": "OPEN",
             "reason_codes": ["campaign_assignment_task_recorded"],
             "content_hash": "sha256:assignment-task",
             "operating_boundaries": ["NO_ORDER_GENERATION", "NO_OMS_EXECUTION_CLAIM"],
@@ -890,8 +888,8 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
             "campaign_version": campaign_version,
             "task_ref": task_ref,
             "transition_type": body["transition_type"],
-            "from_status": "READY_FOR_REVIEW",
-            "to_status": "SUPPORTABLE",
+            "from_status": "OPEN",
+            "to_status": "ACKNOWLEDGED",
             "reason_codes": ["campaign_assignment_task_transition_recorded"],
             "content_hash": "sha256:task-transition",
             "operating_boundaries": [
@@ -932,14 +930,35 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
     task_response = client.post(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
         "campaign-holdings-202605/versions/2026.05/assignment-tasks",
-        json={"body": {"task_ref": "task-review-001", "actor_id": "pm_sg_1"}},
+        json={
+            "body": {
+                "task_ref": "task-review-001",
+                "task_type": "ASSIGNMENT",
+                "opened_by": "ops",
+                "task_reason": "Portfolio manager acknowledgement is required.",
+                "assigned_actor_ids": ["pm_sg_1"],
+                "escalation_tier": "PM",
+                "sla_posture": "ON_TRACK",
+                "correlation_id": "corr-campaign-assignment-task",
+                "source_refs": [],
+            }
+        },
         headers={"X-Correlation-Id": "corr-campaign-assignment-task"},
     )
     transition_response = client.post(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
         "campaign-holdings-202605/versions/2026.05/assignment-tasks/"
         "task-review-001/transitions",
-        json={"body": {"transition_type": "MARK_SUPPORTABLE", "actor_id": "pm_sg_1"}},
+        json={
+            "body": {
+                "transition_type": "ACKNOWLEDGED",
+                "transition_ref": "task-review-001:ack",
+                "transitioned_by": "pm_sg_1",
+                "transition_reason": "Portfolio manager acknowledged the task.",
+                "correlation_id": "corr-campaign-task-transition",
+                "source_refs": [],
+            }
+        },
         headers={"X-Correlation-Id": "corr-campaign-task-transition"},
     )
 
@@ -955,9 +974,9 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
     assert task_response.json()["data"]["task_ref"] == "task-review-001"
     assert transition_response.status_code == 200
     transition_data = transition_response.json()["data"]
-    assert transition_data["transition_type"] == "MARK_SUPPORTABLE"
-    assert transition_data["from_status"] == "READY_FOR_REVIEW"
-    assert transition_data["to_status"] == "SUPPORTABLE"
+    assert transition_data["transition_type"] == "ACKNOWLEDGED"
+    assert transition_data["from_status"] == "OPEN"
+    assert transition_data["to_status"] == "ACKNOWLEDGED"
     assert "NO_CLIENT_CONTACT_WORKFLOW" in transition_data["operating_boundaries"]
     assert captured == {
         "operating_queue": {
@@ -975,14 +994,36 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
         "assignment_task": {
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
-            "body": {"task_ref": "task-review-001", "actor_id": "pm_sg_1"},
+            "body": {
+                "task_ref": "task-review-001",
+                "task_type": "ASSIGNMENT",
+                "opened_by": "ops",
+                "task_reason": "Portfolio manager acknowledgement is required.",
+                "assigned_actor_ids": ["pm_sg_1"],
+                "escalation_tier": "PM",
+                "sla_posture": "ON_TRACK",
+                "due_at": None,
+                "correlation_id": "corr-campaign-assignment-task",
+                "source_refs": [],
+            },
             "correlation_id": "corr-campaign-assignment-task",
         },
         "assignment_task_transition": {
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "task_ref": "task-review-001",
-            "body": {"transition_type": "MARK_SUPPORTABLE", "actor_id": "pm_sg_1"},
+            "body": {
+                "transition_type": "ACKNOWLEDGED",
+                "transition_ref": "task-review-001:ack",
+                "transitioned_by": "pm_sg_1",
+                "transition_reason": "Portfolio manager acknowledged the task.",
+                "assigned_actor_ids": None,
+                "escalation_tier": None,
+                "sla_posture": None,
+                "due_at": None,
+                "correlation_id": "corr-campaign-task-transition",
+                "source_refs": [],
+            },
             "correlation_id": "corr-campaign-task-transition",
         },
     }

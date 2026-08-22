@@ -199,10 +199,14 @@ def test_dpm_wave_campaign_definition_contracts_live_outside_dpm_waves_facade() 
     )
 
     expected_campaign_definition_contracts = {
+        "DpmCampaignDefinitionLaunchBody",
         "DpmCampaignDefinitionForwardRequest",
         "DpmCampaignDefinitionGatewayResponse",
         "DpmCampaignDefinitionLaunchRequest",
-        "DpmCampaignDefinitionLifecycleCommandRequest",
+        "DpmCampaignDefinitionRetirementBody",
+        "DpmCampaignDefinitionRetirementRequest",
+        "DpmCampaignDefinitionSupersessionBody",
+        "DpmCampaignDefinitionSupersessionRequest",
     }
 
     assert expected_campaign_definition_contracts <= campaign_definition_contract_classes
@@ -216,7 +220,17 @@ def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() ->
     )
 
     expected_campaign_workflow_contracts = {
-        "DpmCampaignWorkflowForwardRequest",
+        "DpmCampaignApprovalDecisionBody",
+        "DpmCampaignApprovalDecisionRequest",
+        "DpmCampaignAssignmentActionBody",
+        "DpmCampaignAssignmentActionRequest",
+        "DpmCampaignAssignmentTaskBody",
+        "DpmCampaignAssignmentTaskRequest",
+        "DpmCampaignAssignmentTaskTransitionBody",
+        "DpmCampaignAssignmentTaskTransitionRequest",
+        "DpmCampaignMakerCheckerControlBody",
+        "DpmCampaignMakerCheckerControlRequest",
+        "DpmCampaignSourceRef",
         "DpmCampaignWorkflowGatewayResponse",
     }
 
