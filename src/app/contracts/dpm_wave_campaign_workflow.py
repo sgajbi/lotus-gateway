@@ -1,24 +1,287 @@
-from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+CampaignApprovalDecisionType = Literal["APPROVED", "REJECTED", "REQUIRES_REMEDIATION"]
+CampaignAssignmentActionType = Literal[
+    "ASSIGNED", "REASSIGNED", "ESCALATED", "DEESCALATED", "RESOLVED"
+]
+CampaignAssignmentEscalationTier = Literal["NONE", "PM", "OPS", "GOVERNANCE"]
+CampaignAssignmentSlaPosture = Literal["ON_TRACK", "ATTENTION", "BREACHED_OR_BLOCKED"]
+CampaignAssignmentTaskType = Literal[
+    "ASSIGNMENT", "APPROVAL_REMEDIATION", "ENTITLEMENT_REVIEW", "EXPIRY_REVIEW", "ESCALATION"
+]
+CampaignAssignmentTaskTransitionType = Literal[
+    "OPENED",
+    "ACKNOWLEDGED",
+    "STARTED",
+    "BLOCKED",
+    "UNBLOCKED",
+    "RESOLVED",
+    "CANCELLED",
+    "REASSIGNED",
+    "ESCALATED",
+    "DUE_DATE_CHANGED",
+]
+CampaignMakerCheckerControlAction = Literal[
+    "SUBMITTED_FOR_REVIEW",
+    "REVIEWER_ASSIGNED",
+    "REVIEW_COMPLETED",
+    "CONTROL_EXCEPTION_RAISED",
+    "CONTROL_EXCEPTION_RESOLVED",
+]
+CampaignMakerCheckerControlOutcome = Literal[
+    "PENDING", "PASSED", "FAILED", "EXCEPTION_OPEN", "EXCEPTION_RESOLVED"
+]
 
 
-class DpmCampaignWorkflowForwardRequest(BaseModel):
-    body: dict[str, object] = Field(
-        description=(
-            "Campaign workflow/audit payload forwarded unchanged to lotus-manage. Manage owns "
-            "approval-decision state, assignment-action state, assignment-task state, task "
-            "transition state, maker-checker posture, idempotency, source refs, hashes, reason "
-            "codes, and operating boundaries. Gateway does not calculate campaign readiness, "
-            "cohort membership, SLA posture, approval state, maker-checker state, task state, "
-            "workflow orchestration, order state, OMS execution, client contact, fills, or "
-            "settlement."
-        ),
-        examples=[
-            {
-                "actor_id": "pm_sg_1",
-                "reason_code": "CAMPAIGN_WORKFLOW_EVIDENCE_RECORDED",
-                "correlation_id": "corr-campaign-workflow-001",
-            }
-        ],
+class DpmCampaignSourceRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_system: str = Field(
+        description="System that owns the evidence.", examples=["lotus-manage"]
+    )
+    source_type: str = Field(
+        description="Source product, artifact, or event type.", examples=["CAMPAIGN_REVIEW_TICKET"]
+    )
+    source_id: str = Field(description="Source evidence identifier.", examples=["BRC-001"])
+    source_version: str | None = Field(
+        default=None, description="Source contract version when available.", examples=["1.0.0"]
+    )
+    supportability_state: str | None = Field(
+        default=None,
+        description="Source supportability posture when available.",
+        examples=["READY"],
+    )
+    content_hash: str | None = Field(
+        default=None,
+        description="Canonical source content hash when available.",
+        examples=["sha256:ticket"],
+    )
+    source_batch_fingerprint: str | None = Field(
+        default=None,
+        description="Optional upstream batch-lineage fingerprint.",
+        examples=["sha256:source-batch"],
+    )
+    selection_basis: dict[str, object] | None = Field(
+        default=None,
+        description="Optional producer-owned candidate-selection basis.",
+        examples=[{"basis_type": "CAMPAIGN_GOVERNANCE_REVIEW"}],
+    )
+
+
+class _StrictCampaignCommandBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class _StrictCampaignCommandRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class DpmCampaignApprovalDecisionBody(_StrictCampaignCommandBody):
+    decision_type: CampaignApprovalDecisionType = Field(
+        description="Bounded campaign approval decision.", examples=["APPROVED"]
+    )
+    decision_ref: str = Field(
+        min_length=1,
+        description="Bank workflow or committee reference.",
+        examples=["BRC-APPROVAL-001"],
+    )
+    decided_by: str = Field(
+        min_length=1, description="Actor recording the decision.", examples=["cio_ops_committee"]
+    )
+    decision_reason: str = Field(
+        min_length=1,
+        description="Human-authored decision rationale.",
+        examples=["Approved for review launch."],
+    )
+    correlation_id: str = Field(
+        min_length=1, description="Source correlation id.", examples=["corr-campaign-approval-001"]
+    )
+    source_refs: list[DpmCampaignSourceRef] = Field(
+        default_factory=list, description="Optional source-owned decision evidence."
+    )
+
+
+class DpmCampaignApprovalDecisionRequest(_StrictCampaignCommandRequest):
+    body: DpmCampaignApprovalDecisionBody = Field(
+        description="Typed approval-decision evidence forwarded to lotus-manage."
+    )
+
+
+class DpmCampaignAssignmentActionBody(_StrictCampaignCommandBody):
+    action_type: CampaignAssignmentActionType = Field(
+        description="Bounded assignment or escalation action.", examples=["ASSIGNED"]
+    )
+    action_ref: str = Field(
+        min_length=1, description="Bank workflow or queue reference.", examples=["BRC-ASSIGN-001"]
+    )
+    recorded_by: str = Field(
+        min_length=1, description="Actor recording the action.", examples=["ops"]
+    )
+    action_reason: str = Field(
+        min_length=1,
+        description="Human-authored action rationale.",
+        examples=["Assigned to the responsible PM."],
+    )
+    assigned_actor_ids: list[str] = Field(
+        default_factory=list, description="Actors assigned by this action.", examples=[["pm_sg_1"]]
+    )
+    escalation_tier: CampaignAssignmentEscalationTier = Field(
+        description="Operational escalation tier after the action.", examples=["PM"]
+    )
+    sla_posture: CampaignAssignmentSlaPosture = Field(
+        description="Operational SLA posture after the action.", examples=["ON_TRACK"]
+    )
+    correlation_id: str = Field(
+        min_length=1,
+        description="Source correlation id.",
+        examples=["corr-campaign-assignment-001"],
+    )
+    source_refs: list[DpmCampaignSourceRef] = Field(
+        default_factory=list, description="Optional source-owned assignment evidence."
+    )
+
+
+class DpmCampaignAssignmentActionRequest(_StrictCampaignCommandRequest):
+    body: DpmCampaignAssignmentActionBody = Field(
+        description="Typed assignment-action evidence forwarded to lotus-manage."
+    )
+
+
+class DpmCampaignAssignmentTaskBody(_StrictCampaignCommandBody):
+    task_ref: str = Field(
+        min_length=1,
+        description="Bank workflow or queue task reference.",
+        examples=["BRC-TASK-001"],
+    )
+    task_type: CampaignAssignmentTaskType = Field(
+        description="Bounded assignment task type.", examples=["ASSIGNMENT"]
+    )
+    opened_by: str = Field(min_length=1, description="Actor opening the task.", examples=["ops"])
+    task_reason: str = Field(
+        min_length=1,
+        description="Human-authored task rationale.",
+        examples=["PM acknowledgement required."],
+    )
+    assigned_actor_ids: list[str] = Field(
+        description="Current task assignees.", examples=[["pm_sg_1"]]
+    )
+    escalation_tier: CampaignAssignmentEscalationTier = Field(
+        description="Current task escalation tier.", examples=["PM"]
+    )
+    sla_posture: CampaignAssignmentSlaPosture = Field(
+        description="Current task SLA posture.", examples=["ON_TRACK"]
+    )
+    due_at: datetime | None = Field(
+        default=None, description="Optional task due timestamp.", examples=["2026-05-11T08:00:00Z"]
+    )
+    correlation_id: str = Field(
+        min_length=1, description="Source correlation id.", examples=["corr-campaign-task-001"]
+    )
+    source_refs: list[DpmCampaignSourceRef] = Field(
+        default_factory=list, description="Optional source-owned task evidence."
+    )
+
+
+class DpmCampaignAssignmentTaskRequest(_StrictCampaignCommandRequest):
+    body: DpmCampaignAssignmentTaskBody = Field(
+        description="Typed assignment-task evidence forwarded to lotus-manage."
+    )
+
+
+class DpmCampaignAssignmentTaskTransitionBody(_StrictCampaignCommandBody):
+    transition_type: CampaignAssignmentTaskTransitionType = Field(
+        description="Bounded task transition.", examples=["ACKNOWLEDGED"]
+    )
+    transition_ref: str = Field(
+        min_length=1,
+        description="Bank workflow transition reference.",
+        examples=["BRC-TASK-001:ack"],
+    )
+    transitioned_by: str = Field(
+        min_length=1, description="Actor recording the transition.", examples=["pm_sg_1"]
+    )
+    transition_reason: str = Field(
+        min_length=1,
+        description="Human-authored transition rationale.",
+        examples=["PM acknowledged the task."],
+    )
+    assigned_actor_ids: list[str] | None = Field(
+        default=None,
+        description="Optional replacement assignees.",
+        examples=[["pm_sg_1", "ops_lead"]],
+    )
+    escalation_tier: CampaignAssignmentEscalationTier | None = Field(
+        default=None, description="Optional replacement escalation tier.", examples=["OPS"]
+    )
+    sla_posture: CampaignAssignmentSlaPosture | None = Field(
+        default=None, description="Optional replacement SLA posture.", examples=["ATTENTION"]
+    )
+    due_at: datetime | None = Field(
+        default=None,
+        description="Optional replacement due timestamp.",
+        examples=["2026-05-12T08:00:00Z"],
+    )
+    correlation_id: str = Field(
+        min_length=1,
+        description="Source correlation id.",
+        examples=["corr-campaign-task-transition-001"],
+    )
+    source_refs: list[DpmCampaignSourceRef] = Field(
+        default_factory=list, description="Optional source-owned transition evidence."
+    )
+
+
+class DpmCampaignAssignmentTaskTransitionRequest(_StrictCampaignCommandRequest):
+    body: DpmCampaignAssignmentTaskTransitionBody = Field(
+        description="Typed assignment-task transition evidence forwarded to lotus-manage."
+    )
+
+
+class DpmCampaignMakerCheckerControlBody(_StrictCampaignCommandBody):
+    control_action: CampaignMakerCheckerControlAction = Field(
+        description="Bounded maker-checker control action.", examples=["REVIEW_COMPLETED"]
+    )
+    control_ref: str = Field(
+        min_length=1, description="Bank workflow or control reference.", examples=["BRC-MC-001"]
+    )
+    recorded_by: str = Field(
+        min_length=1, description="Actor recording the control evidence.", examples=["ops"]
+    )
+    submitter_actor_id: str | None = Field(
+        default=None, description="Maker actor when applicable.", examples=["pm_sg_1"]
+    )
+    reviewer_actor_id: str | None = Field(
+        default=None, description="Checker actor when applicable.", examples=["cio_ops_committee"]
+    )
+    required_reviewer_role: str | None = Field(
+        default=None,
+        description="Required checker role when applicable.",
+        examples=["CIO_OPERATIONS_REVIEWER"],
+    )
+    control_outcome: CampaignMakerCheckerControlOutcome = Field(
+        description="Bounded control outcome after the action.", examples=["PASSED"]
+    )
+    control_reason: str = Field(
+        min_length=1,
+        description="Human-authored control rationale.",
+        examples=["Independent review completed."],
+    )
+    correlation_id: str = Field(
+        min_length=1,
+        description="Source correlation id.",
+        examples=["corr-campaign-maker-checker-001"],
+    )
+    source_refs: list[DpmCampaignSourceRef] = Field(
+        default_factory=list, description="Optional source-owned control evidence."
+    )
+
+
+class DpmCampaignMakerCheckerControlRequest(_StrictCampaignCommandRequest):
+    body: DpmCampaignMakerCheckerControlBody = Field(
+        description="Typed maker-checker control evidence forwarded to lotus-manage."
     )
 
 

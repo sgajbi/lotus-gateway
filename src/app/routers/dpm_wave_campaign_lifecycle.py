@@ -2,7 +2,7 @@ from fastapi import APIRouter, Path
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
-    DpmCampaignDefinitionLifecycleCommandRequest,
+    DpmCampaignDefinitionRetirementRequest,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_wave_campaign_lifecycle_common import (
@@ -20,12 +20,12 @@ async def _retire_campaign_definition(
     *,
     campaign_id: str,
     campaign_version: str,
-    request: DpmCampaignDefinitionLifecycleCommandRequest,
+    request: DpmCampaignDefinitionRetirementRequest,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().retire_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        body=request.body,
+        body=request.body.model_dump(mode="json"),
         correlation_id=correlation_id_var.get(),
     )
 
@@ -46,7 +46,7 @@ async def _retire_campaign_definition(
     responses=UPSTREAM_CAMPAIGN_LIFECYCLE_ERROR_RESPONSES,
 )
 async def retire_campaign_definition(
-    request: DpmCampaignDefinitionLifecycleCommandRequest,
+    request: DpmCampaignDefinitionRetirementRequest,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:

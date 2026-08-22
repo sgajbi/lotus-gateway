@@ -10,10 +10,15 @@ from app.contracts.dpm_wave_campaign_definitions import (
     DpmCampaignDefinitionForwardRequest,
     DpmCampaignDefinitionGatewayResponse,
     DpmCampaignDefinitionLaunchRequest,
-    DpmCampaignDefinitionLifecycleCommandRequest,
+    DpmCampaignDefinitionRetirementRequest,
+    DpmCampaignDefinitionSupersessionRequest,
 )
 from app.contracts.dpm_wave_campaign_workflow import (
-    DpmCampaignWorkflowForwardRequest,
+    DpmCampaignApprovalDecisionRequest,
+    DpmCampaignAssignmentActionRequest,
+    DpmCampaignAssignmentTaskRequest,
+    DpmCampaignAssignmentTaskTransitionRequest,
+    DpmCampaignMakerCheckerControlRequest,
     DpmCampaignWorkflowGatewayResponse,
 )
 from app.contracts.dpm_wave_supportability import DpmWaveSupportability
@@ -22,8 +27,13 @@ __all__ = [
     "DpmCampaignDefinitionForwardRequest",
     "DpmCampaignDefinitionGatewayResponse",
     "DpmCampaignDefinitionLaunchRequest",
-    "DpmCampaignDefinitionLifecycleCommandRequest",
-    "DpmCampaignWorkflowForwardRequest",
+    "DpmCampaignDefinitionRetirementRequest",
+    "DpmCampaignDefinitionSupersessionRequest",
+    "DpmCampaignApprovalDecisionRequest",
+    "DpmCampaignAssignmentActionRequest",
+    "DpmCampaignAssignmentTaskRequest",
+    "DpmCampaignAssignmentTaskTransitionRequest",
+    "DpmCampaignMakerCheckerControlRequest",
     "DpmCampaignWorkflowGatewayResponse",
     "DpmOperationsHandoffSummaryGatewayResponse",
     "DpmOperationsHandoffSummaryRequest",
