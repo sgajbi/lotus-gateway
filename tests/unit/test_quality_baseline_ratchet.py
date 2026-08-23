@@ -94,6 +94,34 @@ def test_number_metric_accepts_explicit_zero_success_output(tmp_path: Path) -> N
     assert results[0].passed
 
 
+def test_count_metric_rejects_malformed_zero_finding_output(tmp_path: Path) -> None:
+    baseline = {
+        "schema_version": 1,
+        "metrics": [
+            {
+                "name": "findings",
+                "log": "findings.txt",
+                "kind": "count",
+                "pattern": r"^finding$",
+                "zero_pattern": r"QUALITY_COMMAND_STATUS=0",
+                "comparison": "not_above",
+                "baseline": 0,
+                "threshold": 0,
+                "remediation": "fix the tool failure",
+            }
+        ],
+    }
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    (artifact_dir / "findings.txt").write_text(
+        "tool failed before producing a report\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Missing zero-success marker"):
+        evaluate_metrics(baseline, artifact_dir)
+
+
 def test_explicit_baseline_update_records_current_values(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

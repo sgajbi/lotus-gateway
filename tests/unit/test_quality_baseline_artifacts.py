@@ -83,6 +83,7 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "Quality Baseline / Ratcheted Trend Gate" in workflow
     assert "set -o pipefail" in workflow
     assert "python scripts/check_quality_baseline_ratchet.py" in workflow
+    assert "QUALITY_COMMAND_STATUS" in workflow
     assert "output/demo-certification/" in workflow
     assert "python scripts/check_quality_baseline_artifacts.py" in workflow
     assert "if-no-files-found: error" in workflow
