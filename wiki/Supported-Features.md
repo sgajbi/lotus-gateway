@@ -180,7 +180,10 @@ Authority and boundary:
 3. Gateway performs one selected-record Advise read, validates identity and typed values, preserves
    exact decimal strings, and reports ready, partial, unavailable, or not-supported evidence,
 4. Gateway does not call Core/Risk directly, calculate allocation deltas or risk, infer approval,
-   or treat lifecycle state as a recorded maker-checker decision,
+   or treat lifecycle state as a recorded maker-checker decision. It validates decision-status,
+   top-level-status, recommended-action, workflow-gate, and blocking-evidence relationships;
+   contradictions fail closed and degraded decision evidence cannot publish executable-ready gate
+   posture,
 5. benchmark/limit, scenario, and valuation effective-date evidence remain explicitly not
    supported in v1 because the current producer contract does not publish them.
 

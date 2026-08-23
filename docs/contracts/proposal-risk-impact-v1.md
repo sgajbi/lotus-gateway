@@ -37,6 +37,24 @@ Decision and workflow-gate evidence publish the exact selected source path in bo
 its capability posture. Consumers therefore never receive provenance for an absent copy when
 another validated source copy supplied the visible evidence.
 
+## Coherence and failure behavior
+
+Gateway validates the cross-field relationships before building the product projection:
+
+- `BLOCKED → FIX_INPUT`, `RISK_REVIEW_REQUIRED → RISK_REVIEW`,
+  `COMPLIANCE_REVIEW_REQUIRED → COMPLIANCE_REVIEW`, `CLIENT_CONSENT_REQUIRED →
+  REQUEST_CLIENT_CONSENT`, `EXECUTION_READY → EXECUTE`, and `NONE → NONE` are the only
+  workflow-gate pairs;
+- decision statuses constrain the top-level status, recommended action, and compatible workflow
+  gate; `INSUFFICIENT_EVIDENCE` requires blocking missing-evidence proof;
+- an executable `EXECUTION_READY` or `NONE` gate is never published as `ready` when decision
+  evidence is partial/unavailable or retains a blocking approval/missing-evidence record.
+
+Contradictory decision/gate evidence fails closed with
+`ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID`; degraded but otherwise usable source-copy
+evidence remains explicit `partial` and retains its selected source reference. Gateway validates
+these relationships but does not reinterpret Advise policy or invent a progression outcome.
+
 ## Supportability states
 
 - `ready`: the typed source evidence required for that section is present and internally aligned.
@@ -60,6 +78,7 @@ The general `GET /api/v1/proposals/{proposal_id}` contract remains unchanged for
 ## Validation evidence
 
 - `tests/unit/test_proposal_risk_impact_projection.py`
+- `tests/unit/test_proposal_risk_impact_coherence.py`
 - `tests/unit/test_proposal_risk_impact_service.py`
 - `tests/contract/test_proposals_contract.py`
 - `tests/integration/test_proposals_router.py`

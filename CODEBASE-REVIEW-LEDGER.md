@@ -936,3 +936,19 @@ Reference branch: `origin/main`
 - Truth updates: repository context, supported-features documentation, API-surface guidance, and
   wiki source updated. No migration, upstream contract, route, or central skill change was needed;
   no additional issue was created because the agreed #528/#529 scope covers the discovered pattern.
+
+## Proposal Risk-Impact Coherence (#561)
+
+- Scope: Gateway anti-corruption validation for selected `proposal-risk-impact.v1` decision and
+  workflow evidence.
+- Source authority: `lotus-advise` owns proposal policy and progression truth; Gateway validates
+  relationships and publishes only a safe experience projection.
+- Change: centralized decision-status/top-level/action, gate/next-step, compatible decision/gate,
+  and blocking-evidence rules. Source models fail closed on contradictions; degraded decision
+  evidence downgrades executable-ready gates to explicit partial posture.
+- Compatibility: valid source matrix and exact evidence/lineage remain unchanged. No Advise policy,
+  public route, migration, auth, or Workbench implementation change.
+- Tests: table-driven policy matrix, source/projection contradiction tests, degraded executable-gate
+  regression, OpenAPI description assertions, and route-level product-safe failure test.
+- Truth updates: proposal contract, supported-features, API-surface, repository context, and wiki
+  source updated. No central skill change or new upstream issue was required.
