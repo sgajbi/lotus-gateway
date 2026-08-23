@@ -208,7 +208,12 @@ Current repository posture:
     These boundaries are required across supported, partial, and unavailable evidence postures so
     Workbench can fail closed when calculation evidence does not match the advisor's review window;
     Workbench must not infer or reconstruct them.
-19. selected proposal Risk and Impact evidence is a typed anti-corruption projection over one
+19. the portfolio performance-snapshot route uses `report_start_date` and `report_end_date` as
+    its canonical explicit-window query names, matching the summary, details, attribution-trend,
+    and advisor-brief family. It retains `explicit_start_date` and `explicit_end_date` as
+    deprecated one-release aliases; for each boundary, the canonical name wins when both are
+    supplied.
+20. selected proposal Risk and Impact evidence is a typed anti-corruption projection over one
     Advise detail read. Gateway centrally validates decision-status/top-level/action relationships,
     the gate-to-next-step matrix, compatible decision/workflow gates, and blocking-evidence
     posture. Contradictions fail closed; partial decision evidence cannot publish an executable

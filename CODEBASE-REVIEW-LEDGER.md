@@ -1004,3 +1004,23 @@ Reference branch: `origin/main`
 - Truth updates: supported-features documentation, API-surface wiki, repository context, and this
   ledger record the effective top-level date semantics. No central platform context or skill
   change was needed.
+
+## Portfolio Snapshot Explicit-Window Vocabulary (#601)
+
+- Scope: bounded P1 correction for the Workbench Portfolio Review 30D snapshot request.
+- Defect and change: the snapshot route exposed `explicit_start_date` and `explicit_end_date`
+  while Workbench and the other performance routes use `report_start_date` and
+  `report_end_date`, causing the exact `period=EXPLICIT` request to fail with
+  `PERFORMANCE_EXPLICIT_START_REQUIRED`. The route now accepts the canonical pair, maps them to
+  the existing internal snapshot boundaries, and retains both old names as deprecated
+  one-release aliases.
+- Compatibility: existing alias callers continue to work. For each boundary, the canonical
+  value deterministically wins when both names are supplied. Window resolution, response shape,
+  Workbench code, upstream contracts, migrations, and other performance capabilities are not
+  changed.
+- Regression proof: integration replays the exact Workbench request with a 200 response, covers
+  alias-only compatibility and canonical precedence, and the contract suite asserts the deprecated
+  OpenAPI alias plus one canonical explicit-window vocabulary across the performance family.
+- Truth updates: supported-features documentation, API-surface wiki, repository context, and this
+  ledger record document the compatibility lifecycle. No central platform context, upstream
+  producer, migration, or skill change was needed.

@@ -523,7 +523,10 @@ routes accept the canonical periods `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`,
 `EXPLICIT`. `2Y` and `10Y` use inclusive trailing boundaries. `SI` is resolved only from Core's
 `PortfolioAnalyticsReference.portfolio_open_date`; missing or invalid source evidence fails closed
 with a typed `422`. `EXPLICIT` requires `report_start_date`, and unknown periods or malformed
-dates never fall back to YTD. The compact horizon-comparison route is intentionally limited to
+dates never fall back to YTD. The portfolio snapshot uses canonical `report_start_date` and
+`report_end_date` names, retaining deprecated `explicit_start_date` and `explicit_end_date` for
+one release; canonical values take precedence independently when both names are supplied. The
+compact horizon-comparison route is intentionally limited to
 `MTD`, `QTD`, `YTD`, and `EXPLICIT`; use summary or details for longer horizons.
 
 Risk summary:
