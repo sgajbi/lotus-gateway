@@ -6,7 +6,7 @@ Reference branch: `origin/main`
 
 ## Performance Summary Review Controls
 
-- Scope: bounded Batch 2A of GitHub issue #572, limited to the Workbench performance summary
+- Scope: bounded Batches 2A and 2B of GitHub issue #572, limited to the Workbench performance summary
   route and its existing Gateway-to-`lotus-performance` request path.
 - Objective: expose optional `as_of_date` and `reporting_currency` controls without allowing the
   summary route to pin currency to portfolio base or echo the service clock as review truth.
@@ -28,6 +28,26 @@ Reference branch: `origin/main`
 - Follow-up: complete the remaining #572 route family only after the summary slice is merged and
   its exact-mainline/live evidence is recorded; do not promote workspace capabilities from this
   bounded slice alone.
+
+### Batch 2B — upstream rejection truth and currency naming
+
+- Objective: prevent a rejected reporting-currency request from being published as an effective
+  currency, and remove the overloaded `portfolio_currency` name from the summary/benchmark
+  pipeline.
+- Change: summary response assembly falls back to the portfolio base currency when the upstream
+  summary returns an exception or HTTP failure; the existing typed `WorkbenchPartialFailure`
+  remains visible. Declared response-context attributes replace defensive `getattr` calls, and
+  summary, horizon, attribution-trend, benchmark, and cache request parameters use
+  `reporting_currency` internally without changing public API fields.
+- Regression proof: focused performance workspace tests include a 422 unsupported-currency case
+  asserting requested `SGD`, effective base `USD`, and `HTTP_422` lotus-performance failure;
+  65 focused tests pass, plus MyPy on 9 changed source modules.
+- Compatibility: public query/response contracts are unchanged; only rejected upstream results
+  change effective currency from the rejected request to portfolio base, which is the truthful
+  supportability behavior. Deferred details, attribution trend, advisor brief, lookup validation,
+  capability promotion, and as-of-after-last-observation mapping remain under #572.
+- Documentation decision: repository context, this ledger, API-surface wiki, and supported-
+  features wiki require updates; no central platform context or skill change is required.
 
 ## Attribution Level Aggregate Source Authority
 
