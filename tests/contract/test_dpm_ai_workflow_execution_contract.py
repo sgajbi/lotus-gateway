@@ -30,6 +30,19 @@ def test_dpm_ai_execution_openapi_preserves_product_evidence_and_excludes_raw_fi
     evidence_properties = schemas["DpmAiExecutionEvidenceDescriptor"]["properties"]
     artifact_properties = schemas["DpmAiArtifactReference"]["properties"]
 
+    assert audit_properties["provider_mode"]["enum"] == [
+        "disabled",
+        "stub",
+        "openai",
+        "local_openai_compatible",
+    ]
+    assert run_properties["provider_mode"]["enum"] == [
+        "disabled",
+        "stub",
+        "openai",
+        "local_openai_compatible",
+    ]
+
     for field in ("eligibility", "execution", "workflow_pack_run", "summary"):
         assert field in execution_properties
     for field in (

@@ -9,6 +9,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefStatus,
     AdvisorBriefTone,
 )
+from app.contracts.ai_provider_posture import is_valid_ai_provider_posture
 from app.services.advisor_brief_ai_output import (
     extract_ai_recommended_actions,
     extract_ai_risks,
@@ -96,9 +97,18 @@ def build_ai_advisor_brief_narrative_state(
         )
 
     execution_payload = safe_dict(ai_payload.get("execution"))
-    ai_audit = _normalize_ai_audit(safe_dict(execution_payload.get("audit")))
+    raw_ai_audit = safe_dict(execution_payload.get("audit"))
+    ai_audit = _normalize_ai_audit(raw_ai_audit)
     ai_evidence = safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
     if execution_payload.get("status") == "COMPLETED":
+        if not is_valid_ai_provider_posture(
+            provider_mode=raw_ai_audit.get("provider_mode"),
+            stubbed=raw_ai_audit.get("stubbed"),
+        ):
+            return _build_invalid_ai_provider_posture_narrative_state(
+                source_context=source_context,
+                narrative_state=narrative_state,
+            )
         return _build_completed_ai_advisor_brief_narrative_state(
             source_context=source_context,
             narrative_state=narrative_state,
@@ -113,6 +123,20 @@ def build_ai_advisor_brief_narrative_state(
         execution_payload=execution_payload,
         ai_audit=ai_audit,
         ai_evidence=ai_evidence,
+    )
+
+
+def _build_invalid_ai_provider_posture_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+) -> AdvisorBriefNarrativeState:
+    return _with_ai_unavailable_risk(
+        source_context=source_context,
+        narrative_state=narrative_state,
+        detail="AI provider provenance could not be verified.",
+        ai_audit=_unavailable_provider_audit(),
+        ai_evidence={"descriptors": []},
     )
 
 
@@ -256,3 +280,18 @@ def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
     normalized.setdefault("stubbed", True)
     normalized.setdefault("source_refs", [])
     return normalized
+
+
+def _unavailable_provider_audit() -> dict[str, Any]:
+    return _normalize_ai_audit(
+        {
+            "provider_mode": "unavailable",
+            "provider_id": None,
+            "adapter_kind": None,
+            "model_id": None,
+            "generated_at": None,
+            "stubbed": True,
+            "detail": "AI provider provenance could not be verified.",
+            "source_refs": [],
+        }
+    )
