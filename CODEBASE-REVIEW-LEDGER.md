@@ -1,8 +1,33 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-08
+Last updated: 2026-08-23
 Repository: `lotus-gateway`
-Current branch: `fix/dpm-manage-mutation-authority`
+Reference branch: `origin/main`
+
+## Attribution Level Aggregate Source Authority
+
+- Scope: GitHub issue #506, the performance attribution level mapper and its Workbench-facing
+  contract.
+- Finding: `_build_attribution_levels` converted an omitted or null source
+  `levels[].totals.total_effect` into numeric `0.0`, conflating absent evidence with a legitimate
+  zero and violating the Gateway source-authority boundary.
+- Change: `AttributionLevelView.total_effect_pct` is nullable and the mapper preserves the
+  quantized source value directly. The sibling attribution-trend cumulative mapper becomes
+  unavailable when a contributing source total is missing. Gateway does not sum rows or otherwise
+  reconstruct an absent aggregate.
+- Regression proof: table-driven unit tests cover missing, null, explicit zero, positive, and
+  negative totals and include a row whose value differs from the level total to prove no fallback
+  reconstruction. Trend tests prove a missing period total does not become a numeric cumulative
+  value. OpenAPI integration coverage proves the response properties are nullable and documents
+  the missing-source behavior.
+- Compatibility: explicit numeric totals are unchanged; only a previously fabricated zero becomes
+  `null` when the source aggregate is absent.
+- Documentation decision: repository context, API-surface wiki, supported-features wiki, and this
+  ledger change because the public nullable contract and source-authority failure posture changed.
+  No central platform context or skill change is required.
+- Follow-up: Workbench consumer compatibility and canonical populated proof remain downstream
+  validation concerns owned by their existing issues; this slice does not change attribution
+  methodology or UI behavior.
 
 ## DPM Mutation And AI Response Trust Boundaries
 
