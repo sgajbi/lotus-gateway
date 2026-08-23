@@ -303,18 +303,22 @@ Important validation expectations:
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
-9. Docker parity matters because the gateway is a live integration boundary,
-10. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
+9. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
+   `quality/quality_ratchet.json`; every Quality Baseline run must publish current value, baseline,
+   delta, threshold, and remediation evidence. Baseline updates auto-tighten only; any loosening
+   requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change,
+10. Docker parity matters because the gateway is a live integration boundary,
+11. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
    release manifest. Main Releasability is the only lane that pushes to GHCR; it captures the
    digest after push, signs the digest-pinned image, creates provenance attestation evidence, and
    requires Kubernetes deployment by digest while preserving the same image for environment
    promotion,
-11. `/version` exposes the same non-secret build and deployment metadata expected in release
+12. `/version` exposes the same non-secret build and deployment metadata expected in release
     manifests: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
     version. Image digest is deployment/runtime metadata captured after push and must not be baked
     into Docker build args, ENV, or OCI labels as `unknown`,
-12. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+13. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository

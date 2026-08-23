@@ -1199,9 +1199,10 @@ Most recent local PR-grade evidence:
 
 ## Next Tightening Candidates
 
-1. Keep the quality baseline tool findings report-only while findings are classified; keep
-   refactor-threshold, workflow-governance, artifact presence, and OpenAPI artifact validity
-   enforced so evidence gaps are visible.
+1. Keep the quality baseline's known tool findings visible as trend data while their absolute
+   thresholds are classified; keep the no-new-regression ratchet, refactor-threshold,
+   workflow-governance, artifact presence, and OpenAPI artifact validity enforced so evidence gaps
+   and regressions are visible.
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.

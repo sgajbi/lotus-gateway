@@ -352,10 +352,10 @@ push-triggered run and a dispatched run for the same main SHA. Manual dispatches
 no `source_branch` default; release metadata inherits the selected workflow ref unless an operator
 explicitly provides a source branch override.
 
-The Quality Baseline workflow is intentionally report-only. It publishes complexity,
-maintainability, dead-code, dependency, security, import-boundary, documentation, coverage, and
-OpenAPI governance evidence without weakening the existing blocking lanes. Promote individual
-checks only after baseline findings are classified and no-new-regression thresholds are agreed.
+The Quality Baseline workflow publishes complexity, maintainability, dead-code, dependency,
+security, import-boundary, documentation, coverage, and OpenAPI governance evidence. Its checked-in
+ratchet fails new measured regressions while preserving known findings as explicit trend data;
+individual clean checks can be promoted after their findings are classified and remediated.
 
 ## API Contract Notes
 

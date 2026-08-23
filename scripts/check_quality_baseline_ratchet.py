@@ -130,16 +130,80 @@ def _report(results: list[MetricResult]) -> None:
             print(f"  remediation: {result.remediation}")
 
 
-def _update_baseline(path: Path, baseline: dict[str, Any], results: list[MetricResult]) -> None:
+def _encode_json(value: Any, *, indent: int = 0) -> str:
+    """Serialize the small policy document while preserving Decimal JSON numbers."""
+
+    if isinstance(value, bool) or value is None or isinstance(value, int):
+        return json.dumps(value)
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, list):
+        if not value:
+            return "[]"
+        items = [_encode_json(item, indent=indent + 2) for item in value]
+        prefix = " " * (indent + 2)
+        return "[\n" + ",\n".join(prefix + item for item in items) + "\n" + " " * indent + "]"
+    if isinstance(value, dict):
+        if not value:
+            return "{}"
+        items = [
+            f"{json.dumps(str(key))}: {_encode_json(item, indent=indent + 2)}"
+            for key, item in value.items()
+        ]
+        prefix = " " * (indent + 2)
+        return "{\n" + ",\n".join(prefix + item for item in items) + "\n" + " " * indent + "}"
+    raise TypeError(f"Unsupported policy JSON value: {type(value).__name__}")
+
+
+def _parse_allowed_regressions(values: list[str]) -> dict[str, Decimal]:
+    allowed: dict[str, Decimal] = {}
+    for value in values:
+        name, separator, raw_value = value.partition("=")
+        if not separator or not name or not raw_value:
+            raise ValueError(f"Expected --allow-regression METRIC=VALUE, received: {value!r}")
+        try:
+            allowed[name] = Decimal(raw_value)
+        except ArithmeticError as exc:
+            raise ValueError(f"Invalid regression value for {name}: {raw_value!r}") from exc
+    return allowed
+
+
+def _update_baseline(
+    path: Path,
+    baseline: dict[str, Any],
+    results: list[MetricResult],
+    allowed_regressions: dict[str, Decimal],
+    reason: str | None,
+) -> None:
+    result_by_name = {result.name: result for result in results}
+    unknown_metrics = sorted(set(allowed_regressions) - set(result_by_name))
+    if unknown_metrics:
+        raise ValueError(f"Unknown metrics in --allow-regression: {', '.join(unknown_metrics)}")
+    failures = [result for result in results if not result.passed]
+    for result in failures:
+        allowed_value = allowed_regressions.get(result.name)
+        if allowed_value != result.current:
+            raise ValueError(
+                f"Refusing to loosen {result.name}; use "
+                f"--allow-regression {result.name}={_format_value(result.current)} "
+                "with a specific --reason. This command only auto-tightens."
+            )
+    for name in allowed_regressions:
+        if result_by_name[name].passed:
+            raise ValueError(f"--allow-regression is not needed for non-regressing metric: {name}")
+    if failures and not reason:
+        raise ValueError("A --reason is required for every explicit baseline regression allowance")
+
     current_by_name = {result.name: result.current for result in results}
     for metric in baseline["metrics"]:
         value = current_by_name[metric["name"]]
-        marker = f"__QUALITY_NUMBER__{value:f}"
-        metric["baseline"] = marker
-        metric["threshold"] = marker
-    payload = json.dumps(baseline, indent=2)
-    payload = re.sub(r'"__QUALITY_NUMBER__(-?[0-9]+(?:\.[0-9]+)?)"', r"\1", payload)
-    path.write_text(payload + "\n", encoding="utf-8")
+        metric["baseline"] = value
+        metric["threshold"] = value
+    path.write_text(_encode_json(baseline) + "\n", encoding="utf-8")
+    if failures:
+        print(f"Applied explicit baseline regression allowance: {reason}")
 
 
 def main() -> int:
@@ -149,15 +213,50 @@ def main() -> int:
     parser.add_argument(
         "--update-baseline",
         action="store_true",
-        help="Explicitly update the checked-in baseline to current measured values.",
+        help="Explicitly update the checked-in baseline; improvements auto-tighten only.",
+    )
+    parser.add_argument(
+        "--allow-regression",
+        action="append",
+        default=[],
+        metavar="METRIC=VALUE",
+        help="Explicitly allow one named metric regression during a reviewed baseline update.",
+    )
+    parser.add_argument(
+        "--reason",
+        help="Required justification for every explicit baseline regression allowance.",
     )
     args = parser.parse_args()
 
-    baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+    try:
+        allowed_regressions = _parse_allowed_regressions(args.allow_regression)
+    except ValueError as exc:
+        print(f"Quality baseline ratchet argument error: {exc}")
+        return 2
+    if args.reason and not args.allow_regression:
+        print("Quality baseline ratchet argument error: --reason requires --allow-regression")
+        return 2
+    if args.allow_regression and not args.update_baseline:
+        print(
+            "Quality baseline ratchet argument error: --allow-regression requires --update-baseline"
+        )
+        return 2
+
+    baseline = json.loads(args.baseline.read_text(encoding="utf-8"), parse_float=Decimal)
     results = evaluate_metrics(baseline, args.artifact_dir)
     _report(results)
     if args.update_baseline:
-        _update_baseline(args.baseline, baseline, results)
+        try:
+            _update_baseline(
+                args.baseline,
+                baseline,
+                results,
+                allowed_regressions,
+                args.reason,
+            )
+        except ValueError as exc:
+            print(f"Quality baseline ratchet baseline-update error: {exc}")
+            return 2
         print(f"Updated quality baseline: {args.baseline}")
         return 0
     failures = [result for result in results if not result.passed]
