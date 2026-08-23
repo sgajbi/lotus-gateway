@@ -1411,7 +1411,8 @@ async def test_performance_workspace_summary_explicit_window_takes_precedence_ov
         requested_reporting_currency="SGD",
     )
 
-    assert response.as_of_date == "2026-04-10"
+    assert response.as_of_date == "2026-03-27"
+    assert response.requested_as_of_date == "2026-04-10"
     assert response.effective_as_of_date == "2026-03-27"
     assert response.report_end_date == "2026-03-27"
     assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-03-27"
@@ -2007,7 +2008,7 @@ async def test_performance_workspace_service_forwards_attribution_trend_review_c
         requested_reporting_currency="SGD",
     )
 
-    assert response.as_of_date == "2026-04-10"
+    assert response.as_of_date == "2026-03-27"
     assert response.requested_as_of_date == "2026-04-10"
     assert response.effective_as_of_date == "2026-03-27"
     assert response.requested_reporting_currency == "SGD"
@@ -2422,6 +2423,7 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
     assert response.attribution.levels[0].allocation_total_pct == 0.18
     assert response.attribution.levels[0].selection_total_pct == 0.24
     assert response.attribution.levels[0].interaction_total_pct == 0.03
+    assert response.as_of_date == "2026-03-27"
     assert analytics_client.contribution_calls[0]["dimension"] == "sector"
     assert analytics_client.attribution_calls[0]["dimension"] == "currency"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False

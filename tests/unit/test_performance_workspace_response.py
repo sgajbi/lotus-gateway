@@ -146,6 +146,18 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
     assert fields.segment == "2026-01-01:2026-03-27"
 
 
+def test_workspace_response_context_fields_keep_requested_date_separate_from_effective_date() -> (
+    None
+):
+    fields = workspace_response_context_fields(
+        replace(_context(), requested_as_of_date="2026-04-10")
+    )
+
+    assert fields.as_of_date == "2026-03-27"
+    assert fields.requested_as_of_date == "2026-04-10"
+    assert fields.effective_as_of_date == "2026-03-27"
+
+
 @pytest.mark.parametrize(
     ("result", "expected_currency", "expected_state"),
     [

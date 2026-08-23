@@ -28,7 +28,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
         examples=["PF_1001"],
     )
     as_of_date: str = Field(
-        description="Resolved as-of date used for the performance details response.",
+        description="Effective as-of date used for the response; requested date remains separate.",
         examples=["2026-02-24"],
     )
     requested_as_of_date: str | None = Field(
