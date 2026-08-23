@@ -33,7 +33,8 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     )
     as_of_date: str = Field(
         description=(
-            "Requested review as-of date, or the effective date when no request was supplied."
+            "Effective as-of date used for the response; requested_as_of_date preserves the "
+            "caller's review-date request when supplied."
         ),
         examples=["2026-02-24"],
     )
@@ -140,7 +141,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                 "contract_version": "v1",
                 "portfolio_id": "PF_1001",
                 "as_of_date": "2026-02-24",
-                "requested_as_of_date": "2026-02-24",
+                "requested_as_of_date": "2026-04-10",
                 "effective_as_of_date": "2026-02-24",
                 "requested_reporting_currency": "USD",
                 "effective_reporting_currency": "USD",

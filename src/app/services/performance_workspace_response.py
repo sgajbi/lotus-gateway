@@ -217,7 +217,7 @@ def workspace_response_context_fields(
     )
     return WorkspaceResponseContextFields(
         contract_version=context.overview.contract_version,
-        as_of_date=context.requested_as_of_date or context.report_end_date,
+        as_of_date=context.report_end_date,
         period=context.effective_period,
         report_start_date=context.report_start_date.isoformat(),
         report_end_date=context.report_end_date,

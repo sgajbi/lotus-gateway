@@ -260,7 +260,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             correlation_id=correlation_id,
             contract_version=context.overview.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=context.requested_as_of_date or context.report_end_date,
+            as_of_date=context.report_end_date,
             requested_as_of_date=context.requested_as_of_date,
             effective_as_of_date=context.report_end_date,
             requested_reporting_currency=context.requested_reporting_currency,

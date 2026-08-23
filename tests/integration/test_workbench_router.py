@@ -2325,7 +2325,10 @@ def test_workbench_performance_evidence_openapi_contract():
     assert summary_schema["properties"]["contract_version"]["description"]
     assert summary_schema["properties"]["contract_version"]["default"] == "v1"
     assert summary_schema["properties"]["portfolio_id"]["description"]
-    assert summary_schema["properties"]["as_of_date"]["description"]
+    assert (
+        "Effective as-of date used for the response"
+        in summary_schema["properties"]["as_of_date"]["description"]
+    )
     assert summary_schema["properties"]["requested_as_of_date"]["description"]
     assert summary_schema["properties"]["effective_as_of_date"]["description"]
     assert summary_schema["properties"]["requested_reporting_currency"]["description"]
@@ -2361,6 +2364,8 @@ def test_workbench_performance_evidence_openapi_contract():
         == "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert summary_schema["example"]["evidence_view"]["state"] == "partial"
+    assert summary_schema["example"]["as_of_date"] == "2026-02-24"
+    assert summary_schema["example"]["requested_as_of_date"] == "2026-04-10"
     assert details_schema["properties"]["correlation_id"]["description"]
     assert details_schema["properties"]["correlation_id"]["examples"] == [
         "corr-performance-details-1"
@@ -2368,7 +2373,10 @@ def test_workbench_performance_evidence_openapi_contract():
     assert details_schema["properties"]["contract_version"]["description"]
     assert details_schema["properties"]["contract_version"]["default"] == "v1"
     assert details_schema["properties"]["portfolio_id"]["description"]
-    assert details_schema["properties"]["as_of_date"]["description"]
+    assert (
+        "Effective as-of date used for the response"
+        in details_schema["properties"]["as_of_date"]["description"]
+    )
     assert details_schema["properties"]["requested_as_of_date"]["description"]
     assert details_schema["properties"]["effective_as_of_date"]["description"]
     assert details_schema["properties"]["requested_reporting_currency"]["description"]
@@ -2395,6 +2403,8 @@ def test_workbench_performance_evidence_openapi_contract():
     assert details_schema["properties"]["capabilities"]["description"]
     assert details_schema["example"]["segment"] == "asset_class"
     assert details_schema["example"]["contribution"]["coverage_mv_pct"] == 98.7
+    assert details_schema["example"]["as_of_date"] == "2026-02-24"
+    assert details_schema["example"]["requested_as_of_date"] == "2026-04-10"
     assert summary_schema["properties"]["evidence_view"]["description"]
     assert details_schema["properties"]["evidence_view"]["description"]
     assert details_schema["properties"]["net_chart"]["description"]
@@ -2505,6 +2515,10 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     ]
     assert response_schema["properties"]["contract_version"]["description"]
     assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert (
+        "Effective as-of date used for the response"
+        in response_schema["properties"]["as_of_date"]["description"]
+    )
     assert response_schema["properties"]["requested_as_of_date"]["description"]
     assert response_schema["properties"]["effective_as_of_date"]["description"]
     assert response_schema["properties"]["requested_reporting_currency"]["description"]
@@ -2524,6 +2538,8 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert row_schema["properties"]["reason_codes"]["description"]
     assert row_schema["properties"]["residual_materiality"]["description"]
     assert row_schema["properties"]["supportability_evidence"]["description"]
+    assert response_schema["example"]["as_of_date"] == "2026-03-27"
+    assert response_schema["example"]["requested_as_of_date"] == "2026-04-10"
     assert response_schema["example"]["rows"][0]["period_label"] == "2026-01"
     assert response_schema["example"]["rows"][1]["cumulative_total_effect_pct"] == 0.4
 
