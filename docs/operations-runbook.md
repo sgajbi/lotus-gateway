@@ -46,6 +46,12 @@ make ci-local-docker-down
 
 Docker parity is required because gateway is a live integration boundary.
 
+The development and Docker test extras include `httpx2>=2.12.0,<3.0.0` because the supported
+Starlette TestClient path uses HTTPX2. `make lint` runs
+`scripts/check_testclient_dependency.py`, which fails on a missing or below-floor HTTPX2 version
+or when importing TestClient emits Starlette's deprecated `httpx` fallback warning. The
+production-only `requirements-audit.txt` intentionally excludes this test-only dependency.
+
 CI-owned image release evidence is retained under `output/container-security/` artifacts. PRs build
 and scan the Git-SHA-tagged image without pushing it. The Trivy image scan fails on fixable
 HIGH/CRITICAL vulnerabilities and retains the full JSON scan artifact so unfixed vendor findings

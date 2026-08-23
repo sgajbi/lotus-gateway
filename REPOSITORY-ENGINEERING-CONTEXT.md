@@ -341,6 +341,11 @@ Important validation expectations:
     into Docker build args, ENV, or OCI labels as `unknown`,
 14. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
+15. the Starlette TestClient dependency is test-only: the `dev` extra provides
+    `httpx2>=2.12.0,<3.0.0`, and `scripts/check_testclient_dependency.py` is a hard gate against
+    missing/outdated HTTPX2 or Starlette's legacy `httpx` fallback warning. The production-only
+    `requirements-audit.txt` intentionally excludes HTTPX2 because the application image does not
+    import TestClient.
 
 ## Standards And RFCs That Govern This Repository
 
