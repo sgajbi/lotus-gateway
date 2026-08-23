@@ -185,3 +185,74 @@ def test_explicit_baseline_update_records_current_values(
     assert updated["metrics"][0]["threshold"] == 1
     assert updated["metrics"][1]["baseline"] == 91.25
     assert updated["metrics"][1]["threshold"] == 91.25
+
+
+def test_baseline_update_rejects_loosening_without_explicit_allowance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    baseline_path, artifact_dir = _write_fixture(tmp_path, findings=3, coverage=90)
+    original = baseline_path.read_text()
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "check_quality_baseline_ratchet.py",
+            "--baseline",
+            str(baseline_path),
+            "--artifact-dir",
+            str(artifact_dir),
+            "--update-baseline",
+        ],
+    )
+
+    assert main() == 2
+    assert baseline_path.read_text() == original
+
+
+def test_baseline_update_requires_reason_for_explicit_allowance(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    baseline_path, artifact_dir = _write_fixture(tmp_path, findings=3, coverage=90)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "check_quality_baseline_ratchet.py",
+            "--baseline",
+            str(baseline_path),
+            "--artifact-dir",
+            str(artifact_dir),
+            "--update-baseline",
+            "--allow-regression",
+            "findings=3",
+        ],
+    )
+
+    assert main() == 2
+
+
+def test_baseline_update_allows_named_regression_with_reason(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    baseline_path, artifact_dir = _write_fixture(tmp_path, findings=3, coverage=90)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "check_quality_baseline_ratchet.py",
+            "--baseline",
+            str(baseline_path),
+            "--artifact-dir",
+            str(artifact_dir),
+            "--update-baseline",
+            "--allow-regression",
+            "findings=3",
+            "--reason",
+            "approved baseline reset for the deterministic fixture",
+        ],
+    )
+
+    assert main() == 0
+    updated = json.loads(baseline_path.read_text())
+    assert updated["metrics"][0]["threshold"] == 3
+    assert updated["metrics"][1]["threshold"] == 90

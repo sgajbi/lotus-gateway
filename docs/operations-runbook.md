@@ -79,7 +79,9 @@ complexity, dead-code, dependency, security, documentation, or OpenAPI metrics r
 their reviewed baseline, while preserving current known findings as explicit trend data.
 
 Run `python scripts/check_quality_baseline_ratchet.py --update-baseline` only as part of a reviewed
-baseline change after inspecting the full tool output; CI never updates the baseline automatically.
+baseline change after inspecting the full tool output. The command auto-tightens improvements;
+loosening requires a per-metric `--allow-regression METRIC=VALUE --reason "..."` justification.
+CI never updates the baseline automatically.
 
 Demo certification evidence is also generated from the repo-native command:
 

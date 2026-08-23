@@ -97,7 +97,9 @@ Reference branch: `origin/main`
   unchanged. The change tightens CI behavior: a quality-baseline metric regression blocks that
   workflow and reports the violating metric and remediation command.
 - Tests: deterministic unit coverage proves threshold pass, regression failure, and explicit
-  baseline-update behavior; quality artifact validation requires the ratchet evidence log.
+  baseline-update behavior; quality artifact validation requires the ratchet evidence log. Baseline
+  updates auto-tighten only; loosening requires named `--allow-regression METRIC=VALUE` and a
+  non-empty `--reason`.
 - Follow-up: #523 remains the independent duplicate-run/concurrency slice. Promotion of individual
   advisory findings to clean gates remains a future bounded slice after their baseline issues are
   remediated; this ratchet prevents those findings from increasing meanwhile.
