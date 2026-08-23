@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 EXPECTED_BASELINE_LOGS = (
@@ -23,6 +24,21 @@ EXPECTED_BASELINE_LOGS = (
     "demo-certification.txt",
     "quality-ratchet.txt",
 )
+
+QUALITY_TOOL_LOGS = (
+    "ruff.txt",
+    "mypy.txt",
+    "coverage.txt",
+    "import-linter.txt",
+    "complexity.txt",
+    "vulture.txt",
+    "deptry.txt",
+    "security.txt",
+    "interrogate.txt",
+    "spectral.txt",
+    "demo-certification.txt",
+)
+QUALITY_COMMAND_STATUS_PATTERN = re.compile(r"^QUALITY_COMMAND_STATUS=(.*)$", re.MULTILINE)
 
 
 def validate_quality_baseline_artifacts(
@@ -44,6 +60,24 @@ def validate_quality_baseline_artifacts(
             continue
         if log_path.stat().st_size == 0:
             findings.append(f"Empty quality baseline log: {log_path}")
+
+    for log_name in QUALITY_TOOL_LOGS:
+        log_path = artifact_dir / log_name
+        if not log_path.is_file() or log_path.stat().st_size == 0:
+            continue
+        markers = QUALITY_COMMAND_STATUS_PATTERN.findall(log_path.read_text(encoding="utf-8"))
+        if len(markers) != 1:
+            findings.append(
+                "Expected exactly one QUALITY_COMMAND_STATUS marker in "
+                f"{log_path}, found {len(markers)}"
+            )
+            continue
+        status = markers[0].strip()
+        if not status.isdecimal():
+            findings.append(
+                "Invalid QUALITY_COMMAND_STATUS marker in "
+                f"{log_path}: expected a non-negative integer, received {status!r}"
+            )
 
     if not openapi_path.is_file():
         findings.append(f"Missing generated OpenAPI artifact: {openapi_path}")

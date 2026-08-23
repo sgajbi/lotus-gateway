@@ -65,16 +65,33 @@ jobs:
       - name: Ruff
         continue-on-error: true
         run: |
+          set +e
+          set -o pipefail
           mkdir -p output/quality-baseline
           python -m ruff check . 2>&1 | tee output/quality-baseline/ruff.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/ruff.txt
+          exit "${status}"
 
       - name: Mypy
         continue-on-error: true
-        run: python -m mypy src 2>&1 | tee output/quality-baseline/mypy.txt
+        run: |
+          set +e
+          set -o pipefail
+          python -m mypy src 2>&1 | tee output/quality-baseline/mypy.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/mypy.txt
+          exit "${status}"
 
       - name: Coverage
         continue-on-error: true
-        run: make test-coverage 2>&1 | tee output/quality-baseline/coverage.txt
+        run: |
+          set +e
+          set -o pipefail
+          make test-coverage 2>&1 | tee output/quality-baseline/coverage.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/coverage.txt
+          exit "${status}"
 
       - name: Architecture Import Rules
         continue-on-error: true
@@ -119,14 +136,30 @@ jobs:
       - name: Security Baseline
         continue-on-error: true
         run: |
+          set +e
+          set -o pipefail
           {
             bandit -q -r src/app -c pyproject.toml
+            bandit_status=$?
             make security-audit
+            audit_status=$?
+            if [ "${bandit_status}" -ne 0 ] || [ "${audit_status}" -ne 0 ]; then
+              exit 1
+            fi
           } 2>&1 | tee output/quality-baseline/security.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/security.txt
+          exit "${status}"
 
       - name: Documentation Baseline
         continue-on-error: true
-        run: interrogate src/app 2>&1 | tee output/quality-baseline/interrogate.txt
+        run: |
+          set +e
+          set -o pipefail
+          interrogate src/app 2>&1 | tee output/quality-baseline/interrogate.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/interrogate.txt
+          exit "${status}"
 
       - name: OpenAPI Spectral Baseline
         continue-on-error: true
@@ -145,9 +178,13 @@ jobs:
       - name: Demo Certification Baseline
         continue-on-error: true
         run: |
+          set +e
           set -o pipefail
           mkdir -p output/quality-baseline output/demo-certification
           make demo-certification 2>&1 | tee output/quality-baseline/demo-certification.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/demo-certification.txt
+          exit "${status}"
 
       - name: Evaluate Quality Ratchet
         if: always()

@@ -84,6 +84,12 @@ presence, and the checked-in quality ratchet. The ratchet fails when coverage, a
 complexity, dead-code, dependency, security, documentation, or OpenAPI metrics regress beyond
 their reviewed baseline, while preserving current known findings as explicit trend data.
 
+Each report-producing quality step writes one `QUALITY_COMMAND_STATUS=<integer>` marker from the
+producer exit status. Artifact validation fails on missing, malformed, or duplicate markers, and
+the ratchet rejects a failed tool that emitted no parseable measurement. Non-zero status alongside
+known baseline findings remains visible trend evidence; it is not a claim that the tool passed
+cleanly.
+
 Run `python scripts/check_quality_baseline_ratchet.py --update-baseline` only as part of a reviewed
 baseline change after inspecting the full tool output. The command auto-tightens improvements;
 loosening requires a per-metric `--allow-regression METRIC=VALUE --reason "..."` justification.

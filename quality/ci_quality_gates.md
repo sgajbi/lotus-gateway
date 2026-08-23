@@ -83,6 +83,13 @@ workflow-governance proof, agent-quality-evidence proof, generated OpenAPI artif
 evidence must exist before upload. Missing or unusable evidence is treated as a CI measurement
 defect.
 
+Every report-producing quality tool log also carries exactly one
+`QUALITY_COMMAND_STATUS=<non-negative integer>` marker written from the producer process exit
+status. A non-zero status with baseline findings is explicit known-debt trend evidence; it is not
+silently converted to a clean result. Missing, malformed, or duplicate status markers fail the
+artifact gate because the measurement cannot be trusted. A tool that fails before producing a
+parseable result is rejected by the ratchet parser rather than counted as zero findings.
+
 Quality Baseline uses `pull_request` targeting `main` as the sole authoritative automated feature
 event. Feature-branch pushes do not start a duplicate run; PR creation and synchronization produce
 one protected check per head SHA. Manual dispatch remains available for operator-requested

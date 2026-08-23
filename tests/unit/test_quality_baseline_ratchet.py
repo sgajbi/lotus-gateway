@@ -94,7 +94,7 @@ def test_number_metric_accepts_explicit_zero_success_output(tmp_path: Path) -> N
     assert results[0].passed
 
 
-def test_count_metric_rejects_malformed_zero_finding_output(tmp_path: Path) -> None:
+def test_count_metric_rejects_failed_tool_without_findings(tmp_path: Path) -> None:
     baseline = {
         "schema_version": 1,
         "metrics": [
@@ -114,7 +114,7 @@ def test_count_metric_rejects_malformed_zero_finding_output(tmp_path: Path) -> N
     artifact_dir = tmp_path / "artifacts"
     artifact_dir.mkdir()
     (artifact_dir / "findings.txt").write_text(
-        "tool failed before producing a report\n",
+        "tool failed before producing a report\nQUALITY_COMMAND_STATUS=1\n",
         encoding="utf-8",
     )
 
