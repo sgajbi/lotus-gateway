@@ -212,7 +212,8 @@ Current repository posture:
     Advise detail read. Gateway centrally validates decision-status/top-level/action relationships,
     the gate-to-next-step matrix, compatible decision/workflow gates, and blocking-evidence
     posture. Contradictions fail closed; partial decision evidence cannot publish an executable
-    workflow gate as ready, and Gateway does not invent progression or approval truth.
+    workflow gate as ready, and incomplete blocking-gate reason evidence remains partial rather than
+    being invented. Gateway does not invent progression or approval truth.
 
 ## Architecture And Module Map
 

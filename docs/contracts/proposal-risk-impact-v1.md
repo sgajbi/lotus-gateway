@@ -45,6 +45,8 @@ Gateway validates the cross-field relationships before building the product proj
   `COMPLIANCE_REVIEW_REQUIRED → COMPLIANCE_REVIEW`, `CLIENT_CONSENT_REQUIRED →
   REQUEST_CLIENT_CONSENT`, `EXECUTION_READY → EXECUTE`, and `NONE → NONE` are the only
   workflow-gate pairs;
+- a blocking gate with no source reason evidence remains typed and is published as `partial` with
+  `workflow_gate_reason_evidence_missing`; Gateway never invents a reason to make it `ready`;
 - decision statuses constrain the top-level status, recommended action, and compatible workflow
   gate; `INSUFFICIENT_EVIDENCE` requires blocking missing-evidence proof;
 - an executable `EXECUTION_READY` or `NONE` gate is never published as `ready` when decision
