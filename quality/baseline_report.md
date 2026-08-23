@@ -1210,27 +1210,27 @@ operational-readiness DTOs into
 316/49, with `src/app/services/foundation_service.py` as the deterministic evidence-selected
 largest source file.
 
-Current Foundation workspace source-loading extraction moves core identity/snapshot loading,
-optional performance/rebalance/reporting fan-out, and performance reference-date fallback into
-`src/app/services/foundation_workspace_sources.py` while preserving public Foundation service
-behavior. The executable refactor ratchet remains 316/49, with
-`src/app/services/platform_capabilities_workspace_descriptors.py` as the deterministic
+Current performance detail-currency correction keeps requested-currency cache isolation while
+preventing unsupported independent currency forwarding, reports the effective portfolio base
+currency explicitly, and classifies typed currency rejection failures through the shared detail
+failure mapper. The executable refactor ratchet remains 316/49, with
+`src/app/contracts/performance_workspace_details_contract.py` as the deterministic
 evidence-selected largest source file.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 2 | 315 | `src/app/services/dpm_proof_pack_service.py` |
-| 3 | 314 | `src/app/contracts/proposals.py` |
-| 4 | 314 | `src/app/services/portfolio_service.py` |
-| 5 | 313 | `src/app/services/upstream_envelope.py` |
-| 6 | 312 | `src/app/clients/http_resilience.py` |
-| 7 | 312 | `src/app/contracts/risk_workspace.py` |
-| 8 | 309 | `src/app/contracts/foundation.py` |
-| 9 | 308 | `src/app/services/portfolio_transaction_ledger.py` |
-| 10 | 303 | `src/app/contracts/reporting_batch_materialization.py` |
+| 1 | 316 | `src/app/contracts/performance_workspace_details_contract.py` |
+| 2 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
+| 3 | 315 | `src/app/services/performance_workspace_attribution_trend_service.py` |
+| 4 | 315 | `src/app/contracts/dpm_pm_operating_quality.py` |
+| 5 | 314 | `src/app/services/advisor_book_service.py` |
+| 6 | 314 | `src/app/contracts/proposals.py` |
+| 7 | 314 | `src/app/clients/lotus_analytics_performance_client.py` |
+| 8 | 313 | `src/app/services/portfolio_service.py` |
+| 9 | 312 | `src/app/contracts/risk_workspace.py` |
+| 10 | 310 | `src/app/services/performance_workspace_attribution.py` |
 
 ## Largest Functions
 

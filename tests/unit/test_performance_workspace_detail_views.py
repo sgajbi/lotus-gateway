@@ -1,4 +1,8 @@
 from app.contracts.performance_workspace import PerformanceComparativeSummary
+from app.services.performance_workspace_detail_currency import (
+    detail_currency_fallback_applies,
+    resolve_detail_currency_request,
+)
 from app.services.performance_workspace_detail_views import (
     build_summary_workspace_detail_views,
     should_fetch_independent_detail_views,
@@ -65,3 +69,22 @@ def test_build_summary_workspace_detail_views_preserves_summary_fallback() -> No
     assert detail_views.attribution == parsed_summary.attribution
     assert detail_views.contribution_detail_result is None
     assert detail_views.attribution_detail_result is None
+
+
+def test_detail_currency_forwarding_stays_disabled_until_source_fx_support() -> None:
+    upstream_currency = resolve_detail_currency_request(
+        requested_currency="SGD",
+        base_currency="USD",
+    )
+
+    assert upstream_currency is None
+    assert detail_currency_fallback_applies(
+        requested_currency="SGD",
+        base_currency="USD",
+        upstream_currency=upstream_currency,
+    )
+    assert not detail_currency_fallback_applies(
+        requested_currency="USD",
+        base_currency="USD",
+        upstream_currency=None,
+    )

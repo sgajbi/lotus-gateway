@@ -2429,11 +2429,17 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-03-27"
     assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "SGD"
+    assert analytics_client.contribution_calls[0]["reporting_currency"] is None
+    assert analytics_client.attribution_calls[0]["reporting_currency"] is None
     assert response.requested_as_of_date == "2026-04-10"
     assert response.effective_as_of_date == "2026-03-27"
     assert response.requested_reporting_currency == "SGD"
-    assert response.effective_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "USD"
     assert response.reporting_currency_state == "accepted_unverified"
+    assert "PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE" in response.warnings
+    assert not any(
+        failure.source_service == "lotus-performance" for failure in response.partial_failures
+    )
 
 
 @pytest.mark.asyncio

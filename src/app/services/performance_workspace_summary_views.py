@@ -62,6 +62,7 @@ async def build_workspace_summary_views(
         attribution=detail_views.attribution,
         contribution_detail_result=detail_views.contribution_detail_result,
         attribution_detail_result=detail_views.attribution_detail_result,
+        detail_currency_fallback=detail_views.detail_currency_fallback,
     )
 
 
