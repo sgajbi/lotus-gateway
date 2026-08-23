@@ -72,6 +72,12 @@ def _core_portfolio_payload() -> dict[str, Any]:
 def _core_snapshot_payload() -> dict[str, Any]:
     return {
         "as_of_date": "2026-04-10",
+        "source_evidence_current": True,
+        "freshness_status": "CURRENT",
+        "freshness": {
+            "freshness_status": "CURRENT_SNAPSHOT",
+            "snapshot_timestamp": "2026-08-22T20:39:38Z",
+        },
         "sections": {
             "positions_baseline": [
                 {
@@ -187,6 +193,9 @@ def _deterministic_upstream_clients() -> Iterator[None]:
     async def get_core_snapshot(*args: Any, **kwargs: Any) -> tuple[int, dict[str, Any]]:
         return 200, _core_snapshot_payload()
 
+    async def get_support_overview(*args: Any, **kwargs: Any) -> tuple[int, dict[str, Any]]:
+        return 200, {"business_date": "2026-04-10"}
+
     async def get_portfolio_analytics_reference(
         *args: Any, **kwargs: Any
     ) -> tuple[int, dict[str, Any]]:
@@ -219,6 +228,7 @@ def _deterministic_upstream_clients() -> Iterator[None]:
     patches.extend(
         [
             (LotusCoreQueryClient, "get_portfolio", get_portfolio),
+            (LotusCoreQueryClient, "get_support_overview", get_support_overview),
             (LotusCoreQueryClient, "get_core_snapshot", get_core_snapshot),
             (
                 LotusCoreQueryClient,
@@ -323,6 +333,8 @@ def _certify_workbench_overview(client: TestClient, evidence: CertificationEvide
     )
     evidence.expect("overview.cash_weight_pct", body["overview"]["cash_weight_pct"], 8.0)
     evidence.expect("overview.position_count", body["overview"]["position_count"], 3)
+    evidence.expect("overview.as_of_date", body["as_of_date"], "2026-04-10")
+    evidence.expect("overview.as_of_state", body["as_of_state"], "confirmed")
     evidence.expect(
         "overview.performance_return_pct", body["performance_snapshot"]["return_pct"], 4.2
     )
