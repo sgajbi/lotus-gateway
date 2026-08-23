@@ -81,6 +81,8 @@ def build_recommended_actions(
         period=workspace.period,
         basis=workspace.detail_basis,
         benchmark_code=workspace.benchmark_code,
+        requested_as_of_date=workspace.requested_as_of_date,
+        requested_reporting_currency=workspace.requested_reporting_currency,
     )
     return [
         AdvisorBriefActionItem(label="Open Return Path", target_mode="summary", route=route),
@@ -166,6 +168,8 @@ def _build_return_talking_point(
                 period=workspace.period,
                 basis=workspace.detail_basis,
                 benchmark_code=workspace.benchmark_code,
+                requested_as_of_date=workspace.requested_as_of_date,
+                requested_reporting_currency=workspace.requested_reporting_currency,
             )
         ],
     )
@@ -210,6 +214,8 @@ def _build_position_talking_point(
                 period=workspace.period,
                 basis=workspace.detail_basis,
                 benchmark_code=workspace.benchmark_code,
+                requested_as_of_date=workspace.requested_as_of_date,
+                requested_reporting_currency=workspace.requested_reporting_currency,
             )
         ],
     )
@@ -241,6 +247,8 @@ def _build_supportability_risk(
                     period=workspace.period,
                     basis=workspace.detail_basis,
                     benchmark_code=workspace.benchmark_code,
+                    requested_as_of_date=workspace.requested_as_of_date,
+                    requested_reporting_currency=workspace.requested_reporting_currency,
                 ),
             )
         ],

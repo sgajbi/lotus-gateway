@@ -2535,6 +2535,9 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response.status_code == 200
     schema = response.json()
     route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/advisor-brief"]["get"]
+    review_action_route = schema["paths"][
+        "/api/v1/workbench/{portfolio_id}/performance/advisor-brief/review-actions"
+    ]["post"]
     portfolio_parameter = next(
         parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
     )
@@ -2544,6 +2547,15 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     benchmark_parameter = next(
         parameter for parameter in route["parameters"] if parameter["name"] == "benchmark_code"
     )
+    as_of_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "as_of_date"
+    )
+    reporting_currency_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "reporting_currency"
+    )
+    review_action_parameter_names = {
+        parameter["name"] for parameter in review_action_route["parameters"]
+    }
     response_schema = schema["components"]["schemas"]["AdvisorBriefResponse"]
     narrative_schema = schema["components"]["schemas"]["AdvisorBriefNarrativeItem"]
     evidence_ref_schema = schema["components"]["schemas"]["AdvisorBriefEvidenceRef"]
@@ -2560,10 +2572,20 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert benchmark_parameter["description"]
+    assert as_of_parameter["description"]
+    assert as_of_parameter["schema"]["examples"] == ["2026-04-10"]
+    assert reporting_currency_parameter["description"]
+    assert reporting_currency_parameter["schema"]["examples"] == ["SGD"]
+    assert {"as_of_date", "reporting_currency"}.issubset(review_action_parameter_names)
     assert response_schema["properties"]["correlation_id"]["description"]
     assert response_schema["properties"]["correlation_id"]["examples"] == ["corr-advisor-brief-1"]
     assert response_schema["properties"]["contract_version"]["description"]
     assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert response_schema["properties"]["requested_as_of_date"]["description"]
+    assert response_schema["properties"]["effective_as_of_date"]["description"]
+    assert response_schema["properties"]["requested_reporting_currency"]["description"]
+    assert response_schema["properties"]["effective_reporting_currency"]["description"]
+    assert response_schema["properties"]["reporting_currency_state"]["description"]
     assert response_schema["properties"]["summary"]["description"]
     assert response_schema["properties"]["talking_points"]["description"]
     assert response_schema["properties"]["ai_audit"]["description"]
@@ -2813,6 +2835,8 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         benchmark_code: str | None,
         explicit_start_date: str | None,
         explicit_end_date: str | None,
+        requested_as_of_date: str | None,
+        requested_reporting_currency: str | None,
     ):
         captured["portfolio_id"] = portfolio_id
         captured["correlation_id"] = correlation_id
@@ -2824,6 +2848,8 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         captured["benchmark_code"] = benchmark_code
         captured["explicit_start_date"] = explicit_start_date
         captured["explicit_end_date"] = explicit_end_date
+        captured["requested_as_of_date"] = requested_as_of_date
+        captured["requested_reporting_currency"] = requested_reporting_currency
         return AdvisorBriefResponse(
             correlation_id=correlation_id,
             contract_version="v1",
@@ -2865,7 +2891,8 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
-        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27"
+        "&as_of_date=2026-04-10&reporting_currency=sgd",
         headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-advisor-brief"},
     )
 
@@ -2881,6 +2908,8 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
+        "requested_as_of_date": "2026-04-10",
+        "requested_reporting_currency": "SGD",
     }
 
 
@@ -2900,6 +2929,8 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         request: AdvisorBriefWorkflowPackRunReviewActionRequest,
         explicit_start_date: str | None,
         explicit_end_date: str | None,
+        requested_as_of_date: str | None,
+        requested_reporting_currency: str | None,
     ):
         captured["portfolio_id"] = portfolio_id
         captured["correlation_id"] = correlation_id
@@ -2912,6 +2943,8 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         captured["request"] = request.model_dump(mode="json")
         captured["explicit_start_date"] = explicit_start_date
         captured["explicit_end_date"] = explicit_end_date
+        captured["requested_as_of_date"] = requested_as_of_date
+        captured["requested_reporting_currency"] = requested_reporting_currency
         return AdvisorBriefResponse(
             correlation_id=correlation_id,
             contract_version="v1",
@@ -2995,7 +3028,8 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
-        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27"
+        "&as_of_date=2026-04-10&reporting_currency=sgd",
         headers={
             **CALLER_CONTEXT_HEADERS,
             "X-Correlation-Id": "corr-advisor-brief-review",
@@ -3045,6 +3079,8 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         },
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
+        "requested_as_of_date": "2026-04-10",
+        "requested_reporting_currency": "SGD",
     }
 
 

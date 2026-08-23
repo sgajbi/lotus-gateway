@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.contracts.advisor_brief import (
     AdvisorBriefResponse,
@@ -28,6 +28,7 @@ from app.services.advisor_brief_review_actions import (
     load_advisor_brief_review_action_context,
 )
 from app.services.advisor_brief_runtime_context import (
+    AdvisorBriefRuntimeContext,
     load_advisor_brief_runtime_context,
 )
 from app.services.advisor_brief_source import (
@@ -51,6 +52,8 @@ class AdvisorBriefPerformanceWorkspaceService(Protocol):
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> PerformanceWorkspaceResponse: ...
 
 
@@ -84,6 +87,8 @@ class AdvisorBriefService:
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> AdvisorBriefResponse:
         cache_key = (
             "advisor_brief",
@@ -96,6 +101,8 @@ class AdvisorBriefService:
             benchmark_code or "",
             explicit_start_date or "",
             explicit_end_date or "",
+            requested_as_of_date or "",
+            requested_reporting_currency or "",
         )
         return await self._response_cache.get_or_set(
             key=cache_key,
@@ -110,6 +117,8 @@ class AdvisorBriefService:
                 benchmark_code=benchmark_code,
                 explicit_start_date=explicit_start_date,
                 explicit_end_date=explicit_end_date,
+                requested_as_of_date=requested_as_of_date,
+                requested_reporting_currency=requested_reporting_currency,
             ),
         )
 
@@ -126,6 +135,8 @@ class AdvisorBriefService:
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> AdvisorBriefResponse:
         workspace = await self._load_performance_workspace(
             portfolio_id=portfolio_id,
@@ -138,6 +149,8 @@ class AdvisorBriefService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
         )
         source_context = build_advisor_brief_source_context(
             workspace=workspace,
@@ -147,9 +160,7 @@ class AdvisorBriefService:
             correlation_id=correlation_id,
             source_context=source_context,
         )
-        runtime_context = await load_advisor_brief_runtime_context(
-            lotus_ai_client=self._lotus_ai_client,
-            advise_client=self._advise_client,
+        runtime_context = await self._load_runtime_context(
             correlation_id=correlation_id,
             ai_audit=narrative_state.ai_audit,
         )
@@ -158,6 +169,19 @@ class AdvisorBriefService:
             source_context=source_context,
             narrative_state=narrative_state,
             runtime_context=runtime_context,
+        )
+
+    async def _load_runtime_context(
+        self,
+        *,
+        correlation_id: str,
+        ai_audit: dict[str, Any],
+    ) -> AdvisorBriefRuntimeContext:
+        return await load_advisor_brief_runtime_context(
+            lotus_ai_client=self._lotus_ai_client,
+            advise_client=self._advise_client,
+            correlation_id=correlation_id,
+            ai_audit=ai_audit,
         )
 
     async def _load_performance_workspace(
@@ -173,6 +197,8 @@ class AdvisorBriefService:
         benchmark_code: str | None,
         explicit_start_date: str | None,
         explicit_end_date: str | None,
+        requested_as_of_date: str | None,
+        requested_reporting_currency: str | None,
     ) -> PerformanceWorkspaceResponse:
         async with server_timing_span("perf-advisor-brief-source"):
             return await self._performance_workspace_service.get_performance_workspace(
@@ -186,6 +212,8 @@ class AdvisorBriefService:
                 benchmark_code=benchmark_code,
                 explicit_start_date=explicit_start_date,
                 explicit_end_date=explicit_end_date,
+                requested_as_of_date=requested_as_of_date,
+                requested_reporting_currency=requested_reporting_currency,
             )
 
     async def _build_advisor_brief_narrative_state(
@@ -233,6 +261,8 @@ class AdvisorBriefService:
         request: AdvisorBriefWorkflowPackRunReviewActionRequest,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> AdvisorBriefResponse:
         review_context = await load_advisor_brief_review_action_context(
             advisor_brief_loader=self,
@@ -247,6 +277,8 @@ class AdvisorBriefService:
             request=request,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
         )
         await apply_advisor_brief_review_action(
             lotus_ai_client=self._lotus_ai_client,
@@ -254,9 +286,7 @@ class AdvisorBriefService:
             correlation_id=correlation_id,
             request=request,
         )
-        runtime_context = await load_advisor_brief_runtime_context(
-            lotus_ai_client=self._lotus_ai_client,
-            advise_client=self._advise_client,
+        runtime_context = await self._load_runtime_context(
             correlation_id=correlation_id,
             ai_audit=review_context.brief.ai_audit,
         )

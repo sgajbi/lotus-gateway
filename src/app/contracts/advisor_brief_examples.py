@@ -13,6 +13,8 @@ ADVISOR_BRIEF_RESPONSE_EXAMPLE: dict[str, Any] = {
         "booking_center_code": "SG",
     },
     "as_of_date": "2026-04-04",
+    "requested_as_of_date": "2026-04-10",
+    "effective_as_of_date": "2026-04-04",
     "period": "YTD",
     "report_start_date": "2026-01-01",
     "report_end_date": "2026-04-04",
@@ -21,6 +23,9 @@ ADVISOR_BRIEF_RESPONSE_EXAMPLE: dict[str, Any] = {
     "contribution_dimension": "asset_class",
     "attribution_dimension": "asset_class",
     "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
+    "requested_reporting_currency": "SGD",
+    "effective_reporting_currency": "USD",
+    "reporting_currency_state": "rejected",
     "status": "partial",
     "summary": (
         "YTD portfolio return for PF 1001 is 1.25% versus Private Banking "

@@ -37,6 +37,8 @@ class AdvisorBriefLoader(Protocol):
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> AdvisorBriefResponse: ...
 
 
@@ -54,6 +56,8 @@ async def load_advisor_brief_review_action_context(
     request: AdvisorBriefWorkflowPackRunReviewActionRequest,
     explicit_start_date: str | None,
     explicit_end_date: str | None,
+    requested_as_of_date: str | None,
+    requested_reporting_currency: str | None,
 ) -> AdvisorBriefReviewActionContext:
     brief = await advisor_brief_loader.get_performance_advisor_brief(
         portfolio_id=portfolio_id,
@@ -66,6 +70,8 @@ async def load_advisor_brief_review_action_context(
         benchmark_code=benchmark_code,
         explicit_start_date=explicit_start_date,
         explicit_end_date=explicit_end_date,
+        requested_as_of_date=requested_as_of_date,
+        requested_reporting_currency=requested_reporting_currency,
     )
     run_id = resolve_advisor_brief_workflow_pack_run_id(ai_audit=brief.ai_audit)
     if run_id is None:

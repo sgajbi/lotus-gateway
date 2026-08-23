@@ -4,7 +4,11 @@ from typing import Annotated
 from fastapi import Header, Query
 
 from app.routers.workbench_caller_context import require_workbench_caller_context
-from app.routers.workbench_performance_common import PERFORMANCE_PERIOD_DESCRIPTION
+from app.routers.workbench_performance_common import (
+    AS_OF_DATE_QUERY,
+    PERFORMANCE_PERIOD_DESCRIPTION,
+    REPORTING_CURRENCY_QUERY,
+)
 
 PERIOD_QUERY = Query(
     default="YTD",
@@ -61,6 +65,8 @@ class AdvisorBriefQuery:
     benchmark_code: str | None
     report_start_date: str | None
     report_end_date: str | None
+    as_of_date: str | None
+    reporting_currency: str | None
 
 
 def require_advisor_brief_caller_context(
@@ -91,6 +97,8 @@ def build_advisor_brief_query(
     benchmark_code: str | None = BENCHMARK_CODE_QUERY,
     report_start_date: str | None = REPORT_START_DATE_QUERY,
     report_end_date: str | None = REPORT_END_DATE_QUERY,
+    as_of_date: str | None = AS_OF_DATE_QUERY,
+    reporting_currency: str | None = REPORTING_CURRENCY_QUERY,
 ) -> AdvisorBriefQuery:
     return AdvisorBriefQuery(
         period=period,
@@ -101,6 +109,8 @@ def build_advisor_brief_query(
         benchmark_code=benchmark_code,
         report_start_date=report_start_date,
         report_end_date=report_end_date,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency.strip().upper() if reporting_currency else None,
     )
 
 
