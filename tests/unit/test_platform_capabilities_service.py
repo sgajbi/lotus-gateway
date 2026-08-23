@@ -885,13 +885,16 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
             source_timeout_seconds=0.05,
         )
 
-        started_at = time.perf_counter()
-        response = await service.get_platform_capabilities(
-            consumer_system="lotus-gateway",
-            tenant_id="default",
-            correlation_id=f"corr-timeout-budget-{attempt}",
-        )
-        elapsed_seconds = time.perf_counter() - started_at
+        try:
+            started_at = time.perf_counter()
+            response = await service.get_platform_capabilities(
+                consumer_system="lotus-gateway",
+                tenant_id="default",
+                correlation_id=f"corr-timeout-budget-{attempt}",
+            )
+            elapsed_seconds = time.perf_counter() - started_at
+        finally:
+            blocker.set()
 
         assert elapsed_seconds < 0.2
         assert response.data.partial_failure is True
