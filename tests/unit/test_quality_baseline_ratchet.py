@@ -122,6 +122,46 @@ def test_count_metric_rejects_malformed_zero_finding_output(tmp_path: Path) -> N
         evaluate_metrics(baseline, artifact_dir)
 
 
+def test_security_ratchet_does_not_trade_low_findings_for_high_findings(
+    tmp_path: Path,
+) -> None:
+    baseline = {
+        "schema_version": 1,
+        "metrics": [
+            {
+                "name": "security_low_findings",
+                "log": "security.txt",
+                "kind": "number",
+                "pattern": r"Total issues \(by severity\):.*?Low:[ \t]*(\d+)",
+                "comparison": "not_above",
+                "baseline": 3,
+                "threshold": 3,
+                "remediation": "fix low findings",
+            },
+            {
+                "name": "security_high_findings",
+                "log": "security.txt",
+                "kind": "number",
+                "pattern": r"Total issues \(by severity\):.*?High:[ \t]*(\d+)",
+                "comparison": "not_above",
+                "baseline": 0,
+                "threshold": 0,
+                "remediation": "fix high findings",
+            },
+        ],
+    }
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    (artifact_dir / "security.txt").write_text(
+        "Total issues (by severity):\n\tUndefined: 0\n\tLow: 2\n\tMedium: 0\n\tHigh: 1\n",
+        encoding="utf-8",
+    )
+
+    results = evaluate_metrics(baseline, artifact_dir)
+
+    assert [result.name for result in results if not result.passed] == ["security_high_findings"]
+
+
 def test_explicit_baseline_update_records_current_values(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

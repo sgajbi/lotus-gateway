@@ -56,14 +56,44 @@
       "remediation": "Run deptry . and fix missing, transitive-only, or unused dependency declarations."
     },
     {
-      "name": "security_findings",
+      "name": "security_undefined_findings",
       "log": "security.txt",
-      "kind": "group_sum",
-      "pattern": "Total issues \\(by severity\\):\\s+Undefined:[ \\t]*(\\d+)\\s+Low:[ \\t]*(\\d+)\\s+Medium:[ \\t]*(\\d+)\\s+High:[ \\t]*(\\d+)",
+      "kind": "number",
+      "pattern": "Total issues \\(by severity\\):.*?Undefined:[ \\t]*(\\d+)",
       "comparison": "not_above",
-      "baseline": 3,
-      "threshold": 3,
-      "remediation": "Run bandit -q -r src/app -c pyproject.toml and make security-audit; fix or explicitly review each new finding."
+      "baseline": 0,
+      "threshold": 0,
+      "remediation": "Run bandit -q -r src/app -c pyproject.toml and remove or explicitly review each new undefined-severity finding."
+    },
+    {
+      "name": "security_low_findings",
+      "log": "security.txt",
+      "kind": "number",
+      "pattern": "Total issues \\(by severity\\):.*?Low:[ \\t]*(\\d+)",
+      "comparison": "not_above",
+      "baseline": 2,
+      "threshold": 2,
+      "remediation": "Run bandit -q -r src/app -c pyproject.toml and remove or explicitly review each new low-severity finding."
+    },
+    {
+      "name": "security_medium_findings",
+      "log": "security.txt",
+      "kind": "number",
+      "pattern": "Total issues \\(by severity\\):.*?Medium:[ \\t]*(\\d+)",
+      "comparison": "not_above",
+      "baseline": 1,
+      "threshold": 1,
+      "remediation": "Run bandit -q -r src/app -c pyproject.toml and remove or explicitly review each new medium-severity finding."
+    },
+    {
+      "name": "security_high_findings",
+      "log": "security.txt",
+      "kind": "number",
+      "pattern": "Total issues \\(by severity\\):.*?High:[ \\t]*(\\d+)",
+      "comparison": "not_above",
+      "baseline": 0,
+      "threshold": 0,
+      "remediation": "Run bandit -q -r src/app -c pyproject.toml and fix every high-severity finding before merge."
     },
     {
       "name": "documentation_percent",
