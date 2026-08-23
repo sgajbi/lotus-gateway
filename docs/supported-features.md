@@ -58,7 +58,9 @@ and advisor-brief routes.
 `reporting_currency` query parameters. Gateway forwards reporting currency to
 `lotus-performance`, anchors the window to the requested as-of date when no explicit
 `report_end_date` is supplied, and publishes requested/effective date and currency context plus
-`reporting_currency_state`. A successful response is `accepted_unverified` until source-owned
+`reporting_currency_state`. The top-level `as_of_date` is always the effective report-window date;
+`requested_as_of_date` preserves a distinct caller request when supplied. A successful response is
+`accepted_unverified` until source-owned
 applied-currency evidence exists; typed currency validation is `rejected`; other missing or failed
 summary outcomes are `unavailable`. Non-success states use the portfolio base currency in the
 effective field rather than echoing the requested currency. Details classify the outcome from the

@@ -984,3 +984,23 @@ Reference branch: `origin/main`
 - Truth updates: supported-features, API-surface, repository context, and wiki source are updated.
   No migration, central context, upstream producer, or skill change is required. #572 remains open
   for the deferred capability and source-contract work.
+
+## Performance Effective As-Of Semantics (#572)
+
+- Scope: bounded Batch 2I consistency correction across the Workbench performance summary,
+  details, and attribution-trend response family.
+- Defect and change: the shared workspace response context and trend response builder echoed a
+  requested `as_of_date` at the top level even when an explicit report window ended earlier. The
+  top-level `as_of_date` now always equals the effective report-window date; the separate
+  `requested_as_of_date` field preserves the caller's request.
+- Compatibility: omitted controls and equal requested/effective dates are unchanged. Divergent
+  requested versus explicit report-end inputs intentionally change the legacy top-level date
+  meaning to the documented effective-date contract. No currency catalogue, as-of-after-last-
+  observation mapping, capability promotion, upstream contract, migration, or Workbench adoption
+  is introduced.
+- Regression proof: shared response-context, summary explicit-window, details, attribution-trend,
+  contract-example, and OpenAPI assertions pin the divergent-date behavior and all three response
+  families.
+- Truth updates: supported-features documentation, API-surface wiki, repository context, and this
+  ledger record the effective top-level date semantics. No central platform context or skill
+  change was needed.
