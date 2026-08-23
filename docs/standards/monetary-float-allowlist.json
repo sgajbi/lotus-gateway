@@ -10,48 +10,6 @@
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/contracts/foundation.py:105:cash_weight_pct: float = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:124:market_value_base: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:129:weight_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:150:market_value_base: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:155:weight_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:167:return_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/foundation.py:97:market_value_base: float = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
       "finding": "src/app/contracts/performance_attribution_trend.py:52:active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
@@ -686,42 +644,6 @@
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-15"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:102:return float(quantize_money(value))",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:142:market_value_base = float(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:148:cash_weight_pct = float(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:304:bucket.weight_pct = float(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:79:def extract_market_value(self, item: dict[str, Any]) -> float | None:",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
-    },
-    {
-      "finding": "src/app/services/foundation_core_snapshot.py:87:return float(quantize_money(value))",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-12-14"
     },
     {
       "finding": "src/app/services/portfolio_holdings_payloads.py:191:market_value_base=float(",

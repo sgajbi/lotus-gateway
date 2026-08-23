@@ -22,16 +22,13 @@ state roadmap.
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
-  316 script-counted lines after moving Foundation workspace source loading into
-  `src/app/services/foundation_workspace_sources.py`, with
+  316 script-counted lines, with
   `src/app/services/platform_capabilities_workspace_descriptors.py` now the evidence-selected
   source-file ceiling blocker, and
   the repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 
-- `foundation`
-  first-paint workspace entry and selector-ready catalog
 - `platform`
   aggregated capability posture for shell bootstrap and gating
 - `proposals`
@@ -98,7 +95,7 @@ state roadmap.
     lives in `src/app/services/performance_workspace_detail_capabilities.py`, and shared module
     capability construction lives in `src/app/services/performance_workspace_module_capability.py`.
 14. portfolio workspace source/analytics assembly, response-component assembly, and position
-    parsing, foundation workspace assembly and response composition, performance workspace
+    parsing, performance workspace
     summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,
     risk drawdown/rolling/attribution orchestration and attribution supportability, risk
     attribution route queries, shell workspace descriptor specs and descriptor state, DPM PM

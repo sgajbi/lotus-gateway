@@ -1,5 +1,9 @@
 # RFC-0015: Foundation Workspace Experience Contract
 
+> Status: Retired route contract. The pre-live `/api/v1/foundation/*` family was removed in Batch
+> 2N after Workbench migrated its validator to the canonical `/api/v1/portfolio/*` workspace route.
+> This RFC remains as implementation history and is not an active Gateway contract.
+
 - Status: IMPLEMENTED
 - Date: 2026-03-26
 - Owners: lotus-gateway

@@ -58,11 +58,6 @@ construction now lives in `src/app/services/performance_workspace_module_capabil
 `src/app/services/performance_workspace_capabilities.py` below the current 334-line ceiling while
 preserving the public performance workspace capability facade.
 
-Foundation core snapshot payload validation and section extraction now live in
-`src/app/services/foundation_core_snapshot_sections.py`, reducing
-`src/app/services/foundation_core_snapshot.py` below the current 331-line ceiling while preserving
-the public Foundation mapper behavior.
-
 Domain-product graph node, edge, data, and response contracts now live in
 `src/app/contracts/domain_product_graph.py`, reducing `src/app/contracts/domain_products.py` below
 the current 330-line ceiling while preserving the public `domain_products` facade.
@@ -75,11 +70,6 @@ Advise proposal narrative route calls now live in
 `src/app/clients/advise_proposal_narrative_client.py`, reducing
 `src/app/clients/advise_proposal_client.py` below the current 329-line ceiling while preserving the
 public `AdviseClient` facade.
-
-Foundation upstream protocol families now live in
-`src/app/services/foundation_client_protocols.py`, reducing
-`src/app/services/workspace_client_protocols.py` below the previous 328-line ceiling while preserving
-the `workspace_client_protocols` compatibility facade.
 
 Risk concentration block extraction and supportability narration now live in
 `src/app/services/risk_workspace_concentration_supportability.py`, reducing
@@ -109,19 +99,10 @@ Portfolio workspace section contracts now live in
 `src/app/contracts/portfolio_workspace.py` below the current 316-line ceiling while preserving the
 public `portfolio_workspace` facade and OpenAPI schema names.
 
-Foundation workspace source loading now lives in
-`src/app/services/foundation_workspace_sources.py`, reducing
-`src/app/services/foundation_service.py` below the current 316-line ceiling while preserving
-Foundation workspace response behavior and upstream source-failure handling.
-
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
 executable 316/49 ratchet, the current evidence-selected
 `src/app/services/platform_capabilities_workspace_descriptors.py` hotspot, and durable
 scorecard/context guidance synchronized.
-
-`src/app/services/foundation_core_snapshot.py` is reduced below the previous 357-line ceiling after
-Foundation core market-value parsing moved into
-`src/app/services/foundation_core_market_value.py` while preserving the public mapper method.
 
 `src/app/contracts/dpm_outcome_review.py` is reduced below the 357-line ceiling after DPM
 exception-summary request and response contracts moved into
@@ -376,12 +357,7 @@ hotspot.
 The current analytics risk-client boundary slice moves risk calculate, concentration, drawdown,
 rolling metrics, and historical-attribution forwarding into `lotus_analytics_risk_client.py`
 behind the public `LotusAnalyticsClient` surface. The blocking threshold is ratcheted to 618
-script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
-hotspot.
-The current Foundation catalog-payload boundary slice moves portfolio catalog item parsing into
-`foundation_catalog_payloads.py` while preserving the `FoundationService` API surface. The
-blocking threshold is ratcheted to 610 script-counted lines, with
-`src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
+script-counted lines; the executable quality evidence gate records the current hotspot.
 The current Lotus Core lookup-client boundary slice moves portfolio, instrument, and currency
 lookup forwarding into `lotus_core_lookup_client.py` while preserving the public
 `LotusCoreQueryClient` surface. The blocking threshold is ratcheted to 606 script-counted lines,
@@ -394,14 +370,7 @@ The current DPM portfolio-memory contract-family boundary slice moves
 `DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
 `src/app/contracts/dpm_portfolio_memory.py` while preserving the public
 `dpm_command_center` compatibility facade. The blocking threshold is ratcheted from 595 to 591
-script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
-hotspot.
-The current Foundation optional-workspace boundary slice moves optional performance, rebalance,
-reporting, evidence-summary, and workflow-cue parsing into
-`src/app/services/foundation_workspace_optional.py`. `FoundationService` is reduced from 591 to
-316 script-counted lines and stays focused on source loading and response orchestration. The
-blocking threshold is ratcheted from 591 to 589 script-counted lines, with
-`src/app/services/portfolio_service.py` as the largest residual hotspot.
+script-counted lines; the executable quality evidence gate records the current hotspot.
 The current portfolio holdings-orchestration boundary slice moves portfolio book, liquidity,
 projected cashflow, allocation, and position-book orchestration into
 `src/app/services/portfolio_holdings_service.py`. `PortfolioService` is reduced from 589 to 314

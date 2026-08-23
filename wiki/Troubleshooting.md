@@ -38,6 +38,6 @@ make demo-certification
 
 ## References
 
-- [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
+- [docs/architecture.md](../docs/architecture.md)
 - [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
 - [docs/demo/README.md](../docs/demo/README.md)

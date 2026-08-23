@@ -116,15 +116,14 @@ Existing tests that cover this posture include:
 3. `tests/unit/test_workbench_service_additional.py`
 4. `tests/unit/test_performance_workspace_service.py`
 5. `tests/unit/test_risk_workspace_service.py`
-6. `tests/unit/test_foundation_service.py`
-7. `tests/unit/test_portfolio_service.py`
-8. `tests/contract/test_platform_capabilities_contract.py`
-9. `tests/contract/test_lookup_contract.py`
+6. `tests/unit/test_portfolio_service.py`
+7. `tests/contract/test_platform_capabilities_contract.py`
+8. `tests/contract/test_lookup_contract.py`
+9. `tests/contract/test_portfolio_contract.py`
 10. `tests/integration/test_workbench_router.py`
 11. `tests/integration/test_portfolio_router.py`
-12. `tests/integration/test_foundation_router.py`
-13. `tests/integration/test_platform_capabilities_router.py`
-14. `tests/e2e/test_workflow_journeys.py`
+12. `tests/integration/test_platform_capabilities_router.py`
+13. `tests/e2e/test_workflow_journeys.py`
 
 This RFC-0082 documentation slice reflects current runtime behavior:
 

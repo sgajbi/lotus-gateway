@@ -2,12 +2,11 @@
 
 `lotus-gateway` currently supports the following product-facing route families.
 
-## Platform And Foundation
+## Platform
 
 1. health, liveness, readiness, metrics, and docs,
-2. foundation workspace composition,
-3. platform capability aggregation,
-4. source-product execution acknowledgement.
+2. platform capability aggregation,
+3. source-product execution acknowledgement.
 
 ## Workbench
 

@@ -12,7 +12,7 @@ branch merges.
 | --- | --- | --- |
 | Durable truth | Keep implementation-backed truth in docs; avoid speculative claims. | `docs/architecture.md` |
 | Standards | Link platform standards instead of copying long cross-repo policy. | `docs/standards/` |
-| Operations | Keep runbooks aligned with Make targets and CI lanes. | `docs/operations-runbook.md` |
+| Operations | Keep runbooks and release notes aligned with Make targets, CI lanes, and supported runtime behavior. | `docs/operations-runbook.md` and `docs/operations/` |
 | Wiki source | Reader-facing wiki truth is authored under `wiki/`, not hand-edited in the wiki remote. | `AGENTS.md` |
 
 ## Validation
