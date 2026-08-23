@@ -103,6 +103,101 @@ def test_marks_source_copy_mismatch_as_partial_and_preserves_primary_source() ->
     )
 
 
+def test_rejects_decision_and_workflow_gate_status_contradiction() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    decision = current_version["proposal_result"]["proposal_decision_summary"]
+    assert isinstance(decision, dict)
+    decision.update(
+        {
+            "decision_status": "READY_FOR_CLIENT_REVIEW",
+            "top_level_status": "READY",
+            "recommended_next_action": "DISCUSS_WITH_CLIENT",
+        }
+    )
+    artifact = current_version["artifact"]
+    assert isinstance(artifact, dict)
+    artifact_decision = artifact["proposal_decision_summary"]
+    assert isinstance(artifact_decision, dict)
+    artifact_decision.update(
+        {
+            "decision_status": "READY_FOR_CLIENT_REVIEW",
+            "top_level_status": "READY",
+            "recommended_next_action": "DISCUSS_WITH_CLIENT",
+        }
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        project_proposal_risk_impact(payload, expected_proposal_id="pp_risk_001")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == ("ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID")
+
+
+def test_withholds_executable_gate_when_decision_evidence_is_degraded() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    artifact = current_version["artifact"]
+    assert isinstance(artifact, dict)
+    artifact_decision = artifact["proposal_decision_summary"]
+    assert isinstance(artifact_decision, dict)
+    artifact_decision["primary_summary"] = "Stale artifact decision summary."
+
+    gate = {
+        "gate": "EXECUTION_READY",
+        "recommended_next_step": "EXECUTE",
+        "reasons": [],
+    }
+    current_version["gate_decision"] = deepcopy(gate)
+    current_version["proposal_result"]["gate_decision"] = deepcopy(gate)
+    current_version["artifact"]["gate_decision"] = deepcopy(gate)
+    payload["last_gate_decision"] = deepcopy(gate)
+
+    result = project_proposal_risk_impact(payload, expected_proposal_id="pp_risk_001")
+
+    assert result.decision.state == "partial"
+    assert result.workflow_gate.state == "partial"
+    assert result.workflow_gate.reason_code == "workflow_gate_decision_evidence_blocked"
+
+
+def test_withholds_executable_gate_when_decision_retains_blocking_approval() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    for container in (
+        current_version["proposal_result"],
+        current_version["artifact"],
+    ):
+        assert isinstance(container, dict)
+        decision = container["proposal_decision_summary"]
+        assert isinstance(decision, dict)
+        decision.update(
+            {
+                "decision_status": "READY_FOR_CLIENT_REVIEW",
+                "top_level_status": "READY",
+                "recommended_next_action": "DISCUSS_WITH_CLIENT",
+            }
+        )
+
+    gate = {
+        "gate": "EXECUTION_READY",
+        "recommended_next_step": "EXECUTE",
+        "reasons": [],
+    }
+    current_version["gate_decision"] = deepcopy(gate)
+    current_version["proposal_result"]["gate_decision"] = deepcopy(gate)
+    current_version["artifact"]["gate_decision"] = deepcopy(gate)
+    payload["last_gate_decision"] = deepcopy(gate)
+
+    result = project_proposal_risk_impact(payload, expected_proposal_id="pp_risk_001")
+
+    assert result.decision.state == "ready"
+    assert result.workflow_gate.state == "partial"
+    assert result.workflow_gate.reason_code == "workflow_gate_decision_evidence_blocked"
+
+
 def test_reports_artifact_path_when_decision_evidence_uses_fallback_copy() -> None:
     payload = build_proposal_risk_impact_source_payload()
     current_version = payload["current_version"]

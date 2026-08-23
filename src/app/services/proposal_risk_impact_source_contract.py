@@ -1,7 +1,7 @@
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
 from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactAllocationDimension,
@@ -12,6 +12,10 @@ from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactMaterialChangeFamily,
     ProposalRiskImpactNextAction,
     ProposalRiskImpactWorkflowState,
+)
+from app.contracts.proposal_risk_impact_coherence import (
+    require_proposal_decision_coherence,
+    require_proposal_workflow_gate_coherence,
 )
 
 
@@ -107,6 +111,16 @@ class SourceProposalRiskImpactDecisionSummary(BaseModel):
     risk_posture: SourceProposalRiskImpactRiskPosture | None = None
     evidence_refs: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def validate_coherence(self) -> Self:
+        require_proposal_decision_coherence(
+            decision_status=self.decision_status,
+            top_level_status=self.top_level_status,
+            recommended_next_action=self.recommended_next_action,
+            missing_evidence=self.missing_evidence,
+        )
+        return self
+
 
 class SourceProposalRiskImpactGateReason(BaseModel):
     reason_code: str
@@ -118,6 +132,15 @@ class SourceProposalRiskImpactGateDecision(BaseModel):
     gate: ProposalRiskImpactGate
     recommended_next_step: ProposalRiskImpactGateNextStep
     reasons: list[SourceProposalRiskImpactGateReason] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_coherence(self) -> Self:
+        require_proposal_workflow_gate_coherence(
+            gate=self.gate,
+            recommended_next_step=self.recommended_next_step,
+            reason_count=len(self.reasons),
+        )
+        return self
 
 
 class SourceProposalRiskImpactResult(BaseModel):
