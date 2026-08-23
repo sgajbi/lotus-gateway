@@ -53,7 +53,10 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     )
     effective_reporting_currency: str = Field(
         default="",
-        description="Reporting currency forwarded to lotus-performance.",
+        description=(
+            "Reporting currency applied by lotus-performance; when the source rejects the "
+            "request, this is the portfolio base currency used for the fallback response."
+        ),
         examples=["SGD"],
     )
     period: str = Field(

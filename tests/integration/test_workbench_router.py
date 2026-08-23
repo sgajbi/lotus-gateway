@@ -2117,6 +2117,10 @@ def test_workbench_performance_evidence_openapi_contract():
     assert summary_schema["properties"]["effective_as_of_date"]["description"]
     assert summary_schema["properties"]["requested_reporting_currency"]["description"]
     assert summary_schema["properties"]["effective_reporting_currency"]["description"]
+    assert (
+        "portfolio base currency"
+        in summary_schema["properties"]["effective_reporting_currency"]["description"]
+    )
     assert summary_parameters["as_of_date"]["description"]
     assert summary_parameters["as_of_date"]["schema"]["examples"] == ["2026-04-10"]
     assert summary_parameters["reporting_currency"]["description"]
