@@ -1024,3 +1024,25 @@ Reference branch: `origin/main`
 - Truth updates: supported-features documentation, API-surface wiki, repository context, and this
   ledger record document the compatibility lifecycle. No central platform context, upstream
   producer, migration, or skill change was needed.
+
+## Starlette TestClient Dependency Gate (#563)
+
+- Scope: bounded test/CI dependency correction; no application runtime or public API change.
+- Evidence: current Starlette TestClient prefers the `httpx2` module and warns when it falls back
+  to `httpx`. Starlette release notes document the HTTPX2 support path. HTTPX2 is published as a
+  stable BSD-3-Clause package, and versions before 2.12.0 have a published decompression
+  amplification advisory; the supported floor is therefore `httpx2>=2.12.0,<3.0.0`.
+- Source evidence: [Starlette TestClient source](https://github.com/Kludex/starlette/blob/main/starlette/testclient.py),
+  [Starlette release notes](https://github.com/Kludex/starlette/blob/main/docs/release-notes.md),
+  [HTTPX2 package metadata](https://pypi.org/project/httpx2/), and the
+  [HTTPX2 security advisory](https://github.com/pydantic/httpx2/security/advisories/GHSA-8xx6-hgc6-gc2m).
+- Change: add HTTPX2 only to the `dev` extra and add `make lint`'s hard
+  `check_testclient_dependency.py` gate. The gate verifies the secure minimum and turns any
+  TestClient import warning into a failure. Production `requirements-audit.txt` remains unchanged
+  by explicit design because the production image does not import TestClient.
+- Regression proof: dependency-policy tests assert the dev/prod boundary; the repository gate is
+  executable in local, PR, feature, and main quality lanes and fails with a direct remediation
+  message.
+- Truth updates: repository context, operations runbook, wiki runbook, and this ledger record the
+  supported test-client posture. No application contract, migration, or upstream domain contract
+  changed.

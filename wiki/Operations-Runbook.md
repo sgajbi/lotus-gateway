@@ -16,6 +16,12 @@ This page summarizes everyday operational checks. Use
   [docs/security.md](../docs/security.md) as the consolidated root-doc entry points for
   operators and enterprise-readiness reviews
 
+The development and Docker test extras include `httpx2>=2.12.0,<3.0.0` because the supported
+Starlette TestClient path uses HTTPX2. `make lint` runs
+`scripts/check_testclient_dependency.py`, which fails on a missing or below-floor HTTPX2 version
+or when importing TestClient emits Starlette's deprecated `httpx` fallback warning. The
+production-only `requirements-audit.txt` intentionally excludes this test-only dependency.
+
 ## Health and readiness surfaces
 
 - `/health`
