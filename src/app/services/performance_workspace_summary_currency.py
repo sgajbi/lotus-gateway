@@ -23,13 +23,13 @@ def classify_reporting_currency_outcome(
 
 
 def is_reporting_currency_rejection(result: GatheredResult | None) -> bool:
-    """Return whether an upstream result carries typed currency validation failure."""
+    """Return whether an upstream result carries a recognized currency rejection."""
     if isinstance(result, BaseException) or not isinstance(result, tuple):
         return False
     status_code, payload = result
     if status_code < 400 or status_code >= 500 or not isinstance(payload, dict):
         return False
-    return _has_currency_validation_location(payload)
+    return _has_currency_validation_location(payload) or _has_currency_request_message(payload)
 
 
 def _workspace_summary_succeeded(
@@ -117,3 +117,10 @@ def _has_currency_validation_location(payload: dict[str, Any]) -> bool:
         and any(str(part) in currency_fields for part in location)
         for item in validation_errors
     )
+
+
+def _has_currency_request_message(payload: dict[str, Any]) -> bool:
+    if payload.get("error_code") != "INVALID_REQUEST":
+        return False
+    message = " ".join(str(payload.get(field, "")).lower() for field in ("detail", "message"))
+    return "fx.rates" in message or "currency_mode" in message

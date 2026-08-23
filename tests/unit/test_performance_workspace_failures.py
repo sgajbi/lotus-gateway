@@ -16,12 +16,19 @@ def test_build_performance_failure_maps_workbench_partial_failure() -> None:
     assert failure.detail == "Performance analytics unavailable"
 
 
-def test_classify_detail_failure_codes_preserves_typed_currency_rejection() -> None:
+def test_classify_detail_failure_codes_preserves_canonical_currency_rejection() -> None:
     warning_code, error_code = classify_detail_failure_codes(
         status_code=422,
         payload={
-            "error_code": "VALIDATION_ERROR",
-            "validation_errors": [{"loc": ["body", "fx", "rates"]}],
+            "detail": (
+                "Stateful contribution input requires fx.rates when currency_mode=BOTH "
+                "and sourced positions include currencies different from report_ccy."
+            ),
+            "error_code": "INVALID_REQUEST",
+            "message": (
+                "Stateful contribution input requires fx.rates when currency_mode=BOTH "
+                "and sourced positions include currencies different from report_ccy."
+            ),
         },
         unavailable_warning_code="CONTRIBUTION_UNAVAILABLE",
     )
