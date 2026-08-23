@@ -124,6 +124,25 @@ Reference branch: `origin/main`
 - Documentation decision: repository context, CI quality gates, operations guidance, authored wiki,
   and the event-matrix runbook change because CI trigger semantics and operator expectations changed.
 
+### CI-local Compose isolation slice — #521
+
+- Objective: prevent repository-native CI-local cleanup from stopping a Gateway container owned by
+  the active product Compose runtime.
+- Finding: product and CI-local Compose files inherited the same directory project identity, so
+  `down -v --remove-orphans` could classify the product service as an orphan and remove it.
+- Change: `make ci-local-docker` and `make ci-local-docker-down` now use the explicit
+  `lotus-gateway-ci-local` project identity. Product Compose remains on its default identity;
+  CI-local cleanup is scoped to CI-owned resources.
+- Compatibility: no application/API/schema/migration or runtime service behavior changes. The
+  operational compatibility improvement is that shared Gateway runtime containers remain outside
+  CI-local cleanup scope while CI-local volumes, networks, and containers remain removable.
+- Regression proof: the Docker Compose Makefile contract test pins the same explicit project name
+  on startup and cleanup and rejects the unscoped cleanup command. The PR/main Docker parity lane
+  remains the runtime validation path; operator guidance requires verifying the shared Gateway
+  health after cleanup.
+- Documentation decision: operations runbook, authored wiki, and this ledger change because the
+  Compose ownership and cleanup safety contract changed.
+
 ## Attribution Level Aggregate Source Authority
 
 - Scope: GitHub issue #506, the performance attribution level mapper and its Workbench-facing
