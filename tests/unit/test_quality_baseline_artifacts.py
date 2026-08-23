@@ -38,6 +38,10 @@ def test_validate_quality_baseline_artifacts_accepts_complete_evidence(tmp_path:
     assert findings == []
 
 
+def test_quality_tool_logs_are_expected_baseline_artifacts() -> None:
+    assert set(QUALITY_TOOL_LOGS) <= set(EXPECTED_BASELINE_LOGS)
+
+
 def test_validate_quality_baseline_artifacts_reports_missing_log(tmp_path: Path) -> None:
     artifact_dir, openapi_path = _write_complete_artifacts(tmp_path)
     missing_log = artifact_dir / EXPECTED_BASELINE_LOGS[0]
