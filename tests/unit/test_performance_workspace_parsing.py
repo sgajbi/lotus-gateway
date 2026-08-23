@@ -61,6 +61,7 @@ def test_quantize_optional_returns_none_for_invalid_values():
     assert quantize_optional("1.23456789") == 1.234568
     assert quantize_optional(None) is None
     assert quantize_optional("not-a-number") is None
+    assert quantize_optional(1e100) is None
 
 
 def test_weight_to_pct_normalizes_ratio_inputs():
