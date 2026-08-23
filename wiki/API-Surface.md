@@ -123,7 +123,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   trusted caller headers. Gateway resolves active own-book membership, performs one Core AUM scope
   read, preserves source-reported value facts and coverage, and returns a null aggregate when any
   entitled portfolio is not covered. It does not calculate valuation or claim performance, risk,
-  cash, attention, mandate, suitability, or recommendation truth.
+  cash, attention, mandate, suitability, or recommendation truth. Core's current AUM contract does
+  not expose per-portfolio snapshot freshness, so the response does not certify every value fact
+  as current on the requested date.
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as

@@ -172,8 +172,10 @@ Authority and boundary:
    or execution coverage,
 6. the value-summary route reads Core-owned AUM facts for the trusted active cohort only, requires
    explicit `asOfDate` and `reportingCurrency`, preserves per-portfolio coverage, and publishes
-   the Core aggregate only when every entitled portfolio is covered; Gateway does not value
-   holdings, sum partial rows, or substitute zero.
+   the Core aggregate only when every entitled portfolio is covered. Core's current AUM contract
+   does not expose per-portfolio snapshot freshness, so this route does not certify every value
+   fact as current on the requested date; Gateway does not value holdings, sum partial rows, or
+   substitute zero.
 
 ## Proposal Risk And Impact Evidence
 

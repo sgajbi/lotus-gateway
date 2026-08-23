@@ -87,7 +87,8 @@ Current repository posture:
    manager only from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`,
    preserves assignment basis and provenance, and rejects cross-scope evidence. The summary makes
    an explicit as-of date and reporting currency mandatory, reads Core's source-owned AUM contract
-   once for the trusted cohort, and never computes valuation or publishes a partial aggregate.
+   once for the trusted cohort, never computes valuation or publishes a partial aggregate, and does
+   not certify per-portfolio freshness because Core's current AUM response does not expose it.
    Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
    household, performance, risk, attention, suitability, communication, or execution truth. Its
    repo-native RFC-0084 consumer declaration records the direct membership dependency, required
