@@ -19,8 +19,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  report-only:
-    name: Quality Baseline / Report Only
+  quality-baseline:
+    name: Quality Baseline / Ratcheted Trend Gate
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -127,7 +127,15 @@ jobs:
           mkdir -p output/quality-baseline output/demo-certification
           make demo-certification 2>&1 | tee output/quality-baseline/demo-certification.txt
 
+      - name: Evaluate Quality Ratchet
+        if: always()
+        run: |
+          set -o pipefail
+          python scripts/check_quality_baseline_ratchet.py \
+            2>&1 | tee output/quality-baseline/quality-ratchet.txt
+
       - name: Validate Quality Baseline Artifact Set
+        if: always()
         run: python scripts/check_quality_baseline_artifacts.py
 
       - name: Upload Quality Baseline Logs

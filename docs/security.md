@@ -14,7 +14,7 @@ operator surfaces.
 
 ## Security Baseline Additions
 
-This slice adds report-only baseline tooling for:
+This slice adds baseline tooling with no-new-regression ratcheting for:
 
 1. `bandit`,
 2. `deptry`,
@@ -37,7 +37,8 @@ This slice adds report-only baseline tooling for:
 
 ## Future Blocking Gates
 
-1. No new high-severity Bandit findings.
+1. No new Bandit findings beyond the checked-in quality ratchet; high-severity findings remain
+   release-blocking security defects.
 2. No new dependency vulnerabilities outside governed exceptions.
 3. No new route that logs or returns sensitive raw downstream payloads.
 4. Dedicated regression tests for auth, diagnostics, data masking, and problem-details errors.

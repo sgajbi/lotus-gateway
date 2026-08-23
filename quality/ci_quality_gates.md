@@ -46,9 +46,25 @@ demo-certification evidence, and `output/demo-certification/`. It also retains
 `main-container-release-evidence`, including SBOM, vulnerability scan, image release manifest,
 signature output, and provenance attestation for the digest-pinned promoted image.
 
-## Report-Only Gates
+## Ratcheted Trend Gates
 
-Report-only quality checks should remain advisory until findings are classified:
+The broader quality tools retain their current known findings, but the Quality Baseline workflow
+now fails when any measured metric regresses beyond the checked-in ratchet in
+`quality/quality_ratchet.json`:
+
+1. coverage must remain at or above 94.77%,
+2. architecture import-contract failures must not exceed 11,
+3. Xenon complexity blocks must not exceed 2,
+4. Vulture findings must not exceed 24,
+5. Deptry findings must not exceed 48,
+6. security findings must not exceed 3,
+7. Interrogate documentation coverage must not fall below 1.6%, and
+8. Spectral OpenAPI problems must not exceed 4.
+
+`scripts/check_quality_baseline_ratchet.py` publishes current value, baseline, delta, threshold,
+and remediation command for every metric. A baseline update requires an explicit reviewed change;
+CI never updates the baseline automatically. The following tools remain advisory in absolute terms
+until individual findings are remediated and promoted to clean thresholds:
 
 1. complexity and maintainability,
 2. high-confidence dead-code candidates,
@@ -61,15 +77,17 @@ Report-only quality checks should remain advisory until findings are classified:
    behavior and a remediation/exception policy is approved.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
-workflow-governance, and agent quality evidence thresholds before running report-only tools. It
-also enforces evidence capture itself: the expected quality-baseline log files,
-workflow-governance proof, agent-quality-evidence proof, and generated OpenAPI artifact must exist
-before upload. Tool findings remain report-only; missing or unusable evidence is treated as a CI
-measurement defect.
+workflow-governance, and agent quality evidence thresholds, plus the no-new-regression ratchet,
+before artifact upload. It also enforces evidence capture itself: the expected quality-baseline log files,
+workflow-governance proof, agent-quality-evidence proof, generated OpenAPI artifact, and ratchet
+evidence must exist before upload. Missing or unusable evidence is treated as a CI measurement
+defect.
 
 The Gateway demo certification command is now repo-native through `make demo-certification`. It
 writes `output/demo-certification/gateway-demo-certification.json` and is run in Quality Baseline
-with `continue-on-error: true`, capturing `output/quality-baseline/demo-certification.txt`.
+with `continue-on-error: true`, capturing `output/quality-baseline/demo-certification.txt`; its
+pass/fail result is not yet part of the ratchet because deterministic demo stability and exception
+policy remain under review.
 Promotion to a blocking Feature Lane or PR Merge Gate step is explicitly deferred until
 `lotus-ci-enforcement-governance` intake proves stability, false-positive behavior, lane placement,
 and exception policy.
@@ -77,7 +95,8 @@ and exception policy.
 ## Progressive Enforcement Plan
 
 1. Baseline/report-only: publish evidence without failing existing delivery lanes.
-2. No-new-regression: fail only new violations above the accepted baseline.
+2. No-new-regression: fail only new violations above the accepted baseline. This is now enforced
+   by the quality-baseline ratchet.
 3. Threshold enforcement: apply agreed limits for file size, function length, complexity,
    OpenAPI completeness, import boundaries, and high-confidence security findings.
 4. Enterprise-readiness: require architecture, API, tests, security, observability, operations,
