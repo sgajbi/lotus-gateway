@@ -630,6 +630,9 @@ Authority and contract boundary:
    `EXPLANATION_ONLY` output-use label for the requested DPM family,
 5. malformed or cross-boundary source output fails closed with product-safe
    `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` detail and no raw upstream payload leakage.
+6. provider provenance is validated against the closed `disabled|stub|openai|local_openai_compatible`
+   vocabulary: deterministic modes require `stubbed=true`, live modes require `stubbed=false`,
+   and missing, unknown, or contradictory mode/stub pairs fail closed at the Gateway boundary.
 
 Production-readiness controls:
 
@@ -643,7 +646,9 @@ Production-readiness controls:
    or Workbench to invent a fallback result,
 5. shared fixtures and contract tests pin the complete canonical envelope, live and stub provider
    posture, review-required and historical/superseded runs, safe projection, and malformed-source
-   rejection.
+   rejection. Completed Advisor Brief narratives use the same posture policy and downgrade
+   unverifiable completion to source-backed partial output without returning the unverified AI
+   payload.
 
 ## DPM Manage Request Authority
 

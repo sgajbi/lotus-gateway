@@ -916,3 +916,23 @@ Reference branch: `origin/main`
 - Follow-up: next measured modularity slice should inspect
   `src/app/services/advisor_brief_service.py` or
   `src/app/services/risk_workspace_attribution_controls.py` before changing code.
+
+## Provider Provenance Boundary Enforcement (#528, #529)
+
+- Scope: bounded provider-mode and deterministic/live stub-posture enforcement for the DPM typed
+  execution boundary and completed Advisor Brief narratives.
+- Source authority: `lotus-ai` owns provider and execution truth; Gateway owns the product-safe
+  projection and Advisor Brief degradation decision, without inventing provider state.
+- Change: added one shared closed provider-posture policy; DPM audit/run models now enforce the
+  vocabulary and semantic mode/stub pairing, while Advisor Brief validates raw provenance before
+  publishing completed structured output and discards invalid AI evidence on downgrade.
+- Compatibility: valid `disabled|stub` deterministic and `openai|local_openai_compatible` live
+  payloads remain unchanged; DPM invalid source payloads retain the existing
+  `AI_WORKFLOW_EXECUTION_CONTRACT_INVALID` 502 contract, and Advisor Brief retains source-backed
+  metrics with `PARTIAL` status and a stable warning for invalid completed provenance.
+- Tests: table-driven policy, DPM missing/unknown/contradictory posture rejection, Advisor Brief
+  narrative/service safe downgrade, and OpenAPI enum tests; focused validation passed with 100
+  tests.
+- Truth updates: repository context, supported-features documentation, API-surface guidance, and
+  wiki source updated. No migration, upstream contract, route, or central skill change was needed;
+  no additional issue was created because the agreed #528/#529 scope covers the discovered pattern.
