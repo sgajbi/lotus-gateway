@@ -116,7 +116,7 @@ def _summary_views() -> WorkspaceSummaryViews:
             {
                 "calculation_id": "calc-workspace-summary",
                 "results_by_period": {
-                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                    "YTD": {"portfolio_twr": {"net": {"summary": {"period_return": {"base": 1.0}}}}}
                 },
             },
         ),
@@ -150,7 +150,9 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
                 200,
                 {
                     "results_by_period": {
-                        "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                        "YTD": {
+                            "portfolio_twr": {"net": {"summary": {"period_return": {"base": 1.0}}}}
+                        }
                     }
                 },
             ),
@@ -159,6 +161,23 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
         ),
         (
             (200, {"results_by_period": {"YTD": []}}),
+            "USD",
+            "unavailable",
+        ),
+        (
+            (200, {"results_by_period": {"YTD": {"error": "invalid summary"}}}),
+            "USD",
+            "unavailable",
+        ),
+        (
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "YTD": {"portfolio_twr": {"net": {"summary": {"period_return": {}}}}}
+                    }
+                },
+            ),
             "USD",
             "unavailable",
         ),
