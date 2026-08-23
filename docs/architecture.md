@@ -35,7 +35,8 @@ workflow truth, management workflow truth, reporting truth, archive truth, or AI
 
 Gateway integrates with:
 
-1. `lotus-core` for portfolio, booking, lookup, ingestion, and supportability inputs,
+1. `lotus-core` for portfolio, booking, lookup, ingestion, supportability, and source-owned AUM
+   reporting inputs,
 2. `lotus-performance` for performance analytics and evidence,
 3. `lotus-risk` for risk workspace analytics,
 4. `lotus-advise` for proposals, advisory policy, advisor cockpit, and bank-demo proof,

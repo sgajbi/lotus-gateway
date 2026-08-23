@@ -93,7 +93,11 @@ authority remains with the named downstream execution provider as the execution 
 1. gateway contracts are product-facing and may differ intentionally from upstream parameter shapes
 2. RFC-0082 governs how upstream dependency families are classified
 3. supportability, readiness, and partial-failure metadata should survive composition
-4. performance `evidence_view` payloads expose UI-safe product context for as-of date, period, the
+4. advisor-book value summary uses Core's source-owned
+   `POST /reporting/assets-under-management/query` as one explicit-date, explicit-currency,
+   multi-portfolio operational read. Gateway preserves source value facts and coverage and does
+   not reconstruct AUM or publish a partial aggregate.
+5. performance `evidence_view` payloads expose UI-safe product context for as-of date, period, the
    inclusive Gateway-resolved report start and end dates, basis, benchmark, source services,
    freshness, methodology, calculation versions, source calculation supportability, coverage,
    fallbacks, and limitations; `lotus-performance` remains the calculation, lineage, and
