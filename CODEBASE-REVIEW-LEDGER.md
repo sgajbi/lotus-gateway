@@ -130,16 +130,18 @@ Reference branch: `origin/main`
   the active product Compose runtime.
 - Finding: product and CI-local Compose files inherited the same directory project identity, so
   `down -v --remove-orphans` could classify the product service as an orphan and remove it.
-- Change: `make ci-local-docker` and `make ci-local-docker-down` now use the explicit
-  `lotus-gateway-ci-local` project identity. Product Compose remains on its default identity;
-  CI-local cleanup is scoped to CI-owned resources.
+- Change: `make ci-local-docker` and `make ci-local-docker-down` now use the same stable,
+  checkout-specific project identity derived by `scripts/ci_local_compose_project.py`.
+  `CI_LOCAL_COMPOSE_PROJECT` supports a caller-supplied unique override. Product Compose remains on
+  its default identity; CI-local cleanup is scoped to CI-owned resources without cross-checkout
+  collisions.
 - Compatibility: no application/API/schema/migration or runtime service behavior changes. The
   operational compatibility improvement is that shared Gateway runtime containers remain outside
   CI-local cleanup scope while CI-local volumes, networks, and containers remain removable.
-- Regression proof: the Docker Compose Makefile contract test pins the same explicit project name
-  on startup and cleanup and rejects the unscoped cleanup command. The PR/main Docker parity lane
-  remains the runtime validation path; operator guidance requires verifying the shared Gateway
-  health after cleanup.
+- Regression proof: the Docker Compose Makefile contract tests pin symmetric project-name use,
+  stable same-checkout naming, distinct checkout naming, and rejection of the unscoped cleanup
+  command. The PR/main Docker parity lane remains the runtime validation path; operator guidance
+  requires verifying the shared Gateway health after cleanup.
 - Documentation decision: operations runbook, authored wiki, and this ledger change because the
   Compose ownership and cleanup safety contract changed.
 

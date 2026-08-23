@@ -37,8 +37,9 @@ checks and the current measured quality baseline; it is not a replacement for Gi
 - `make ci-local-docker`
   Docker parity for the integration boundary
 - `make ci-local-docker-down`
-  cleanup scoped to the explicit `lotus-gateway-ci-local` Compose project; it must not remove an
-  active product Gateway container from the default product Compose project
+  cleanup scoped to the stable checkout-specific Compose project derived by
+  `scripts/ci_local_compose_project.py`; `CI_LOCAL_COMPOSE_PROJECT` may override it with a unique
+  identity, and cleanup must not remove an active product Gateway container
 - `make clean`
   removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or

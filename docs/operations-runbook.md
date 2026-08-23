@@ -89,11 +89,12 @@ or synchronizing the PR produces the single protected check for that head SHA. M
 remains available for explicit revalidation. The event matrix and concurrency contract are recorded
 in [`docs/quality-baseline-event-matrix.md`](quality-baseline-event-matrix.md).
 
-The CI-local Docker parity targets use the explicit Compose project `lotus-gateway-ci-local` for
-both startup and cleanup. This keeps `docker compose ... down --remove-orphans` scoped to CI-owned
-containers, networks, and volumes; it must not stop the product Compose project or its active
-Gateway container. If a shared Gateway runtime is running, verify it remains healthy after
-`make ci-local-docker` and `make ci-local-docker-down`.
+The CI-local Docker parity targets derive a stable, checkout-specific Compose project from the
+absolute repository path for both startup and cleanup. `CI_LOCAL_COMPOSE_PROJECT` may override that
+value when an orchestrator supplies its own unique identity. This keeps `docker compose ... down
+--remove-orphans` scoped to CI-owned containers, networks, and volumes; it must not stop the product
+Compose project or its active Gateway container. If a shared Gateway runtime is running, verify it
+remains healthy after `make ci-local-docker` and `make ci-local-docker-down`.
 
 Demo certification evidence is also generated from the repo-native command:
 
