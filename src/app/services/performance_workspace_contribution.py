@@ -11,7 +11,10 @@ from app.services.performance_workspace_contribution_payloads import (
     parse_contribution_smoothing_evidence,
     parse_contribution_source_economics_evidence,
 )
-from app.services.performance_workspace_failures import build_performance_failure
+from app.services.performance_workspace_failures import (
+    build_performance_failure,
+    classify_detail_failure_codes,
+)
 from app.services.performance_workspace_parsing import (
     quantize_optional,
     safe_str,
@@ -113,11 +116,16 @@ def parse_contribution_result(
         warnings.append("CONTRIBUTION_INVALID")
         return None
     if status_code >= 400:
-        warnings.append("CONTRIBUTION_UNAVAILABLE")
+        warning_code, error_code = classify_detail_failure_codes(
+            status_code=status_code,
+            payload=payload,
+            unavailable_warning_code="CONTRIBUTION_UNAVAILABLE",
+        )
+        warnings.append(warning_code)
         partial_failures.append(
             build_performance_failure(
                 "lotus-performance",
-                f"HTTP_{status_code}",
+                error_code,
                 safe_upstream_detail(payload, default_detail="contribution unavailable"),
             )
         )

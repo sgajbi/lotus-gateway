@@ -32,7 +32,10 @@ from app.services.performance_workspace_attribution_trend import (
 from app.services.performance_workspace_attribution_trend import (
     unpack_attribution_trend_payload as unpack_attribution_trend_payload,
 )
-from app.services.performance_workspace_failures import build_performance_failure
+from app.services.performance_workspace_failures import (
+    build_performance_failure,
+    classify_detail_failure_codes,
+)
 from app.services.performance_workspace_parsing import (
     format_key_label,
     quantize_optional,
@@ -213,11 +216,16 @@ def _attribution_payload_from_result(
         warnings.append("ATTRIBUTION_INVALID")
         return None
     if status_code >= 400:
-        warnings.append("ATTRIBUTION_UNAVAILABLE")
+        warning_code, error_code = classify_detail_failure_codes(
+            status_code=status_code,
+            payload=payload,
+            unavailable_warning_code="ATTRIBUTION_UNAVAILABLE",
+        )
+        warnings.append(warning_code)
         partial_failures.append(
             build_performance_failure(
                 "lotus-performance",
-                f"HTTP_{status_code}",
+                error_code,
                 safe_upstream_detail(payload, default_detail="attribution unavailable"),
             )
         )

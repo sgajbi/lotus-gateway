@@ -12,6 +12,12 @@ from app.services.performance_workspace_contribution import (
     parse_contribution_result,
 )
 from app.services.performance_workspace_dependencies import fetch_workspace_detail_results
+from app.services.performance_workspace_detail_currency import (
+    DETAIL_CURRENCY_BASE_FALLBACK_WARNING,
+    DETAIL_CURRENCY_REJECTION_WARNING,
+    detail_currency_fallback_applies,
+    resolve_detail_currency_request,
+)
 from app.services.performance_workspace_response import GatheredResult
 from app.services.performance_workspace_summary import ParsedWorkspaceSummary
 from app.services.workspace_client_protocols import PerformanceWorkspaceAnalyticsClient
@@ -23,6 +29,7 @@ class WorkspaceDetailViews:
     attribution: AttributionSummaryView | None
     contribution_detail_result: GatheredResult | None
     attribution_detail_result: GatheredResult | None
+    detail_currency_fallback: bool = False
 
 
 async def build_workspace_detail_views(
@@ -62,6 +69,19 @@ async def build_independent_workspace_detail_views(
     context: WorkspaceRequestContext,
     parsed_workspace_summary: ParsedWorkspaceSummary,
 ) -> WorkspaceDetailViews:
+    base_currency = context.overview.portfolio.base_currency
+    upstream_reporting_currency = resolve_detail_currency_request(
+        requested_currency=context.requested_reporting_currency,
+        base_currency=base_currency,
+    )
+    detail_currency_fallback = detail_currency_fallback_applies(
+        requested_currency=context.requested_reporting_currency,
+        base_currency=base_currency,
+        upstream_currency=upstream_reporting_currency,
+    )
+    if detail_currency_fallback:
+        context.warnings.append(DETAIL_CURRENCY_BASE_FALLBACK_WARNING)
+
     contribution_detail_result, attribution_detail_result = await fetch_workspace_detail_results(
         cache=cache,
         analytics_client=analytics_client,
@@ -72,7 +92,8 @@ async def build_independent_workspace_detail_views(
         requested_period=context.effective_period,
         detail_basis=context.detail_basis,
         benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
-        reporting_currency=context.reporting_currency,
+        requested_reporting_currency=context.reporting_currency,
+        upstream_reporting_currency=upstream_reporting_currency,
         contribution_dimension=context.contribution_dimension,
         attribution_dimension=context.attribution_dimension,
     )
@@ -81,6 +102,7 @@ async def build_independent_workspace_detail_views(
         attribution_detail_result=attribution_detail_result,
         context=context,
         parsed_workspace_summary=parsed_workspace_summary,
+        detail_currency_fallback=detail_currency_fallback,
     )
 
 
@@ -90,6 +112,7 @@ def compose_independent_workspace_detail_views(
     attribution_detail_result: GatheredResult,
     context: WorkspaceRequestContext,
     parsed_workspace_summary: ParsedWorkspaceSummary,
+    detail_currency_fallback: bool = False,
 ) -> WorkspaceDetailViews:
     contribution = merge_contribution_summary_views(
         summary_contribution=parsed_workspace_summary.contribution,
@@ -116,6 +139,9 @@ def compose_independent_workspace_detail_views(
         attribution=attribution,
         contribution_detail_result=contribution_detail_result,
         attribution_detail_result=attribution_detail_result,
+        detail_currency_fallback=(
+            detail_currency_fallback or DETAIL_CURRENCY_REJECTION_WARNING in context.warnings
+        ),
     )
 
 

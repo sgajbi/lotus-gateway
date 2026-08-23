@@ -50,8 +50,9 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
         default="",
         description=(
             "Currency label used for the details context. When the summary is rejected or "
-            "unavailable, this is the portfolio base currency; use reporting_currency_state "
-            "to distinguish an applied value from a fallback or unverified acceptance."
+            "unavailable, or independent detail currency is not applied, this is the portfolio "
+            "base currency; use reporting_currency_state and warnings to distinguish an applied "
+            "value from a fallback or unverified acceptance."
         ),
         examples=["SGD"],
     )
@@ -61,7 +62,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
             "Evidence state for the reporting currency: applied when source evidence exists, "
             "accepted_unverified on a successful summary before that evidence exists, rejected "
             "for typed currency validation failure, or unavailable when no summary figures were "
-            "returned."
+            "returned. Independent detail fallback is explicit in warnings."
         ),
         examples=["accepted_unverified"],
     )
@@ -164,7 +165,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                 "requested_as_of_date": "2026-04-10",
                 "effective_as_of_date": "2026-02-24",
                 "requested_reporting_currency": "SGD",
-                "effective_reporting_currency": "SGD",
+                "effective_reporting_currency": "USD",
                 "reporting_currency_state": "accepted_unverified",
                 "period": "YTD",
                 "report_start_date": "2026-01-01",
@@ -308,7 +309,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                         }
                     ],
                 },
-                "warnings": [],
+                "warnings": ["PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE"],
                 "partial_failures": [],
             }
         }

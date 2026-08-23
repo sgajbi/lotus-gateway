@@ -327,6 +327,24 @@ def test_response_context_uses_parser_state_without_reclassifying_raw_result() -
     assert fields.reporting_currency_state == "accepted_unverified"
 
 
+def test_detail_currency_fallback_uses_base_label_with_explicit_warning() -> None:
+    context = replace(
+        _context(),
+        requested_reporting_currency="SGD",
+        reporting_currency="SGD",
+        warnings=["PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE"],
+    )
+    fields = workspace_response_context_fields(
+        context,
+        reporting_currency_state="accepted_unverified",
+        detail_currency_fallback=True,
+    )
+
+    assert fields.effective_reporting_currency == "USD"
+    assert fields.reporting_currency_state == "accepted_unverified"
+    assert context.warnings == ["PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE"]
+
+
 def test_assemble_performance_workspace_response_preserves_context_and_components() -> None:
     context = _context()
     summary_views = _summary_views()

@@ -303,6 +303,29 @@ def test_parse_attribution_result_bounds_http_failure_detail():
     assert "secret-token" not in str(partial_failures[0])
 
 
+def test_parse_attribution_result_classifies_fx_validation_as_currency_rejection():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=(
+            422,
+            {
+                "error_code": "VALIDATION_ERROR",
+                "validation_errors": [{"loc": ["body", "currency_mode"]}],
+            },
+        ),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["PERFORMANCE_DETAILS_CURRENCY_REJECTED"]
+    assert partial_failures[0].error_code == "REPORTING_CURRENCY_REJECTED"
+
+
 def test_parse_attribution_result_records_invalid_payload_warning():
     warnings: list[str] = []
     partial_failures = []

@@ -420,11 +420,15 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     assert contribution_post["json"]["stateful_input"]["metric_basis"] == "NET"
     assert contribution_post["json"]["stateful_input"]["dimensions"] == ["asset_class"]
     assert contribution_post["json"]["stateful_input"]["include_cash_flows"] is True
+    assert "currency_mode" not in contribution_post["json"]
+    assert "report_ccy" not in contribution_post["json"]
 
     assert attribution_post["url"] == "http://analytics/performance/attribution"
     assert attribution_post["json"]["group_by"] == ["sector"]
     assert attribution_post["json"]["stateful_input"]["metric_basis"] == "GROSS"
     assert attribution_post["json"]["stateful_input"]["benchmark_id"] == "MODEL_60_40"
+    assert "currency_mode" not in attribution_post["json"]
+    assert "report_ccy" not in attribution_post["json"]
     assert "calculation_id" not in attribution_post["json"]
 
 

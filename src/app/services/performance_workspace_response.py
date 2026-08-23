@@ -85,6 +85,7 @@ class WorkspaceSummaryViews:
     attribution: AttributionSummaryView | None
     contribution_detail_result: GatheredResult | None
     attribution_detail_result: GatheredResult | None
+    detail_currency_fallback: bool = False
 
     @property
     def net_performance(self) -> PerformanceComparativeSummary:
@@ -202,6 +203,7 @@ def _build_response_context_fields(
     return workspace_response_context_fields(
         context,
         reporting_currency_state=summary_views.reporting_currency_state,
+        detail_currency_fallback=summary_views.detail_currency_fallback,
     )
 
 
@@ -209,10 +211,11 @@ def workspace_response_context_fields(
     context: WorkspaceResponseContext,
     *,
     reporting_currency_state: ReportingCurrencyState = "unavailable",
+    detail_currency_fallback: bool = False,
 ) -> WorkspaceResponseContextFields:
     effective_reporting_currency = (
         context.reporting_currency
-        if reporting_currency_state == "accepted_unverified"
+        if reporting_currency_state == "accepted_unverified" and not detail_currency_fallback
         else context.overview.portfolio.base_currency
     )
     return WorkspaceResponseContextFields(
