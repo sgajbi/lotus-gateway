@@ -223,6 +223,7 @@ class PerformanceWorkspaceAnalyticsClient(Protocol):
         metric_basis: str,
         dimension: str,
         correlation_id: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_attribution_analytics(

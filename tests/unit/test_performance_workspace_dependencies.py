@@ -137,6 +137,7 @@ async def test_fetch_workspace_detail_results_fetches_contribution_and_attributi
         requested_period="EXPLICIT",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        reporting_currency="SGD",
         contribution_dimension="sector",
         attribution_dimension="currency",
     )
@@ -144,8 +145,10 @@ async def test_fetch_workspace_detail_results_fetches_contribution_and_attributi
     assert contribution_result == (200, {"contribution_call": 1})
     assert attribution_result == (200, {"attribution_call": 1})
     assert client.contribution_calls[0]["dimension"] == "sector"
+    assert client.contribution_calls[0]["reporting_currency"] == "SGD"
     assert client.attribution_calls[0]["dimension"] == "currency"
     assert client.attribution_calls[0]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert client.attribution_calls[0]["reporting_currency"] == "SGD"
 
 
 @pytest.mark.asyncio
@@ -163,6 +166,7 @@ async def test_fetch_workspace_detail_results_skips_attribution_without_benchmar
         requested_period="EXPLICIT",
         detail_basis="NET",
         benchmark_code=None,
+        reporting_currency="USD",
         contribution_dimension="sector",
         attribution_dimension="currency",
     )
@@ -170,3 +174,30 @@ async def test_fetch_workspace_detail_results_skips_attribution_without_benchmar
     assert contribution_result == (200, {"contribution_call": 1})
     assert attribution_result == (204, {})
     assert client.attribution_calls == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_workspace_detail_results_cache_isolated_by_reporting_currency():
+    cache = AsyncTtlCache[Any](ttl_seconds=30)
+    client = FakeAnalyticsClient()
+    request = {
+        "cache": cache,
+        "analytics_client": client,
+        "portfolio_id": "DEMO_ADV_USD_001",
+        "correlation_id": "corr-1",
+        "report_start_date": "2026-01-01",
+        "report_end_date": "2026-03-27",
+        "requested_period": "EXPLICIT",
+        "detail_basis": "NET",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "currency",
+    }
+
+    await fetch_workspace_detail_results(**request, reporting_currency="USD")
+    await fetch_workspace_detail_results(**request, reporting_currency="SGD")
+
+    assert len(client.contribution_calls) == 2
+    assert len(client.attribution_calls) == 2
+    assert {call["reporting_currency"] for call in client.contribution_calls} == {"USD", "SGD"}
+    assert {call["reporting_currency"] for call in client.attribution_calls} == {"USD", "SGD"}

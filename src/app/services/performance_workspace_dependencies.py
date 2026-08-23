@@ -123,6 +123,7 @@ async def fetch_workspace_detail_results(
     requested_period: str,
     detail_basis: str,
     benchmark_code: str | None,
+    reporting_currency: str,
     contribution_dimension: str,
     attribution_dimension: str,
 ) -> tuple[GatheredResult, GatheredResult]:
@@ -138,6 +139,7 @@ async def fetch_workspace_detail_results(
                 report_end_date=report_end_date,
                 requested_period=requested_period,
                 detail_basis=detail_basis,
+                reporting_currency=reporting_currency,
                 contribution_dimension=contribution_dimension,
             ),
             _fetch_attribution_detail_result(
@@ -150,6 +152,7 @@ async def fetch_workspace_detail_results(
                 requested_period=requested_period,
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
+                reporting_currency=reporting_currency,
                 attribution_dimension=attribution_dimension,
             ),
             return_exceptions=True,
@@ -167,6 +170,7 @@ async def _fetch_contribution_detail_result(
     report_end_date: str,
     requested_period: str,
     detail_basis: str,
+    reporting_currency: str,
     contribution_dimension: str,
 ) -> GatheredResult:
     return cast(
@@ -179,6 +183,7 @@ async def _fetch_contribution_detail_result(
                 report_end_date,
                 requested_period,
                 detail_basis,
+                reporting_currency,
                 contribution_dimension,
             ),
             factory=lambda: analytics_client.get_contribution_analytics(
@@ -189,6 +194,7 @@ async def _fetch_contribution_detail_result(
                 metric_basis=detail_basis,
                 dimension=contribution_dimension,
                 correlation_id=correlation_id,
+                reporting_currency=reporting_currency,
             ),
         ),
     )
@@ -205,6 +211,7 @@ async def _fetch_attribution_detail_result(
     requested_period: str,
     detail_basis: str,
     benchmark_code: str | None,
+    reporting_currency: str,
     attribution_dimension: str,
 ) -> GatheredResult:
     return cast(
@@ -218,6 +225,7 @@ async def _fetch_attribution_detail_result(
                 requested_period,
                 detail_basis,
                 benchmark_code,
+                reporting_currency,
                 attribution_dimension,
             ),
             factory=lambda: _fetch_attribution_detail(
@@ -229,6 +237,7 @@ async def _fetch_attribution_detail_result(
                 requested_period=requested_period,
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
+                reporting_currency=reporting_currency,
                 attribution_dimension=attribution_dimension,
             ),
         ),
@@ -245,6 +254,7 @@ async def _fetch_attribution_detail(
     requested_period: str,
     detail_basis: str,
     benchmark_code: str | None,
+    reporting_currency: str,
     attribution_dimension: str,
 ) -> GatheredResult:
     if not benchmark_code:
@@ -258,4 +268,5 @@ async def _fetch_attribution_detail(
         benchmark_id=benchmark_code,
         dimension=attribution_dimension,
         correlation_id=correlation_id,
+        reporting_currency=reporting_currency,
     )
