@@ -2,6 +2,8 @@ import ast
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from app.services.performance_workspace_attribution import (
     build_detail_attribution_summary,
     build_workspace_attribution_summary,
@@ -13,6 +15,43 @@ from app.services.performance_workspace_attribution import (
 )
 
 _SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+
+
+@pytest.mark.parametrize(
+    ("totals", "expected_total"),
+    [
+        pytest.param({}, None, id="missing-total"),
+        pytest.param({"total_effect": None}, None, id="null-total"),
+        pytest.param({"total_effect": 0.0}, 0.0, id="explicit-zero"),
+        pytest.param({"total_effect": 0.12345}, 0.12345, id="positive-total"),
+        pytest.param({"total_effect": -0.12345}, -0.12345, id="negative-total"),
+    ],
+)
+def test_attribution_level_total_preserves_source_authority(totals, expected_total):
+    summary = build_workspace_attribution_summary(
+        {
+            "attribution": {
+                "result": {
+                    "levels": [
+                        {
+                            "dimension": "asset_class",
+                            "totals": totals,
+                            "rows": [
+                                {
+                                    "key": {"asset_class": "Equity"},
+                                    "total_effect": 9.99,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+        }
+    )
+
+    assert summary is not None
+    assert summary.levels[0].total_effect_pct == expected_total
+    assert summary.levels[0].rows[0].total_effect_pct == 9.99
 
 
 def _function_names(path: Path) -> set[str]:
@@ -352,6 +391,53 @@ def test_parse_attribution_trend_results_builds_cumulative_rows():
     assert rows[1].period_label == "2026-02"
     assert rows[1].status == "partial"
     assert rows[1].cumulative_total_effect_pct == 0.5
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_attribution_trend_results_does_not_synthesize_missing_cumulative_total():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows = parse_attribution_trend_results(
+        results=[
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "EXPLICIT": {
+                            "reconciliation": {},
+                            "levels": [{"totals": {}}],
+                        }
+                    }
+                },
+            ),
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "EXPLICIT": {
+                            "reconciliation": {},
+                            "levels": [{"totals": {"total_effect": 0.2}}],
+                        }
+                    }
+                },
+            ),
+        ],
+        window_pairs=[
+            (date(2026, 1, 1), date(2026, 1, 31)),
+            (date(2026, 2, 1), date(2026, 2, 28)),
+        ],
+        chart_frequency="monthly",
+        requested_period="EXPLICIT",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert rows[0].total_effect_pct is None
+    assert rows[0].cumulative_total_effect_pct is None
+    assert rows[1].total_effect_pct == 0.2
+    assert rows[1].cumulative_total_effect_pct is None
     assert warnings == []
     assert partial_failures == []
 
