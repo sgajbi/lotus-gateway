@@ -198,6 +198,14 @@ class _StubAnalyticsClient:
         return 200, b"{}", "application/json"
 
 
+class _UnsupportedCurrencyAnalyticsClient(_StubAnalyticsClient):
+    async def get_workspace_summary(self, **kwargs):
+        if kwargs.get("reporting_currency") == "SGD":
+            self.workspace_summary_calls.append(kwargs)
+            return 422, {"detail": "unsupported reporting currency"}
+        return await super().get_workspace_summary(**kwargs)
+
+
 class _StubLotusCoreQueryClient:
     def __init__(self):
         self.reference_calls = 0
@@ -1321,6 +1329,35 @@ async def test_performance_workspace_summary_forwards_review_controls_and_publis
     assert response.effective_reporting_currency == "SGD"
     assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-04-10"
     assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "SGD"
+
+
+@pytest.mark.asyncio
+async def test_summary_unsupported_currency_falls_back_to_base_currency():
+    analytics_client = _UnsupportedCurrencyAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-unsupported-currency",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
+    )
+
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "USD"
+    assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
+    assert response.partial_failures[-1].source_service == "lotus-performance"
+    assert response.partial_failures[-1].error_code == "HTTP_422"
 
 
 @pytest.mark.asyncio

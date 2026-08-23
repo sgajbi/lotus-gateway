@@ -46,7 +46,7 @@ async def test_fetch_assigned_benchmark_code_returns_assignment_id():
         core_client=client,
         portfolio_id="DEMO_ADV_USD_001",
         as_of_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         correlation_id="corr-1",
     )
 
@@ -70,7 +70,7 @@ async def test_fetch_assigned_benchmark_code_fails_closed_for_upstream_failure()
         core_client=client,
         portfolio_id="DEMO_ADV_USD_001",
         as_of_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         correlation_id="corr-1",
     )
 
@@ -88,7 +88,7 @@ async def test_resolve_benchmark_code_keeps_explicit_code_local():
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-1",
         as_of_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         benchmark_code="BMK_EXPLICIT",
     )
 
@@ -111,7 +111,7 @@ async def test_resolve_benchmark_code_refreshes_cached_missing_assignment():
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-1",
         as_of_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         benchmark_code=None,
     )
     second_benchmark_code = await resolve_benchmark_code(
@@ -120,7 +120,7 @@ async def test_resolve_benchmark_code_refreshes_cached_missing_assignment():
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-1",
         as_of_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         benchmark_code=None,
     )
 
@@ -160,7 +160,7 @@ async def test_fetch_benchmark_context_fetches_assignment_and_catalog_concurrent
             portfolio_id="DEMO_ADV_USD_001",
             correlation_id="corr-1",
             report_end_date="2026-03-27",
-            portfolio_currency="USD",
+            reporting_currency="USD",
             benchmark_code=None,
             include_benchmark_catalog=True,
         ),
@@ -184,7 +184,7 @@ async def test_fetch_benchmark_context_skips_catalog_when_not_requested():
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-1",
         report_end_date="2026-03-27",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         benchmark_code=None,
         include_benchmark_catalog=False,
     )

@@ -129,7 +129,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_window.report_end_date,
-            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            reporting_currency=overview_state.overview.portfolio.base_currency,
             benchmark_code=benchmark_code,
             include_benchmark_catalog=False,
         )
@@ -236,7 +236,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
         portfolio_id: str,
         correlation_id: str,
         report_end_date: str,
-        portfolio_currency: str,
+        reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
     ) -> WorkspaceBenchmarkContext:

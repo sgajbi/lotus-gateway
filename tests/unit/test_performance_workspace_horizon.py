@@ -72,7 +72,7 @@ async def test_fetch_workspace_horizon_dependencies_calls_explicit_summary_once(
         period="EXPLICIT",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         chart_frequency="monthly",
     )
 
@@ -107,7 +107,7 @@ async def test_fetch_workspace_horizon_dependencies_merges_standard_period_resul
         period="YTD",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         chart_frequency="daily",
     )
 

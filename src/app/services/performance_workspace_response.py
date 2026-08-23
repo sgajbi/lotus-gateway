@@ -147,7 +147,7 @@ def assemble_performance_workspace_response(
     summary_views: WorkspaceSummaryViews,
     response_components: WorkspaceResponseComponents,
 ) -> PerformanceWorkspaceResponse:
-    context_fields = workspace_response_context_fields(context)
+    context_fields = _build_response_context_fields(context, summary_views)
     return PerformanceWorkspaceResponse(
         correlation_id=correlation_id,
         contract_version=context_fields.contract_version,
@@ -190,12 +190,24 @@ def assemble_performance_workspace_response(
     )
 
 
+def _build_response_context_fields(
+    context: WorkspaceResponseContext,
+    summary_views: WorkspaceSummaryViews,
+) -> WorkspaceResponseContextFields:
+    return workspace_response_context_fields(
+        context,
+        workspace_summary_result=summary_views.workspace_summary_result,
+    )
+
+
 def workspace_response_context_fields(
     context: WorkspaceResponseContext,
+    *,
+    workspace_summary_result: GatheredResult | None = None,
 ) -> WorkspaceResponseContextFields:
     return WorkspaceResponseContextFields(
         contract_version=context.overview.contract_version,
-        as_of_date=(getattr(context, "requested_as_of_date", None) or context.report_end_date),
+        as_of_date=context.requested_as_of_date or context.report_end_date,
         period=context.effective_period,
         report_start_date=context.report_start_date.isoformat(),
         report_end_date=context.report_end_date,
@@ -209,10 +221,27 @@ def workspace_response_context_fields(
         ),
         requested_attribution_dimension_supported=context.requested_attribution_dimension_supported,
         segment=context.segment,
-        requested_as_of_date=getattr(context, "requested_as_of_date", None),
+        requested_as_of_date=context.requested_as_of_date,
         effective_as_of_date=context.report_end_date,
-        requested_reporting_currency=getattr(context, "requested_reporting_currency", None),
-        effective_reporting_currency=(
-            getattr(context, "reporting_currency", None) or context.overview.portfolio.base_currency
+        requested_reporting_currency=context.requested_reporting_currency,
+        effective_reporting_currency=_effective_reporting_currency(
+            context,
+            workspace_summary_result=workspace_summary_result,
         ),
     )
+
+
+def _effective_reporting_currency(
+    context: WorkspaceResponseContext,
+    *,
+    workspace_summary_result: GatheredResult | None,
+) -> str:
+    if _workspace_summary_failed(workspace_summary_result):
+        return context.overview.portfolio.base_currency
+    return context.reporting_currency or context.overview.portfolio.base_currency
+
+
+def _workspace_summary_failed(result: GatheredResult | None) -> bool:
+    if isinstance(result, BaseException):
+        return True
+    return isinstance(result, tuple) and result[0] >= 400

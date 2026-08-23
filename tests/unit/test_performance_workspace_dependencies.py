@@ -59,7 +59,7 @@ async def test_fetch_workspace_summary_result_caches_request_shape():
         chart_frequency="monthly",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         segment="asset_class",
         include_detail_blocks=False,
     )
@@ -74,7 +74,7 @@ async def test_fetch_workspace_summary_result_caches_request_shape():
         chart_frequency="monthly",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
-        portfolio_currency="USD",
+        reporting_currency="USD",
         segment="asset_class",
         include_detail_blocks=False,
     )
@@ -113,7 +113,7 @@ async def test_fetch_workspace_summary_result_omits_non_explicit_start_date():
         chart_frequency="monthly",
         detail_basis="NET",
         benchmark_code=None,
-        portfolio_currency="USD",
+        reporting_currency="USD",
         segment="asset_class",
     )
 

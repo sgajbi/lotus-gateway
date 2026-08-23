@@ -93,7 +93,7 @@ async def fetch_workspace_summary_view_result(
             chart_frequency=context.chart_frequency,
             detail_basis=context.detail_basis,
             benchmark_code=context.benchmark_code,
-            portfolio_currency=context.reporting_currency,
+            reporting_currency=context.reporting_currency,
             segment=context.segment,
             include_detail_blocks=include_detail_blocks and not prefer_independent_detail_analytics,
         )
