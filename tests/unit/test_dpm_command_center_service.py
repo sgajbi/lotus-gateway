@@ -1618,6 +1618,38 @@ async def test_dpm_pm_operating_quality_manage_five_x_errors_fail_closed() -> No
 
 
 @pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_many_manage_validation_fields_remain_422() -> None:
+    client = _FakeDpmClient(
+        (
+            422,
+            {
+                "detail": {
+                    "errors": [
+                        {
+                            "code": f"PM_QUALITY_FIELD_{index}",
+                            "field": f"policy.field_{index}",
+                            "loc": ["body", "policy", f"field_{index}", "value"],
+                        }
+                        for index in range(9)
+                    ]
+                }
+            },
+        )
+    )
+    service = DpmCommandCenterService(dpm_client=client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.create_pm_operating_quality_score_run(
+            body={"pm_id": "PM_SG_DPM_001"},
+            correlation_id="corr-pmq-many-fields",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert len(exc_info.value.detail["reason_codes"]) == 8
+    assert len(exc_info.value.detail["field_paths"]) == 8
+
+
+@pytest.mark.asyncio
 async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_ai() -> None:
     manage_payload = {
         "score_run": _pm_quality_score_run(),

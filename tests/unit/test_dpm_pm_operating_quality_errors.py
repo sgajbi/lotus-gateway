@@ -56,6 +56,10 @@ def test_ignores_generic_or_unparseable_details_and_all_five_x_payloads() -> Non
         == ()
     )
     assert extract_pm_operating_quality_validation_evidence(
+        422,
+        {"detail": "Forbidden"},
+    ).reason_codes == ("Forbidden",)
+    assert extract_pm_operating_quality_validation_evidence(
         500,
         {
             "detail": {
@@ -68,7 +72,7 @@ def test_ignores_generic_or_unparseable_details_and_all_five_x_payloads() -> Non
 
 
 def test_deduplicates_and_bounds_validation_metadata() -> None:
-    detail = [{"type": f"reason_{index}", "loc": ["body", f"field_{index}"]} for index in range(10)]
+    detail = [{"type": f"reason_{index}", "field": f"field_{index}"} for index in range(10)]
     detail.extend(detail[:2])
 
     evidence = extract_pm_operating_quality_validation_evidence(422, {"detail": detail})
@@ -77,3 +81,29 @@ def test_deduplicates_and_bounds_validation_metadata() -> None:
     assert len(evidence.field_paths) == 8
     assert evidence.reason_codes == tuple(f"reason_{index}" for index in range(8))
     assert evidence.field_paths == tuple(f"field_{index}" for index in range(8))
+
+
+def test_bounds_mixed_field_first_and_location_metadata_per_node() -> None:
+    detail = {
+        "errors": [
+            {
+                "field": f"field_{index}",
+                "loc": ["body", f"field_{index}", "value"],
+            }
+            for index in range(5)
+        ]
+    }
+
+    evidence = extract_pm_operating_quality_validation_evidence(422, {"detail": detail})
+
+    assert len(evidence.field_paths) == 8
+    assert evidence.field_paths == (
+        "field_0",
+        "field_0.value",
+        "field_1",
+        "field_1.value",
+        "field_2",
+        "field_2.value",
+        "field_3",
+        "field_3.value",
+    )

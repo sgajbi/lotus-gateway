@@ -202,7 +202,8 @@ class DpmPmOperatingQualityErrorDetail(BaseModel):
         max_length=8,
         description=(
             "At most eight sanitized Manage validation/error codes. Messages and request values "
-            "are never exposed."
+            "are never exposed. For a 422, use these codes with the field paths to correct and "
+            "resubmit the request; do not retry a 409 without re-reading state."
         ),
         examples=[["missing", "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"]],
     )
@@ -211,7 +212,8 @@ class DpmPmOperatingQualityErrorDetail(BaseModel):
         max_length=8,
         description=(
             "At most eight sanitized validation field paths, without submitted field values or "
-            "raw payload content."
+            "raw payload content. For a 422, correct these fields before resubmitting; do not "
+            "retry a 409 without re-reading state."
         ),
         examples=[["policy.tenant_id", "governance.approval"]],
     )

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.contracts.dpm_pm_operating_quality import (
     DpmPmOperatingQualityErrorDetail,
@@ -14,7 +14,7 @@ from app.services.dpm_pm_operating_quality_errors import (
 )
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
-    safe_upstream_detail,
+    raise_product_safe_upstream_error,
 )
 
 logger = logging.getLogger("analytics_ui.gateway")
@@ -38,22 +38,17 @@ def compose_pm_operating_quality_response(
             upstream_status=upstream_status,
             evidence=evidence,
         )
-        raise HTTPException(
-            status_code=upstream_status,
-            detail=DpmPmOperatingQualityErrorDetail(
-                upstream_status=upstream_status,
-                error_code=_PM_OPERATING_QUALITY_ERROR_CODE,
-                detail=(
-                    safe_upstream_detail(
-                        upstream_payload,
-                        default_detail=_PM_OPERATING_QUALITY_DEFAULT_DETAIL,
-                    )
-                    if upstream_status < status.HTTP_500_INTERNAL_SERVER_ERROR
-                    else _PM_OPERATING_QUALITY_DEFAULT_DETAIL
-                ),
-                reason_codes=list(evidence.reason_codes),
-                field_paths=list(evidence.field_paths),
-            ).model_dump(),
+        raise_product_safe_upstream_error(
+            upstream_status,
+            upstream_payload,
+            error_model=DpmPmOperatingQualityErrorDetail,
+            error_code=_PM_OPERATING_QUALITY_ERROR_CODE,
+            default_detail=_PM_OPERATING_QUALITY_DEFAULT_DETAIL,
+            detail_fields={
+                "reason_codes": list(evidence.reason_codes),
+                "field_paths": list(evidence.field_paths),
+            },
+            detail_resolver=_pm_operating_quality_error_detail,
         )
 
     return build_upstream_status_gateway_envelope(
@@ -65,6 +60,18 @@ def compose_pm_operating_quality_response(
         ),
         upstream_payload=upstream_payload,
     )
+
+
+def _pm_operating_quality_error_detail(
+    upstream_status: int,
+    _upstream_payload: dict[str, Any],
+    safe_detail: str,
+) -> str:
+    """Fail closed for PM-quality 5xx details while retaining safe 4xx codes."""
+
+    if upstream_status >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+        return _PM_OPERATING_QUALITY_DEFAULT_DETAIL
+    return safe_detail
 
 
 def _log_pm_operating_quality_error(
