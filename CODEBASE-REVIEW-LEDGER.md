@@ -1046,3 +1046,25 @@ Reference branch: `origin/main`
 - Truth updates: repository context, operations runbook, wiki runbook, and this ledger record the
   supported test-client posture. No application contract, migration, or upstream domain contract
   changed.
+
+## Platform Capabilities Timeout Regression Proof (#606)
+
+- Scope: bounded test-quality correction for the existing platform-capabilities partial-response
+  timeout contract; no production behavior or public contract change.
+- Defect: the regression fixture represented fast sources with 10ms sleeps against a 50ms
+  per-source timeout. Under Windows/Python 3.13 coverage scheduling, a fast source could
+  occasionally be classified as timed out even though the production fan-out contract was intact.
+- Change: the slow analytics fixture now waits on an explicit never-released async event, while
+  fast sources complete immediately. The test repeats the behavior proof ten times and retains the
+  response-bound, partial-failure, navigation, module-health, source-error, and timeout-detail
+  assertions.
+- Compatibility: the production timeout, concurrent fan-out, API/OpenAPI shape, upstream
+  contracts, migrations, dependencies, and runtime configuration are unchanged. The timing bound
+  remains an assertion; no timeout inflation, test exclusion, warning suppression, or gate
+  weakening was introduced.
+- Regression proof: the focused test passes repeatedly with deterministic fast-source preservation
+  and slow-analytics degradation. Full repository-native validation and exact-main releasability
+  remain required before closure.
+- Truth updates: this ledger and GitHub issue #606 record the finding and fix. No repository
+  context, operator documentation, or wiki change is needed because the supported product and
+  runtime contracts are unchanged.

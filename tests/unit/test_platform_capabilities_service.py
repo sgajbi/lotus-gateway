@@ -189,6 +189,25 @@ class _DelayedStubClient(_StubClient):
         )
 
 
+class _NeverCompletingCapabilitiesClient(_StubClient):
+    def __init__(self, status_code: int, payload: dict, *, blocker: asyncio.Event):
+        super().__init__(status_code, payload)
+        self.blocker = blocker
+
+    async def get_capabilities(
+        self,
+        correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
+    ):
+        await self.blocker.wait()
+        return await super().get_capabilities(
+            correlation_id=correlation_id,
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+        )
+
+
 @pytest.mark.asyncio
 async def test_platform_capabilities_all_sources_success():
     service = PlatformCapabilitiesService(
@@ -826,62 +845,61 @@ async def test_platform_capabilities_fetches_sources_concurrently():
 
 @pytest.mark.asyncio
 async def test_platform_capabilities_timeout_budget_preserves_partial_response():
-    service = PlatformCapabilitiesService(
-        dpm_client=_DelayedStubClient(
-            200,
-            {
-                "sourceService": "lotus_manage",
-                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
-                "workflows": [],
-            },
-            delay_seconds=0.01,
-        ),
-        lotus_core_query_client=_DelayedStubClient(
-            200,
-            {
-                "sourceService": "lotus_core",
-                "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
-                "workflows": [],
-            },
-            delay_seconds=0.01,
-        ),
-        analytics_client=_DelayedStubClient(
-            200,
-            {
-                "sourceService": "lotus_performance",
-                "features": [{"key": "performance.analytics.twr", "enabled": True}],
-                "workflows": [],
-            },
-            delay_seconds=0.25,
-        ),
-        reporting_client=_DelayedStubClient(
-            200,
-            {
-                "sourceService": "lotus_report",
-                "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
-                "workflows": [],
-            },
-            delay_seconds=0.01,
-        ),
-        contract_version="v1",
-        source_timeout_seconds=0.05,
-    )
+    for attempt in range(10):
+        blocker = asyncio.Event()
+        service = PlatformCapabilitiesService(
+            dpm_client=_StubClient(
+                200,
+                {
+                    "sourceService": "lotus_manage",
+                    "features": [{"key": "dpm.support.run_apis", "enabled": True}],
+                    "workflows": [],
+                },
+            ),
+            lotus_core_query_client=_StubClient(
+                200,
+                {
+                    "sourceService": "lotus_core",
+                    "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
+                    "workflows": [],
+                },
+            ),
+            analytics_client=_NeverCompletingCapabilitiesClient(
+                200,
+                {
+                    "sourceService": "lotus_performance",
+                    "features": [{"key": "performance.analytics.twr", "enabled": True}],
+                    "workflows": [],
+                },
+                blocker=blocker,
+            ),
+            reporting_client=_StubClient(
+                200,
+                {
+                    "sourceService": "lotus_report",
+                    "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
+                    "workflows": [],
+                },
+            ),
+            contract_version="v1",
+            source_timeout_seconds=0.05,
+        )
 
-    started_at = time.perf_counter()
-    response = await service.get_platform_capabilities(
-        consumer_system="lotus-gateway",
-        tenant_id="default",
-        correlation_id="corr-timeout-budget",
-    )
-    elapsed_seconds = time.perf_counter() - started_at
+        started_at = time.perf_counter()
+        response = await service.get_platform_capabilities(
+            consumer_system="lotus-gateway",
+            tenant_id="default",
+            correlation_id=f"corr-timeout-budget-{attempt}",
+        )
+        elapsed_seconds = time.perf_counter() - started_at
 
-    assert elapsed_seconds < 0.2
-    assert response.data.partial_failure is True
-    assert response.data.normalized.navigation["portfolio_workspace"] is True
-    assert response.data.normalized.navigation["performance_workspace"] is False
-    assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
-    assert {error.service for error in response.data.errors} == {"lotus_performance"}
-    assert response.data.errors[0].detail == "upstream_exception:TimeoutError"
+        assert elapsed_seconds < 0.2
+        assert response.data.partial_failure is True
+        assert response.data.normalized.navigation["portfolio_workspace"] is True
+        assert response.data.normalized.navigation["performance_workspace"] is False
+        assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+        assert {error.service for error in response.data.errors} == {"lotus_performance"}
+        assert response.data.errors[0].detail == "upstream_exception:TimeoutError"
 
 
 @pytest.mark.asyncio
