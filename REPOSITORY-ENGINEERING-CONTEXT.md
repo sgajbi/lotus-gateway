@@ -350,10 +350,15 @@ limited to the summary route; details, attribution trend, advisor brief, lookup-
 validation, and workspace capability promotion remain separate follow-up slices under GitHub
 issue #572.
 When the summary source rejects a requested currency, the Gateway publishes a typed
-lotus-performance partial failure and resolves effective currency back to the portfolio base; it
-does not echo a rejected request as effective. Internal summary and benchmark pipeline parameters
-use `reporting_currency` to distinguish the requested/source reporting unit from portfolio base
-currency.
+lotus-performance partial failure, resolves effective currency back to the portfolio base, and
+publishes `reporting_currency_state="rejected"` only when the source returns a typed
+`VALIDATION_ERROR` whose validation location names a currency control. Exceptions, timeouts,
+unrelated validation failures, and other HTTP failures use the base currency with
+`reporting_currency_state="unavailable"`; human-readable error text is not a classification
+signal. A successful summary currently uses `accepted_unverified` until lotus-performance
+publishes applied-currency evidence (tracked by lotus-performance#470). Internal summary and
+benchmark pipeline parameters use `reporting_currency` to distinguish the requested/source
+reporting unit from portfolio base currency.
 
 1. Windows startup can serve a misleading health-only process if `--app-dir src` is omitted,
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
