@@ -63,7 +63,9 @@ Status: implementation-backed for the Workbench performance summary route only.
 `reporting_currency` query parameters. Gateway forwards the requested reporting currency to
 `lotus-performance`, anchors the summary window to the requested as-of date when no explicit
 `report_end_date` is supplied, and publishes the requested and effective date/currency values.
-An explicit report window remains authoritative when both controls are supplied. Details,
+When the source rejects the requested currency, the response retains a typed partial failure and
+publishes the portfolio base currency as effective rather than echoing the rejected request. An
+explicit report window remains authoritative when both controls are supplied. Details,
 attribution trend, advisor brief, currency-catalog validation, and workspace-wide capability
 promotion remain intentionally deferred under GitHub issue #572; the broader workspace must not
 claim those controls as supported until their owning routes and live evidence are complete.
