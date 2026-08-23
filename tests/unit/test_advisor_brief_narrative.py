@@ -1,6 +1,7 @@
 import ast
 from pathlib import Path
 
+import pytest
 from advisor_brief_test_data import build_advisor_brief_workspace
 
 from app.contracts.advisor_brief import AdvisorBriefStatus
@@ -146,6 +147,70 @@ def test_build_ai_advisor_brief_narrative_state_preserves_completed_ai_narrative
     assert narrative_state.ai_audit["output_label"] == "EXPLANATION_ONLY"
     assert narrative_state.ai_audit["stubbed"] is False
     assert narrative_state.ai_evidence["descriptors"][0]["evidence_type"] == ("source_fact_bundle")
+
+
+@pytest.mark.parametrize(
+    ("audit_update", "missing_field"),
+    (
+        ({"provider_mode": "disabled", "stubbed": False}, None),
+        ({"provider_mode": "openai", "stubbed": True}, None),
+        ({"provider_mode": "unknown", "stubbed": True}, None),
+        ({"stubbed": False}, "provider_mode"),
+        ({"provider_mode": "openai"}, "stubbed"),
+    ),
+)
+def test_build_ai_advisor_brief_narrative_state_withholds_unverified_completed_ai_output(
+    audit_update: dict[str, object],
+    missing_field: str | None,
+) -> None:
+    source_context = build_advisor_brief_source_context(
+        workspace=build_advisor_brief_workspace(),
+        detail_basis="NET",
+    )
+    source_state = build_source_advisor_brief_narrative_state(source_context=source_context)
+    audit = {
+        "request_id": "req-unsafe-provider-posture",
+        "provider_mode": "openai",
+        "stubbed": False,
+        **audit_update,
+    }
+    if missing_field is not None:
+        audit.pop(missing_field)
+
+    narrative_state = build_ai_advisor_brief_narrative_state(
+        source_context=source_context,
+        narrative_state=source_state,
+        ai_status=200,
+        ai_payload={
+            "execution": {
+                "status": "COMPLETED",
+                "result": {
+                    "structured_output": {
+                        "grounded_summary": "UNSAFE AI SUMMARY",
+                        "talking_points": [],
+                    }
+                },
+                "audit": audit,
+                "evidence": {
+                    "descriptors": [{"summary": "UNSAFE AI EVIDENCE"}],
+                },
+            }
+        },
+    )
+
+    assert narrative_state.status is AdvisorBriefStatus.PARTIAL
+    assert narrative_state.summary == source_state.summary
+    assert "UNSAFE AI SUMMARY" not in narrative_state.summary
+    assert "UNSAFE AI EVIDENCE" not in str(narrative_state.ai_evidence)
+    assert narrative_state.ai_evidence == {"descriptors": []}
+    assert narrative_state.ai_audit["provider_mode"] == "unavailable"
+    assert "request_id" not in narrative_state.ai_audit
+    assert narrative_state.risks_and_exceptions[-1].headline == (
+        "AI narrative generation is unavailable."
+    )
+    assert narrative_state.risks_and_exceptions[-1].detail == (
+        "AI provider provenance could not be verified."
+    )
 
 
 def test_build_ai_advisor_brief_narrative_state_marks_http_failure_partial() -> None:

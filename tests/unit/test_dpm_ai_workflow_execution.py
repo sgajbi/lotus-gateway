@@ -155,6 +155,77 @@ def test_validate_dpm_ai_execution_preserves_live_provider_and_recovery_lineage(
     assert execution.workflow_pack_run.recovery_lineage.recovery_action_type == "REPLAY"
 
 
+@pytest.mark.parametrize(
+    ("provider_mode", "stubbed"),
+    (
+        ("disabled", False),
+        ("stub", False),
+        ("openai", True),
+        ("local_openai_compatible", True),
+        ("unknown", True),
+    ),
+)
+def test_validate_dpm_ai_execution_rejects_invalid_provider_posture(
+    provider_mode: object,
+    stubbed: object,
+) -> None:
+    correlation_id = "corr-invalid-provider-posture"
+    payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id=DPM_PROOF_PACK_PM_MEMO_EXECUTION.pack_id,
+        workflow_surface=DPM_PROOF_PACK_PM_MEMO_EXECUTION.workflow_surface,
+        correlation_id=correlation_id,
+    )
+    payload["execution"]["audit"].update({"provider_mode": provider_mode, "stubbed": stubbed})
+    payload["workflow_pack_run"].update({"provider_mode": provider_mode, "stubbed": stubbed})
+
+    with pytest.raises(HTTPException) as raised:
+        validate_dpm_ai_workflow_execution(
+            payload,
+            upstream_status=200,
+            correlation_id=correlation_id,
+            expectation=DPM_PROOF_PACK_PM_MEMO_EXECUTION,
+        )
+
+    assert raised.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert raised.value.detail["error_code"] == "AI_WORKFLOW_EXECUTION_CONTRACT_INVALID"
+    assert str(provider_mode) not in str(raised.value.detail)
+
+
+@pytest.mark.parametrize(
+    "field_path",
+    (
+        pytest.param(("execution", "audit", "provider_mode"), id="missing-audit-mode"),
+        pytest.param(("execution", "audit", "stubbed"), id="missing-audit-stub"),
+        pytest.param(("workflow_pack_run", "provider_mode"), id="missing-run-mode"),
+        pytest.param(("workflow_pack_run", "stubbed"), id="missing-run-stub"),
+    ),
+)
+def test_validate_dpm_ai_execution_rejects_missing_provider_posture_fields(
+    field_path: tuple[str, ...],
+) -> None:
+    correlation_id = "corr-missing-provider-posture"
+    payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id=DPM_PROOF_PACK_PM_MEMO_EXECUTION.pack_id,
+        workflow_surface=DPM_PROOF_PACK_PM_MEMO_EXECUTION.workflow_surface,
+        correlation_id=correlation_id,
+    )
+    current: dict[str, Any] = payload
+    for path_part in field_path[:-1]:
+        current = current[path_part]
+    current.pop(field_path[-1])
+
+    with pytest.raises(HTTPException) as raised:
+        validate_dpm_ai_workflow_execution(
+            payload,
+            upstream_status=200,
+            correlation_id=correlation_id,
+            expectation=DPM_PROOF_PACK_PM_MEMO_EXECUTION,
+        )
+
+    assert raised.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert raised.value.detail["error_code"] == "AI_WORKFLOW_EXECUTION_CONTRACT_INVALID"
+
+
 def test_validate_dpm_ai_execution_preserves_superseded_replacement_posture() -> None:
     payload = lotus_ai_workflow_pack_execution_v1(
         pack_id=DPM_OUTCOME_REVIEW_NARRATIVE_EXECUTION.pack_id,

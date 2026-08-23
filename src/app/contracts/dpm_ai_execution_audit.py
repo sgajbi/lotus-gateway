@@ -1,6 +1,13 @@
 """Bounded evidence, safety, authorization, and audit models for DPM AI output."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Self
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.contracts.ai_provider_posture import (
+    AiProviderMode,
+    require_valid_ai_provider_posture,
+)
 
 
 class DpmAiExecutionEvidenceDescriptor(BaseModel):
@@ -90,7 +97,7 @@ class DpmAiTaskAudit(BaseModel):
     )
     task_id: str = Field(min_length=1, description="Executed lotus-ai task id.")
     output_label: str = Field(min_length=1, description="Governed output-use label.")
-    provider_mode: str = Field(min_length=1, description="Provider mode used for execution.")
+    provider_mode: AiProviderMode = Field(description="Closed provider mode used for execution.")
     provider_id: str = Field(min_length=1, description="Resolved provider identifier.")
     adapter_kind: str | None = Field(
         default=None,
@@ -113,3 +120,11 @@ class DpmAiTaskAudit(BaseModel):
         description="UTC timestamp published by lotus-ai when the result was generated.",
     )
     stubbed: bool = Field(description="Whether deterministic stub execution produced the result.")
+
+    @model_validator(mode="after")
+    def validate_provider_posture(self) -> Self:
+        require_valid_ai_provider_posture(
+            provider_mode=self.provider_mode,
+            stubbed=self.stubbed,
+        )
+        return self

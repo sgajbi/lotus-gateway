@@ -516,6 +516,43 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
 
 
 @pytest.mark.asyncio
+async def test_advisor_brief_service_withholds_completed_output_with_invalid_provider_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    ai_client.payload["audit"].update({"provider_mode": "disabled", "stubbed": False})
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-invalid-provider-posture",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.status == "partial"
+    assert response.summary == (
+        "YTD portfolio return for PF 1001 is 1.25% versus Private Banking Global Balanced "
+        "60/40 7.93%, with active return -6.68%."
+    )
+    assert "AI summary:" not in response.summary
+    assert response.ai_audit["provider_mode"] == "unavailable"
+    assert response.ai_evidence == {"descriptors": []}
+    assert response.risks_and_exceptions[-1].detail == (
+        "AI provider provenance could not be verified."
+    )
+    assert ai_client.consumer_view_calls == []
+    assert ai_client.operator_profile_calls == []
+    assert ai_client.task_flow_calls == []
+
+
+@pytest.mark.asyncio
 async def test_advisor_brief_service_hydrates_task_flow_from_bounded_long_running_demo_window():
     workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
     ai_client = _StubLotusAiClient()

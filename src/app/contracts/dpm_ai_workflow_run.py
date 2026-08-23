@@ -1,9 +1,13 @@
 """Review, supportability, artifact, and lineage models for DPM AI workflow runs."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.contracts.ai_provider_posture import (
+    AiProviderMode,
+    require_valid_ai_provider_posture,
+)
 from app.contracts.dpm_ai_execution_audit import DpmAiExecutionEvidenceDescriptor
 
 
@@ -137,7 +141,7 @@ class DpmAiWorkflowPackRun(BaseModel):
         description="Bounded review progression summary."
     )
     review_required: bool = Field(description="Whether human review is required.")
-    provider_mode: str = Field(min_length=1, description="Provider mode recorded for the run.")
+    provider_mode: AiProviderMode = Field(description="Closed provider mode recorded for the run.")
     stubbed: bool = Field(description="Whether the workflow run is stub-backed.")
     structured_output_keys: list[str] = Field(
         description="Structured-output keys recorded by lotus-ai."
@@ -169,3 +173,11 @@ class DpmAiWorkflowPackRun(BaseModel):
         description="Timestamp when the run reached its terminal runtime state.",
     )
     last_updated_at: str = Field(min_length=1, description="Latest run update timestamp.")
+
+    @model_validator(mode="after")
+    def validate_provider_posture(self) -> Self:
+        require_valid_ai_provider_posture(
+            provider_mode=self.provider_mode,
+            stubbed=self.stubbed,
+        )
+        return self
