@@ -80,6 +80,27 @@ Reference branch: `origin/main`
   duplicate Quality Baseline execution remains separately tracked in #523. Neither is mixed into
   this bounded currency fix.
 
+### CI quality ratchet slice — #581
+
+- Objective: preserve the fast PR/Main gates while making the broader Quality Baseline fail on
+  measurable regression rather than treating every report as advisory output.
+- Change: `scripts/check_quality_baseline_ratchet.py` reads checked-in metric policies and the
+  deterministic baseline logs, reports current value, baseline, delta, threshold, and remediation,
+  and fails on a new complexity, architecture, dead-code, dependency, security, documentation,
+  OpenAPI, or coverage regression. `--update-baseline` is explicit and intended only for a reviewed
+  baseline change; CI never updates the baseline automatically.
+- Current ratchet: coverage 94.77% minimum; architecture import failures <=11; Xenon blocks <=2;
+  Vulture findings <=24; Deptry findings <=48; security findings <=3; Interrogate >=1.6%; and
+  Spectral problems <=4. Existing known findings remain visible and are not hidden or weakened.
+- Compatibility: application runtime, public API, schemas, migrations, and upstream contracts are
+  unchanged. The change tightens CI behavior: a quality-baseline metric regression blocks that
+  workflow and reports the violating metric and remediation command.
+- Tests: deterministic unit coverage proves threshold pass, regression failure, and explicit
+  baseline-update behavior; quality artifact validation requires the ratchet evidence log.
+- Follow-up: #523 remains the independent duplicate-run/concurrency slice. Promotion of individual
+  advisory findings to clean gates remains a future bounded slice after their baseline issues are
+  remediated; this ratchet prevents those findings from increasing meanwhile.
+
 ## Attribution Level Aggregate Source Authority
 
 - Scope: GitHub issue #506, the performance attribution level mapper and its Workbench-facing

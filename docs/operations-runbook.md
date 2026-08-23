@@ -73,9 +73,13 @@ The Quality Baseline workflow installs optional quality tooling and runs:
 11. spectral.
 
 It is no longer purely report-only. It blocks the promoted no-regression checks for refactor
-thresholds, workflow action-runtime governance, agent quality evidence, and required artifact
-presence, while keeping broader advisory tools report-only until false positives, thresholds,
-exception policy, and lane placement are clear.
+thresholds, workflow action-runtime governance, agent quality evidence, required artifact
+presence, and the checked-in quality ratchet. The ratchet fails when coverage, architecture,
+complexity, dead-code, dependency, security, documentation, or OpenAPI metrics regress beyond
+their reviewed baseline, while preserving current known findings as explicit trend data.
+
+Run `python scripts/check_quality_baseline_ratchet.py --update-baseline` only as part of a reviewed
+baseline change after inspecting the full tool output; CI never updates the baseline automatically.
 
 Demo certification evidence is also generated from the repo-native command:
 

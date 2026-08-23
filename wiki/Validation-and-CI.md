@@ -107,10 +107,11 @@ Docker build args or runtime environment metadata.
 
 ## Quality baseline lane
 
-The Quality Baseline workflow keeps advisory quality tools report-only, but it is no longer a
-pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
-agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
-required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
+The Quality Baseline workflow keeps current advisory findings visible, but it is no longer a
+pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, agent
+quality evidence drift through `scripts/check_agent_quality_evidence.py`, measured quality
+regression through `scripts/check_quality_baseline_ratchet.py`, and missing required evidence
+before uploading artifacts. The agent quality evidence gate keeps the executable
 316/49 ratchet, the current evidence-selected
 `src/app/services/platform_capabilities_workspace_descriptors.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
@@ -126,6 +127,14 @@ scorecard/context guidance synchronized for future agent development. It install
 - Gateway demo certification through `make demo-certification`, currently report-only, writing
   `output/demo-certification/gateway-demo-certification.json` and
   `output/quality-baseline/demo-certification.txt`
+
+The checked-in ratchet records coverage, import-boundary, complexity, dead-code, dependency,
+security, documentation, and Spectral problem thresholds in `quality/quality_ratchet.json`.
+Every run publishes current value, baseline, delta, threshold, and a remediation command in
+`output/quality-baseline/quality-ratchet.txt`. CI never updates this file automatically; a reviewed
+baseline update must use the explicit `--update-baseline` command after inspecting the underlying
+tool findings. This prevents new AI-generated or accidental quality regressions without claiming
+that all existing findings are already resolved.
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
 findings, prove the blocking no-regression checks, then promote only agreed additional checks into
