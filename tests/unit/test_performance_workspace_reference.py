@@ -1,5 +1,6 @@
 from app.services.performance_workspace_reference import (
     analytics_reference_cache_key,
+    resolve_performance_reference_window,
     resolve_performance_report_end_date,
 )
 
@@ -25,6 +26,49 @@ def test_resolve_performance_report_end_date_uses_upstream_reference_date() -> N
     assert report_end_date == "2026-03-26"
     assert warnings == []
     assert partial_failures == []
+
+
+def test_resolve_performance_reference_window_preserves_source_owned_inception() -> None:
+    warnings: list[str] = []
+
+    reference = resolve_performance_reference_window(
+        result=(
+            200,
+            {
+                "performance_end_date": "2026-03-26",
+                "portfolio_open_date": "2020-06-15",
+            },
+        ),
+        fallback_as_of_date="2026-03-27",
+        warnings=warnings,
+        partial_failures=[],
+    )
+
+    assert reference.report_end_date == "2026-03-26"
+    assert reference.inception_date.isoformat() == "2020-06-15"
+    assert warnings == []
+
+
+def test_resolve_performance_reference_window_marks_invalid_inception_without_fabricating_one() -> (
+    None
+):
+    warnings: list[str] = []
+
+    reference = resolve_performance_reference_window(
+        result=(
+            200,
+            {
+                "performance_end_date": "2026-03-26",
+                "portfolio_open_date": "not-a-date",
+            },
+        ),
+        fallback_as_of_date="2026-03-27",
+        warnings=warnings,
+        partial_failures=[],
+    )
+
+    assert reference.inception_date is None
+    assert warnings == ["PERFORMANCE_REFERENCE_INVALID_INCEPTION_DATE"]
 
 
 def test_resolve_performance_report_end_date_falls_back_for_http_failure() -> None:

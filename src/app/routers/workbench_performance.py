@@ -8,6 +8,7 @@ from app.middleware.correlation import correlation_id_var
 from app.routers.workbench_caller_context import require_workbench_caller_context
 from app.routers.workbench_performance_common import (
     AS_OF_DATE_QUERY,
+    PERFORMANCE_PERIOD_DESCRIPTION,
     REPORTING_CURRENCY_QUERY,
 )
 from app.services.workbench_service_provider import performance_workspace_service
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 PERIOD_QUERY = Query(
     default="YTD",
-    description="Requested performance horizon for the summary workspace.",
+    description=PERFORMANCE_PERIOD_DESCRIPTION,
     examples=["YTD"],
 )
 CHART_FREQUENCY_QUERY = Query(

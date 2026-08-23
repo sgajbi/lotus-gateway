@@ -1,5 +1,11 @@
 from fastapi import Query
 
+PERFORMANCE_PERIOD_DESCRIPTION = (
+    "Canonical performance horizon: MTD, QTD, YTD, 1Y, 2Y, 3Y, 5Y, or 10Y; SI requires "
+    "source-owned inception metadata; EXPLICIT requires report_start_date. Unknown or malformed "
+    "periods and dates return a typed 422 response."
+)
+
 AS_OF_DATE_QUERY = Query(
     default=None,
     pattern=r"^\d{4}-\d{2}-\d{2}$",

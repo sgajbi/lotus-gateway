@@ -308,6 +308,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert "governed monotonic deadline" in performance_summary_operation["description"]
     assert "partial-readiness" in performance_summary_operation["description"]
     assert performance_summary_parameters["period"]["description"]
+    assert "2Y" in performance_summary_parameters["period"]["description"]
+    assert "10Y" in performance_summary_parameters["period"]["description"]
+    assert "SI" in performance_summary_parameters["period"]["description"]
+    assert "typed 422" in performance_summary_parameters["period"]["description"]
     assert performance_summary_parameters["period"]["schema"]["default"] == "YTD"
     assert performance_summary_parameters["chart_frequency"]["description"]
     assert performance_summary_parameters["chart_frequency"]["schema"]["default"] == "monthly"
@@ -336,6 +340,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert performance_details_parameters["portfolio_id"]["description"]
     assert performance_details_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert performance_details_parameters["period"]["description"]
+    assert "2Y" in performance_details_parameters["period"]["description"]
+    assert "10Y" in performance_details_parameters["period"]["description"]
+    assert "SI" in performance_details_parameters["period"]["description"]
+    assert "typed 422" in performance_details_parameters["period"]["description"]
     assert performance_details_parameters["period"]["schema"]["default"] == "YTD"
     assert performance_details_parameters["chart_frequency"]["description"]
     assert performance_details_parameters["chart_frequency"]["schema"]["default"] == "monthly"

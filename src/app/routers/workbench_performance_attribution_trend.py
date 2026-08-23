@@ -4,16 +4,14 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_performance_common import PERFORMANCE_PERIOD_DESCRIPTION
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 PERIOD_QUERY = Query(
     default="YTD",
-    description=(
-        "Requested attribution horizon. Use canonical values such as MTD, QTD, YTD, 1Y, or "
-        "EXPLICIT when paired with report dates."
-    ),
+    description=PERFORMANCE_PERIOD_DESCRIPTION,
     examples=["YTD"],
 )
 CHART_FREQUENCY_QUERY = Query(

@@ -76,6 +76,23 @@ currency-catalog validation, as-of-after-last-observation mapping, and workspace
 promotion remain intentionally deferred under GitHub issue #572; the broader workspace must not
 claim those controls as supported until their owning routes and live evidence are complete.
 
+## Performance Horizon Window Policy
+
+Status: implementation-backed for Gateway performance workspace composition.
+
+The summary, details, attribution-trend, advisor-brief, and portfolio performance-snapshot route
+families accept `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and `EXPLICIT`. `2Y` and
+`10Y` use inclusive trailing boundaries. `SI` is resolved only from Core's source-owned
+`PortfolioAnalyticsReference.portfolio_open_date`; Gateway never invents an inception date.
+Missing, invalid, or future inception evidence fails closed with a typed `422`, and `EXPLICIT`
+requires `report_start_date`. Unknown periods and malformed dates do not silently become YTD.
+
+The compact horizon-comparison module intentionally supports only `MTD`, `QTD`, `YTD`, and
+`EXPLICIT`, because it composes those three standard rows. Longer horizons belong to the summary
+and details workspace family. Gateway reuses the resolved inclusive start and end for source
+requests, the top-level response, and evidence; it does not own performance calculations or
+portfolio source truth.
+
 ## Authenticated Advisor Book
 
 Status: implementation-backed in Gateway for an authenticated advisor's own source-backed

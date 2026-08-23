@@ -25,7 +25,8 @@ PERIOD_QUERY = Query(
     default="YTD",
     description=(
         "Requested comparison horizon. Gateway exposes front-office-safe MTD, QTD, and YTD "
-        "rows by default, or EXPLICIT when paired with report dates."
+        "rows, or EXPLICIT when paired with report dates. Other canonical long horizons belong "
+        "to the summary/details workspace routes and return a typed 422 here."
     ),
     examples=["YTD"],
 )

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from app.contracts.performance_workspace import PerformanceHorizonComparisonResponse
 from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_attribution_trend_service import (
@@ -15,6 +17,10 @@ from app.services.performance_workspace_context import (
     WorkspaceReportWindow,
     assemble_horizon_comparison_request_context,
     build_horizon_chart_frequency_context,
+)
+from app.services.performance_workspace_controls import (
+    PerformanceWindowResolutionError,
+    normalize_performance_period,
 )
 from app.services.performance_workspace_horizon import (
     fetch_workspace_horizon_dependencies,
@@ -39,6 +45,7 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> PerformanceHorizonComparisonResponse:
+        self._validate_horizon_comparison_period(period)
         context = await self._build_horizon_comparison_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -67,6 +74,27 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
             benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
             rows=rows,
         )
+
+    @staticmethod
+    def _validate_horizon_comparison_period(period: str) -> None:
+        try:
+            normalized_period = normalize_performance_period(period)
+        except PerformanceWindowResolutionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"error_code": exc.error_code, "message": str(exc)},
+            ) from exc
+        if normalized_period not in {"MTD", "QTD", "YTD", "EXPLICIT"}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error_code": "PERFORMANCE_HORIZON_PERIOD_UNSUPPORTED",
+                    "message": (
+                        "Horizon comparison supports MTD, QTD, YTD, and EXPLICIT; "
+                        f"received '{normalized_period}'."
+                    ),
+                },
+            )
 
     async def _fetch_horizon_comparison_dependencies(
         self,

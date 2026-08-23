@@ -7,6 +7,7 @@ from app.contracts.portfolio_performance_snapshot import (
     PortfolioPerformanceSnapshotResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_performance_common import PERFORMANCE_PERIOD_DESCRIPTION
 from app.services.portfolio_service_provider import portfolio_performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
@@ -25,10 +26,7 @@ class PortfolioPerformanceSnapshotQuery:
 SnapshotPeriod = Annotated[
     str,
     Query(
-        description=(
-            "Requested performance horizon. Use canonical values such as MTD, QTD, YTD, 1Y, 3Y, "
-            "5Y, or EXPLICIT."
-        ),
+        description=(PERFORMANCE_PERIOD_DESCRIPTION),
         examples=["YTD"],
         openapi_examples={"standard": {"summary": "Year to date", "value": "YTD"}},
     ),
