@@ -139,8 +139,9 @@ that all existing findings are already resolved.
 The workflow has one authoritative automated feature event: `pull_request` targeting `main`.
 Feature-branch pushes do not create a duplicate Quality Baseline run; opening or synchronizing a
 PR produces the protected check for that head SHA. Manual dispatch remains available for explicit
-revalidation. The concurrency key uses the pull-request head SHA and cancels stale in-progress work.
-The complete push-only, PR, updated-PR, and manual event matrix is documented in
+revalidation. The concurrency key uses the pull-request number to cancel stale in-progress work
+across synchronized revisions, while manual dispatch uses a unique run ID. The complete push-only,
+PR, updated-PR, and manual event matrix is documented in
 `docs/quality-baseline-event-matrix.md`.
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline

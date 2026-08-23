@@ -98,7 +98,7 @@ def test_quality_baseline_workflow_has_one_authoritative_automated_event() -> No
     assert "  workflow_dispatch:\n" in workflow
     assert "  push:\n" not in workflow
     assert (
-        "group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}"
+        "group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}"
         in workflow
     )
     assert "cancel-in-progress: true" in workflow
