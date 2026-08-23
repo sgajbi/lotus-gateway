@@ -34,6 +34,9 @@ class WorkspaceRequestContext:
     segment: str
     benchmark_code: str | None
     benchmark_catalog_result: GatheredResult
+    requested_as_of_date: str | None
+    requested_reporting_currency: str | None
+    reporting_currency: str
 
 
 @dataclass(frozen=True)
@@ -47,6 +50,8 @@ class WorkspaceRequestParameters:
     explicit_start_date: str | None
     explicit_end_date: str | None
     include_benchmark_catalog: bool
+    requested_as_of_date: str | None = None
+    requested_reporting_currency: str | None = None
 
 
 @dataclass(frozen=True)
@@ -262,6 +267,9 @@ def assemble_workspace_request_context(
     dimension_context: WorkspaceDimensionContext,
     detail_basis: str,
     benchmark_context: WorkspaceBenchmarkContext,
+    requested_as_of_date: str | None = None,
+    requested_reporting_currency: str | None = None,
+    reporting_currency: str | None = None,
 ) -> WorkspaceRequestContext:
     return WorkspaceRequestContext(
         overview=overview_state.overview,
@@ -284,4 +292,7 @@ def assemble_workspace_request_context(
         segment=dimension_context.segment,
         benchmark_code=benchmark_context.benchmark_code,
         benchmark_catalog_result=benchmark_context.benchmark_catalog_result,
+        requested_as_of_date=requested_as_of_date,
+        requested_reporting_currency=requested_reporting_currency,
+        reporting_currency=(reporting_currency or overview_state.overview.portfolio.base_currency),
     )

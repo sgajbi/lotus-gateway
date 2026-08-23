@@ -1462,6 +1462,8 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         benchmark_code: str | None,
         explicit_start_date: str | None,
         explicit_end_date: str | None,
+        requested_as_of_date: str | None,
+        requested_reporting_currency: str | None,
     ):
         captured["portfolio_id"] = portfolio_id
         captured["correlation_id"] = correlation_id
@@ -1473,6 +1475,8 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         captured["benchmark_code"] = benchmark_code
         captured["explicit_start_date"] = explicit_start_date
         captured["explicit_end_date"] = explicit_end_date
+        captured["requested_as_of_date"] = requested_as_of_date
+        captured["requested_reporting_currency"] = requested_reporting_currency
         return {
             "correlation_id": correlation_id,
             "contract_version": "v1",
@@ -1561,7 +1565,8 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
-        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27"
+        "&as_of_date=2026-04-10&reporting_currency=sgd",
         headers={
             **CALLER_CONTEXT_HEADERS,
             "X-Correlation-Id": "corr-performance-summary",
@@ -1581,6 +1586,8 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
+        "requested_as_of_date": "2026-04-10",
+        "requested_reporting_currency": "SGD",
     }
     assert body["period"] == "EXPLICIT"
     assert body["report_start_date"] == "2026-01-01"
@@ -2094,6 +2101,8 @@ def test_workbench_performance_evidence_openapi_contract():
     evidence_schema = schema["components"]["schemas"]["PerformanceEvidenceView"]
     calculation_schema = schema["components"]["schemas"]["PerformanceCalculationEvidenceView"]
     artifact_schema = schema["components"]["schemas"]["PerformanceEvidenceArtifactView"]
+    summary_route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/summary"]["get"]
+    summary_parameters = {parameter["name"]: parameter for parameter in summary_route["parameters"]}
 
     assert "lineage artifact" in artifact_route["description"]
     assert summary_schema["properties"]["correlation_id"]["description"]
@@ -2104,6 +2113,14 @@ def test_workbench_performance_evidence_openapi_contract():
     assert summary_schema["properties"]["contract_version"]["default"] == "v1"
     assert summary_schema["properties"]["portfolio_id"]["description"]
     assert summary_schema["properties"]["as_of_date"]["description"]
+    assert summary_schema["properties"]["requested_as_of_date"]["description"]
+    assert summary_schema["properties"]["effective_as_of_date"]["description"]
+    assert summary_schema["properties"]["requested_reporting_currency"]["description"]
+    assert summary_schema["properties"]["effective_reporting_currency"]["description"]
+    assert summary_parameters["as_of_date"]["description"]
+    assert summary_parameters["as_of_date"]["schema"]["examples"] == ["2026-04-10"]
+    assert summary_parameters["reporting_currency"]["description"]
+    assert summary_parameters["reporting_currency"]["schema"]["examples"] == ["SGD"]
     assert summary_schema["properties"]["period"]["description"]
     assert summary_schema["properties"]["report_start_date"]["description"]
     assert summary_schema["properties"]["report_end_date"]["description"]

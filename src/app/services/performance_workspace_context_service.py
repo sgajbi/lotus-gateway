@@ -71,13 +71,19 @@ class PerformanceWorkspaceContextServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
+        reporting_currency = (
+            request_parameters.requested_reporting_currency
+            or overview_state.overview.portfolio.base_currency
+        )
         report_window = await self._build_workspace_report_window(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             overview_state=overview_state,
             period=request_parameters.period,
             explicit_start_date=request_parameters.explicit_start_date,
-            explicit_end_date=request_parameters.explicit_end_date,
+            explicit_end_date=(
+                request_parameters.explicit_end_date or request_parameters.requested_as_of_date
+            ),
         )
         dimension_context = build_workspace_dimension_context(
             chart_frequency=request_parameters.chart_frequency,
@@ -89,7 +95,7 @@ class PerformanceWorkspaceContextServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_window.report_end_date,
-            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            portfolio_currency=reporting_currency,
             benchmark_code=request_parameters.benchmark_code,
             include_benchmark_catalog=request_parameters.include_benchmark_catalog,
         )
@@ -99,6 +105,9 @@ class PerformanceWorkspaceContextServiceMixin:
             dimension_context=dimension_context,
             detail_basis=request_parameters.detail_basis,
             benchmark_context=benchmark_context,
+            requested_as_of_date=request_parameters.requested_as_of_date,
+            requested_reporting_currency=request_parameters.requested_reporting_currency,
+            reporting_currency=reporting_currency,
         )
 
     async def _load_workspace_overview_state(

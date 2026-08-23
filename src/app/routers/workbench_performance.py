@@ -54,6 +54,25 @@ REPORT_END_DATE_QUERY = Query(
     ),
     examples=["2026-03-27"],
 )
+AS_OF_DATE_QUERY = Query(
+    default=None,
+    pattern=r"^\d{4}-\d{2}-\d{2}$",
+    description=(
+        "Optional review as-of date. When report_end_date is omitted, this date anchors "
+        "the performance summary window."
+    ),
+    examples=["2026-04-10"],
+)
+REPORTING_CURRENCY_QUERY = Query(
+    default=None,
+    min_length=3,
+    max_length=3,
+    pattern=r"^[A-Za-z]{3}$",
+    description=(
+        "Optional ISO 4217 reporting currency forwarded to lotus-performance for restatement."
+    ),
+    examples=["SGD"],
+)
 
 
 @dataclass(frozen=True)
@@ -66,6 +85,8 @@ class PerformanceSummaryQuery:
     benchmark_code: str | None
     report_start_date: str | None
     report_end_date: str | None
+    as_of_date: str | None
+    reporting_currency: str | None
 
 
 def require_performance_summary_caller_context(
@@ -95,6 +116,8 @@ def build_performance_summary_query(
     benchmark_code: str | None = BENCHMARK_CODE_QUERY,
     report_start_date: str | None = REPORT_START_DATE_QUERY,
     report_end_date: str | None = REPORT_END_DATE_QUERY,
+    as_of_date: str | None = AS_OF_DATE_QUERY,
+    reporting_currency: str | None = REPORTING_CURRENCY_QUERY,
 ) -> PerformanceSummaryQuery:
     return PerformanceSummaryQuery(
         period=period,
@@ -105,6 +128,8 @@ def build_performance_summary_query(
         benchmark_code=benchmark_code,
         report_start_date=report_start_date,
         report_end_date=report_end_date,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency.strip().upper() if reporting_currency else None,
     )
 
 
@@ -124,6 +149,8 @@ async def _get_performance_summary(
         benchmark_code=query.benchmark_code,
         explicit_start_date=query.report_start_date,
         explicit_end_date=query.report_end_date,
+        requested_as_of_date=query.as_of_date,
+        requested_reporting_currency=query.reporting_currency,
     )
 
 

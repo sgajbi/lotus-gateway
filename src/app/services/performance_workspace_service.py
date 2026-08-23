@@ -42,6 +42,35 @@ from app.services.workspace_client_protocols import (
 )
 
 
+def _build_workspace_request_parameters(
+    *,
+    period: str,
+    chart_frequency: str,
+    contribution_dimension: str,
+    attribution_dimension: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    explicit_start_date: str | None,
+    explicit_end_date: str | None,
+    include_benchmark_catalog: bool,
+    requested_as_of_date: str | None,
+    requested_reporting_currency: str | None,
+) -> WorkspaceRequestParameters:
+    return WorkspaceRequestParameters(
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=explicit_start_date,
+        explicit_end_date=explicit_end_date,
+        include_benchmark_catalog=include_benchmark_catalog,
+        requested_as_of_date=requested_as_of_date,
+        requested_reporting_currency=requested_reporting_currency,
+    )
+
+
 class PerformanceWorkspaceService(
     PerformanceWorkspaceContextServiceMixin,
     PerformanceWorkspaceTrendServiceMixin,
@@ -107,6 +136,8 @@ class PerformanceWorkspaceService(
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> PerformanceWorkspaceSummaryResponse:
         workspace = await self._build_performance_workspace_response(
             portfolio_id=portfolio_id,
@@ -119,6 +150,8 @@ class PerformanceWorkspaceService(
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
             include_benchmark_catalog=True,
             include_detail_blocks=False,
         )
@@ -196,11 +229,13 @@ class PerformanceWorkspaceService(
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
         include_benchmark_catalog: bool = True,
         include_detail_blocks: bool = True,
         prefer_independent_detail_analytics: bool = False,
     ) -> PerformanceWorkspaceResponse:
-        request_parameters = WorkspaceRequestParameters(
+        request_parameters = _build_workspace_request_parameters(
             period=period,
             chart_frequency=chart_frequency,
             contribution_dimension=contribution_dimension,
@@ -210,7 +245,26 @@ class PerformanceWorkspaceService(
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=include_benchmark_catalog,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
         )
+        return await self._assemble_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            request_parameters=request_parameters,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        )
+
+    async def _assemble_performance_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        request_parameters: WorkspaceRequestParameters,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> PerformanceWorkspaceResponse:
         context = await self._build_workspace_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
