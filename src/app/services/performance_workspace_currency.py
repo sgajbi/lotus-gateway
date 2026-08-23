@@ -91,9 +91,22 @@ def _performance_block_has_figures(block: Any) -> bool:
     if not isinstance(block, dict):
         return False
     summary = block.get("summary")
-    return isinstance(summary, dict) and any(
+    if isinstance(summary, dict) and any(
         _has_base_figure(summary.get(field))
         for field in ("period_return", "cumulative_return", "annualized_return")
+    ):
+        return True
+    breakdowns = block.get("breakdowns")
+    if not isinstance(breakdowns, dict):
+        return False
+    return any(
+        isinstance(row, dict)
+        and any(
+            _has_base_figure(row.get(field)) for field in ("period_return", "cumulative_return")
+        )
+        for rows in breakdowns.values()
+        if isinstance(rows, list)
+        for row in rows
     )
 
 
