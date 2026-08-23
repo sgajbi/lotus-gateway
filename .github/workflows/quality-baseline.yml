@@ -3,13 +3,12 @@ name: Quality Baseline
 on:
   pull_request:
     branches: [ main ]
-  push:
-    branches-ignore:
-      - "main"
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Pull-request head SHA is the authoritative feature revision. Manual runs use
+  # github.sha and remain available without replacing the protected PR check.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 permissions:

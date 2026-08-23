@@ -136,6 +136,13 @@ baseline update must use the explicit `--update-baseline` command after inspecti
 tool findings. This prevents new AI-generated or accidental quality regressions without claiming
 that all existing findings are already resolved.
 
+The workflow has one authoritative automated feature event: `pull_request` targeting `main`.
+Feature-branch pushes do not create a duplicate Quality Baseline run; opening or synchronizing a
+PR produces the protected check for that head SHA. Manual dispatch remains available for explicit
+revalidation. The concurrency key uses the pull-request head SHA and cancels stale in-progress work.
+The complete push-only, PR, updated-PR, and manual event matrix is documented in
+`docs/quality-baseline-event-matrix.md`.
+
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
 findings, prove the blocking no-regression checks, then promote only agreed additional checks into
 blocking Feature Lane and PR Merge Gate enforcement.

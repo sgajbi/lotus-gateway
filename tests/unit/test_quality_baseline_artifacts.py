@@ -89,6 +89,22 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "if-no-files-found: error" in workflow
 
 
+def test_quality_baseline_workflow_has_one_authoritative_automated_event() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "quality-baseline.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "  pull_request:\n    branches: [ main ]" in workflow
+    assert "  workflow_dispatch:\n" in workflow
+    assert "  push:\n" not in workflow
+    assert (
+        "group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}"
+        in workflow
+    )
+    assert "cancel-in-progress: true" in workflow
+    assert "name: Quality Baseline / Ratcheted Trend Gate" in workflow
+
+
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:
     gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
 

@@ -1,0 +1,19 @@
+# Quality Baseline event matrix
+
+The Quality Baseline workflow uses one authoritative automated event for feature revisions:
+`pull_request` targeting `main`. This keeps the ratcheted quality result attached to the protected
+PR check without running the same analysis again when the feature branch is pushed.
+
+| Event | Result | Purpose |
+| --- | --- | --- |
+| Feature-branch push before a PR exists | No Quality Baseline run | Avoid an unreviewed duplicate; open the PR to request the authoritative check. |
+| PR opened or synchronized | One run for the PR head SHA | Produce the protected `Quality Baseline / Ratcheted Trend Gate` check. |
+| New commit on an existing PR | One new run for the new head SHA | The concurrency key changes with the revision; stale in-progress work is cancelled. |
+| Manual dispatch | One operator-requested run for `github.sha` | Preserve explicit diagnostics or revalidation without changing the PR trigger contract. |
+
+The workflow concurrency group is keyed by the pull-request head SHA, falling back to
+`github.sha` for manual dispatch. `cancel-in-progress: true` ensures that a newer run for the same
+revision supersedes stale work. Manual dispatch remains available, but it is not a replacement for
+the protected PR check.
+
+No quality step, threshold, artifact, or ratchet is removed by this event policy.
