@@ -34,21 +34,42 @@ Reference branch: `origin/main`
 - Objective: prevent a rejected reporting-currency request from being published as an effective
   currency, and remove the overloaded `portfolio_currency` name from the summary/benchmark
   pipeline.
-- Change: summary response assembly falls back to the portfolio base currency only when the
-  upstream error payload explicitly identifies an unsupported currency; unrelated exceptions and
-  HTTP failures preserve the requested/unknown posture, with the existing typed
-  `WorkbenchPartialFailure` visible. Declared response-context attributes replace defensive `getattr` calls, and
+- Change: summary response assembly initially fell back to the portfolio base currency only when
+  the upstream error payload explicitly identified an unsupported currency; Batch 2C below
+  narrows that classifier to typed validation locations and makes all failed-summary currency
+  posture explicit. Declared response-context attributes replace defensive `getattr` calls, and
   summary, horizon, attribution-trend, benchmark, and cache request parameters use
   `reporting_currency` internally without changing public API fields.
 - Regression proof: focused performance workspace tests include a 422 unsupported-currency case
   asserting requested `SGD`, effective base `USD`, and `HTTP_422` lotus-performance failure;
   65 focused tests pass, plus MyPy on 9 changed source modules.
-- Compatibility: public query/response contracts are unchanged; only rejected upstream results
-  change effective currency from the rejected request to portfolio base, which is the truthful
-  supportability behavior. Deferred details, attribution trend, advisor brief, lookup validation,
-  capability promotion, and as-of-after-last-observation mapping remain under #572.
+- Compatibility: public query fields remain unchanged. Batch 2C adds the response field
+  `reporting_currency_state` with a default and keeps `effective_reporting_currency` string-valued;
+  failed summaries use portfolio base rather than publishing a requested currency. Deferred
+  details, attribution trend, advisor brief, lookup validation, capability promotion, and
+  as-of-after-last-observation mapping remain under #572.
 - Documentation decision: repository context, this ledger, API-surface wiki, and supported-
   features wiki require updates; no central platform context or skill change is required.
+
+### Batch 2C — typed summary currency failure state (#579)
+
+- Objective: prevent a missing performance summary from publishing the requested reporting currency
+  as effective, while distinguishing typed currency rejection from other unavailable outcomes.
+- Change: summary response assembly now publishes additive `reporting_currency_state` values:
+  `accepted_unverified` for a structurally successful summary, `rejected` only for a 4xx
+  `VALIDATION_ERROR` with a `validation_errors[].loc` entry naming `report_ccy`, `currency_mode`,
+  `fx`, or `reporting_currency`, and `unavailable` for exceptions, timeouts, unrelated validation
+  failures, malformed results, and other HTTP failures. All non-success states use portfolio base
+  currency for the existing string-valued effective field. No human-readable payload text is
+  searched.
+- Regression proof: table-driven unit coverage covers success, typed currency rejection, unrelated
+  validation, 503, exception, and text-only rejection; OpenAPI integration coverage asserts the
+  state enum. Focused response/router tests and contract tests pass.
+- Compatibility: query fields and the existing string-valued effective currency remain present;
+  the new state field is additive with a safe default. `accepted_unverified` remains deliberate
+  until lotus-performance#470 publishes applied-currency evidence.
+- Documentation decision: repository context, this ledger, API-surface wiki, and supported-features
+  wiki record the state vocabulary; no central platform context or skill change was needed.
 
 ## Attribution Level Aggregate Source Authority
 
