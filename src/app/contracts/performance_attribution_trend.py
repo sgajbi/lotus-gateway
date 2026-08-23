@@ -4,6 +4,7 @@ from app.contracts.performance_attribution_supportability import (
     AttributionResidualMaterialityView,
     AttributionSupportabilityEvidenceView,
 )
+from app.contracts.performance_currency import ReportingCurrencyState
 from app.contracts.workbench import WorkbenchPartialFailure
 
 
@@ -94,8 +95,44 @@ class PerformanceAttributionTrendResponse(BaseModel):
         examples=["PF_1001"],
     )
     as_of_date: str = Field(
-        description="Resolved as-of date used for the attribution trend response.",
+        description=(
+            "Requested review as-of date, or the effective date when no request was supplied."
+        ),
         examples=["2026-03-27"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-04-10"],
+    )
+    effective_as_of_date: str = Field(
+        default="",
+        description="Last report-window date used for the attribution trend calculation.",
+        examples=["2026-03-27"],
+    )
+    requested_reporting_currency: str | None = Field(
+        default=None,
+        description="Reporting currency requested by the caller, when supplied.",
+        examples=["SGD"],
+    )
+    effective_reporting_currency: str = Field(
+        default="",
+        description=(
+            "Currency label used for the attribution trend context. When the requested path "
+            "is rejected or unavailable, this is the portfolio base currency; use "
+            "reporting_currency_state to distinguish a fallback from unverified acceptance."
+        ),
+        examples=["SGD"],
+    )
+    reporting_currency_state: ReportingCurrencyState = Field(
+        default="unavailable",
+        description=(
+            "Attribution-trend reporting-currency state: accepted_unverified when a requested "
+            "trend returns a usable period without source-applied currency evidence, rejected "
+            "for typed currency validation failure, or unavailable when no trend rows were "
+            "returned. This route does not claim applied currency evidence."
+        ),
+        examples=["accepted_unverified"],
     )
     period: str = Field(
         description=(
@@ -164,6 +201,11 @@ class PerformanceAttributionTrendResponse(BaseModel):
                 "contract_version": "v1",
                 "portfolio_id": "PF_1001",
                 "as_of_date": "2026-03-27",
+                "requested_as_of_date": None,
+                "effective_as_of_date": "2026-03-27",
+                "requested_reporting_currency": None,
+                "effective_reporting_currency": "USD",
+                "reporting_currency_state": "accepted_unverified",
                 "period": "EXPLICIT",
                 "report_start_date": "2026-01-01",
                 "report_end_date": "2026-03-27",

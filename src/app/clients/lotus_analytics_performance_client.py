@@ -242,6 +242,7 @@ class LotusAnalyticsPerformanceClientMixin:
         benchmark_id: str | None,
         dimension: str,
         correlation_id: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         stateful_dimensions = [] if dimension == "currency" else [dimension]
         payload: dict[str, Any] = {
@@ -263,6 +264,9 @@ class LotusAnalyticsPerformanceClientMixin:
         }
         if benchmark_id:
             payload["stateful_input"]["benchmark_id"] = benchmark_id
+        if reporting_currency:
+            payload["currency_mode"] = "BOTH"
+            payload["report_ccy"] = reporting_currency
         return await self._post_analytics_request(
             path="/performance/attribution",
             payload=payload,

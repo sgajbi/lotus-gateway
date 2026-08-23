@@ -97,7 +97,7 @@ curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/det
 
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
 
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&as_of_date=2026-03-27&reporting_currency=USD"
 ```
 
 Verify:
@@ -105,7 +105,8 @@ Verify:
 1. summary returns both benchmark options
 2. details returns chart, contribution, and attribution blocks
 3. horizon comparison returns `MTD`, `QTD`, and `YTD`
-4. attribution trend returns benchmark-relative effect rows when available
+4. attribution trend returns benchmark-relative effect rows and requested/effective review context
+   when available
 
 ## Proposal Flow Run
 

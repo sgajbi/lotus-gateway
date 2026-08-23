@@ -15,11 +15,21 @@ def classify_reporting_currency_outcome(
     requested_period: str,
 ) -> ReportingCurrencyState:
     """Classify currency evidence from the summary result parsed for a response."""
-    if _workspace_summary_currency_rejected(result):
+    if is_reporting_currency_rejection(result):
         return "rejected"
     if _workspace_summary_succeeded(result, requested_period=requested_period):
         return "accepted_unverified"
     return "unavailable"
+
+
+def is_reporting_currency_rejection(result: GatheredResult | None) -> bool:
+    """Return whether an upstream result carries typed currency validation failure."""
+    if isinstance(result, BaseException) or not isinstance(result, tuple):
+        return False
+    status_code, payload = result
+    if status_code < 400 or status_code >= 500 or not isinstance(payload, dict):
+        return False
+    return _has_currency_validation_location(payload)
 
 
 def _workspace_summary_succeeded(
@@ -92,15 +102,6 @@ def _has_base_figure(value: Any) -> bool:
 
 def _has_scalar_figure(value: Any) -> bool:
     return quantize_optional(value) is not None
-
-
-def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:
-    if isinstance(result, BaseException) or not isinstance(result, tuple):
-        return False
-    status_code, payload = result
-    if status_code < 400 or status_code >= 500 or not isinstance(payload, dict):
-        return False
-    return _has_currency_validation_location(payload)
 
 
 def _has_currency_validation_location(payload: dict[str, Any]) -> bool:

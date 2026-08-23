@@ -2075,6 +2075,8 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         benchmark_code: str | None,
         explicit_start_date: str | None,
         explicit_end_date: str | None,
+        requested_as_of_date: str | None,
+        requested_reporting_currency: str | None,
     ):
         captured["portfolio_id"] = portfolio_id
         captured["correlation_id"] = correlation_id
@@ -2085,6 +2087,8 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         captured["benchmark_code"] = benchmark_code
         captured["explicit_start_date"] = explicit_start_date
         captured["explicit_end_date"] = explicit_end_date
+        captured["requested_as_of_date"] = requested_as_of_date
+        captured["requested_reporting_currency"] = requested_reporting_currency
         return {
             "correlation_id": correlation_id,
             "contract_version": "v1",
@@ -2114,7 +2118,8 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         "/api/v1/workbench/PF_1001/performance/attribution-trend"
         "?period=EXPLICIT&chart_frequency=weekly&attribution_dimension=country"
         "&detail_basis=GROSS&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
-        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27"
+        "&as_of_date=2026-04-10&reporting_currency=sgd",
         headers={"X-Correlation-Id": "corr-attribution-trend"},
     )
 
@@ -2129,6 +2134,8 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
+        "requested_as_of_date": "2026-04-10",
+        "requested_reporting_currency": "SGD",
     }
 
 
@@ -2388,6 +2395,11 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     ]
     assert response_schema["properties"]["contract_version"]["description"]
     assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert response_schema["properties"]["requested_as_of_date"]["description"]
+    assert response_schema["properties"]["effective_as_of_date"]["description"]
+    assert response_schema["properties"]["requested_reporting_currency"]["description"]
+    assert response_schema["properties"]["effective_reporting_currency"]["description"]
+    assert response_schema["properties"]["reporting_currency_state"]["description"]
     assert response_schema["properties"]["rows"]["description"]
     assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
     assert response_schema["properties"]["requested_attribution_dimension_supported"]["description"]

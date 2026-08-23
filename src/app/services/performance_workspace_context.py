@@ -98,6 +98,9 @@ class AttributionTrendRequestContext:
     requested_chart_frequency_supported: bool
     requested_attribution_dimension_supported: bool
     benchmark_code: str | None
+    requested_as_of_date: str | None
+    requested_reporting_currency: str | None
+    reporting_currency: str
 
 
 @dataclass(frozen=True)
@@ -201,6 +204,9 @@ def assemble_attribution_trend_request_context(
     report_window: WorkspaceReportWindow,
     dimension_context: AttributionTrendDimensionContext,
     benchmark_context: WorkspaceBenchmarkContext,
+    requested_as_of_date: str | None = None,
+    requested_reporting_currency: str | None = None,
+    reporting_currency: str | None = None,
 ) -> AttributionTrendRequestContext:
     return AttributionTrendRequestContext(
         overview=overview_state.overview,
@@ -216,6 +222,9 @@ def assemble_attribution_trend_request_context(
             dimension_context.requested_attribution_dimension_supported
         ),
         benchmark_code=benchmark_context.benchmark_code,
+        requested_as_of_date=requested_as_of_date,
+        requested_reporting_currency=requested_reporting_currency,
+        reporting_currency=(reporting_currency or overview_state.overview.portfolio.base_currency),
     )
 
 

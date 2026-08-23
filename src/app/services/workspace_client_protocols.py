@@ -229,6 +229,7 @@ class PerformanceWorkspaceAnalyticsClient(Protocol):
         benchmark_id: str | None,
         dimension: str,
         correlation_id: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_execution(

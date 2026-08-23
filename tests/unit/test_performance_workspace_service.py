@@ -205,6 +205,15 @@ class _UnsupportedCurrencyAnalyticsClient(_StubAnalyticsClient):
             return 422, {"detail": "unsupported reporting currency"}
         return await super().get_workspace_summary(**kwargs)
 
+    async def get_attribution_analytics(self, **kwargs):
+        if kwargs.get("reporting_currency") == "SGD":
+            self.attribution_calls.append(kwargs)
+            return 422, {
+                "error_code": "VALIDATION_ERROR",
+                "validation_errors": [{"loc": ["body", "report_ccy"]}],
+            }
+        return await super().get_attribution_analytics(**kwargs)
+
 
 class _StubLotusCoreQueryClient:
     def __init__(self):
@@ -1957,6 +1966,69 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
     assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
     assert analytics_client.attribution_calls[-1]["report_end_date"] == "2026-03-27"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_forwards_attribution_trend_review_controls():
+    analytics_client = _StubAnalyticsClient()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+        explicit_start_date="2026-01-01",
+        explicit_end_date="2026-03-27",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
+    )
+
+    assert response.as_of_date == "2026-04-10"
+    assert response.requested_as_of_date == "2026-04-10"
+    assert response.effective_as_of_date == "2026-03-27"
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "SGD"
+    assert response.reporting_currency_state == "accepted_unverified"
+    assert analytics_client.attribution_calls[0]["reporting_currency"] == "SGD"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "SGD"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_falls_back_after_attribution_currency_rejection():
+    analytics_client = _UnsupportedCurrencyAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        requested_reporting_currency="SGD",
+    )
+
+    assert response.rows == []
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "USD"
+    assert response.reporting_currency_state == "rejected"
+    assert response.partial_failures
+    assert all(call["reporting_currency"] == "SGD" for call in analytics_client.attribution_calls)
 
 
 @pytest.mark.asyncio
