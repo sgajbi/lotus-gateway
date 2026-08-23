@@ -115,7 +115,9 @@ def _summary_views() -> WorkspaceSummaryViews:
             200,
             {
                 "calculation_id": "calc-workspace-summary",
-                "results_by_period": {"YTD": {}},
+                "results_by_period": {
+                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                },
             },
         ),
         parsed_summary=parsed_summary,
@@ -144,7 +146,14 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
     ("result", "expected_currency", "expected_state"),
     [
         (
-            (200, {"results_by_period": {"YTD": {}}}),
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                    }
+                },
+            ),
             "SGD",
             "accepted_unverified",
         ),
