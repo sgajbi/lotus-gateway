@@ -140,7 +140,10 @@ suitability, recommendation, communication, and execution claims are not support
 5. outcome-review preview/create/search/detail/source-refresh/supportability/report-input,
    AI-evidence, AI narrative, and handoff,
 6. PM operating quality policy, score-run, fairness, review-action, and summary-invocation route
-   families,
+   families. Their public error contract preserves the bounded
+   `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR` classification and exposes only sanitized
+   `reason_codes` and `field_paths` arrays (maximum eight each) for Manage 4xx validation failures;
+   generic or 5xx failures use the safe fallback and expose no validation metadata,
 7. wave campaign definitions, queues, approval inbox, workflow board, assignment plan,
    automation, typed lifecycle and workflow command requests, wave report input, AI PM memo, and
    operations handoff summary. Gateway rejects obsolete command fields and unsupported enums at the

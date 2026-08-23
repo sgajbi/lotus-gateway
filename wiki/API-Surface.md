@@ -188,6 +188,11 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   review-action state, summary-invocation workflow lineage, bounded rationale, target content
   hashes, segment posture, governance evidence, source refs, reason codes, content hashes,
   supportability, summary-text boundary evidence, and forbidden-use posture.
+  PM-quality Manage 4xx failures use the additive `DpmPmOperatingQualityErrorDetail` contract:
+  `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR` plus bounded sanitized `reason_codes` and
+  `field_paths` arrays, each limited to eight entries. Generic, unparseable, and 5xx failures use
+  the safe fallback with empty validation arrays; raw messages and submitted request values are
+  never returned.
   Gateway must not calculate scores, discover segments, calculate segment averages or fairness
   spread, infer protected classes, rank PMs, administer bank policy locally, reinterpret review
   rationale, store or expose generated summary text, reconstruct prompts or model responses, or
