@@ -55,6 +55,19 @@ evidence from a legitimate zero. The attribution-trend cumulative total also rem
 a contributing period total is unavailable. Attribution methodology and calculation authority
 remain in `lotus-performance`.
 
+## Performance Summary Review Controls
+
+Status: implementation-backed for the Workbench performance summary route only.
+
+`GET /api/v1/workbench/{portfolio_id}/performance/summary` accepts optional `as_of_date` and
+`reporting_currency` query parameters. Gateway forwards the requested reporting currency to
+`lotus-performance`, anchors the summary window to the requested as-of date when no explicit
+`report_end_date` is supplied, and publishes the requested and effective date/currency values.
+An explicit report window remains authoritative when both controls are supplied. Details,
+attribution trend, advisor brief, currency-catalog validation, and workspace-wide capability
+promotion remain intentionally deferred under GitHub issue #572; the broader workspace must not
+claim those controls as supported until their owning routes and live evidence are complete.
+
 ## Authenticated Advisor Book
 
 Status: implementation-backed in Gateway for an authenticated advisor's own source-backed

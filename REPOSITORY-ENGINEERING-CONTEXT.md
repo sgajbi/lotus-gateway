@@ -342,6 +342,14 @@ Performance attribution level totals are also source-owned. Gateway preserves ex
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
 `lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.
 
+The Workbench performance summary route now accepts optional `as_of_date` and
+`reporting_currency` controls. Gateway forwards the selected reporting currency to
+`lotus-performance`, uses the requested as-of date as the report-window end when an explicit end
+date is absent, and publishes requested versus effective date/currency fields. This is currently
+limited to the summary route; details, attribution trend, advisor brief, lookup-backed currency
+validation, and workspace capability promotion remain separate follow-up slices under GitHub
+issue #572.
+
 1. Windows startup can serve a misleading health-only process if `--app-dir src` is omitted,
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
