@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, TypeAlias
 
 from app.contracts.performance_workspace import ReportingCurrencyState
+from app.services.performance_workspace_parsing import quantize_optional
 from app.services.performance_workspace_returns import resolve_results_period_key
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -77,7 +78,7 @@ def _workspace_summary_has_figures(period_payload: Any) -> bool:
 
     money_weighted_return = period_payload.get("money_weighted_return")
     return isinstance(money_weighted_return, dict) and any(
-        _has_figure_value(money_weighted_return.get(field))
+        _has_scalar_figure(money_weighted_return.get(field))
         for field in (
             "period_return",
             "annualized_return",
@@ -91,15 +92,17 @@ def _performance_block_has_figures(block: Any) -> bool:
         return False
     summary = block.get("summary")
     return isinstance(summary, dict) and any(
-        _has_figure_value(summary.get(field))
+        _has_base_figure(summary.get(field))
         for field in ("period_return", "cumulative_return", "annualized_return")
     )
 
 
-def _has_figure_value(value: Any) -> bool:
-    if isinstance(value, dict):
-        return any(_has_figure_value(item) for item in value.values())
-    return value is not None
+def _has_base_figure(value: Any) -> bool:
+    return isinstance(value, dict) and quantize_optional(value.get("base")) is not None
+
+
+def _has_scalar_figure(value: Any) -> bool:
+    return quantize_optional(value) is not None
 
 
 def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:
