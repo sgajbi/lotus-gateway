@@ -131,7 +131,10 @@ class PerformanceWorkspaceResponse(BaseModel):
     )
     effective_reporting_currency: str = Field(
         default="",
-        description="Reporting currency forwarded to the performance source.",
+        description=(
+            "Reporting currency applied by the performance source; when the source rejects the "
+            "request, this is the portfolio base currency used for the fallback response."
+        ),
         examples=["SGD"],
     )
     period: str
