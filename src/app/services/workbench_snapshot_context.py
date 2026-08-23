@@ -25,7 +25,7 @@ class WorkbenchSnapshotContext:
     requested_as_of_date: str | None
     effective_as_of_date: str | None
     as_of_state: WorkbenchAsOfState
-    enrichment_as_of_date: str
+    enrichment_as_of_date: str | None
     current_positions: list[WorkbenchPositionView]
 
 
@@ -63,10 +63,11 @@ async def load_workbench_snapshot_context(
         portfolio_payload=portfolio_payload,
         snapshot_payload=snapshot_payload,
     )
-    date_evidence = resolve_snapshot_date_evidence(snapshot_payload)
-    enrichment_as_of_date = requested_as_of_date or date_evidence.effective_as_of_date
-    if enrichment_as_of_date is None:
-        enrichment_as_of_date = query_as_of_date
+    date_evidence = resolve_snapshot_date_evidence(
+        snapshot_payload,
+        requested_as_of_date=requested_as_of_date,
+    )
+    enrichment_as_of_date = date_evidence.effective_as_of_date
     return WorkbenchSnapshotContext(
         portfolio=portfolio,
         overview=overview,

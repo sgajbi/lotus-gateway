@@ -29,13 +29,36 @@ class WorkbenchOverviewEnrichmentResults:
     rebalance_supportability_result: object
 
 
+def _unavailable_date_enrichment() -> tuple[
+    None,
+    None,
+    list[str],
+    list[WorkbenchPartialFailure],
+]:
+    return (
+        None,
+        None,
+        ["WORKBENCH_AS_OF_DATE_UNAVAILABLE"],
+        [
+            WorkbenchPartialFailure(
+                source_service="lotus-core",
+                error_code="WORKBENCH_AS_OF_DATE_UNAVAILABLE",
+                detail=(
+                    "Core did not confirm a usable business date for the Workbench snapshot; "
+                    "date-dependent enrichment was withheld."
+                ),
+            )
+        ],
+    )
+
+
 async def load_workbench_overview_enrichment(
     *,
     core_client: WorkbenchCoreClient,
     analytics_client: WorkbenchPerformanceClient,
     dpm_client: WorkbenchManageClient,
     portfolio_id: str,
-    as_of_date: str,
+    as_of_date: str | None,
     correlation_id: str,
     include_performance_snapshot: bool,
     include_rebalance_snapshot: bool,
@@ -46,37 +69,65 @@ async def load_workbench_overview_enrichment(
     list[str],
     list[WorkbenchPartialFailure],
 ]:
+    if as_of_date is None:
+        return (
+            _unavailable_date_enrichment()
+            if include_performance_snapshot or include_rebalance_snapshot
+            else (None, None, [], [])
+        )
+
+    if not (include_performance_snapshot or include_rebalance_snapshot):
+        return None, None, [], []
+    gathered = await _gather_overview_enrichment_results(
+        core_client=core_client,
+        analytics_client=analytics_client,
+        dpm_client=dpm_client,
+        portfolio_id=portfolio_id,
+        as_of_date=as_of_date,
+        correlation_id=correlation_id,
+        include_performance_snapshot=include_performance_snapshot,
+        include_rebalance_snapshot=include_rebalance_snapshot,
+        benchmark_code=benchmark_code,
+    )
+    return _parse_overview_enrichment_results(
+        gathered=gathered,
+        include_performance_snapshot=include_performance_snapshot,
+        include_rebalance_snapshot=include_rebalance_snapshot,
+    )
+
+
+def _parse_overview_enrichment_results(
+    *,
+    gathered: WorkbenchOverviewEnrichmentResults,
+    include_performance_snapshot: bool,
+    include_rebalance_snapshot: bool,
+) -> tuple[
+    WorkbenchPerformanceSnapshot | None,
+    WorkbenchRebalanceSnapshot | None,
+    list[str],
+    list[WorkbenchPartialFailure],
+]:
     partial_failures: list[WorkbenchPartialFailure] = []
     warnings: list[str] = []
-    performance_snapshot = None
-    rebalance_snapshot = None
-
-    if include_performance_snapshot or include_rebalance_snapshot:
-        gathered = await _gather_overview_enrichment_results(
-            core_client=core_client,
-            analytics_client=analytics_client,
-            dpm_client=dpm_client,
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            correlation_id=correlation_id,
-            include_performance_snapshot=include_performance_snapshot,
-            include_rebalance_snapshot=include_rebalance_snapshot,
-            benchmark_code=benchmark_code,
+    performance_snapshot = (
+        parse_performance_snapshot(
+            result=gathered.performance_result,
+            partial_failures=partial_failures,
+            warnings=warnings,
         )
-        if include_performance_snapshot:
-            performance_snapshot = parse_performance_snapshot(
-                result=gathered.performance_result,
-                partial_failures=partial_failures,
-                warnings=warnings,
-            )
-        if include_rebalance_snapshot:
-            rebalance_snapshot = parse_rebalance_snapshot(
-                result=gathered.rebalance_result,
-                supportability_result=gathered.rebalance_supportability_result,
-                partial_failures=partial_failures,
-                warnings=warnings,
-            )
-
+        if include_performance_snapshot
+        else None
+    )
+    rebalance_snapshot = (
+        parse_rebalance_snapshot(
+            result=gathered.rebalance_result,
+            supportability_result=gathered.rebalance_supportability_result,
+            partial_failures=partial_failures,
+            warnings=warnings,
+        )
+        if include_rebalance_snapshot
+        else None
+    )
     return performance_snapshot, rebalance_snapshot, warnings, partial_failures
 
 

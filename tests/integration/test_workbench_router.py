@@ -270,9 +270,12 @@ def test_workbench_portfolio_360_router(monkeypatch):
     async def _pas_core(*args, **kwargs):
         snapshot_requests.append(kwargs["as_of_date"])
         return 200, {
-            "as_of_date": "2026-02-23",
+            "as_of_date": "2026-04-10",
+            "source_evidence_current": True,
+            "freshness_status": "CURRENT",
             "freshness": {
-                "snapshot_timestamp": "2026-02-23T00:00:00Z",
+                "freshness_status": "CURRENT_SNAPSHOT",
+                "snapshot_timestamp": "2026-08-22T20:39:38Z",
             },
             "sections": {
                 "positions_baseline": [
@@ -312,14 +315,14 @@ def test_workbench_portfolio_360_router(monkeypatch):
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?as_of_date=2026-08-23")
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?as_of_date=2026-04-10")
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
-    assert snapshot_requests == ["2026-08-23"]
-    assert body["as_of_date"] == "2026-02-23"
-    assert body["requested_as_of_date"] == "2026-08-23"
-    assert body["effective_as_of_date"] == "2026-02-23"
+    assert snapshot_requests == ["2026-04-10"]
+    assert body["as_of_date"] == "2026-04-10"
+    assert body["requested_as_of_date"] == "2026-04-10"
+    assert body["effective_as_of_date"] == "2026-04-10"
     assert body["as_of_state"] == "confirmed"
     assert body["overview"]["market_value_base"] == 1000.0
     assert body["performance_snapshot"]["return_pct"] == 1.5

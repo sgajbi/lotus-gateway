@@ -260,7 +260,7 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         self,
         *,
         portfolio_id: str,
-        as_of_date: str,
+        as_of_date: str | None,
         correlation_id: str,
         include_performance_snapshot: bool,
         include_rebalance_snapshot: bool,
