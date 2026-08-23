@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Protocol, TypeAlias, TypedDict
+from typing import Any, Protocol, TypeAlias
 
 from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import ContributionSummaryView
@@ -17,6 +17,7 @@ from app.contracts.performance_workspace import (
     ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
+from app.services.performance_workspace_returns import resolve_results_period_key
 from app.services.performance_workspace_summary import ParsedWorkspaceSummary
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -141,12 +142,6 @@ class WorkspaceResponseContextFields:
     reporting_currency_state: ReportingCurrencyState
 
 
-class _ResponseCurrencyFields(TypedDict):
-    requested_reporting_currency: str | None
-    effective_reporting_currency: str
-    reporting_currency_state: ReportingCurrencyState
-
-
 def assemble_performance_workspace_response(
     *,
     portfolio_id: str,
@@ -163,7 +158,9 @@ def assemble_performance_workspace_response(
         as_of_date=context_fields.as_of_date,
         requested_as_of_date=context_fields.requested_as_of_date,
         effective_as_of_date=context_fields.effective_as_of_date,
-        **_response_currency_fields(context_fields),
+        requested_reporting_currency=context_fields.requested_reporting_currency,
+        effective_reporting_currency=context_fields.effective_reporting_currency,
+        reporting_currency_state=context_fields.reporting_currency_state,
         period=context_fields.period,
         report_start_date=context_fields.report_start_date,
         report_end_date=context_fields.report_end_date,
@@ -172,9 +169,7 @@ def assemble_performance_workspace_response(
         attribution_dimension=context_fields.attribution_dimension,
         detail_basis=context_fields.detail_basis,
         requested_chart_frequency_supported=context_fields.requested_chart_frequency_supported,
-        requested_contribution_dimension_supported=(
-            context_fields.requested_contribution_dimension_supported
-        ),
+        requested_contribution_dimension_supported=context_fields.requested_contribution_dimension_supported,
         requested_attribution_dimension_supported=(
             context_fields.requested_attribution_dimension_supported
         ),
@@ -195,16 +190,6 @@ def assemble_performance_workspace_response(
         warnings=context.warnings,
         partial_failures=context.partial_failures,
     )
-
-
-def _response_currency_fields(
-    context_fields: WorkspaceResponseContextFields,
-) -> _ResponseCurrencyFields:
-    return {
-        "requested_reporting_currency": context_fields.requested_reporting_currency,
-        "effective_reporting_currency": context_fields.effective_reporting_currency,
-        "reporting_currency_state": context_fields.reporting_currency_state,
-    }
 
 
 def _build_response_context_fields(
@@ -245,7 +230,10 @@ def workspace_response_context_fields(
             context,
             workspace_summary_result=workspace_summary_result,
         ),
-        reporting_currency_state=_reporting_currency_state(workspace_summary_result),
+        reporting_currency_state=_reporting_currency_state(
+            workspace_summary_result,
+            requested_period=context.effective_period,
+        ),
     )
 
 
@@ -254,27 +242,47 @@ def _effective_reporting_currency(
     *,
     workspace_summary_result: GatheredResult | None,
 ) -> str:
-    if _reporting_currency_state(workspace_summary_result) != "accepted_unverified":
+    if (
+        _reporting_currency_state(
+            workspace_summary_result,
+            requested_period=context.effective_period,
+        )
+        != "accepted_unverified"
+    ):
         return context.overview.portfolio.base_currency
     return context.reporting_currency or context.overview.portfolio.base_currency
 
 
-def _reporting_currency_state(result: GatheredResult | None) -> ReportingCurrencyState:
+def _reporting_currency_state(
+    result: GatheredResult | None,
+    *,
+    requested_period: str,
+) -> ReportingCurrencyState:
     if _workspace_summary_currency_rejected(result):
         return "rejected"
-    if _workspace_summary_succeeded(result):
+    if _workspace_summary_succeeded(result, requested_period=requested_period):
         return "accepted_unverified"
     return "unavailable"
 
 
-def _workspace_summary_succeeded(result: GatheredResult | None) -> bool:
+def _workspace_summary_succeeded(
+    result: GatheredResult | None,
+    *,
+    requested_period: str,
+) -> bool:
     if isinstance(result, BaseException) or not isinstance(result, tuple):
         return False
     status_code, payload = result
     if status_code >= 400 or not isinstance(payload, dict):
         return False
     results_by_period = payload.get("results_by_period")
-    return isinstance(results_by_period, dict) and bool(results_by_period)
+    if not isinstance(results_by_period, dict) or not results_by_period:
+        return False
+    period_key = resolve_results_period_key(
+        requested_period=requested_period,
+        results_by_period=results_by_period,
+    )
+    return isinstance(results_by_period.get(period_key), dict)
 
 
 def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:

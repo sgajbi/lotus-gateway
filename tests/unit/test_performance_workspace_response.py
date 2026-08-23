@@ -149,6 +149,11 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
             "accepted_unverified",
         ),
         (
+            (200, {"results_by_period": {"YTD": []}}),
+            "USD",
+            "unavailable",
+        ),
+        (
             (
                 422,
                 {
