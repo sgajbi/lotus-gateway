@@ -87,7 +87,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   and `reporting_currency` query controls. Gateway forwards reporting currency to
   `lotus-performance`, uses `as_of_date` as the
   report-window end when `report_end_date` is absent, and publishes requested/effective date and
-  currency fields plus `reporting_currency_state`. A structurally successful summary is
+  currency fields plus `reporting_currency_state`. The top-level `as_of_date` is always the
+  effective report-window date; `requested_as_of_date` preserves a distinct caller request when
+  supplied. A structurally successful summary is
   `accepted_unverified` until lotus-performance publishes applied-currency evidence; a typed
   currency validation rejection is `rejected`; exceptions, timeouts, unrelated failures, and
   malformed or unavailable summaries are `unavailable`. Non-success states publish the portfolio

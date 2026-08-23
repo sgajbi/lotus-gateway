@@ -365,7 +365,8 @@ zero, positive, and negative `levels[].totals.total_effect` values and publishes
 The Workbench performance summary, details, attribution-trend, and advisor-brief routes accept
 optional `as_of_date` and `reporting_currency` controls. Gateway forwards the selected reporting
 currency to `lotus-performance`, uses the requested as-of date as the report-window end when an
-explicit end date is absent, and publishes requested versus effective date/currency fields plus
+explicit end date is absent, and publishes an effective top-level `as_of_date` separately from
+the caller's `requested_as_of_date`, alongside requested versus effective currency fields plus
 typed currency state. Advisor-brief read and review-action routes reuse the shared performance
 workspace context and preserve selected controls in source links. This does not promote workspace
 capabilities, claim source-applied currency evidence, or add lookup-backed currency validation;
