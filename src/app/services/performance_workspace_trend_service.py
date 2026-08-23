@@ -88,7 +88,7 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
                 period=context.effective_period,
                 detail_basis=detail_basis,
                 benchmark_code=context.benchmark_code,
-                portfolio_currency=context.overview.portfolio.base_currency,
+                reporting_currency=context.overview.portfolio.base_currency,
                 chart_frequency=context.chart_frequency,
             )
 
@@ -144,7 +144,7 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_window.report_end_date,
-            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            reporting_currency=overview_state.overview.portfolio.base_currency,
             benchmark_code=benchmark_code,
             include_benchmark_catalog=True,
         )
@@ -216,7 +216,7 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
         portfolio_id: str,
         correlation_id: str,
         report_end_date: str,
-        portfolio_currency: str,
+        reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
     ) -> WorkspaceBenchmarkContext:

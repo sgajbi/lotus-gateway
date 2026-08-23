@@ -38,6 +38,9 @@ class _WorkspaceContext:
     requested_contribution_dimension_supported: bool
     requested_attribution_dimension_supported: bool
     segment: str
+    requested_as_of_date: str | None = None
+    requested_reporting_currency: str | None = None
+    reporting_currency: str = "USD"
 
 
 def _context() -> _WorkspaceContext:
@@ -127,6 +130,15 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
     assert fields.requested_contribution_dimension_supported is True
     assert fields.requested_attribution_dimension_supported is False
     assert fields.segment == "2026-01-01:2026-03-27"
+
+
+def test_workspace_response_context_fields_fall_back_to_base_currency_on_summary_failure() -> None:
+    fields = workspace_response_context_fields(
+        _context(),
+        workspace_summary_result=(422, {"detail": "unsupported reporting currency"}),
+    )
+
+    assert fields.effective_reporting_currency == "USD"
 
 
 def test_assemble_performance_workspace_response_preserves_context_and_components() -> None:

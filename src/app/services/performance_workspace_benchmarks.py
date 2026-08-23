@@ -27,22 +27,22 @@ def benchmark_assignment_cache_key(
     *,
     portfolio_id: str,
     as_of_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
 ) -> tuple[str, str, str, str]:
     return (
         "benchmark_assignment",
         portfolio_id,
         as_of_date,
-        portfolio_currency,
+        reporting_currency,
     )
 
 
 def benchmark_catalog_cache_key(
     *,
     report_end_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
 ) -> tuple[str, str, str]:
-    return ("benchmark_catalog", report_end_date, portfolio_currency)
+    return ("benchmark_catalog", report_end_date, reporting_currency)
 
 
 async def fetch_assigned_benchmark_code(
@@ -50,13 +50,13 @@ async def fetch_assigned_benchmark_code(
     core_client: PerformanceWorkspaceCoreClient,
     portfolio_id: str,
     as_of_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     correlation_id: str,
 ) -> str | None:
     status_code, payload = await core_client.get_benchmark_assignment(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
-        reporting_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         correlation_id=correlation_id,
     )
     if status_code >= 400 or not isinstance(payload, dict):
@@ -71,7 +71,7 @@ async def resolve_benchmark_code(
     portfolio_id: str,
     correlation_id: str,
     as_of_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     benchmark_code: str | None,
 ) -> str | None:
     if benchmark_code:
@@ -80,7 +80,7 @@ async def resolve_benchmark_code(
     cache_key = benchmark_assignment_cache_key(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
     )
     resolved_benchmark_code, cache_hit = await cache.get_or_set_with_status(
         key=cache_key,
@@ -88,7 +88,7 @@ async def resolve_benchmark_code(
             core_client=core_client,
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
-            portfolio_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
             correlation_id=correlation_id,
         ),
     )
@@ -103,7 +103,7 @@ async def resolve_benchmark_code(
         core_client=core_client,
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         correlation_id=correlation_id,
     )
     if refreshed_benchmark_code:
@@ -118,7 +118,7 @@ async def fetch_benchmark_context(
     portfolio_id: str,
     correlation_id: str,
     report_end_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     benchmark_code: str | None,
     include_benchmark_catalog: bool,
 ) -> tuple[str | None, GatheredResult]:
@@ -128,7 +128,7 @@ async def fetch_benchmark_context(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         report_end_date=report_end_date,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
         include_benchmark_catalog=include_benchmark_catalog,
     )
@@ -150,7 +150,7 @@ def _benchmark_context_tasks(
     portfolio_id: str,
     correlation_id: str,
     report_end_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     benchmark_code: str | None,
     include_benchmark_catalog: bool,
 ) -> tuple[Awaitable[str | None], Awaitable[GatheredResult]]:
@@ -161,14 +161,14 @@ def _benchmark_context_tasks(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_end_date,
-            portfolio_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
             benchmark_code=benchmark_code,
         ),
         _benchmark_catalog_task(
             cache=cache,
             core_client=core_client,
             report_end_date=report_end_date,
-            portfolio_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
             correlation_id=correlation_id,
             include_benchmark_catalog=include_benchmark_catalog,
         ),
@@ -182,7 +182,7 @@ def _benchmark_assignment_task(
     portfolio_id: str,
     correlation_id: str,
     report_end_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     benchmark_code: str | None,
 ) -> Awaitable[str | None]:
     if benchmark_code:
@@ -193,7 +193,7 @@ def _benchmark_assignment_task(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         as_of_date=report_end_date,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
     )
 
@@ -203,7 +203,7 @@ def _benchmark_catalog_task(
     cache: AsyncTtlCache[Any],
     core_client: PerformanceWorkspaceCoreClient,
     report_end_date: str,
-    portfolio_currency: str,
+    reporting_currency: str,
     correlation_id: str,
     include_benchmark_catalog: bool,
 ) -> Awaitable[GatheredResult]:
@@ -212,11 +212,11 @@ def _benchmark_catalog_task(
     return cache.get_or_set(
         key=benchmark_catalog_cache_key(
             report_end_date=report_end_date,
-            portfolio_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
         ),
         factory=lambda: core_client.get_benchmark_catalog(
             as_of_date=report_end_date,
-            benchmark_currency=portfolio_currency,
+            benchmark_currency=reporting_currency,
             benchmark_status="active",
             benchmark_type="composite",
             correlation_id=correlation_id,

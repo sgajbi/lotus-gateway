@@ -95,7 +95,7 @@ class PerformanceWorkspaceContextServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_window.report_end_date,
-            portfolio_currency=reporting_currency,
+            reporting_currency=reporting_currency,
             benchmark_code=request_parameters.benchmark_code,
             include_benchmark_catalog=request_parameters.include_benchmark_catalog,
         )
@@ -164,7 +164,7 @@ class PerformanceWorkspaceContextServiceMixin:
         portfolio_id: str,
         correlation_id: str,
         report_end_date: str,
-        portfolio_currency: str,
+        reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
     ) -> WorkspaceBenchmarkContext:
@@ -175,7 +175,7 @@ class PerformanceWorkspaceContextServiceMixin:
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=report_end_date,
-                portfolio_currency=portfolio_currency,
+                reporting_currency=reporting_currency,
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=include_benchmark_catalog,
             )

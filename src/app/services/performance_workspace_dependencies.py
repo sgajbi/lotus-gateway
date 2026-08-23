@@ -21,7 +21,7 @@ class WorkspaceSummaryRequest:
     chart_frequency: str
     detail_basis: str
     benchmark_code: str | None
-    portfolio_currency: str
+    reporting_currency: str
     segment: str
     include_detail_blocks: bool
 
@@ -44,7 +44,7 @@ async def fetch_workspace_summary_result(
     chart_frequency: str,
     detail_basis: str,
     benchmark_code: str | None,
-    portfolio_currency: str,
+    reporting_currency: str,
     segment: str,
     include_detail_blocks: bool = True,
 ) -> GatheredResult:
@@ -56,7 +56,7 @@ async def fetch_workspace_summary_result(
         chart_frequency=chart_frequency,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         segment=segment,
         include_detail_blocks=include_detail_blocks,
     )
@@ -87,7 +87,7 @@ async def _fetch_workspace_summary_result(
                 chart_frequency=request.chart_frequency,
                 detail_basis=request.detail_basis,
                 benchmark_id=request.benchmark_code,
-                reporting_currency=request.portfolio_currency,
+                reporting_currency=request.reporting_currency,
                 segment=request.segment,
                 correlation_id=correlation_id,
                 include_detail_blocks=request.include_detail_blocks,
@@ -106,7 +106,7 @@ def _workspace_summary_cache_key(request: WorkspaceSummaryRequest) -> tuple[obje
         request.chart_frequency,
         request.detail_basis,
         request.benchmark_code,
-        request.portfolio_currency,
+        request.reporting_currency,
         request.segment,
         request.include_detail_blocks,
     )

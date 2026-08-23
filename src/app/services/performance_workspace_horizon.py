@@ -44,7 +44,7 @@ async def fetch_workspace_horizon_dependencies(
     period: str,
     detail_basis: str,
     benchmark_code: str | None,
-    portfolio_currency: str,
+    reporting_currency: str,
     chart_frequency: str,
 ) -> GatheredResult:
     frequencies = build_horizon_comparison_frequencies(chart_frequency)
@@ -56,7 +56,7 @@ async def fetch_workspace_horizon_dependencies(
             report_end_date=report_end_date,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            portfolio_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
             chart_frequency=chart_frequency,
             frequencies=frequencies,
         )
@@ -70,7 +70,7 @@ async def fetch_workspace_horizon_dependencies(
         period=period,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
-        portfolio_currency=portfolio_currency,
+        reporting_currency=reporting_currency,
         chart_frequency=chart_frequency,
         frequencies=frequencies,
     )
@@ -86,7 +86,7 @@ async def fetch_explicit_horizon_workspace_summary(
     period: str,
     detail_basis: str,
     benchmark_code: str | None,
-    portfolio_currency: str,
+    reporting_currency: str,
     chart_frequency: str,
     frequencies: Sequence[str],
 ) -> GatheredResult:
@@ -106,7 +106,7 @@ async def fetch_explicit_horizon_workspace_summary(
             chart_frequency=chart_frequency,
             detail_basis=detail_basis,
             benchmark_id=benchmark_code,
-            reporting_currency=portfolio_currency,
+            reporting_currency=reporting_currency,
             segment="asset_class",
             correlation_id=correlation_id,
             periods=horizon_periods,
