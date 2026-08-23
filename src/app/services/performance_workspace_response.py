@@ -17,7 +17,7 @@ from app.contracts.performance_workspace import (
     ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
-from app.services.performance_workspace_returns import resolve_results_period_key
+from app.services.performance_workspace_currency import assess_reporting_currency
 from app.services.performance_workspace_summary import ParsedWorkspaceSummary
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -207,6 +207,12 @@ def workspace_response_context_fields(
     *,
     workspace_summary_result: GatheredResult | None = None,
 ) -> WorkspaceResponseContextFields:
+    reporting_currency = assess_reporting_currency(
+        result=workspace_summary_result,
+        requested_period=context.effective_period,
+        base_currency=context.overview.portfolio.base_currency,
+        requested_currency=context.reporting_currency,
+    )
     return WorkspaceResponseContextFields(
         contract_version=context.overview.contract_version,
         as_of_date=context.requested_as_of_date or context.report_end_date,
@@ -226,84 +232,6 @@ def workspace_response_context_fields(
         requested_as_of_date=context.requested_as_of_date,
         effective_as_of_date=context.report_end_date,
         requested_reporting_currency=context.requested_reporting_currency,
-        effective_reporting_currency=_effective_reporting_currency(
-            context,
-            workspace_summary_result=workspace_summary_result,
-        ),
-        reporting_currency_state=_reporting_currency_state(
-            workspace_summary_result,
-            requested_period=context.effective_period,
-        ),
-    )
-
-
-def _effective_reporting_currency(
-    context: WorkspaceResponseContext,
-    *,
-    workspace_summary_result: GatheredResult | None,
-) -> str:
-    if (
-        _reporting_currency_state(
-            workspace_summary_result,
-            requested_period=context.effective_period,
-        )
-        != "accepted_unverified"
-    ):
-        return context.overview.portfolio.base_currency
-    return context.reporting_currency or context.overview.portfolio.base_currency
-
-
-def _reporting_currency_state(
-    result: GatheredResult | None,
-    *,
-    requested_period: str,
-) -> ReportingCurrencyState:
-    if _workspace_summary_currency_rejected(result):
-        return "rejected"
-    if _workspace_summary_succeeded(result, requested_period=requested_period):
-        return "accepted_unverified"
-    return "unavailable"
-
-
-def _workspace_summary_succeeded(
-    result: GatheredResult | None,
-    *,
-    requested_period: str,
-) -> bool:
-    if isinstance(result, BaseException) or not isinstance(result, tuple):
-        return False
-    status_code, payload = result
-    if status_code >= 400 or not isinstance(payload, dict):
-        return False
-    results_by_period = payload.get("results_by_period")
-    if not isinstance(results_by_period, dict) or not results_by_period:
-        return False
-    period_key = resolve_results_period_key(
-        requested_period=requested_period,
-        results_by_period=results_by_period,
-    )
-    return isinstance(results_by_period.get(period_key), dict)
-
-
-def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:
-    if isinstance(result, BaseException) or not isinstance(result, tuple):
-        return False
-    status_code, payload = result
-    if status_code < 400 or status_code >= 500 or not isinstance(payload, dict):
-        return False
-    return _has_currency_validation_location(payload)
-
-
-def _has_currency_validation_location(payload: dict[str, Any]) -> bool:
-    if payload.get("error_code") != "VALIDATION_ERROR":
-        return False
-    validation_errors = payload.get("validation_errors")
-    if not isinstance(validation_errors, list):
-        return False
-    currency_fields = {"currency_mode", "fx", "report_ccy", "reporting_currency"}
-    return any(
-        isinstance(item, dict)
-        and isinstance(location := item.get("loc"), (list, tuple))
-        and any(str(part) in currency_fields for part in location)
-        for item in validation_errors
+        effective_reporting_currency=reporting_currency.effective_currency,
+        reporting_currency_state=reporting_currency.state,
     )

@@ -70,6 +70,15 @@ Reference branch: `origin/main`
   until lotus-performance#470 publishes applied-currency evidence.
 - Documentation decision: repository context, this ledger, API-surface wiki, and supported-features
   wiki record the state vocabulary; no central platform context or skill change was needed.
+- Quality-bar follow-forward: the currency assessment now lives in a dedicated service module and
+  requires parser-aligned portfolio TWR or money-weighted figures before publishing
+  `accepted_unverified`; a nonempty but malformed period payload remains `unavailable`. A route
+  integration regression covers `/performance/summary?reporting_currency=SGD` with a stubbed 503,
+  asserting base-currency fallback and the typed `HTTP_503` partial failure. No public contract or
+  wiki truth changed, so no additional wiki update is required for this follow-forward slice.
+- CI audit: the broader quality baseline remains a separately tracked governance gap in #581;
+  duplicate Quality Baseline execution remains separately tracked in #523. Neither is mixed into
+  this bounded currency fix.
 
 ## Attribution Level Aggregate Source Authority
 

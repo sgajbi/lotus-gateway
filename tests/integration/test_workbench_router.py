@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any
 
 from fastapi import HTTPException
@@ -19,9 +20,15 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackTaskFlowHandoff,
     AdvisorBriefWorkflowPackTaskFlowLineage,
 )
-from app.contracts.workbench import WorkbenchPortfolioSummary
+from app.contracts.workbench import (
+    WorkbenchOverviewResponse,
+    WorkbenchOverviewSummary,
+    WorkbenchPortfolioSummary,
+)
 from app.main import app
 from app.middleware.server_timing import append_server_timing_metric
+from app.services.performance_workspace_context import WorkspaceRequestContext
+from app.services.workbench_service_provider import performance_workspace_service
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 CALLER_CONTEXT_HEADERS = {
@@ -1321,6 +1328,78 @@ def test_workbench_performance_summary_router(monkeypatch):
     assert body["evidence_view"]["calculations"][0]["calculation_role"] == "workspace_summary"
     assert "net_chart" not in body
     assert "contribution" not in body
+
+
+def test_workbench_performance_summary_router_falls_back_to_base_on_performance_503(monkeypatch):
+    service = performance_workspace_service()
+    service.clear_upstream_cache()
+    captured_request: dict[str, Any] = {}
+
+    async def _context(**kwargs):  # noqa: ARG001
+        return WorkspaceRequestContext(
+            overview=WorkbenchOverviewResponse(
+                correlation_id="corr-performance-currency-503",
+                contract_version="v1",
+                as_of_date="2026-02-24",
+                portfolio=WorkbenchPortfolioSummary(
+                    portfolio_id="PF_1001",
+                    client_id="CIF_1001",
+                    base_currency="USD",
+                    booking_center_code="SG",
+                ),
+                overview=WorkbenchOverviewSummary(
+                    market_value_base=1_000_000.0,
+                    cash_weight_pct=5.0,
+                    position_count=12,
+                ),
+            ),
+            warnings=[],
+            partial_failures=[],
+            report_end_date="2026-02-24",
+            report_start_date=date(2026, 1, 1),
+            effective_period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            requested_chart_frequency_supported=True,
+            requested_contribution_dimension_supported=True,
+            requested_attribution_dimension_supported=True,
+            segment="2026-01-01:2026-02-24",
+            benchmark_code="MODEL_60_40",
+            benchmark_catalog_result=(200, {}),
+            requested_as_of_date=None,
+            requested_reporting_currency="SGD",
+            reporting_currency="SGD",
+        )
+
+    async def _performance_summary(**kwargs):
+        captured_request.update(kwargs)
+        return 503, {"detail": "upstream unavailable"}
+
+    monkeypatch.setattr(service, "_build_workspace_request_context", _context)
+    monkeypatch.setattr(service._analytics_client, "get_workspace_summary", _performance_summary)
+    monkeypatch.setattr(
+        "app.routers.workbench_performance.performance_workspace_service",
+        lambda: service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/summary"
+        "?period=YTD&benchmark_code=MODEL_60_40&reporting_currency=SGD",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured_request["reporting_currency"] == "SGD"
+    assert body["requested_reporting_currency"] == "SGD"
+    assert body["effective_reporting_currency"] == "USD"
+    assert body["reporting_currency_state"] == "unavailable"
+    assert body["net_performance"]["portfolio_return_pct"] is None
+    assert body["partial_failures"][-1]["source_service"] == "lotus-performance"
+    assert body["partial_failures"][-1]["error_code"] == "HTTP_503"
 
 
 def test_workbench_performance_summary_router_requires_caller_context():
