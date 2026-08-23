@@ -79,24 +79,42 @@ jobs:
 
       - name: Architecture Import Rules
         continue-on-error: true
-        run: lint-imports --config .importlinter 2>&1 | tee output/quality-baseline/import-linter.txt
+        run: |
+          set +e
+          lint-imports --config .importlinter 2>&1 | tee output/quality-baseline/import-linter.txt
+          status=\${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "\${status}" >> output/quality-baseline/import-linter.txt
+          exit "\${status}"
 
       - name: Complexity Baseline
         continue-on-error: true
         run: |
+          set +e
           {
             radon cc src/app -s -a
             radon mi src/app -s
             xenon --max-absolute C --max-modules B --max-average A src/app
           } 2>&1 | tee output/quality-baseline/complexity.txt
-
+          status=\${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "\${status}" >> output/quality-baseline/complexity.txt
+          exit "\${status}"
       - name: Dead Code Baseline
         continue-on-error: true
-        run: vulture src/app tests --min-confidence 80 2>&1 | tee output/quality-baseline/vulture.txt
+        run: |
+          set +e
+          vulture src/app tests --min-confidence 80 2>&1 | tee output/quality-baseline/vulture.txt
+          status=\${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "\${status}" >> output/quality-baseline/vulture.txt
+          exit "\${status}"
 
       - name: Dependency Baseline
         continue-on-error: true
-        run: deptry . 2>&1 | tee output/quality-baseline/deptry.txt
+        run: |
+          set +e
+          deptry . 2>&1 | tee output/quality-baseline/deptry.txt
+          status=\${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "\${status}" >> output/quality-baseline/deptry.txt
+          exit "\${status}"
 
       - name: Security Baseline
         continue-on-error: true
@@ -118,7 +136,11 @@ jobs:
           from app.main import app
           print(json.dumps(app.openapi(), indent=2))
           PY
+          set +e
           spectral lint openapi.json --ruleset .spectral.yaml 2>&1 | tee output/quality-baseline/spectral.txt
+          status=\${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "\${status}" >> output/quality-baseline/spectral.txt
+          exit "\${status}"
 
       - name: Demo Certification Baseline
         continue-on-error: true

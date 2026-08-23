@@ -50,6 +50,16 @@ def _read_metric(log_path: Path, metric: dict[str, Any]) -> Decimal:
     matches = re.findall(metric["pattern"], text, re.MULTILINE)
     kind = metric["kind"]
     if kind == "count":
+        if (
+            not matches
+            and metric.get("zero_pattern")
+            and not re.search(
+                metric["zero_pattern"],
+                text,
+                re.MULTILINE,
+            )
+        ):
+            raise ValueError(f"Missing zero-success marker for {metric['name']} in {log_path}")
         return Decimal(len(matches))
     if kind == "number":
         if (
