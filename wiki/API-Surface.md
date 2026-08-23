@@ -67,12 +67,14 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. Their response
   publishes `requested_as_of_date`, `effective_as_of_date`, and `as_of_state`; the legacy
   top-level `as_of_date` is the effective source date or `null`. For an explicit request, top-level
-  Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`;
-  `source_evidence_current` cannot be false. Nested `freshness.snapshot_timestamp` and
-  `snapshot_epoch` are lineage only and never become a business date. A legacy source date without
-  authoritative freshness evidence is `accepted_unverified`, and missing, invalid, or non-current
-  evidence is `unavailable`. When no date is requested and Core cannot resolve a latest business
-  date, Gateway reports `unavailable` and withholds date-dependent embedded enrichment. Gateway
+  Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`. When the request is
+  omitted, Gateway discovers a candidate from Core's support-overview `business_date` and requires
+  the snapshot to confirm that same date. `source_evidence_current` cannot be false. Nested
+  `freshness.snapshot_timestamp` and `snapshot_epoch` are lineage only and never become a business
+  date. A legacy source date without authoritative freshness evidence is `accepted_unverified`,
+  and missing, invalid, conflicting, or non-current evidence is `unavailable`. When Core cannot
+  resolve a latest business date, Gateway reports `unavailable` and withholds date-dependent
+  embedded enrichment. Gateway
   does not use host time as effective portfolio truth. Composed performance workspace requests
   fail closed with `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when no explicit report end or usable
   Workbench date exists.
@@ -99,9 +101,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   mapping, and capability promotion remain on the follow-up path tracked by GitHub issue #572.
 
 - Portfolio workspace `as_of_date` is an optional review-date override. When it is omitted,
-  Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same
-  date for cashflow, cash balances, readiness, and performance composition. Gateway host time is
-  not a portfolio business-date authority.
+  Gateway lets lotus-core support overview resolve the latest governed portfolio date first, then
+  uses that same date for the required snapshot query. Gateway host time is only an internal
+  fallback required by Core's query shape and is never a portfolio business-date authority.
 - advisor-book discovery requires camelCase `asOfDate` plus trusted actor, tenant, region, booking
   centre, role, and capability headers. The actor identifies the manager's own book; there is no
   advisor-id query override. Optional `clientId`, `mandateType`, `sortBy`, `sortOrder`, `offset`,
