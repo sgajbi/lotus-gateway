@@ -38,6 +38,7 @@ from app.contracts.performance_workspace_common import (
     PerformanceModuleCapability,
     PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceResponse,
+    ReportingCurrencyState,
 )
 from app.contracts.performance_workspace_details_contract import (
     PerformanceWorkspaceDetailsResponse,
@@ -78,4 +79,5 @@ __all__ = [
     "PerformanceWorkspaceDetailsResponse",
     "PerformanceWorkspaceResponse",
     "PerformanceWorkspaceSummaryResponse",
+    "ReportingCurrencyState",
 ]

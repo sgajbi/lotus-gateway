@@ -2121,6 +2121,13 @@ def test_workbench_performance_evidence_openapi_contract():
         "portfolio base currency"
         in summary_schema["properties"]["effective_reporting_currency"]["description"]
     )
+    assert summary_schema["properties"]["reporting_currency_state"]["description"]
+    assert summary_schema["properties"]["reporting_currency_state"]["enum"] == [
+        "applied",
+        "accepted_unverified",
+        "rejected",
+        "unavailable",
+    ]
     assert summary_parameters["as_of_date"]["description"]
     assert summary_parameters["as_of_date"]["schema"]["examples"] == ["2026-04-10"]
     assert summary_parameters["reporting_currency"]["description"]
