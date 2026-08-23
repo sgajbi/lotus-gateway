@@ -581,6 +581,37 @@ async def test_lotus_analytics_client_forwards_attribution_reporting_currency():
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_forwards_contribution_reporting_currency():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "EXPLICIT": {
+                    "levels": [{"totals": {"total_contribution": 0.1}}],
+                }
+            }
+        },
+    )
+
+    status, _ = await client.get_contribution_analytics(
+        portfolio_id="P1",
+        report_start_date="2026-01-01",
+        report_end_date="2026-02-24",
+        period="EXPLICIT",
+        metric_basis="NET",
+        dimension="asset_class",
+        correlation_id="corr-performance",
+        reporting_currency="SGD",
+    )
+
+    assert status == 200
+    contribution_post = _FakeAsyncClient.calls[-1]
+    assert contribution_post["json"]["currency_mode"] == "BOTH"
+    assert contribution_post["json"]["report_ccy"] == "SGD"
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_allows_slow_stateful_attribution_to_materialize(monkeypatch):
     async def _no_sleep(_seconds: float) -> None:
         return None

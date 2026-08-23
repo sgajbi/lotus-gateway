@@ -72,6 +72,7 @@ async def build_independent_workspace_detail_views(
         requested_period=context.effective_period,
         detail_basis=context.detail_basis,
         benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
+        reporting_currency=context.reporting_currency,
         contribution_dimension=context.contribution_dimension,
         attribution_dimension=context.attribution_dimension,
     )

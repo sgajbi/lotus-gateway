@@ -201,6 +201,7 @@ class LotusAnalyticsPerformanceClientMixin:
         metric_basis: str,
         dimension: str,
         correlation_id: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         payload = {
             "calculation_id": str(uuid4()),
@@ -224,6 +225,9 @@ class LotusAnalyticsPerformanceClientMixin:
                 "include_cash_flows": True,
             },
         }
+        if reporting_currency:
+            payload["currency_mode"] = "BOTH"
+            payload["report_ccy"] = reporting_currency
         return await self._post_analytics_request(
             path="/performance/contribution",
             payload=payload,
