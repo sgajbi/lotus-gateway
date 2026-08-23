@@ -13,6 +13,7 @@ from app.clients.http_response_payloads import (
     unsupported_method_payload,
 )
 from app.clients.http_retry_policy import (
+    is_retryable_request_error,
     retry_attempts,
     retry_delay,
     should_retry_request_error,
@@ -25,6 +26,7 @@ _JSON_REQUEST_METHODS = frozenset({"GET", "POST", "PUT"})
 class RequestFailureKind(StrEnum):
     TRANSPORT = "transport"
     TIMEOUT = "timeout"
+    TERMINAL_REQUEST_ERROR = "terminal_request_error"
     UNSUPPORTED_METHOD = "unsupported_method"
     RETRIES_EXHAUSTED = "retries_exhausted"
 
@@ -120,7 +122,9 @@ async def _retry_or_return_json_response(
 def _request_error_failure_kind(exc: httpx.RequestError) -> RequestFailureKind:
     if isinstance(exc, httpx.TimeoutException):
         return RequestFailureKind.TIMEOUT
-    return RequestFailureKind.TRANSPORT
+    if is_retryable_request_error(exc):
+        return RequestFailureKind.TRANSPORT
+    return RequestFailureKind.TERMINAL_REQUEST_ERROR
 
 
 async def _retry_or_return_request_error(

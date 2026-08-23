@@ -45,6 +45,15 @@ checks and the current measured quality baseline; it is not a replacement for Gi
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or
   preserve required evidence before cleanup
 
+## HTTPX retry taxonomy
+
+Gateway retries only an explicit allow-list of request failures: enabled timeouts, network errors,
+and remote protocol disconnects. Redirect loops, unsupported protocols, local protocol errors, and
+unclassified `RequestError` values are terminal. Terminal request errors must remain immediate
+communication failures in result polling; they must not consume the elapsed analytics deadline or
+be relabelled as source calculation unavailability. The taxonomy is covered by unit tests for the
+JSON transport and the analytics polling boundary.
+
 ## PR auto-merge posture
 
 PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
