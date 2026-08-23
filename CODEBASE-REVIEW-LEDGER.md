@@ -4,6 +4,32 @@ Last updated: 2026-08-23
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 3B — latest source-confirmed Workbench date for omitted queries (#595)
+
+- Objective: make no-query Workbench overview and portfolio-360 requests resolve the latest
+  source-owned business date instead of querying Core with the Gateway host date as if it were
+  portfolio truth.
+- Change: when the caller omits `as_of_date`, Gateway reads Core support overview `business_date`
+  as the candidate, uses it for Core's required snapshot request, and publishes the date only
+  when the snapshot returns matching top-level `freshness_status=CURRENT` evidence. A failed,
+  missing, invalid, conflicting, or non-current result remains `unavailable`; date-dependent
+  enrichment is withheld. Explicit requested dates retain their existing query and response
+  semantics.
+- Regression proof: context tests prove no-query support-date discovery, exact snapshot propagation,
+  and fail-closed support failure; router integration proves the canonical no-query 360 path
+  confirms `2026-04-10` with `requested_as_of_date=null`; existing explicit-date and downstream
+  Workbench suites remain covered.
+- Compatibility: the optional query remains optional and response fields remain additive. The
+  internal host-date fallback exists only because Core's snapshot request currently requires a
+  date and is never published or used for enrichment. No Core schema, migration, or Workbench UI
+  change is included.
+- Documentation decision: supported-features, API-surface wiki, repository context, RFC-0082
+  upstream mapping, and this ledger change because no-query date resolution is now implementation
+  backed. Wiki publication and strict parity are required after merge.
+- Deferred boundary: latest-date discovery remains Gateway orchestration over Core's support
+  contract; Core snapshot freshness remains business-date authority. Workbench rendering remains
+  downstream work tracked by `lotus-workbench#814`.
+
 ### Batch 3A — source-confirmed Workbench snapshot dates (#592)
 
 - Objective: stop Workbench overview and portfolio-360 from publishing the Core request-bound

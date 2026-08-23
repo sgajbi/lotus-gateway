@@ -33,7 +33,7 @@ outputs.
 | `get_benchmark_assignment` | `/integration/portfolios/{portfolio_id}/benchmark-assignment` | Analytics Input | benchmark context for workspace composition | benchmark meaning remains core-governed input |
 | `get_portfolio_manager_book_memberships` | `POST /integration/portfolio-manager-books/{portfolio_manager_id}/memberships` | Operational Read | authenticated advisor own-book discovery | derive the manager from trusted caller context; preserve Core membership evidence; never widen through the global portfolio catalogue or infer team, delegated, supervisory, or household scope |
 | `get_benchmark_catalog` | `/integration/benchmarks/catalog` | Analytics Input watchlist | selector and catalog composition | keep catalog interpretation out of gateway |
-| support overview and readiness calls | `/support/portfolios/{portfolio_id}/*` | Control-plane and support metadata | show supportability and readiness | preserve partial readiness and gap details |
+| support overview and readiness calls | `/support/portfolios/{portfolio_id}/*` | Control-plane and support metadata; support overview `business_date` discovers the no-query Workbench snapshot candidate | show supportability and readiness | preserve partial readiness and gap details; snapshot freshness remains the authority for published business date |
 
 ## Domain Analytics Upstream Map
 

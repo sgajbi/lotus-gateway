@@ -374,9 +374,11 @@ reporting unit from portfolio base currency.
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
 4. reporting query, cashflow projection, projected summary, and benchmark catalog upstream calls remain RFC-0082 watchlist surfaces,
 5. integration drift is most dangerous here because it directly affects the product UI,
-6. an omitted optional portfolio workspace `as_of_date` must remain omitted for the initial
-   lotus-core AUM request; Gateway then aligns the remaining workspace sources and analytics to
-   the source-resolved date rather than substituting its host wall clock,
+6. an omitted optional Workbench `as_of_date` remains omitted from caller context; Gateway first
+   asks lotus-core support overview for the latest governed business date, uses that date for the
+   required snapshot query, and aligns date-dependent enrichment to the snapshot-confirmed date.
+   A host-date fallback may satisfy Core's required query shape but is never published as business
+   truth,
 7. repo-local `wiki/` content should summarize route families and operator flows without duplicating
    the full `docs/` tree.
 8. archive retrieval uses `ARCHIVE_SERVICE_BASE_URL` and forwards archive-specific caller context
