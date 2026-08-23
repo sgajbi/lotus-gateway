@@ -12,3 +12,14 @@ class AdvisorBookMembershipClient(Protocol):
         include_inactive: bool = False,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class AdvisorBookValueClient(Protocol):
+    async def query_assets_under_management(
+        self,
+        *,
+        correlation_id: str,
+        portfolio_ids: list[str],
+        as_of_date: str,
+        reporting_currency: str,
+    ) -> tuple[int, dict[str, Any]]: ...

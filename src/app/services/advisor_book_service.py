@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
-from pydantic import ValidationError
-
 from app.contracts.advisor_book import (
     AdvisorBookMandateType,
     AdvisorBookPage,
@@ -14,6 +12,7 @@ from app.contracts.advisor_book import (
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_client_protocols import AdvisorBookMembershipClient
+from app.services.advisor_book_membership_source import load_advisor_book_source
 from app.services.advisor_book_service_errors import (
     AdvisorBookServiceError,
 )
@@ -28,9 +27,6 @@ from app.services.advisor_book_service_errors import (
 )
 from app.services.advisor_book_service_errors import (
     source_incomplete as _source_incomplete,
-)
-from app.services.advisor_book_service_errors import (
-    source_unavailable as _source_unavailable,
 )
 from app.services.advisor_book_service_errors import (
     tenant_scope_unverified as _tenant_scope_unverified,
@@ -54,6 +50,13 @@ _SUPPORTED_PORTFOLIO_TYPES: tuple[AdvisorBookMandateType, ...] = (
 _SUPPORTED_PORTFOLIO_TYPE_BY_SOURCE_VALUE: dict[str, AdvisorBookMandateType] = {
     value: value for value in _SUPPORTED_PORTFOLIO_TYPES
 }
+
+__all__ = [
+    "AdvisorBookQuery",
+    "AdvisorBookService",
+    "AdvisorBookServiceError",
+    "ResolvedAdvisorBookSelection",
+]
 
 
 @dataclass(frozen=True)
@@ -133,6 +136,22 @@ class AdvisorBookService:
             portfolios=selected,
         )
 
+    async def load_membership_source(
+        self,
+        *,
+        caller: AdvisorBookCallerContext,
+        as_of_date: date,
+        correlation_id: str,
+    ) -> SourceAdvisorBookResponse | None:
+        """Load the validated active own-book source for sibling read compositions."""
+
+        return await self._load_source(
+            caller=caller,
+            as_of_date=as_of_date,
+            include_inactive=False,
+            correlation_id=correlation_id,
+        )
+
     async def _load_source(
         self,
         *,
@@ -141,59 +160,13 @@ class AdvisorBookService:
         include_inactive: bool,
         correlation_id: str,
     ) -> SourceAdvisorBookResponse | None:
-        try:
-            (
-                status_code,
-                payload,
-            ) = await self._membership_client.get_portfolio_manager_book_memberships(
-                portfolio_manager_id=caller.portfolio_manager_id,
-                as_of_date=as_of_date.isoformat(),
-                booking_center_code=caller.booking_center_code,
-                portfolio_types=list(_SUPPORTED_PORTFOLIO_TYPES),
-                include_inactive=include_inactive,
-                correlation_id=correlation_id,
-            )
-        except Exception as exc:
-            raise _source_unavailable() from exc
-
-        if status_code == 404:
-            return None
-        if status_code != 200:
-            raise _source_unavailable()
-
-        try:
-            source = SourceAdvisorBookResponse.model_validate(payload)
-        except ValidationError as exc:
-            raise _source_contract_invalid() from exc
-        _validate_source_scope(source=source, caller=caller, as_of_date=as_of_date)
-        return source
-
-
-def _validate_source_scope(
-    *,
-    source: SourceAdvisorBookResponse,
-    caller: AdvisorBookCallerContext,
-    as_of_date: date,
-) -> None:
-    if (
-        source.portfolio_manager_id != caller.portfolio_manager_id
-        or source.booking_center_code != caller.booking_center_code
-        or source.as_of_date != as_of_date
-        or source.supportability.returned_portfolio_count != len(source.members)
-        or any(
-            member.booking_center_code != caller.booking_center_code for member in source.members
-        )
-        or any(
-            _canonical_portfolio_type(member.portfolio_type) is None for member in source.members
-        )
-        or len({member.portfolio_id for member in source.members}) != len(source.members)
-    ):
-        raise _source_contract_invalid()
-    if source.tenant_id is not None and source.tenant_id != caller.tenant_id:
-        raise AdvisorBookServiceError(
-            code="advisor_book_tenant_scope_mismatch",
-            message="Advisor-book access is not available for this tenant scope.",
-            status_code=403,
+        return await load_advisor_book_source(
+            membership_client=self._membership_client,
+            caller=caller,
+            as_of_date=as_of_date,
+            include_inactive=include_inactive,
+            portfolio_types=_SUPPORTED_PORTFOLIO_TYPES,
+            correlation_id=correlation_id,
         )
 
 
