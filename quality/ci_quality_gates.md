@@ -57,7 +57,7 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
 3. Xenon complexity blocks must not exceed 2,
 4. Vulture findings must not exceed 24,
 5. Deptry findings must not exceed 48,
-6. security findings must not exceed 3,
+6. security severity counts must remain at Undefined 0, Low <=2, Medium <=1, and High 0,
 7. Interrogate documentation coverage must not fall below 1.6%, and
 8. Spectral OpenAPI problems must not exceed 4.
 

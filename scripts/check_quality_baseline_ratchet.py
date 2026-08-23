@@ -13,6 +13,7 @@ from typing import Any
 
 DEFAULT_BASELINE = Path("quality/quality_ratchet.json")
 DEFAULT_ARTIFACT_DIR = Path("output/quality-baseline")
+REPORT_RE_FLAGS = re.MULTILINE | re.DOTALL
 
 
 @dataclass(frozen=True)
@@ -47,8 +48,9 @@ def _read_metric(log_path: Path, metric: dict[str, Any]) -> Decimal:
     if not log_path.is_file():
         raise ValueError(f"Missing quality-baseline log for {metric['name']}: {log_path}")
     text = log_path.read_text(encoding="utf-8")
-    matches = re.findall(metric["pattern"], text, re.MULTILINE)
     kind = metric["kind"]
+    flags = REPORT_RE_FLAGS if kind in {"number", "group_sum"} else re.MULTILINE
+    matches = re.findall(metric["pattern"], text, flags)
     if kind == "count":
         if (
             not matches
@@ -56,7 +58,7 @@ def _read_metric(log_path: Path, metric: dict[str, Any]) -> Decimal:
             and not re.search(
                 metric["zero_pattern"],
                 text,
-                re.MULTILINE,
+                flags,
             )
         ):
             raise ValueError(f"Missing zero-success marker for {metric['name']} in {log_path}")
@@ -68,7 +70,7 @@ def _read_metric(log_path: Path, metric: dict[str, Any]) -> Decimal:
             and re.search(
                 metric["zero_pattern"],
                 text,
-                re.MULTILINE,
+                flags,
             )
         ):
             return Decimal(0)

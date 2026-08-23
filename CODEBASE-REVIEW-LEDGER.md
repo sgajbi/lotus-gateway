@@ -90,8 +90,9 @@ Reference branch: `origin/main`
   OpenAPI, or coverage regression. `--update-baseline` is explicit and intended only for a reviewed
   baseline change; CI never updates the baseline automatically.
 - Current ratchet: coverage 94.77% minimum; architecture import failures <=11; Xenon blocks <=2;
-  Vulture findings <=24; Deptry findings <=48; security findings <=3; Interrogate >=1.6%; and
-  Spectral problems <=4. Existing known findings remain visible and are not hidden or weakened.
+  Vulture findings <=24; Deptry findings <=48; security severity counts at Undefined 0, Low <=2,
+  Medium <=1, and High 0; Interrogate >=1.6%; and Spectral problems <=4. Existing known findings
+  remain visible and are not hidden or weakened.
 - Compatibility: application runtime, public API, schemas, migrations, and upstream contracts are
   unchanged. The change tightens CI behavior: a quality-baseline metric regression blocks that
   workflow and reports the violating metric and remediation command.
