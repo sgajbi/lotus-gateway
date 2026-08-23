@@ -2,6 +2,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.contracts.workbench import WorkbenchPortfolio360Response
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_snapshot_common import WORKBENCH_AS_OF_DATE_QUERY
 from app.services.workbench_service_provider import workbench_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -11,6 +12,7 @@ async def _get_portfolio_360(
     *,
     portfolio_id: str,
     session_id: str | None,
+    requested_as_of_date: str | None,
 ) -> WorkbenchPortfolio360Response:
     service = workbench_service()
     correlation_id = correlation_id_var.get()
@@ -18,6 +20,7 @@ async def _get_portfolio_360(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         session_id=session_id,
+        requested_as_of_date=requested_as_of_date,
     )
 
 
@@ -42,8 +45,10 @@ async def get_portfolio_360(
         description="Optional sandbox session identifier used to overlay projected state.",
         examples=["sess_1"],
     ),
+    as_of_date: str | None = WORKBENCH_AS_OF_DATE_QUERY,
 ) -> WorkbenchPortfolio360Response:
     return await _get_portfolio_360(
         portfolio_id=portfolio_id,
         session_id=session_id,
+        requested_as_of_date=as_of_date,
     )

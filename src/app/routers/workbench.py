@@ -2,6 +2,7 @@ from fastapi import APIRouter, Path
 
 from app.contracts.workbench import WorkbenchOverviewResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_snapshot_common import WORKBENCH_AS_OF_DATE_QUERY
 from app.services.workbench_service_provider import workbench_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -10,12 +11,14 @@ router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 async def _get_workbench_overview(
     *,
     portfolio_id: str,
+    requested_as_of_date: str | None,
 ) -> WorkbenchOverviewResponse:
     service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_overview(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
+        requested_as_of_date=requested_as_of_date,
     )
 
 
@@ -36,7 +39,9 @@ async def get_workbench_overview(
         description="Canonical portfolio identifier for the legacy workbench overview surface.",
         examples=["PF_1001"],
     ),
+    as_of_date: str | None = WORKBENCH_AS_OF_DATE_QUERY,
 ) -> WorkbenchOverviewResponse:
     return await _get_workbench_overview(
         portfolio_id=portfolio_id,
+        requested_as_of_date=as_of_date,
     )

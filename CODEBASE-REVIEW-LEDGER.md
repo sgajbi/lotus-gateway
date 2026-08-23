@@ -4,6 +4,35 @@ Last updated: 2026-08-23
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 3A — source-confirmed Workbench snapshot dates (#592)
+
+- Objective: stop Workbench overview and portfolio-360 from publishing the Core request-bound
+  date or Gateway host date as an effective portfolio business date.
+- Change: the shared Core snapshot mapping now reads `freshness.snapshot_timestamp` as source
+  temporal evidence, preserves requested and effective dates separately, and publishes the typed
+  `as_of_state` values `confirmed`, `accepted_unverified`, or `unavailable`. The legacy top-level
+  `as_of_date` is now the effective date or `null`; the date sent to Core for an omitted query is
+  retained only as an internal query/enrichment bound. Both Workbench snapshot routes accept the
+  same optional requested date control.
+- Regression proof: context tests cover source-confirmed evidence, explicit requested/effective
+  separation, and null freshness fail-closed behavior; router integration covers query propagation
+  and the additive response fields; OpenAPI contract tests pin both route parameters and response
+  metadata; composed performance workspace coverage proves downstream consumers fail closed when
+  no usable date exists.
+- Compatibility: query names and existing financial fields remain available. New temporal fields
+  are additive. The legacy `as_of_date` meaning is intentionally corrected and is nullable when
+  source evidence is unavailable; consumers must inspect `as_of_state` before presenting a date as
+  confirmed. Legacy incomplete Core payloads remain usable only as `accepted_unverified`. Composed
+  performance workspace consumers no longer fabricate a reference date when this evidence is
+  unavailable; they return typed `WORKBENCH_AS_OF_DATE_UNAVAILABLE` unless an explicit report end
+  was supplied.
+- Documentation decision: supported-features, API-surface wiki, and this ledger change because
+  the public date contract changed. No migration, central context, skill, or demo-pack change is
+  required. Wiki publication and strict parity are required after merge.
+- Deferred boundary: Workbench rendering of unavailable dates remains #814; mandate identity and
+  display-name enrichment remains #591; performance date semantics remains #572. No upstream Core
+  schema change is included.
+
 ## Performance Summary Review Controls
 
 - Scope: bounded Batches 2A and 2B of GitHub issue #572, limited to the Workbench performance summary

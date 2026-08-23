@@ -10,6 +10,7 @@ from app.contracts.workbench_common import (
     WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
 )
+from app.contracts.workbench_temporal import WorkbenchAsOfState
 
 
 class WorkbenchOverviewResponse(BaseModel):
@@ -22,9 +23,33 @@ class WorkbenchOverviewResponse(BaseModel):
         description="Gateway contract version for the workbench overview response.",
         examples=["v1"],
     )
-    as_of_date: str = Field(
-        description="Business as-of date for the workbench snapshot in YYYY-MM-DD format.",
+    as_of_date: str | None = Field(
+        default=None,
+        description=(
+            "Effective source date for the workbench snapshot in YYYY-MM-DD format. This is "
+            "null when the source does not provide usable temporal evidence; inspect "
+            "as_of_state before presenting it as confirmed."
+        ),
         examples=["2026-02-23"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-08-23"],
+    )
+    effective_as_of_date: str | None = Field(
+        default=None,
+        description="Source-derived effective snapshot date, when temporal evidence is usable.",
+        examples=["2026-04-10"],
+    )
+    as_of_state: WorkbenchAsOfState = Field(
+        default="unavailable",
+        description=(
+            "Temporal evidence state: confirmed when Core freshness metadata supplies a valid "
+            "source timestamp, accepted_unverified for a legacy source date without that "
+            "metadata, or unavailable when no usable source date exists."
+        ),
+        examples=["confirmed"],
     )
     portfolio: WorkbenchPortfolioSummary = Field(
         description="Portfolio identity block for the workbench surface."
@@ -55,6 +80,9 @@ class WorkbenchOverviewResponse(BaseModel):
                 "correlation_id": "corr-workbench-1",
                 "contract_version": "v1",
                 "as_of_date": "2026-02-23",
+                "requested_as_of_date": "2026-08-23",
+                "effective_as_of_date": "2026-04-10",
+                "as_of_state": "confirmed",
                 "portfolio": {
                     "portfolio_id": "PF_1001",
                     "client_id": "CIF_1001",
@@ -111,9 +139,33 @@ class WorkbenchPortfolio360Response(BaseModel):
         description="Gateway contract version for the portfolio-360 response.",
         examples=["v1"],
     )
-    as_of_date: str = Field(
-        description="Business as-of date for the portfolio-360 snapshot in YYYY-MM-DD format.",
+    as_of_date: str | None = Field(
+        default=None,
+        description=(
+            "Effective source date for the portfolio-360 snapshot in YYYY-MM-DD format. This "
+            "is null when the source does not provide usable temporal evidence; inspect "
+            "as_of_state before presenting it as confirmed."
+        ),
         examples=["2026-02-23"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-08-23"],
+    )
+    effective_as_of_date: str | None = Field(
+        default=None,
+        description="Source-derived effective snapshot date, when temporal evidence is usable.",
+        examples=["2026-04-10"],
+    )
+    as_of_state: WorkbenchAsOfState = Field(
+        default="unavailable",
+        description=(
+            "Temporal evidence state: confirmed when Core freshness metadata supplies a valid "
+            "source timestamp, accepted_unverified for a legacy source date without that "
+            "metadata, or unavailable when no usable source date exists."
+        ),
+        examples=["confirmed"],
     )
     portfolio: WorkbenchPortfolioSummary = Field(
         description="Portfolio identity block for the portfolio-360 surface."
@@ -163,6 +215,9 @@ class WorkbenchPortfolio360Response(BaseModel):
                 "correlation_id": "corr-workbench-2",
                 "contract_version": "v1",
                 "as_of_date": "2026-02-23",
+                "requested_as_of_date": "2026-08-23",
+                "effective_as_of_date": "2026-04-10",
+                "as_of_state": "confirmed",
                 "portfolio": {
                     "portfolio_id": "PF_1001",
                     "client_id": "CIF_1001",

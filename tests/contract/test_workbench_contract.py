@@ -178,6 +178,8 @@ def test_workbench_openapi_contract_registered() -> None:
     apply_parameters = {parameter["name"]: parameter for parameter in apply_operation["parameters"]}
 
     assert overview_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert overview_parameters["as_of_date"]["description"]
+    assert overview_parameters["as_of_date"]["schema"]["examples"] == ["2026-08-23"]
     assert "portfolio-360" in overview_operation["description"]
     assert overview_parameters["portfolio_id"]["description"]
     assert overview_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
@@ -187,6 +189,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert portfolio_360_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert portfolio_360_parameters["session_id"]["schema"]
     assert portfolio_360_parameters["session_id"]["description"]
+    assert portfolio_360_parameters["as_of_date"]["description"]
+    assert portfolio_360_parameters["as_of_date"]["schema"]["examples"] == ["2026-08-23"]
     assert analytics_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "risk proxy" in analytics_operation["description"].lower()
     assert analytics_parameters["portfolio_id"]["description"]
@@ -383,6 +387,9 @@ def test_workbench_openapi_contract_registered() -> None:
     assert overview_schema["example"]["rebalance_snapshot"]["status"] == "PENDING_REVIEW"
     assert overview_schema["properties"]["contract_version"]["description"]
     assert overview_schema["properties"]["as_of_date"]["description"]
+    assert overview_schema["properties"]["requested_as_of_date"]["description"]
+    assert overview_schema["properties"]["effective_as_of_date"]["description"]
+    assert overview_schema["properties"]["as_of_state"]["description"]
     assert overview_schema["properties"]["portfolio"]["description"]
     assert overview_schema["properties"]["overview"]["description"]
     assert overview_schema["properties"]["performance_snapshot"]["description"]
@@ -398,6 +405,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert overview_schema["properties"]["warnings"]["description"]
     assert overview_schema["properties"]["partial_failures"]["description"]
     assert portfolio_summary_schema["properties"]["portfolio_id"]["description"]
+    assert portfolio_360_schema["properties"]["as_of_date"]["description"]
+    assert portfolio_360_schema["properties"]["requested_as_of_date"]["description"]
+    assert portfolio_360_schema["properties"]["effective_as_of_date"]["description"]
+    assert portfolio_360_schema["properties"]["as_of_state"]["description"]
     assert portfolio_summary_schema["properties"]["client_id"]["description"]
     assert portfolio_summary_schema["properties"]["base_currency"]["description"]
     assert portfolio_summary_schema["properties"]["booking_center_code"]["description"]

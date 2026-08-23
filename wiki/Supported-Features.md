@@ -12,6 +12,23 @@ evidence exist.
 | Business, demo, and support | The feature sections below | Claims are implementation-backed only; degraded and unavailable source posture stays visible. |
 | Engineering and integration | The linked route, contract, and upstream authority notes | Gateway composes the client contract and does not replace domain calculation authority. |
 
+## Workbench Snapshot Date Semantics
+
+Status: implementation-backed for the Workbench overview and portfolio-360 routes.
+
+Both routes accept an optional requested `as_of_date`. Gateway preserves that request separately
+from the effective snapshot date and publishes `as_of_state`. Core `freshness.snapshot_timestamp`
+is the confirmation authority: a valid timestamp yields `confirmed` and its UTC calendar date;
+legacy Core payloads with only the request-bound date remain `accepted_unverified`; missing or
+invalid evidence yields `unavailable`. The legacy top-level `as_of_date` is the effective date or
+`null`, never an invented host-today value. The date sent to Core when the caller omits the query is
+only an internal query bound and is not published as portfolio truth. Workbench rendering of an
+unavailable date remains downstream work tracked by `lotus-workbench#814`; mandate identity and
+display-name enrichment remain tracked by #591, and performance date semantics remain tracked by
+#572. Composed performance workspace consumers fail closed with typed
+`WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable Workbench date
+is available.
+
 ## Performance Summary Completion
 
 Status: implementation-backed for deterministic cold and warm workspace-summary orchestration.

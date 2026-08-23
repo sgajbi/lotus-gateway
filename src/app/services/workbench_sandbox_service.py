@@ -46,6 +46,7 @@ class WorkbenchSandboxServiceMixin:
         correlation_id: str,
         include_performance_snapshot: bool = True,
         include_rebalance_snapshot: bool = True,
+        requested_as_of_date: str | None = None,
     ) -> WorkbenchOverviewResponse:
         raise NotImplementedError
 

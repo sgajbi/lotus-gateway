@@ -240,21 +240,36 @@ def test_raise_for_lotus_core_error_includes_upstream_detail():
 
 def test_parse_lotus_core_snapshot_invalid_structure_raises():
     with pytest.raises(HTTPException) as exc:
-        parse_lotus_core_snapshot("P1", [], {}, "2026-02-24")
+        parse_lotus_core_snapshot("P1", [], {})
     assert exc.value.status_code == 502
 
 
 def test_parse_lotus_core_snapshot_uses_fallback_defaults():
-    portfolio, overview, as_of_date = parse_lotus_core_snapshot(
+    portfolio, overview = parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
         portfolio_payload={},
         snapshot_payload={"sections": {}},
-        fallback_as_of_date="2026-02-24",
     )
     assert portfolio.portfolio_id == "P1"
     assert portfolio.base_currency == "USD"
     assert overview.cash_weight_pct == 0.0
-    assert as_of_date == "2026-02-24"
+
+
+@pytest.mark.asyncio
+async def test_workbench_portfolio_360_publishes_unavailable_temporal_state():
+    service, core_client, _, _ = _build_service()
+    core_client.core_payload["freshness"] = {"snapshot_timestamp": None}
+
+    response = await service.get_portfolio_360(
+        portfolio_id="P1",
+        correlation_id="corr-temporal-state",
+        requested_as_of_date="2026-08-23",
+    )
+
+    assert response.as_of_date is None
+    assert response.requested_as_of_date == "2026-08-23"
+    assert response.effective_as_of_date is None
+    assert response.as_of_state == "unavailable"
 
 
 @pytest.mark.parametrize(
@@ -957,11 +972,10 @@ def test_extract_current_positions_skips_asset_class_with_non_list_items():
 
 
 def test_parse_lotus_core_snapshot_handles_non_dict_overview_and_holdings_shapes():
-    portfolio, overview, _ = parse_lotus_core_snapshot(
+    portfolio, overview = parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
         portfolio_payload={"portfolio_id": "P1"},
         snapshot_payload={"sections": []},
-        fallback_as_of_date="2026-02-24",
     )
     assert portfolio.portfolio_id == "P1"
     assert overview.market_value_base == 0.0

@@ -11,8 +11,6 @@ from app.contracts.workbench import (
     WorkbenchPartialFailure,
     WorkbenchPerformanceSnapshot,
     WorkbenchPortfolio360Response,
-    WorkbenchProjectedPositionView,
-    WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
     WorkbenchTopChange,
 )
@@ -48,6 +46,15 @@ class WorkbenchAnalyticsParts:
     portfolio_return_pct: Any
     benchmark_return_pct: Any
     active_return_pct: Any
+
+
+def _snapshot_temporal_response_fields(context: WorkbenchSnapshotContext) -> dict[str, Any]:
+    return {
+        "as_of_date": context.effective_as_of_date,
+        "requested_as_of_date": context.requested_as_of_date,
+        "effective_as_of_date": context.effective_as_of_date,
+        "as_of_state": context.as_of_state,
+    }
 
 
 def _build_workbench_analytics_parts(
@@ -104,10 +111,12 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         correlation_id: str,
         include_performance_snapshot: bool = True,
         include_rebalance_snapshot: bool = True,
+        requested_as_of_date: str | None = None,
     ) -> WorkbenchOverviewResponse:
         context = await self._load_workbench_snapshot_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            requested_as_of_date=requested_as_of_date,
         )
         (
             performance_snapshot,
@@ -116,7 +125,7 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
             partial_failures,
         ) = await self._load_overview_enrichment(
             portfolio_id=portfolio_id,
-            as_of_date=context.as_of_date,
+            as_of_date=context.enrichment_as_of_date,
             correlation_id=correlation_id,
             include_performance_snapshot=include_performance_snapshot,
             include_rebalance_snapshot=include_rebalance_snapshot,
@@ -125,7 +134,7 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=context.as_of_date,
+            **_snapshot_temporal_response_fields(context),
             portfolio=context.portfolio,
             overview=context.overview,
             performance_snapshot=performance_snapshot,
@@ -154,10 +163,12 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         correlation_id: str,
         session_id: str | None = None,
         benchmark_code: str | None = None,
+        requested_as_of_date: str | None = None,
     ) -> WorkbenchPortfolio360Response:
         context = await self._load_workbench_snapshot_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            requested_as_of_date=requested_as_of_date,
         )
         (
             performance_snapshot,
@@ -166,25 +177,22 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
             partial_failures,
         ) = await self._load_overview_enrichment(
             portfolio_id=portfolio_id,
-            as_of_date=context.as_of_date,
+            as_of_date=context.enrichment_as_of_date,
             correlation_id=correlation_id,
             include_performance_snapshot=True,
             include_rebalance_snapshot=True,
             benchmark_code=benchmark_code,
         )
-
-        projected_positions: list[WorkbenchProjectedPositionView] = []
-        projected_summary: WorkbenchProjectedSummary | None = None
-        if session_id:
-            projected_positions, projected_summary = await self._load_projected_state(
-                session_id=session_id,
-                correlation_id=correlation_id,
-            )
+        projected_positions, projected_summary = (
+            await self._load_projected_state(session_id=session_id, correlation_id=correlation_id)
+            if session_id
+            else ([], None)
+        )
 
         return WorkbenchPortfolio360Response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=context.as_of_date,
+            **_snapshot_temporal_response_fields(context),
             portfolio=context.portfolio,
             overview=context.overview,
             performance_snapshot=performance_snapshot,
@@ -239,11 +247,13 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         *,
         portfolio_id: str,
         correlation_id: str,
+        requested_as_of_date: str | None = None,
     ) -> WorkbenchSnapshotContext:
         return await load_workbench_snapshot_context(
             core_client=self._lotus_core_query_client,
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            requested_as_of_date=requested_as_of_date,
         )
 
     async def _load_overview_enrichment(

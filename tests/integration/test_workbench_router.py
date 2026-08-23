@@ -262,12 +262,18 @@ def test_workbench_router_partial_failure(monkeypatch):
 
 
 def test_workbench_portfolio_360_router(monkeypatch):
+    snapshot_requests: list[str] = []
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
 
     async def _pas_core(*args, **kwargs):
+        snapshot_requests.append(kwargs["as_of_date"])
         return 200, {
             "as_of_date": "2026-02-23",
+            "freshness": {
+                "snapshot_timestamp": "2026-02-23T00:00:00Z",
+            },
             "sections": {
                 "positions_baseline": [
                     {
@@ -306,11 +312,15 @@ def test_workbench_portfolio_360_router(monkeypatch):
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/portfolio-360")
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?as_of_date=2026-08-23")
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert snapshot_requests == ["2026-08-23"]
     assert body["as_of_date"] == "2026-02-23"
+    assert body["requested_as_of_date"] == "2026-08-23"
+    assert body["effective_as_of_date"] == "2026-02-23"
+    assert body["as_of_state"] == "confirmed"
     assert body["overview"]["market_value_base"] == 1000.0
     assert body["performance_snapshot"]["return_pct"] == 1.5
     assert body["rebalance_snapshot"]["status"] == "NOT_AVAILABLE"
@@ -329,14 +339,24 @@ def test_workbench_portfolio_360_router(monkeypatch):
 def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
     captured: dict[str, object] = {}
 
-    async def _service(self, portfolio_id: str, correlation_id: str, session_id: str | None):
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        session_id: str | None,
+        requested_as_of_date: str | None,
+    ):
         captured["portfolio_id"] = portfolio_id
         captured["correlation_id"] = correlation_id
         captured["session_id"] = session_id
+        captured["requested_as_of_date"] = requested_as_of_date
         return {
             "correlation_id": correlation_id,
             "contract_version": "v1",
             "as_of_date": "2026-02-23",
+            "requested_as_of_date": requested_as_of_date,
+            "effective_as_of_date": "2026-02-23",
+            "as_of_state": "confirmed",
             "portfolio": {
                 "portfolio_id": portfolio_id,
                 "client_id": "CIF_1001",
@@ -362,12 +382,15 @@ def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
     )
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1")
+    response = client.get(
+        "/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1&as_of_date=2026-08-23"
+    )
 
     assert response.status_code == 200
     body = response.json()
     assert captured["portfolio_id"] == "PF_1001"
     assert captured["session_id"] == "sess_1"
+    assert captured["requested_as_of_date"] == "2026-08-23"
     assert captured["correlation_id"]
     assert body["active_session_id"] == "sess_1"
 
