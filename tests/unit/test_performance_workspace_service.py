@@ -1293,6 +1293,105 @@ async def test_performance_workspace_service_projects_summary_contract():
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_summary_forwards_review_controls_and_publishes_them():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-controls",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
+    )
+
+    assert response.as_of_date == "2026-04-10"
+    assert response.requested_as_of_date == "2026-04-10"
+    assert response.effective_as_of_date == "2026-04-10"
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "SGD"
+    assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-04-10"
+    assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "SGD"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_summary_explicit_window_takes_precedence_over_as_of():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-explicit-window",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        explicit_start_date="2026-01-01",
+        explicit_end_date="2026-03-27",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
+    )
+
+    assert response.as_of_date == "2026-04-10"
+    assert response.effective_as_of_date == "2026-03-27"
+    assert response.report_end_date == "2026-03-27"
+    assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-03-27"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_summary_cache_separates_reporting_currency():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        upstream_cache_ttl_seconds=60,
+    )
+
+    common_request = {
+        "portfolio_id": "DEMO_ADV_USD_001",
+        "period": "YTD",
+        "chart_frequency": "monthly",
+        "contribution_dimension": "asset_class",
+        "attribution_dimension": "asset_class",
+        "detail_basis": "NET",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
+        "requested_as_of_date": "2026-04-10",
+    }
+    await service.get_performance_workspace_summary(
+        correlation_id="corr-performance-usd",
+        requested_reporting_currency="USD",
+        **common_request,
+    )
+    await service.get_performance_workspace_summary(
+        correlation_id="corr-performance-sgd",
+        requested_reporting_currency="SGD",
+        **common_request,
+    )
+
+    assert len(analytics_client.workspace_summary_calls) == 2
+    assert [call["reporting_currency"] for call in analytics_client.workspace_summary_calls] == [
+        "USD",
+        "SGD",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_summary_preserves_source_calculation_supportability():
     class _StaleSupportabilityAnalyticsClient(_StubAnalyticsClient):
         async def get_workspace_summary(self, **kwargs):

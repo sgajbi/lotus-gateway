@@ -66,6 +66,15 @@ class WorkspaceResponseContext(Protocol):
     @property
     def segment(self) -> str: ...
 
+    @property
+    def requested_as_of_date(self) -> str | None: ...
+
+    @property
+    def requested_reporting_currency(self) -> str | None: ...
+
+    @property
+    def reporting_currency(self) -> str: ...
+
 
 @dataclass(frozen=True)
 class WorkspaceSummaryViews:
@@ -124,6 +133,10 @@ class WorkspaceResponseContextFields:
     requested_contribution_dimension_supported: bool
     requested_attribution_dimension_supported: bool
     segment: str
+    requested_as_of_date: str | None
+    effective_as_of_date: str
+    requested_reporting_currency: str | None
+    effective_reporting_currency: str
 
 
 def assemble_performance_workspace_response(
@@ -140,6 +153,10 @@ def assemble_performance_workspace_response(
         contract_version=context_fields.contract_version,
         portfolio_id=portfolio_id,
         as_of_date=context_fields.as_of_date,
+        requested_as_of_date=context_fields.requested_as_of_date,
+        effective_as_of_date=context_fields.effective_as_of_date,
+        requested_reporting_currency=context_fields.requested_reporting_currency,
+        effective_reporting_currency=context_fields.effective_reporting_currency,
         period=context_fields.period,
         report_start_date=context_fields.report_start_date,
         report_end_date=context_fields.report_end_date,
@@ -178,7 +195,7 @@ def workspace_response_context_fields(
 ) -> WorkspaceResponseContextFields:
     return WorkspaceResponseContextFields(
         contract_version=context.overview.contract_version,
-        as_of_date=context.overview.as_of_date,
+        as_of_date=(getattr(context, "requested_as_of_date", None) or context.report_end_date),
         period=context.effective_period,
         report_start_date=context.report_start_date.isoformat(),
         report_end_date=context.report_end_date,
@@ -192,4 +209,10 @@ def workspace_response_context_fields(
         ),
         requested_attribution_dimension_supported=context.requested_attribution_dimension_supported,
         segment=context.segment,
+        requested_as_of_date=getattr(context, "requested_as_of_date", None),
+        effective_as_of_date=context.report_end_date,
+        requested_reporting_currency=getattr(context, "requested_reporting_currency", None),
+        effective_reporting_currency=(
+            getattr(context, "reporting_currency", None) or context.overview.portfolio.base_currency
+        ),
     )

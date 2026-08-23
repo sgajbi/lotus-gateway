@@ -114,6 +114,26 @@ class PerformanceWorkspaceResponse(BaseModel):
     )
     portfolio_id: str
     as_of_date: str
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-04-10"],
+    )
+    effective_as_of_date: str = Field(
+        default="",
+        description="Last report-window date used for the performance calculation.",
+        examples=["2026-04-10"],
+    )
+    requested_reporting_currency: str | None = Field(
+        default=None,
+        description="Reporting currency requested by the caller, when supplied.",
+        examples=["SGD"],
+    )
+    effective_reporting_currency: str = Field(
+        default="",
+        description="Reporting currency forwarded to the performance source.",
+        examples=["SGD"],
+    )
     period: str
     report_start_date: str
     report_end_date: str

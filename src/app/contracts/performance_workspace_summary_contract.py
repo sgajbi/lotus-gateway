@@ -31,8 +31,30 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
         examples=["PF_1001"],
     )
     as_of_date: str = Field(
-        description="Resolved as-of date used for the performance summary response.",
+        description=(
+            "Requested review as-of date, or the effective date when no request was supplied."
+        ),
         examples=["2026-02-24"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-04-10"],
+    )
+    effective_as_of_date: str = Field(
+        default="",
+        description="Last report-window date used for the performance summary calculation.",
+        examples=["2026-04-10"],
+    )
+    requested_reporting_currency: str | None = Field(
+        default=None,
+        description="Reporting currency requested by the caller, when supplied.",
+        examples=["SGD"],
+    )
+    effective_reporting_currency: str = Field(
+        default="",
+        description="Reporting currency forwarded to lotus-performance.",
+        examples=["SGD"],
     )
     period: str = Field(
         description="Resolved requested horizon for the performance summary response.",
@@ -103,6 +125,10 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                 "contract_version": "v1",
                 "portfolio_id": "PF_1001",
                 "as_of_date": "2026-02-24",
+                "requested_as_of_date": "2026-02-24",
+                "effective_as_of_date": "2026-02-24",
+                "requested_reporting_currency": "USD",
+                "effective_reporting_currency": "USD",
                 "period": "YTD",
                 "report_start_date": "2026-01-01",
                 "report_end_date": "2026-02-24",
