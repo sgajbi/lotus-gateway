@@ -93,24 +93,12 @@ production-only `requirements-audit.txt` intentionally excludes this test-only d
 - Dashboard claims and Workbench attention events outside the Workbench surface remain planned
   until later RFC-0108 slices promote them with evidence.
 
-## Foundation workspace performance horizon
-
-- The Foundation workspace resolves the Core analytics reference before calling
-  `lotus-performance`.
-- `PortfolioAnalyticsReference.performance_end_date` is the report end date for the Foundation YTD
-  TWR request when Core publishes it.
-- This prevents a weekend, holiday, or otherwise incomplete calendar date from creating a
-  misleading degraded performance fan-out when the latest complete performance horizon is ready.
-- If the analytics reference lookup is unavailable, Gateway falls back to the snapshot as-of date
-  and surfaces any resulting performance degradation through the normal warning and partial-failure
-  contract.
-
 ## Practical probes
 
 ```powershell
 $GATEWAY_BASE_URL = "http://127.0.0.1:8111"
 curl "$GATEWAY_BASE_URL/health/ready"
-curl "$GATEWAY_BASE_URL/api/v1/foundation/portfolios/PF_1001/workspace"
+curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
 curl "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
 curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
   -H "X-Actor-Id: support-operator-1" \
@@ -130,6 +118,6 @@ evidence. It is not a replacement for populated Workbench browser proof.
 
 ## Key references
 
-- [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
+- [docs/architecture.md](../docs/architecture.md)
 - [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
 - [docs/demo/README.md](../docs/demo/README.md)

@@ -4,6 +4,10 @@ This page is the current operator and engineering map for `lotus-gateway` valida
 release evidence, and progressive enterprise-hardening gates. It records implementation-backed
 checks and the current measured quality baseline; it is not a replacement for GitHub check truth.
 
+Historical validation entries below may mention the retired Foundation route implementation and
+its extraction branches. They are retained as engineering history; current route guidance is in
+[API Surface](API-Surface) and uses only the product-owned `/api/v1/portfolio/*` family.
+
 ## Reader Map
 
 | Reader | First Question | Use This Evidence |
@@ -522,10 +526,10 @@ script-counted lines while preserving the public `app.contracts.portfolio` impor
 local `make check` passed with 1,169 unit/contract tests, and full local `make ci` passed with 207
 integration tests, 1,376 combined coverage tests, 94.22% total coverage, migration contract smoke,
 and no known vulnerabilities after the governed `PYSEC-2026-161` exception. Focused
-refactor-threshold trials prove `max_source_file_lines=951` passes while `950` fails on
-`src/app/services/foundation_service.py`.
+refactor-threshold trials prove `max_source_file_lines=951` passes while `950` fails on the
+then-existing Foundation service.
 
-The merged Foundation core-snapshot mapper branch ratcheted the source-file threshold to 930
+Historical Foundation core-snapshot mapper work ratcheted the source-file threshold to 930
 script-counted lines after moving lotus-core snapshot parsing, defensive payload normalization,
 allocation bucketing, top-position mapping, and market-value extraction into
 `foundation_core_snapshot.py`. It reduces `src/app/services/foundation_service.py` from 951 to 618
@@ -1050,7 +1054,7 @@ and 1,242 unit/contract tests. Full local `make ci` passed with migration contra
 integration tests, 1,451 combined coverage tests, 94.30% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current analytics risk-client boundary branch splits risk calculate, concentration, drawdown,
+Historical analytics risk-client boundary work split risk calculate, concentration, drawdown,
 rolling metrics, and historical-attribution forwarding into
 `src/app/clients/lotus_analytics_risk_client.py` while preserving the public
 `LotusAnalyticsClient` surface. It reduces `src/app/clients/lotus_analytics_client.py` from 623 to
@@ -1059,7 +1063,7 @@ script-counted lines, making `src/app/services/foundation_service.py` the source
 blocker. Local `make check` passed with workflow governance, mypy over 561 source files, OpenAPI
 smoke, and 1,243 unit/contract tests.
 
-The current Foundation catalog-payload boundary branch splits portfolio catalog item parsing into
+Historical Foundation catalog-payload boundary work split portfolio catalog item parsing into
 `src/app/services/foundation_catalog_payloads.py` while preserving the public `FoundationService`
 surface. It reduces `src/app/services/foundation_service.py` from 618 to 591 script-counted lines
 and ratchets the blocking source-file threshold from 618 to 610 script-counted lines, making
@@ -1085,7 +1089,7 @@ lines, making `src/app/contracts/dpm_command_center.py` the source-file ceiling 
 validation passed with 52 DPM wave/service-boundary tests. Full local `make check` passed with
 workflow governance, mypy over 564 source files, OpenAPI smoke, and 1,248 unit/contract tests.
 
-The current DPM portfolio-memory contract-family boundary branch splits
+Historical DPM portfolio-memory contract-family work split
 `DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
 `src/app/contracts/dpm_portfolio_memory.py` while preserving the public `dpm_command_center`
 compatibility facade. It moves the largest residual source-file hotspot to
@@ -1095,7 +1099,7 @@ contract/service tests and 67 contract/service/quality tests after adding thresh
 assertions. Full local `make check` passed with workflow governance, mypy over 565 source files,
 OpenAPI smoke, and 1,249 unit/contract tests.
 
-The current Foundation optional-workspace boundary branch splits optional performance, rebalance,
+Historical Foundation optional-workspace boundary work split optional performance, rebalance,
 reporting, evidence-summary, and workflow-cue parsing into
 `src/app/services/foundation_workspace_optional.py` while preserving the public
 `FoundationService` API surface. It reduces `src/app/services/foundation_service.py` from 591 to

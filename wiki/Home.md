@@ -12,8 +12,8 @@ portfolio, performance, risk, advisory, DPM, reporting, archive, or AI truth.
 - Repo context: [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
 - Demo pack and claim control:
   [docs/demo/README.md](../docs/demo/README.md)
-- Experience-API blueprint:
-  [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
+- Architecture guide:
+  [docs/architecture.md](../docs/architecture.md)
 - Upstream contract-family map:
   [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
 - Quality and enterprise-readiness baseline:
@@ -24,7 +24,7 @@ portfolio, performance, risk, advisory, DPM, reporting, archive, or AI truth.
 ## Current phase
 
 - primary backend contract for `lotus-workbench`
-- active route families across foundation, workbench, platform capabilities, domain-product
+- active route families across Workbench, platform capabilities, domain-product
   discovery, proposals, reviewed advisory narrative posture, advisory policy, advisor cockpit,
   bank-demo proof, reporting, portfolio, and intake/lookups
 - still replacing thin pass-through patterns with cleaner experience-API contracts

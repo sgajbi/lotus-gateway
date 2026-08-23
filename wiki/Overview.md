@@ -57,7 +57,7 @@ supportability, and degraded-state posture.
 
 | Surface | Business Use | Implementation-Backed Gateway Posture | Source Authority |
 | --- | --- | --- | --- |
-| Foundation and platform capabilities | Workbench shell bootstrap, navigation gating, and product readiness checks | Active route families for foundation workspace entry, platform capability aggregation, and feature supportability posture | Gateway composes; upstream capability truth remains in the owning services |
+| Platform capabilities | Workbench shell bootstrap, navigation gating, and product readiness checks | Active route family for platform capability aggregation and feature supportability posture | Gateway composes; upstream capability truth remains in the owning services |
 | Portfolio and Workbench overview | Portfolio landing, portfolio 360, readiness, operations snapshot, and first-paint analytics context | Active Gateway contracts with partial-readiness handling and bounded DPM operations posture | `lotus-core`, `lotus-performance`, `lotus-risk`, and `lotus-manage` |
 | Performance and risk workspaces | Front-office analytics review, evidence, supportability, and degraded-state display | Active Workbench-facing route families that preserve source calculation supportability and methodology boundaries | `lotus-performance` and `lotus-risk` |
 | Advisory proposals, policy, cockpit, and bank-demo proof | Advisor proposal lifecycle, suitability/policy review, action cockpit, and proof-backed demo material | Active Gateway publication over implemented Advise routes, with client-ready and external-communication boundaries preserved | `lotus-advise` |

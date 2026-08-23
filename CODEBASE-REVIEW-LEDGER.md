@@ -1,8 +1,29 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
+
+### Batch 2N — retire duplicate foundation portfolio-workspace routes (#574)
+
+- Objective: leave one canonical Gateway portfolio workspace contract after Workbench migrated its
+  validator from the unconsumed foundation family to `/api/v1/portfolio/*`.
+- Scope: Workbench product and validator inventory, Gateway route registry, OpenAPI metadata,
+  foundation-only services/contracts/tests, the dead protocol re-exports, current README/docs/wiki
+  route claims, retired RFC status, and monetary-float allowlist entries for deleted files.
+- Compatibility: intentional pre-live removal of `/api/v1/foundation/*`; no redirect or alias is
+  provided. The product-owned portfolio routes and response contract remain unchanged.
+- Evidence: Workbench `main` at `4cfe203a` contains no positive foundation consumer references;
+  Gateway contract coverage now asserts the product workspace paths remain present and foundation
+  paths/schemas remain absent. Full Gateway and canonical Workbench validation are required before
+  closure.
+- Local validation: focused route/provider/boundary coverage passed with 131 tests; repository
+  `make check` passed with 1,954 unit/contract tests, mypy over 757 source files, monetary-float
+  governance, workflow governance, agent-quality evidence, refactor thresholds at 316/49, and the
+  OpenAPI gate. The OpenAPI contract now proves zero foundation paths and schemas.
+- Documentation decision: README, supported-features, API-surface, architecture, runbook, RFC
+  index/status, release note, review ledger, and wiki source change. Historical RFC-0014/RFC-0015
+  remain for decision history and are explicitly marked retired.
 
 ### Batch 3B — latest source-confirmed Workbench date for omitted queries (#595)
 

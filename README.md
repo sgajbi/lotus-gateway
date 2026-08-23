@@ -10,8 +10,8 @@ workflow system, reporting engine, archive, or AI authority.
 Repository-local engineering context:
 [REPOSITORY-ENGINEERING-CONTEXT.md](REPOSITORY-ENGINEERING-CONTEXT.md)
 
-Experience-API blueprint:
-[docs/documentation/experience-api-foundation-blueprint.md](docs/documentation/experience-api-foundation-blueprint.md)
+Architecture guide:
+[docs/architecture.md](docs/architecture.md)
 
 Upstream contract-family map:
 [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
@@ -46,7 +46,7 @@ way:
 
 1. Gateway is the governed API boundary consumed by Workbench.
 2. Gateway preserves upstream authority and supportability rather than recomputing domain truth.
-3. Gateway has implementation-backed route families for foundation/workbench, platform
+3. Gateway has implementation-backed route families for Workbench, platform
    capabilities, domain-product discovery, portfolio, performance/risk workbench reads, proposals,
    advisory policy, advisor cockpit, bank-demo proof, DPM command center, reporting, report
    batches, archive metadata/download, idea review/candidate reads, and analytics diagnostics.
@@ -125,7 +125,7 @@ Boundary rules that matter:
 ## Current Operational Posture
 
 1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
-2. Foundation, platform capabilities, proposals, advisory policy, advisor cockpit, bank-demo proof,
+2. Platform capabilities, proposals, advisory policy, advisor cockpit, bank-demo proof,
    reporting, intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
@@ -141,8 +141,6 @@ Boundary rules that matter:
 
 Main runtime surfaces come from [src/app/main.py](src/app/main.py):
 
-- `foundation`
-  `/api/v1/foundation/*`
 - `platform`
   `/api/v1/platform/*`
 - `domain-products`
@@ -536,8 +534,8 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   [wiki/Supported-Features.md](wiki/Supported-Features.md)
 - copy-paste API examples:
   [wiki/API-Surface.md](wiki/API-Surface.md)
-- architecture direction:
-  [docs/documentation/experience-api-foundation-blueprint.md](docs/documentation/experience-api-foundation-blueprint.md)
+- architecture guide:
+  [docs/architecture.md](docs/architecture.md)
 - upstream integration governance:
   [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
 - RFC inventory:

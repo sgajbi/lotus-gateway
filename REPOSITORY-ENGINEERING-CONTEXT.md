@@ -32,7 +32,7 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, advisory-workspace, advisory-policy, advisory-copilot,
-   advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
+   advisor-cockpit, bank-demo proof, reporting, and capability aggregation
    routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, typed
    selected-proposal risk-and-impact, implementation-status, and discussion-pack-review evidence,
    async operation support,

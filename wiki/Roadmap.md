@@ -3,7 +3,7 @@
 ## Current phase
 
 - active experience API for `lotus-workbench`
-- foundation, workbench, reporting, proposal, and platform capability contracts are live
+- Workbench, reporting, proposal, and platform capability contracts are live
 - domain-product discovery, archive retrieval, analytics diagnostics, bank-demo proof, advisor
   cockpit, advisory policy, DPM command-center, report job, and report batch route families are
   active where listed in [Supported Features](Supported-Features) and [API Surface](API-Surface)

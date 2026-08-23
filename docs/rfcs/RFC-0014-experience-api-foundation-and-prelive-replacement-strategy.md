@@ -1,5 +1,9 @@
 # RFC-0014: Experience API Foundation and Pre-Live Replacement Strategy
 
+> Status: Retired historical proposal. The pre-live replacement direction was applied by the
+> product-owned portfolio workspace route; the duplicate `/api/v1/foundation/*` Gateway family
+> was removed in Batch 2N. This RFC remains for decision history and is not an active API contract.
+
 - Status: PROPOSED
 - Date: 2026-03-26
 - Owners: lotus-gateway

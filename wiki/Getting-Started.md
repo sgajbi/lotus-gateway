@@ -73,5 +73,5 @@ the governed Workbench runtime and platform QA evidence.
 - [README.md](../README.md)
 - [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
 - [docs/demo/README.md](../docs/demo/README.md)
-- [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
+- [docs/architecture.md](../docs/architecture.md)
 - [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)

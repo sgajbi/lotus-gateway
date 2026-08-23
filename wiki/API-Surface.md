@@ -8,8 +8,8 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 ## Route families
 
-- `GET /api/v1/foundation/portfolios`
-- `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace`
+- `GET /api/v1/portfolio/portfolios`
+- `GET /api/v1/portfolio/portfolios/{portfolio_id}/workspace`
 - `GET /api/v1/platform/capabilities`
 - `GET /api/v1/domain-products/catalog`
 - `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
@@ -502,17 +502,15 @@ Domain-product trust certification:
 curl "$GATEWAY_BASE_URL/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
-Foundation workspace:
+Portfolio workspace:
 
 ```bash
-curl "$GATEWAY_BASE_URL/api/v1/foundation/portfolios/PF_1001/workspace"
+curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
 ```
 
-The Foundation workspace uses `lotus-core` portfolio identity and core-snapshot sections for
-first-paint holdings context, then resolves `PortfolioAnalyticsReference.performance_end_date`
-before requesting YTD TWR from `lotus-performance`. This keeps the displayed return, supportability
-state, and fan-out logs aligned to the latest complete calculable performance horizon instead of a
-raw calendar date.
+The portfolio workspace uses the product-owned Gateway contract for first-paint portfolio context.
+Use the dedicated Workbench performance routes for detailed performance evidence and horizon
+semantics.
 
 Performance summary:
 
