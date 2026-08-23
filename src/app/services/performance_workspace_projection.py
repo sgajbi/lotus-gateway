@@ -28,6 +28,7 @@ def project_workspace_summary(
         effective_as_of_date=workspace.effective_as_of_date,
         requested_reporting_currency=workspace.requested_reporting_currency,
         effective_reporting_currency=workspace.effective_reporting_currency,
+        reporting_currency_state=workspace.reporting_currency_state,
         period=workspace.period,
         report_start_date=workspace.report_start_date,
         report_end_date=workspace.report_end_date,

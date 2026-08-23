@@ -26,6 +26,7 @@ def test_project_workspace_summary_keeps_summary_contract_fields_only():
     assert summary.portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert summary.period == "YTD"
     assert summary.detail_basis == "NET"
+    assert summary.reporting_currency_state == "accepted_unverified"
     assert summary.benchmark_options == []
     assert summary.net_performance.portfolio_return_pct == 4.2
     assert summary.warnings == ["PERFORMANCE_EVIDENCE_PARTIAL"]
@@ -128,6 +129,7 @@ def _workspace_response(
         correlation_id="corr-performance",
         contract_version="v1",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
+        reporting_currency_state="accepted_unverified",
         as_of_date="2026-03-31",
         period="YTD",
         report_start_date="2026-01-01",
