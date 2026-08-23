@@ -88,7 +88,10 @@ families accept `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and `E
 `SI` uses Core `PortfolioAnalyticsReference.portfolio_open_date`; Gateway does not invent an
 inception date. If that source evidence is missing, invalid, or after the requested end date,
 Gateway returns `422 PERFORMANCE_INCEPTION_UNAVAILABLE` (or the more specific typed window error)
-and does not submit an analytics request. `EXPLICIT` requires `report_start_date`.
+and does not submit an analytics request. `EXPLICIT` requires `report_start_date`. The portfolio
+performance-snapshot route uses canonical `report_start_date` and `report_end_date` names, while
+retaining `explicit_start_date` and `explicit_end_date` as deprecated one-release aliases for
+backward compatibility. When both names are supplied for a boundary, the canonical name wins.
 
 Unknown periods and malformed window dates return a typed `422` rather than silently becoming a
 YTD request. The horizon-comparison module intentionally remains limited to `MTD`, `QTD`, `YTD`,

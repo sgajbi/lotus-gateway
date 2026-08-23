@@ -119,7 +119,11 @@ families accept `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and `E
 `10Y` use inclusive trailing boundaries. `SI` is resolved only from Core's source-owned
 `PortfolioAnalyticsReference.portfolio_open_date`; Gateway never invents an inception date.
 Missing, invalid, or future inception evidence fails closed with a typed `422`, and `EXPLICIT`
-requires `report_start_date`. Unknown periods and malformed dates do not silently become YTD.
+requires `report_start_date`. The portfolio performance-snapshot route uses canonical
+`report_start_date` and `report_end_date` names, while retaining `explicit_start_date` and
+`explicit_end_date` as deprecated one-release aliases; when both names are supplied for a
+boundary, the canonical name wins. Unknown periods and malformed dates do not silently become
+YTD.
 
 The compact horizon-comparison module intentionally supports only `MTD`, `QTD`, `YTD`, and
 `EXPLICIT`, because it composes those three standard rows. Longer horizons belong to the summary
