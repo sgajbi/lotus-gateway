@@ -362,13 +362,14 @@ Performance attribution level totals are also source-owned. Gateway preserves ex
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
 `lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.
 
-The Workbench performance summary route now accepts optional `as_of_date` and
-`reporting_currency` controls. Gateway forwards the selected reporting currency to
-`lotus-performance`, uses the requested as-of date as the report-window end when an explicit end
-date is absent, and publishes requested versus effective date/currency fields. This is currently
-limited to the summary route; details, attribution trend, advisor brief, lookup-backed currency
-validation, and workspace capability promotion remain separate follow-up slices under GitHub
-issue #572.
+The Workbench performance summary, details, attribution-trend, and advisor-brief routes accept
+optional `as_of_date` and `reporting_currency` controls. Gateway forwards the selected reporting
+currency to `lotus-performance`, uses the requested as-of date as the report-window end when an
+explicit end date is absent, and publishes requested versus effective date/currency fields plus
+typed currency state. Advisor-brief read and review-action routes reuse the shared performance
+workspace context and preserve selected controls in source links. This does not promote workspace
+capabilities, claim source-applied currency evidence, or add lookup-backed currency validation;
+those remain separate follow-up slices under GitHub issue #572.
 When the summary source rejects a requested currency, the Gateway publishes a typed
 lotus-performance partial failure, resolves effective currency back to the portfolio base, and
 publishes `reporting_currency_state="rejected"` only when the source returns a typed
