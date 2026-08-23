@@ -23,6 +23,7 @@ from app.services.workbench_analytics_projection import (
 from app.services.workbench_core_snapshot import (
     extract_current_positions,
     parse_lotus_core_snapshot,
+    resolve_snapshot_date_evidence,
 )
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
 from app.services.workbench_policy_feedback import (
@@ -253,6 +254,25 @@ def test_parse_lotus_core_snapshot_uses_fallback_defaults():
     assert portfolio.portfolio_id == "P1"
     assert portfolio.base_currency == "USD"
     assert overview.cash_weight_pct == 0.0
+
+
+@pytest.mark.parametrize(
+    "snapshot_payload",
+    [
+        {"freshness": None, "as_of_date": "2026-02-24"},
+        {"freshness": {"snapshot_timestamp": 123}},
+        {"freshness": {"snapshot_timestamp": "not-a-timestamp"}},
+        {"as_of_date": "not-a-date"},
+        {"as_of_date": 123},
+    ],
+)
+def test_resolve_snapshot_date_evidence_fails_closed_for_malformed_source_metadata(
+    snapshot_payload,
+):
+    evidence = resolve_snapshot_date_evidence(snapshot_payload)
+
+    assert evidence.effective_as_of_date is None
+    assert evidence.as_of_state == "unavailable"
 
 
 @pytest.mark.asyncio
