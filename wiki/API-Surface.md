@@ -64,6 +64,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 ## Current contract notes
 
+- Performance attribution level totals are source-owned. `total_effect_pct` is nullable when
+  `lotus-performance` omits the level aggregate; Gateway does not reconstruct it from rows or
+  convert missing evidence into numeric zero. An explicit source-authored zero remains `0.0`.
+
 - Portfolio workspace `as_of_date` is an optional review-date override. When it is omitted,
   Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same
   date for cashflow, cash balances, readiness, and performance composition. Gateway host time is

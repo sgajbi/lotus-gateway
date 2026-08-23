@@ -5,6 +5,13 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
+## Reader Map
+
+| Reader | Start with | Current evidence boundary |
+| --- | --- | --- |
+| Business, demo, and support | The feature sections below | Claims are implementation-backed only; degraded and unavailable source posture stays visible. |
+| Engineering and integration | The linked route, contract, and upstream authority notes | Gateway composes the client contract and does not replace domain calculation authority. |
+
 ## Performance Summary Completion
 
 Status: implementation-backed for deterministic cold and warm workspace-summary orchestration.
@@ -36,6 +43,17 @@ Authority and boundary:
 4. deadline exhaustion does not prove a calculation failure, permit duplicate financial work, or
    make a later warm response valid readiness evidence on its own; if the source has not published
    acceptance, Gateway omits calculation identity and result location instead of inventing them.
+
+## Performance Attribution Aggregate Authority
+
+Status: implementation-backed for preserving source-owned attribution level totals.
+
+Gateway publishes `total_effect_pct` from `lotus-performance` without reconstructing the level
+aggregate from its rows. Explicit numeric zero, positive, and negative totals are preserved;
+missing or null source totals are returned as `null` so Workbench can distinguish unavailable
+evidence from a legitimate zero. The attribution-trend cumulative total also remains `null` once
+a contributing period total is unavailable. Attribution methodology and calculation authority
+remain in `lotus-performance`.
 
 ## Authenticated Advisor Book
 

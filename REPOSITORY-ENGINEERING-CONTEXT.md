@@ -338,6 +338,10 @@ source-owned lifecycle state. Keep both meanings explicit in Gateway OpenAPI, pr
 `null` serialization for rows without a reported applicable lifecycle, and leave business presentation to Workbench without
 reclassifying arbitrary source codes in the BFF.
 
+Performance attribution level totals are also source-owned. Gateway preserves explicit numeric
+zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
+`lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.
+
 1. Windows startup can serve a misleading health-only process if `--app-dir src` is omitted,
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
