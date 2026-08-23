@@ -68,6 +68,12 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `lotus-performance` omits the level aggregate; Gateway does not reconstruct it from rows or
   convert missing evidence into numeric zero. An explicit source-authored zero remains `0.0`.
 
+- Workbench performance summary accepts optional `as_of_date` and `reporting_currency` query
+  controls. Gateway forwards reporting currency to `lotus-performance`, uses `as_of_date` as the
+  report-window end when `report_end_date` is absent, and publishes requested/effective date and
+  currency fields. The control is summary-only for now; details, attribution trend, and advisor
+  brief remain on the follow-up path tracked by GitHub issue #572.
+
 - Portfolio workspace `as_of_date` is an optional review-date override. When it is omitted,
   Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same
   date for cashflow, cash balances, readiness, and performance composition. Gateway host time is

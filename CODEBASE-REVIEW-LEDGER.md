@@ -4,6 +4,31 @@ Last updated: 2026-08-23
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+## Performance Summary Review Controls
+
+- Scope: bounded Batch 2A of GitHub issue #572, limited to the Workbench performance summary
+  route and its existing Gateway-to-`lotus-performance` request path.
+- Objective: expose optional `as_of_date` and `reporting_currency` controls without allowing the
+  summary route to pin currency to portfolio base or echo the service clock as review truth.
+- Change: the route validates ISO-shaped query inputs, normalizes currency codes to uppercase,
+  forwards the effective currency through the existing summary cache/client boundary, uses the
+  requested as-of date as the report-window end when no explicit end is supplied, and publishes
+  requested/effective date and currency fields. Explicit report windows remain authoritative.
+- Regression proof: service tests cover forwarding and response publication plus explicit-window
+  precedence; router integration coverage proves query parsing and uppercase normalization; the
+  existing summary, context, response, projection, dependency, and Workbench suites remain green.
+- Compatibility: omitted controls preserve the existing base-currency/default-window request
+  path, while the summary `as_of_date` now reflects the resolved report-window date rather than
+  the Workbench overview service clock. Details, attribution trend, advisor brief, currency
+  lookup validation, capability promotion, and downstream Workbench enablement are explicitly
+  deferred follow-ups under #572.
+- Documentation decision: repository context, API-surface wiki, supported-features wiki, and
+  this ledger change because the summary contract and support boundary changed. No central
+  platform context or skill change is required.
+- Follow-up: complete the remaining #572 route family only after the summary slice is merged and
+  its exact-mainline/live evidence is recorded; do not promote workspace capabilities from this
+  bounded slice alone.
+
 ## Attribution Level Aggregate Source Authority
 
 - Scope: GitHub issue #506, the performance attribution level mapper and its Workbench-facing
