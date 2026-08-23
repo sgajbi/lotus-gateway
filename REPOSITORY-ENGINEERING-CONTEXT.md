@@ -322,7 +322,11 @@ Important validation expectations:
 9. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
    `quality/quality_ratchet.json`; every Quality Baseline run must publish current value, baseline,
    delta, threshold, and remediation evidence. Baseline updates auto-tighten only; any loosening
-   requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change,
+   requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change.
+   Every report-producing quality log must also carry exactly one numeric
+   `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate
+   markers are measurement failures, while non-zero status with reviewed baseline findings remains
+   explicit debt evidence,
 10. Quality Baseline uses the `pull_request` event targeting `main` as its sole authoritative
    automated feature-revision trigger; feature-branch pushes do not start a duplicate run. Its
    concurrency group uses the pull-request number to cancel stale synchronized revisions while

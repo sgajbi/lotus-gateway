@@ -149,6 +149,12 @@ baseline update must use the explicit `--update-baseline` command after inspecti
 tool findings. This prevents new AI-generated or accidental quality regressions without claiming
 that all existing findings are already resolved.
 
+Every report-producing quality log also carries exactly one
+`QUALITY_COMMAND_STATUS=<non-negative integer>` marker from the producer process exit status.
+Missing, malformed, or duplicate markers fail artifact validation because the measurement is not
+trustworthy. A non-zero status alongside reviewed baseline findings remains explicit trend evidence;
+a tool failure without a parseable result cannot be counted as zero findings.
+
 The workflow has one authoritative automated feature event: `pull_request` targeting `main`.
 Feature-branch pushes do not create a duplicate Quality Baseline run; opening or synchronizing a
 PR produces the protected check for that head SHA. Manual dispatch remains available for explicit

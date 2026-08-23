@@ -3,6 +3,7 @@ from pathlib import Path
 
 from scripts.check_quality_baseline_artifacts import (
     EXPECTED_BASELINE_LOGS,
+    QUALITY_TOOL_LOGS,
     validate_quality_baseline_artifacts,
 )
 
@@ -13,7 +14,10 @@ def _write_complete_artifacts(tmp_path: Path) -> tuple[Path, Path]:
     artifact_dir = tmp_path / "quality-baseline"
     artifact_dir.mkdir()
     for log_name in EXPECTED_BASELINE_LOGS:
-        (artifact_dir / log_name).write_text(f"{log_name} evidence\n", encoding="utf-8")
+        evidence = f"{log_name} evidence\n"
+        if log_name in QUALITY_TOOL_LOGS:
+            evidence += "QUALITY_COMMAND_STATUS=0\n"
+        (artifact_dir / log_name).write_text(evidence, encoding="utf-8")
 
     openapi_path = tmp_path / "openapi.json"
     openapi_path.write_text(
@@ -45,6 +49,49 @@ def test_validate_quality_baseline_artifacts_reports_missing_log(tmp_path: Path)
     )
 
     assert findings == [f"Missing quality baseline log: {missing_log}"]
+
+
+def test_validate_quality_baseline_artifacts_reports_missing_command_status(
+    tmp_path: Path,
+) -> None:
+    artifact_dir, openapi_path = _write_complete_artifacts(tmp_path)
+    status_log = artifact_dir / QUALITY_TOOL_LOGS[0]
+    status_log.write_text("ruff evidence\n", encoding="utf-8")
+
+    findings = validate_quality_baseline_artifacts(
+        artifact_dir=artifact_dir,
+        openapi_path=openapi_path,
+    )
+
+    assert findings == [
+        f"Expected exactly one QUALITY_COMMAND_STATUS marker in {status_log}, found 0"
+    ]
+
+
+def test_validate_quality_baseline_artifacts_rejects_ambiguous_or_invalid_status(
+    tmp_path: Path,
+) -> None:
+    artifact_dir, openapi_path = _write_complete_artifacts(tmp_path)
+    duplicate_log = artifact_dir / QUALITY_TOOL_LOGS[0]
+    duplicate_log.write_text(
+        "QUALITY_COMMAND_STATUS=0\nQUALITY_COMMAND_STATUS=1\n",
+        encoding="utf-8",
+    )
+    invalid_log = artifact_dir / QUALITY_TOOL_LOGS[1]
+    invalid_log.write_text("QUALITY_COMMAND_STATUS=failed\n", encoding="utf-8")
+
+    findings = validate_quality_baseline_artifacts(
+        artifact_dir=artifact_dir,
+        openapi_path=openapi_path,
+    )
+
+    assert findings == [
+        f"Expected exactly one QUALITY_COMMAND_STATUS marker in {duplicate_log}, found 2",
+        (
+            "Invalid QUALITY_COMMAND_STATUS marker in "
+            f"{invalid_log}: expected a non-negative integer, received 'failed'"
+        ),
+    ]
 
 
 def test_validate_quality_baseline_artifacts_reports_invalid_openapi(tmp_path: Path) -> None:

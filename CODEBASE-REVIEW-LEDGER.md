@@ -230,7 +230,7 @@ Reference branch: `origin/main`
   integration regression covers `/performance/summary?reporting_currency=SGD` with a stubbed 503,
   asserting base-currency fallback and the typed `HTTP_503` partial failure. No public contract or
   wiki truth changed, so no additional wiki update is required for this follow-forward slice.
-- CI audit: the broader quality baseline remains a separately tracked governance gap in #581;
+- CI audit: the remaining Quality Baseline measurement-integrity follow-up is tracked in #613;
   duplicate Quality Baseline execution remains separately tracked in #523. Neither is mixed into
   this bounded currency fix.
 
@@ -257,6 +257,26 @@ Reference branch: `origin/main`
 - Follow-up: #523 remains the independent duplicate-run/concurrency slice. Promotion of individual
   advisory findings to clean gates remains a future bounded slice after their baseline issues are
   remediated; this ratchet prevents those findings from increasing meanwhile.
+
+### Quality Baseline status-evidence slice — #613
+
+- Objective: make quality measurements fail closed when a report-producing tool does not provide
+  trustworthy producer-status evidence, without weakening reviewed known-debt thresholds.
+- Change: report-producing Quality Baseline steps now capture the producer exit status as exactly
+  one `QUALITY_COMMAND_STATUS=<non-negative integer>` marker. The artifact validator rejects missing,
+  malformed, or duplicate markers, while the ratchet parser continues to reject a failed tool that
+  emitted no parseable measurement rather than counting it as zero findings.
+- Measurable improvement: tool execution status is machine-readable in every quality artifact, and
+  measurement failure is distinguishable from a non-zero status with explicit baseline findings.
+- Compatibility: application runtime, public API, schemas, migrations, thresholds, and Docker/
+  Compose ownership are unchanged. Existing known findings remain explicit trend data; no tool was
+  excluded, relocated, or made easier to pass.
+- Regression proof: focused artifact-validator and ratchet tests cover complete status evidence,
+  missing status, duplicate status, malformed status, and failed-tool/no-result behavior; full
+  repository `make check` passed.
+- Documentation decision: operations runbook, CI quality-gate policy, authored wiki, and this
+  ledger changed because CI evidence semantics and operator interpretation changed. No central
+  platform context or skill change was needed.
 
 ### Quality Baseline event deduplication slice — #523
 
