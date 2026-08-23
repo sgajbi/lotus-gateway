@@ -1,11 +1,26 @@
+import logging
 from typing import Any
 
-from app.contracts.dpm_command_center import (
-    DpmOutcomeReviewErrorDetail,
+from fastapi import HTTPException, status
+
+from app.contracts.dpm_pm_operating_quality import (
+    DpmPmOperatingQualityErrorDetail,
     DpmPmOperatingQualityGatewayResponse,
 )
 from app.services import dpm_command_center_supportability
-from app.services.upstream_envelope import build_product_safe_upstream_status_gateway_envelope
+from app.services.dpm_pm_operating_quality_errors import (
+    PmOperatingQualityValidationEvidence,
+    extract_pm_operating_quality_validation_evidence,
+)
+from app.services.upstream_envelope import (
+    build_upstream_status_gateway_envelope,
+    safe_upstream_detail,
+)
+
+logger = logging.getLogger("analytics_ui.gateway")
+_PM_OPERATING_QUALITY_OPERATION = "manage.rebalance.pm_operating_quality"
+_PM_OPERATING_QUALITY_ERROR_CODE = "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR"
+_PM_OPERATING_QUALITY_DEFAULT_DETAIL = "lotus-manage command-center request failed"
 
 
 def compose_pm_operating_quality_response(
@@ -13,7 +28,35 @@ def compose_pm_operating_quality_response(
     upstream_payload: dict[str, Any],
     correlation_id: str,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return build_product_safe_upstream_status_gateway_envelope(
+    evidence = extract_pm_operating_quality_validation_evidence(
+        upstream_status,
+        upstream_payload,
+    )
+    if upstream_status >= status.HTTP_400_BAD_REQUEST:
+        _log_pm_operating_quality_error(
+            correlation_id=correlation_id,
+            upstream_status=upstream_status,
+            evidence=evidence,
+        )
+        raise HTTPException(
+            status_code=upstream_status,
+            detail=DpmPmOperatingQualityErrorDetail(
+                upstream_status=upstream_status,
+                error_code=_PM_OPERATING_QUALITY_ERROR_CODE,
+                detail=(
+                    safe_upstream_detail(
+                        upstream_payload,
+                        default_detail=_PM_OPERATING_QUALITY_DEFAULT_DETAIL,
+                    )
+                    if upstream_status < status.HTTP_500_INTERNAL_SERVER_ERROR
+                    else _PM_OPERATING_QUALITY_DEFAULT_DETAIL
+                ),
+                reason_codes=list(evidence.reason_codes),
+                field_paths=list(evidence.field_paths),
+            ).model_dump(),
+        )
+
+    return build_upstream_status_gateway_envelope(
         DpmPmOperatingQualityGatewayResponse,
         correlation_id=correlation_id,
         upstream_status=upstream_status,
@@ -21,7 +64,27 @@ def compose_pm_operating_quality_response(
             upstream_payload
         ),
         upstream_payload=upstream_payload,
-        error_model=DpmOutcomeReviewErrorDetail,
-        error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-        default_detail="lotus-manage command-center request failed",
+    )
+
+
+def _log_pm_operating_quality_error(
+    *,
+    correlation_id: str,
+    upstream_status: int,
+    evidence: PmOperatingQualityValidationEvidence,
+) -> None:
+    logger.warning(
+        "gateway.manage.pm_operating_quality.upstream_error",
+        extra={
+            "extra_fields": {
+                "event": "gateway.manage.pm_operating_quality.upstream_error",
+                "service": "lotus-manage",
+                "operation": _PM_OPERATING_QUALITY_OPERATION,
+                "correlation_id": correlation_id,
+                "upstream_status": upstream_status,
+                "error_code": _PM_OPERATING_QUALITY_ERROR_CODE,
+                "reason_codes": list(evidence.reason_codes),
+                "field_paths": list(evidence.field_paths),
+            }
+        },
     )

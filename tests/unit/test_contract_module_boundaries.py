@@ -132,6 +132,7 @@ def test_dpm_pm_operating_quality_contracts_live_outside_dpm_command_center_faca
     pm_quality_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_pm_operating_quality.py")
 
     expected_pm_quality_contracts = {
+        "DpmPmOperatingQualityErrorDetail",
         "DpmPmOperatingQualityForwardRequest",
         "DpmPmOperatingQualityGatewayResponse",
         "DpmPmOperatingQualitySummaryGatewayResponse",

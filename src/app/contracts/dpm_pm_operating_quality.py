@@ -177,6 +177,46 @@ class DpmPmOperatingQualitySupportability(BaseModel):
     )
 
 
+class DpmPmOperatingQualityErrorDetail(BaseModel):
+    """Product-safe PM-quality error detail with bounded validation evidence."""
+
+    source_service: str = Field(
+        default="lotus-manage",
+        description="Upstream service that rejected or failed the PM operating-quality request.",
+        examples=["lotus-manage"],
+    )
+    upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage.",
+        examples=[422],
+    )
+    error_code: str = Field(
+        description="Stable Gateway classification for the failed PM operating-quality request.",
+        examples=["MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR"],
+    )
+    detail: str = Field(
+        description="Product-safe summary of the Manage error payload.",
+        examples=["PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"],
+    )
+    reason_codes: list[str] = Field(
+        default_factory=list,
+        max_length=8,
+        description=(
+            "At most eight sanitized Manage validation/error codes. Messages and request values "
+            "are never exposed."
+        ),
+        examples=[["missing", "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"]],
+    )
+    field_paths: list[str] = Field(
+        default_factory=list,
+        max_length=8,
+        description=(
+            "At most eight sanitized validation field paths, without submitted field values or "
+            "raw payload content."
+        ),
+        examples=[["policy.tenant_id", "governance.approval"]],
+    )
+
+
 class DpmPmOperatingQualityGatewayResponse(BaseModel):
     correlation_id: str = Field(
         description="Correlation identifier propagated across Gateway and lotus-manage.",
