@@ -107,9 +107,17 @@ jobs:
         run: |
           set +e
           {
-            radon cc src/app -s -a
-            radon mi src/app -s
-            xenon --max-absolute C --max-modules B --max-average A src/app
+            radon_cc_status=0
+            radon cc src/app -s -a || radon_cc_status=$?
+            radon_mi_status=0
+            radon mi src/app -s || radon_mi_status=$?
+            xenon_status=0
+            xenon --max-absolute C --max-modules B --max-average A src/app || xenon_status=$?
+            status=0
+            if [ "${radon_cc_status}" -ne 0 ] || [ "${radon_mi_status}" -ne 0 ] || [ "${xenon_status}" -ne 0 ]; then
+              status=1
+            fi
+            exit "${status}"
           } 2>&1 | tee output/quality-baseline/complexity.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/complexity.txt

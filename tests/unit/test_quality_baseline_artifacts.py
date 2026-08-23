@@ -140,6 +140,28 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "if-no-files-found: error" in workflow
 
 
+def test_complexity_baseline_aggregates_all_producer_statuses() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "quality-baseline.yml").read_text(
+        encoding="utf-8"
+    )
+
+    complexity_step = workflow.split("      - name: Complexity Baseline", 1)[1].split(
+        "      - name: Dead Code Baseline", 1
+    )[0]
+
+    assert "radon cc src/app -s -a || radon_cc_status=$?" in complexity_step
+    assert "radon mi src/app -s || radon_mi_status=$?" in complexity_step
+    assert (
+        "xenon --max-absolute C --max-modules B --max-average A src/app || xenon_status=$?"
+        in complexity_step
+    )
+    assert (
+        'if [ "${radon_cc_status}" -ne 0 ] || [ "${radon_mi_status}" -ne 0 ] || '
+        '[ "${xenon_status}" -ne 0 ]; then' in complexity_step
+    )
+    assert "printf 'QUALITY_COMMAND_STATUS=%s\\n' \"${status}\"" in complexity_step
+
+
 def test_quality_baseline_workflow_has_one_authoritative_automated_event() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "quality-baseline.yml").read_text(
         encoding="utf-8"
