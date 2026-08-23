@@ -82,15 +82,17 @@ Current repository posture:
 4. source-backed report ordering configuration and selected-scope eligibility are active under
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
    only implemented submission paths, and client/book scopes do not imply portfolio membership,
-5. authenticated advisor own-book discovery is active under
-   `/api/v1/advisor-book/portfolios`; Gateway derives the manager only from trusted caller context,
-   consumes Core `PortfolioManagerBookMembership:v1`, preserves assignment basis and provenance,
-   rejects cross-scope evidence, reports null Core tenant scope as degraded, and does not fall back
-   to the global portfolio catalogue or infer team, delegate, supervisor, household,
-   assets-under-management, attention, suitability, communication, or execution truth. Its
-   repo-native RFC-0084 consumer declaration records the direct Core dependency, required trust
-   metadata, protected lanes, and fail-closed posture; Gateway remains an experience API rather
-   than the assignment authority,
+5. authenticated advisor own-book discovery and bounded own-book value summary are active under
+   `/api/v1/advisor-book/portfolios` and `/api/v1/advisor-book/summary`; Gateway derives the
+   manager only from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`,
+   preserves assignment basis and provenance, and rejects cross-scope evidence. The summary makes
+   an explicit as-of date and reporting currency mandatory, reads Core's source-owned AUM contract
+   once for the trusted cohort, and never computes valuation or publishes a partial aggregate.
+   Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
+   household, performance, risk, attention, suitability, communication, or execution truth. Its
+   repo-native RFC-0084 consumer declaration records the direct membership dependency, required
+   trust metadata, protected lanes, and fail-closed posture; the AUM route remains an RFC-0082
+   operational-read dependency rather than a new domain-product declaration,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,

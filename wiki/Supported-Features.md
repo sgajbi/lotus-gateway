@@ -155,6 +155,7 @@ Business outcome:
 Supported route:
 
 1. `GET /api/v1/advisor-book/portfolios`
+2. `GET /api/v1/advisor-book/summary`
 
 Authority and boundary:
 
@@ -166,8 +167,13 @@ Authority and boundary:
 3. a non-null conflicting source tenant, booking centre, manager, business date, duplicate
    portfolio, or malformed contract fails closed,
 4. null Core tenant scope is explicit degraded posture and is not tenant-isolation certification,
-5. team, delegate, supervisor, household, assets-under-management, attention, suitability,
-   recommendation, client communication, order, and execution coverage are not claimed.
+5. the portfolio-discovery route does not claim team, delegate, supervisor, household,
+   assets-under-management, attention, suitability, recommendation, client communication, order,
+   or execution coverage,
+6. the value-summary route reads Core-owned AUM facts for the trusted active cohort only, requires
+   explicit `asOfDate` and `reportingCurrency`, preserves per-portfolio coverage, and publishes
+   the Core aggregate only when every entitled portfolio is covered; Gateway does not value
+   holdings, sum partial rows, or substitute zero.
 
 ## Proposal Risk And Impact Evidence
 

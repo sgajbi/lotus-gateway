@@ -120,7 +120,10 @@ calculation methodology or make Gateway the owner of portfolio/performance sourc
    proposal-version run lineage,
 6. bank-demo proof scenario contract, supported-claim register, and proof-pack capture.
 7. authenticated own-book portfolio discovery through `GET /api/v1/advisor-book/portfolios`,
-   backed by Core `PortfolioManagerBookMembership:v1` and bounded to trusted caller context.
+   backed by Core `PortfolioManagerBookMembership:v1` and bounded to trusted caller context,
+8. a bounded own-book value summary through `GET /api/v1/advisor-book/summary`, backed by one
+   Core `POST /reporting/assets-under-management/query` scope read with an explicit business date
+   and reporting currency.
 
 Selected proposal Risk and Impact evidence validates decision-status, top-level-status,
 recommended-action, workflow-gate, and blocking-evidence relationships at the Gateway boundary.
@@ -133,8 +136,16 @@ Advisor-book discovery supports an explicit business date, exact client and mand
 deterministic sorting, and bounded paging. It identifies governed role assignments separately from
 the bounded legacy advisor projection, reports missing Core tenant scope as degraded, rejects
 cross-tenant or cross-booking-centre evidence, and never falls back to the global portfolio
-catalogue. Team, delegated, supervisory, household, assets-under-management, attention,
-suitability, recommendation, communication, and execution claims are not supported by this route.
+catalogue. The portfolio-discovery route does not claim team, delegated, supervisory, household,
+assets-under-management, attention, suitability, recommendation, communication, or execution
+coverage.
+
+The value-summary route composes only the trusted active membership cohort with Core-owned AUM
+facts. It preserves Core's resolved as-of date and reporting currency, returns per-portfolio value
+and position-count facts, uses the Core aggregate only when every entitled portfolio is covered,
+and leaves the aggregate null for partial coverage. Gateway does not value holdings, sum partial
+rows, substitute zero, or claim performance, cash, risk, attention, mandate, suitability, or
+recommendation truth.
 
 ## DPM Command Center
 

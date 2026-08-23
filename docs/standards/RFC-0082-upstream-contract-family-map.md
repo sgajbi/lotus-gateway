@@ -24,7 +24,7 @@ outputs.
 | `get_effective_policy` | `GET /integration/policy/effective` | Control-plane and policy | expose effective policy context | preserve policy provenance |
 | `list_portfolios`, `get_portfolio`, `get_portfolio_positions`, `get_portfolio_transactions` | `/portfolios`, `/portfolios/{portfolio_id}`, `/positions`, `/transactions` | Operational Read | product-facing portfolio and activity views | do not convert convenience reads into analytics source truth |
 | `list_instruments`, lookup calls | `/instruments`, `/lookups/*` | Operational Read | selector and reference-data payloads | maintain source-service attribution |
-| reporting query calls | `/reporting/*/query` | Operational Read watchlist | reporting-oriented workspace summaries | keep as read-model consumption; do not define new reporting semantics in gateway |
+| `query_assets_under_management` and other reporting query calls | `/reporting/*/query` | Operational Read watchlist | reporting-oriented workspace summaries and bounded advisor-book value facts | consume Core-owned AUM totals and per-portfolio facts as a read model; do not define valuation or reporting semantics in gateway |
 | `get_cashflow_projection` | `/portfolios/{portfolio_id}/cashflow-projection` | Operational Read watchlist | front-office cashflow projection panel | preserve upstream methodology and supportability |
 | `get_core_snapshot` | `/integration/portfolios/{portfolio_id}/core-snapshot` | Snapshot and simulation | simulation and workspace state bundle | do not add performance or risk analytics sections locally |
 | simulation session calls | `/simulation-sessions/*` | Snapshot and simulation | create and mutate projected state | gateway only brokers product flow; simulation semantics remain upstream |
@@ -160,12 +160,15 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    explicit scope eligibility, and preserves Report-owned output availability and reason codes.
    It does not expand client or advisor-book membership, publish unimplemented schedule/source
    workflow submission paths, grant distribution approval, or infer document completion.
-9. Authenticated advisor own-book discovery is exposed through gateway-owned
-   `/api/v1/advisor-book/portfolios`. Gateway derives manager identity from trusted caller
-   context, consumes Core `PortfolioManagerBookMembership:v1`, rejects cross-scope evidence,
-   preserves source provenance and legacy-assignment basis, and reports null source tenant scope
-   as degraded. It does not use the global catalogue as a fallback or infer delegated, team,
-   supervisor, household, assets-under-management, attention, suitability, or execution truth.
+9. Authenticated advisor own-book discovery and the bounded value summary are exposed through
+   gateway-owned `/api/v1/advisor-book/portfolios` and `/api/v1/advisor-book/summary`. Gateway
+   derives manager identity from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`
+   for the entitled cohort, and the summary consumes one Core AUM scope read with explicit date and
+   reporting currency. It rejects cross-scope evidence, preserves source provenance and
+   legacy-assignment basis, reports null source tenant scope as degraded, and leaves the aggregate
+   null for partial value coverage. It does not use the global catalogue as a fallback, calculate
+   valuation, or infer delegated, team, supervisor, household, performance, risk, attention,
+   suitability, or execution truth.
    `contracts/domain-data-products/lotus-gateway-consumers.v1.json` is the repo-native RFC-0084
    consumer declaration for this direct dependency and records `api_read`, fail-closed behavior,
    required trust metadata, and feature/PR/platform end-to-end validation ownership. Gateway #509

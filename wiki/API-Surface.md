@@ -21,6 +21,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/proposals/{proposal_id}/execution-status`
 - `GET` and `POST /api/v1/advisory-copilot/*`
 - `GET /api/v1/advisor-book/portfolios`
+- `GET /api/v1/advisor-book/summary`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -118,6 +119,11 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   centre, role, and capability headers. The actor identifies the manager's own book; there is no
   advisor-id query override. Optional `clientId`, `mandateType`, `sortBy`, `sortOrder`, `offset`,
   and `limit` inputs only narrow or order the source cohort.
+- advisor-book value summary requires camelCase `asOfDate` and `reportingCurrency` plus the same
+  trusted caller headers. Gateway resolves active own-book membership, performs one Core AUM scope
+  read, preserves source-reported value facts and coverage, and returns a null aggregate when any
+  entitled portfolio is not covered. It does not calculate valuation or claim performance, risk,
+  cash, attention, mandate, suitability, or recommendation truth.
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as

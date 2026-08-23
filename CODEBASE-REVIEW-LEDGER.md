@@ -4,6 +4,27 @@ Last updated: 2026-08-24
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2O — publish bounded source-backed advisor-book value summary (#616)
+
+- Objective: expose a useful own-book value summary without turning Gateway into a valuation or
+  portfolio-membership authority.
+- Change: added `GET /api/v1/advisor-book/summary`, which resolves the trusted active membership
+  cohort, performs one Core AUM scope read with explicit `asOfDate` and `reportingCurrency`, and
+  publishes typed per-portfolio value/position facts, source provenance, and coverage state.
+  Core's aggregate is used only for complete coverage; partial rows remain explicit and the
+  aggregate remains null. Existing `/api/v1/advisor-book/portfolios` behavior is unchanged.
+- Regression proof: unit tests prove one scoped Core call, canonical currency propagation, source
+  aggregate usage, partial coverage without zero substitution, scope mismatch rejection, and
+  product-safe upstream failure. Integration tests prove trusted caller scope, invalid currency
+  rejection before service execution, and the typed OpenAPI/example contract.
+- Compatibility: additive route and schemas only. No migration, configuration, dependency, or
+  existing advisor-book route change is required. No CI threshold is weakened; existing unit,
+  contract, OpenAPI, layering, type, quality, and full integration gates cover the new surface.
+- Documentation decision: supported-features, architecture, repository context, RFC-0082 map,
+  API-surface wiki, supported-features wiki, integrations wiki, and this ledger change. The Core
+  AUM route remains an RFC-0082 operational-read dependency and does not create a new RFC-0084
+  domain-product declaration. Wiki publication and strict parity are required after merge.
+
 ### Batch 2N — retire duplicate foundation portfolio-workspace routes (#574)
 
 - Objective: leave one canonical Gateway portfolio workspace contract after Workbench migrated its
