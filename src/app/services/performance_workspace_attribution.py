@@ -247,7 +247,7 @@ def _build_attribution_levels(
                 allocation_total_pct=quantize_optional(totals_payload.get("allocation")),
                 selection_total_pct=quantize_optional(totals_payload.get("selection")),
                 interaction_total_pct=quantize_optional(totals_payload.get("interaction")),
-                total_effect_pct=total_effect or 0.0,
+                total_effect_pct=total_effect,
                 rows=_build_attribution_rows(
                     rows_payload=level_payload.get(row_key, []),
                     quantize_effects_with_policy=quantize_effects_with_policy,

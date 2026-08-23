@@ -85,9 +85,13 @@ class AttributionLevelView(BaseModel):
         description="Domain-authored interaction total percentage for the full level.",
         examples=[0.03],
     )
-    total_effect_pct: float = Field(
-        description="Domain-authored total attribution effect percentage for the full level.",
-        examples=[0.45],
+    total_effect_pct: float | None = Field(
+        default=None,
+        description=(
+            "Domain-authored total attribution effect percentage for the full level; "
+            "null when lotus-performance does not publish the aggregate."
+        ),
+        examples=[0.45, None],
     )
     rows: list[AttributionRowView] = Field(
         default_factory=list,

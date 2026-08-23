@@ -2203,6 +2203,10 @@ def test_workbench_performance_details_attribution_openapi_contract():
     assert attribution_level_schema["properties"]["selection_total_pct"]["description"]
     assert attribution_level_schema["properties"]["interaction_total_pct"]["description"]
     assert attribution_level_schema["properties"]["total_effect_pct"]["description"]
+    total_effect_schema = attribution_level_schema["properties"]["total_effect_pct"]
+    assert {"type": "number"} in total_effect_schema["anyOf"]
+    assert {"type": "null"} in total_effect_schema["anyOf"]
+    assert "does not publish the aggregate" in total_effect_schema["description"]
     assert (
         "without gateway-side truncation"
         in attribution_level_schema["properties"]["rows"]["description"]
@@ -2248,6 +2252,10 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert response_schema["properties"]["requested_attribution_dimension_supported"]["description"]
     assert row_schema["properties"]["total_effect_pct"]["description"]
     assert row_schema["properties"]["cumulative_total_effect_pct"]["description"]
+    assert {"type": "number"} in row_schema["properties"]["total_effect_pct"]["anyOf"]
+    assert {"type": "null"} in row_schema["properties"]["total_effect_pct"]["anyOf"]
+    assert {"type": "number"} in row_schema["properties"]["cumulative_total_effect_pct"]["anyOf"]
+    assert {"type": "null"} in row_schema["properties"]["cumulative_total_effect_pct"]["anyOf"]
     assert row_schema["properties"]["residual_pct"]["description"]
     assert row_schema["properties"]["status"]["description"]
     assert row_schema["properties"]["reason_codes"]["description"]

@@ -41,7 +41,7 @@ def parse_attribution_trend_results(
     partial_failures: list[WorkbenchPartialFailure],
 ) -> list[PerformanceAttributionTrendRow]:
     rows: list[PerformanceAttributionTrendRow] = []
-    cumulative_total_effect = 0.0
+    cumulative_total_effect: float | None = 0.0
 
     for index, result in enumerate(results):
         window_start, window_end = window_pairs[index]
@@ -57,7 +57,10 @@ def parse_attribution_trend_results(
         if parsed_row is None:
             continue
 
-        cumulative_total_effect += parsed_row.total_effect_pct or 0.0
+        if cumulative_total_effect is None or parsed_row.total_effect_pct is None:
+            cumulative_total_effect = None
+        else:
+            cumulative_total_effect += parsed_row.total_effect_pct
         row_payload = parsed_row.model_dump()
         row_payload["cumulative_total_effect_pct"] = quantize_optional(cumulative_total_effect)
         rows.append(PerformanceAttributionTrendRow(**row_payload))
