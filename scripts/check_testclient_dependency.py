@@ -29,6 +29,15 @@ def main() -> int:
         )
         return 1
 
+    try:
+        import httpx2
+    except Exception as error:
+        print(
+            "TestClient dependency check failed: importing httpx2 raised "
+            f"{error.__class__.__name__}: {error}"
+        )
+        return 1
+
     import warnings
 
     with warnings.catch_warnings():
@@ -48,7 +57,10 @@ def main() -> int:
             )
             return 1
 
-    print(f"TestClient dependency check passed: httpx2={installed_version}; no import warnings")
+    print(
+        "TestClient dependency check passed: "
+        f"httpx2={installed_version} ({httpx2.__name__}); no import warnings"
+    )
     return 0
 
 
