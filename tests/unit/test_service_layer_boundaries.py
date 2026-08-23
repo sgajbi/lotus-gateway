@@ -412,58 +412,6 @@ def test_portfolio_services_import_focused_protocol_family() -> None:
         assert "app.services.workspace_client_protocols" not in imports
 
 
-def test_foundation_protocols_are_split_from_workspace_protocol_aggregator() -> None:
-    workspace_protocols_path = _SERVICE_ROOT / "workspace_client_protocols.py"
-    foundation_protocols_path = _SERVICE_ROOT / "foundation_client_protocols.py"
-    workspace_tree = ast.parse(
-        workspace_protocols_path.read_text(encoding="utf-8"),
-        filename=str(workspace_protocols_path),
-    )
-    foundation_tree = ast.parse(
-        foundation_protocols_path.read_text(encoding="utf-8"),
-        filename=str(foundation_protocols_path),
-    )
-
-    workspace_protocol_names = {
-        node.name for node in ast.walk(workspace_tree) if isinstance(node, ast.ClassDef)
-    }
-    foundation_protocol_names = {
-        node.name for node in ast.walk(foundation_tree) if isinstance(node, ast.ClassDef)
-    }
-
-    assert {
-        "FoundationCoreClient",
-        "FoundationManageClient",
-        "FoundationPerformanceClient",
-        "FoundationReportingClient",
-    }.isdisjoint(workspace_protocol_names)
-    assert foundation_protocol_names == {
-        "FoundationCoreClient",
-        "FoundationManageClient",
-        "FoundationPerformanceClient",
-        "FoundationReportingClient",
-    }
-
-
-def test_foundation_service_imports_focused_protocol_family() -> None:
-    imports = _imported_modules(_SERVICE_ROOT / "foundation_service.py")
-    assert "app.services.foundation_client_protocols" in imports
-    assert "app.services.workspace_client_protocols" not in imports
-
-
-def test_foundation_workspace_source_loading_lives_in_focused_mixin() -> None:
-    service_methods = _function_names(_SERVICE_ROOT / "foundation_service.py")
-    source_loading_methods = _function_names(_SERVICE_ROOT / "foundation_workspace_sources.py")
-    delegated_methods = {
-        "_load_foundation_workspace_sources",
-        "_load_foundation_workspace_optional_results",
-        "_resolve_performance_report_end_date",
-    }
-
-    assert delegated_methods <= source_loading_methods
-    assert service_methods.isdisjoint(delegated_methods)
-
-
 def test_portfolio_workflow_delegates_action_definitions() -> None:
     workflow_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow.py")
     definition_methods = _function_names(_SERVICE_ROOT / "portfolio_workflow_definitions.py")
@@ -1417,18 +1365,6 @@ def test_dpm_proof_pack_service_delegates_supportability_mapping() -> None:
 
     assert expected_supportability_methods <= supportability_methods
     assert service_methods.isdisjoint(expected_supportability_methods)
-
-
-def test_foundation_core_snapshot_delegates_payload_section_parsing() -> None:
-    mapper_methods = _function_names(_SERVICE_ROOT / "foundation_core_snapshot.py")
-    section_methods = _function_names(_SERVICE_ROOT / "foundation_core_snapshot_sections.py")
-    delegated_methods = {
-        "read_core_snapshot_sections",
-        "validate_core_snapshot_payloads",
-    }
-
-    assert delegated_methods <= section_methods
-    assert mapper_methods.isdisjoint(delegated_methods)
 
 
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:

@@ -29,8 +29,6 @@ from app.routers.domain_product_catalog import router as domain_product_catalog_
 from app.routers.domain_product_detail import router as domain_product_detail_router
 from app.routers.domain_product_graph import router as domain_product_graph_router
 from app.routers.domain_product_trust import router as domain_product_trust_router
-from app.routers.foundation import router as foundation_router
-from app.routers.foundation_workspace import router as foundation_workspace_router
 from app.routers.ideas import router as ideas_router
 from app.routers.ideas_actions import router as ideas_actions_router
 from app.routers.intake import router as intake_router
@@ -150,11 +148,6 @@ LOOKUP_ROUTERS: RouterGroup = (
     lookup_portfolio_catalog_router,
 )
 
-FOUNDATION_ROUTERS: RouterGroup = (
-    foundation_router,
-    foundation_workspace_router,
-)
-
 PORTFOLIO_ROUTERS: RouterGroup = (
     portfolio_router,
     portfolio_workspace_router,
@@ -242,7 +235,6 @@ ROUTER_GROUPS: tuple[RouterGroup, ...] = (
     PLATFORM_DISCOVERY_ROUTERS,
     INTAKE_ROUTERS,
     LOOKUP_ROUTERS,
-    FOUNDATION_ROUTERS,
     PORTFOLIO_ROUTERS,
     PERFORMANCE_ROUTERS,
     DPM_COMMAND_CENTER_ROUTERS,

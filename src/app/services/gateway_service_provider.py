@@ -13,11 +13,6 @@ from app.services.domain_product_catalog_service_factory import (
     build_domain_product_catalog_service,
     domain_product_catalog_service_signature,
 )
-from app.services.foundation_service import FoundationService
-from app.services.foundation_service_factory import (
-    build_foundation_service,
-    foundation_service_signature,
-)
 from app.services.idea_service import IdeaService
 from app.services.idea_service_factory import build_idea_service, idea_service_signature
 from app.services.intake_service import IntakeService
@@ -37,8 +32,6 @@ _COMPOSITE_PERFORMANCE_SERVICE: CompositePerformanceService | None = None
 _COMPOSITE_PERFORMANCE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _SOURCE_PRODUCT_SERVICE: SourceProductExecutionService | None = None
 _SOURCE_PRODUCT_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-_FOUNDATION_SERVICE: FoundationService | None = None
-_FOUNDATION_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _INTAKE_SERVICE: IntakeService | None = None
 _INTAKE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _IDEA_SERVICE: IdeaService | None = None
@@ -94,19 +87,6 @@ def source_product_service() -> SourceProductExecutionService:
     )
     _SOURCE_PRODUCT_SERVICE = service
     _SOURCE_PRODUCT_SERVICE_SIGNATURE = signature
-    return service
-
-
-def foundation_service() -> FoundationService:
-    global _FOUNDATION_SERVICE, _FOUNDATION_SERVICE_SIGNATURE
-    service, signature = resolve_cached_service(
-        _FOUNDATION_SERVICE,
-        _FOUNDATION_SERVICE_SIGNATURE,
-        foundation_service_signature(),
-        build_foundation_service,
-    )
-    _FOUNDATION_SERVICE = service
-    _FOUNDATION_SERVICE_SIGNATURE = signature
     return service
 
 
