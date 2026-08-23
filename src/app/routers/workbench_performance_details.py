@@ -4,6 +4,10 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.performance_workspace import PerformanceWorkspaceDetailsResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_performance_common import (
+    AS_OF_DATE_QUERY,
+    REPORTING_CURRENCY_QUERY,
+)
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -62,6 +66,8 @@ class PerformanceDetailsQuery:
     benchmark_code: str | None
     report_start_date: str | None
     report_end_date: str | None
+    as_of_date: str | None
+    reporting_currency: str | None
 
 
 def build_performance_details_query(
@@ -73,6 +79,8 @@ def build_performance_details_query(
     benchmark_code: str | None = BENCHMARK_CODE_QUERY,
     report_start_date: str | None = REPORT_START_DATE_QUERY,
     report_end_date: str | None = REPORT_END_DATE_QUERY,
+    as_of_date: str | None = AS_OF_DATE_QUERY,
+    reporting_currency: str | None = REPORTING_CURRENCY_QUERY,
 ) -> PerformanceDetailsQuery:
     return PerformanceDetailsQuery(
         period=period,
@@ -83,6 +91,8 @@ def build_performance_details_query(
         benchmark_code=benchmark_code,
         report_start_date=report_start_date,
         report_end_date=report_end_date,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency.strip().upper() if reporting_currency else None,
     )
 
 
@@ -103,6 +113,8 @@ async def _get_performance_workspace_details(
         benchmark_code=query.benchmark_code,
         explicit_start_date=query.report_start_date,
         explicit_end_date=query.report_end_date,
+        requested_as_of_date=query.as_of_date,
+        requested_reporting_currency=query.reporting_currency,
     )
 
 

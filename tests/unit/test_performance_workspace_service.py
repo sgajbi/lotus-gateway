@@ -2212,6 +2212,10 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
         attribution_dimension="currency",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        explicit_start_date="2026-01-01",
+        explicit_end_date="2026-03-27",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
     )
 
     assert response.contribution_dimension == "sector"
@@ -2231,6 +2235,13 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
     assert analytics_client.contribution_calls[0]["dimension"] == "sector"
     assert analytics_client.attribution_calls[0]["dimension"] == "currency"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
+    assert analytics_client.workspace_summary_calls[0]["report_end_date"] == "2026-03-27"
+    assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "SGD"
+    assert response.requested_as_of_date == "2026-04-10"
+    assert response.effective_as_of_date == "2026-03-27"
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "SGD"
+    assert response.reporting_currency_state == "accepted_unverified"
 
 
 @pytest.mark.asyncio

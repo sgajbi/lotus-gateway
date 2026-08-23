@@ -6,6 +6,7 @@ from app.contracts.performance_evidence import PerformanceEvidenceView
 from app.contracts.performance_workspace_common import (
     PerformanceChartPoint,
     PerformanceWorkspaceCapabilities,
+    ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 
@@ -29,6 +30,40 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
     as_of_date: str = Field(
         description="Resolved as-of date used for the performance details response.",
         examples=["2026-02-24"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-04-10"],
+    )
+    effective_as_of_date: str = Field(
+        default="",
+        description="Last report-window date used for the performance details calculation.",
+        examples=["2026-02-24"],
+    )
+    requested_reporting_currency: str | None = Field(
+        default=None,
+        description="Reporting currency requested by the caller, when supplied.",
+        examples=["SGD"],
+    )
+    effective_reporting_currency: str = Field(
+        default="",
+        description=(
+            "Currency label used for the details context. When the summary is rejected or "
+            "unavailable, this is the portfolio base currency; use reporting_currency_state "
+            "to distinguish an applied value from a fallback or unverified acceptance."
+        ),
+        examples=["SGD"],
+    )
+    reporting_currency_state: ReportingCurrencyState = Field(
+        default="unavailable",
+        description=(
+            "Evidence state for the reporting currency: applied when source evidence exists, "
+            "accepted_unverified on a successful summary before that evidence exists, rejected "
+            "for typed currency validation failure, or unavailable when no summary figures were "
+            "returned."
+        ),
+        examples=["accepted_unverified"],
     )
     period: str = Field(
         description="Resolved requested horizon for the performance details response.",
@@ -126,6 +161,11 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                 "contract_version": "v1",
                 "portfolio_id": "PF_1001",
                 "as_of_date": "2026-02-24",
+                "requested_as_of_date": "2026-04-10",
+                "effective_as_of_date": "2026-02-24",
+                "requested_reporting_currency": "SGD",
+                "effective_reporting_currency": "SGD",
+                "reporting_currency_state": "accepted_unverified",
                 "period": "YTD",
                 "report_start_date": "2026-01-01",
                 "report_end_date": "2026-02-24",

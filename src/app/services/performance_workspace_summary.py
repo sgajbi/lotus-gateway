@@ -10,6 +10,7 @@ from app.contracts.performance_workspace import (
     MoneyWeightedReturnSummary,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
+    ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_attribution import build_workspace_attribution_summary
@@ -22,6 +23,9 @@ from app.services.performance_workspace_returns import (
     build_workspace_comparative_summary,
     extract_twr_workspace_block,
     resolve_results_period_key,
+)
+from app.services.performance_workspace_summary_currency import (
+    classify_reporting_currency_outcome,
 )
 from app.services.upstream_envelope import safe_upstream_detail
 
@@ -44,9 +48,14 @@ class ParsedWorkspaceSummary:
     contribution: ContributionSummaryView | None
     attribution: AttributionSummaryView | None
     resolved_benchmark_code: str | None
+    reporting_currency_state: ReportingCurrencyState = "unavailable"
 
     @classmethod
-    def empty(cls) -> ParsedWorkspaceSummary:
+    def empty(
+        cls,
+        *,
+        reporting_currency_state: ReportingCurrencyState = "unavailable",
+    ) -> ParsedWorkspaceSummary:
         return cls(
             net_performance=PerformanceComparativeSummary(metric_basis="NET"),
             gross_performance=PerformanceComparativeSummary(metric_basis="GROSS"),
@@ -56,6 +65,7 @@ class ParsedWorkspaceSummary:
             contribution=None,
             attribution=None,
             resolved_benchmark_code=None,
+            reporting_currency_state=reporting_currency_state,
         )
 
 
@@ -76,7 +86,13 @@ def parse_workspace_summary_result(
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
 ) -> ParsedWorkspaceSummary:
-    empty_summary = ParsedWorkspaceSummary.empty()
+    reporting_currency_state = classify_reporting_currency_outcome(
+        result,
+        requested_period=requested_period,
+    )
+    empty_summary = ParsedWorkspaceSummary.empty(
+        reporting_currency_state=reporting_currency_state,
+    )
     payload = workspace_summary_payload_from_result(
         result=result,
         warnings=warnings,
@@ -96,6 +112,7 @@ def parse_workspace_summary_result(
     return build_parsed_workspace_summary(
         blocks=workspace_summary_blocks(period_payload),
         chart_frequency=chart_frequency,
+        reporting_currency_state=reporting_currency_state,
     )
 
 
@@ -194,6 +211,7 @@ def build_parsed_workspace_summary(
     *,
     blocks: WorkspaceSummaryBlocks,
     chart_frequency: str,
+    reporting_currency_state: ReportingCurrencyState = "unavailable",
 ) -> ParsedWorkspaceSummary:
     net_performance = build_workspace_comparative_summary(
         metric_basis="NET",
@@ -227,4 +245,5 @@ def build_parsed_workspace_summary(
         contribution=build_workspace_contribution_summary(blocks.period_payload),
         attribution=build_workspace_attribution_summary(blocks.period_payload),
         resolved_benchmark_code=safe_str(blocks.benchmark_block.get("benchmark_id")),
+        reporting_currency_state=reporting_currency_state,
     )
