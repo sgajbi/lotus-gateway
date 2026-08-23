@@ -104,6 +104,26 @@ Reference branch: `origin/main`
   advisory findings to clean gates remains a future bounded slice after their baseline issues are
   remediated; this ratchet prevents those findings from increasing meanwhile.
 
+### Quality Baseline event deduplication slice — #523
+
+- Objective: retain every Quality Baseline quality step and protected PR check while ensuring a
+  feature revision is analyzed by one authoritative automated event.
+- Change: removed the non-main `push` trigger from `.github/workflows/quality-baseline.yml`; the
+  `pull_request` event targeting `main` owns feature-revision evidence, and `workflow_dispatch`
+  remains available for explicit operator revalidation. Concurrency now keys pull-request runs by
+  head SHA and cancels stale work.
+- Measurable improvement: a feature push before PR creation no longer launches a duplicate quality
+  run; PR creation/synchronization produces one run per head SHA, and a new commit produces one run
+  for the new SHA. The event matrix is durable in `docs/quality-baseline-event-matrix.md`.
+- Compatibility: application runtime, public API, schemas, migrations, thresholds, artifacts, and
+  ratchet behavior are unchanged. Only CI scheduling changes; manual dispatch and the protected
+  `Quality Baseline / Ratcheted Trend Gate` remain available.
+- Regression proof: workflow tests pin the authoritative event set, protected job name, SHA-based
+  concurrency, and stale-run cancellation. Focused validation also covers the complete artifact
+  and ratchet contract.
+- Documentation decision: repository context, CI quality gates, operations guidance, authored wiki,
+  and the event-matrix runbook change because CI trigger semantics and operator expectations changed.
+
 ## Attribution Level Aggregate Source Authority
 
 - Scope: GitHub issue #506, the performance attribution level mapper and its Workbench-facing

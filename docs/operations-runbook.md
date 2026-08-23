@@ -83,6 +83,12 @@ baseline change after inspecting the full tool output. The command auto-tightens
 loosening requires a per-metric `--allow-regression METRIC=VALUE --reason "..."` justification.
 CI never updates the baseline automatically.
 
+Quality Baseline is triggered automatically by `pull_request` events targeting `main`, not by
+feature-branch pushes. A feature push before a PR therefore produces no duplicate report; opening
+or synchronizing the PR produces the single protected check for that head SHA. Manual dispatch
+remains available for explicit revalidation. The event matrix and concurrency contract are recorded
+in [`docs/quality-baseline-event-matrix.md`](quality-baseline-event-matrix.md).
+
 Demo certification evidence is also generated from the repo-native command:
 
 ```powershell

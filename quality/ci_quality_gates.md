@@ -83,6 +83,12 @@ workflow-governance proof, agent-quality-evidence proof, generated OpenAPI artif
 evidence must exist before upload. Missing or unusable evidence is treated as a CI measurement
 defect.
 
+Quality Baseline uses `pull_request` targeting `main` as the sole authoritative automated feature
+event. Feature-branch pushes do not start a duplicate run; PR creation and synchronization produce
+one protected check per head SHA. Manual dispatch remains available for operator-requested
+revalidation. The concurrency group keys pull-request runs by head SHA and cancels stale work; the
+full event matrix is documented in `docs/quality-baseline-event-matrix.md`.
+
 The Gateway demo certification command is now repo-native through `make demo-certification`. It
 writes `output/demo-certification/gateway-demo-certification.json` and is run in Quality Baseline
 with `continue-on-error: true`, capturing `output/quality-baseline/demo-certification.txt`; its
