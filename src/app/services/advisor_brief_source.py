@@ -108,6 +108,8 @@ def build_advisor_brief_source_route(*, source_context: AdvisorBriefSourceContex
         period=workspace.period,
         basis=workspace.detail_basis,
         benchmark_code=workspace.benchmark_code,
+        requested_as_of_date=workspace.requested_as_of_date,
+        requested_reporting_currency=workspace.requested_reporting_currency,
     )
 
 
@@ -125,6 +127,8 @@ def build_advisor_brief_summary_evidence_ref(
         period=workspace.period,
         basis=workspace.detail_basis,
         benchmark_code=workspace.benchmark_code,
+        requested_as_of_date=workspace.requested_as_of_date,
+        requested_reporting_currency=workspace.requested_reporting_currency,
     )
 
 

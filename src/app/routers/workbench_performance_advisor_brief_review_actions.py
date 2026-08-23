@@ -33,6 +33,8 @@ async def _apply_advisor_brief_review_action(
         request=request,
         explicit_start_date=query.report_start_date,
         explicit_end_date=query.report_end_date,
+        requested_as_of_date=query.as_of_date,
+        requested_reporting_currency=query.reporting_currency,
     )
 
 

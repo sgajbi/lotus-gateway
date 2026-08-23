@@ -107,6 +107,8 @@ class PerformanceWorkspaceService(
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        requested_as_of_date: str | None = None,
+        requested_reporting_currency: str | None = None,
     ) -> PerformanceWorkspaceResponse:
         return await self._build_performance_workspace_response(
             portfolio_id=portfolio_id,
@@ -119,6 +121,8 @@ class PerformanceWorkspaceService(
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
             include_benchmark_catalog=True,
             prefer_independent_detail_analytics=True,
         )

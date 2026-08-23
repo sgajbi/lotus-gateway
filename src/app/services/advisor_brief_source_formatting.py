@@ -15,6 +15,8 @@ def advisor_brief_summary_evidence_ref(
     period: str,
     basis: str,
     benchmark_code: str | None,
+    requested_as_of_date: str | None = None,
+    requested_reporting_currency: str | None = None,
 ) -> AdvisorBriefEvidenceRef:
     return AdvisorBriefEvidenceRef(
         metric_label=label,
@@ -26,6 +28,8 @@ def advisor_brief_summary_evidence_ref(
             period=period,
             basis=basis,
             benchmark_code=benchmark_code,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
         ),
     )
 
@@ -38,6 +42,8 @@ def advisor_brief_analysis_evidence_ref(
     period: str,
     basis: str,
     benchmark_code: str | None,
+    requested_as_of_date: str | None = None,
+    requested_reporting_currency: str | None = None,
 ) -> AdvisorBriefEvidenceRef:
     return AdvisorBriefEvidenceRef(
         metric_label=label,
@@ -49,6 +55,8 @@ def advisor_brief_analysis_evidence_ref(
             period=period,
             basis=basis,
             benchmark_code=benchmark_code,
+            requested_as_of_date=requested_as_of_date,
+            requested_reporting_currency=requested_reporting_currency,
         ),
     )
 
@@ -59,10 +67,16 @@ def advisor_brief_route_query(
     period: str,
     basis: str,
     benchmark_code: str | None,
+    requested_as_of_date: str | None = None,
+    requested_reporting_currency: str | None = None,
 ) -> str:
     route = f"/performance?portfolioId={portfolio_id}&period={period}&detailBasis={basis}"
     if benchmark_code:
         route += f"&benchmark={benchmark_code}"
+    if requested_as_of_date:
+        route += f"&asOfDate={requested_as_of_date}"
+    if requested_reporting_currency:
+        route += f"&reportingCurrency={requested_reporting_currency}"
     return route
 
 

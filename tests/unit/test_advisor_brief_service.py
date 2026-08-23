@@ -386,7 +386,16 @@ class _StubAdviseClient:
 
 @pytest.mark.asyncio
 async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_actions():
-    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    workspace = _build_workspace().model_copy(
+        update={
+            "requested_as_of_date": "2026-04-10",
+            "effective_as_of_date": "2026-04-04",
+            "requested_reporting_currency": "SGD",
+            "effective_reporting_currency": "USD",
+            "reporting_currency_state": "accepted_unverified",
+        }
+    )
+    workspace_service = _StubPerformanceWorkspaceService(workspace)
     ai_client = _StubLotusAiClient()
     service = AdvisorBriefService(
         performance_workspace_service=workspace_service,
@@ -402,9 +411,17 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         attribution_dimension="asset_class",
         detail_basis="NET",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
     )
 
     assert response.status == "ready"
+    assert response.requested_as_of_date == "2026-04-10"
+    assert response.effective_as_of_date == "2026-04-04"
+    assert response.as_of_date == "2026-04-04"
+    assert response.requested_reporting_currency == "SGD"
+    assert response.effective_reporting_currency == "USD"
+    assert response.reporting_currency_state == "accepted_unverified"
     assert response.summary.startswith("AI summary:")
     assert response.talking_points[0].headline == "AI-generated active-return summary."
     assert response.talking_points[0].evidence_refs[0].source_surface == "performance.return_path"
@@ -414,7 +431,8 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.source_metrics[0].label == "Portfolio Return"
     assert response.source_metrics[0].route == (
         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
-        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
+        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40&asOfDate=2026-04-10"
+        "&reportingCurrency=SGD"
     )
     assert response.ai_audit["request_id"] == "req-1"
     assert response.ai_audit["provider_mode"] == "openai"
@@ -453,6 +471,8 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.workflow_pack_run.workflow_authority_owner == "lotus-gateway"
     assert response.workflow_pack_run.findings[0].finding_id == "review_pending"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
+    assert workspace_service.calls[0]["requested_as_of_date"] == "2026-04-10"
+    assert workspace_service.calls[0]["requested_reporting_currency"] == "SGD"
     assert ai_client.execute_calls[0]["pack_id"] == "advisor_brief.pack"
     assert ai_client.execute_calls[0]["version"] == "v1"
     assert ai_client.execute_calls[0]["environment"] == "DEVELOPMENT"
@@ -939,9 +959,13 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
         attribution_dimension="asset_class",
         detail_basis="GROSS",
         benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        requested_as_of_date="2026-04-10",
+        requested_reporting_currency="SGD",
     )
 
     assert len(workspace_service.calls) == 2
+    assert workspace_service.calls[1]["requested_as_of_date"] == "2026-04-10"
+    assert workspace_service.calls[1]["requested_reporting_currency"] == "SGD"
     assert len(ai_client.execute_calls) == 2
     assert len(ai_client.consumer_view_calls) == 2
     assert len(ai_client.operator_profile_calls) == 2

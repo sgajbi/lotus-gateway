@@ -8,6 +8,7 @@ from app.contracts import advisor_brief_items as _advisor_brief_items
 from app.contracts import advisor_brief_supportability as _advisor_brief_supportability
 from app.contracts import advisor_brief_workflow as _advisor_brief_workflow
 from app.contracts.advisor_brief_examples import ADVISOR_BRIEF_RESPONSE_EXAMPLE
+from app.contracts.performance_currency import ReportingCurrencyState
 from app.contracts.workbench import WorkbenchPartialFailure, WorkbenchPortfolioSummary
 
 AdvisorBriefActionItem = _advisor_brief_items.AdvisorBriefActionItem
@@ -63,7 +64,17 @@ class AdvisorBriefResponse(BaseModel):
         description="Portfolio identity metadata carried with the advisor brief.",
     )
     as_of_date: str = Field(
-        description="Resolved as-of date used for the advisor brief context.",
+        description="Effective as-of date used for the advisor brief context.",
+        examples=["2026-04-04"],
+    )
+    requested_as_of_date: str | None = Field(
+        default=None,
+        description="Review as-of date requested by the caller, when supplied.",
+        examples=["2026-04-10"],
+    )
+    effective_as_of_date: str = Field(
+        default="",
+        description="Last report-window date used for the advisor brief calculation.",
         examples=["2026-04-04"],
     )
     period: str = Field(
@@ -98,6 +109,27 @@ class AdvisorBriefResponse(BaseModel):
         default=None,
         description="Resolved benchmark code used when generating the advisor brief.",
         examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+    )
+    requested_reporting_currency: str | None = Field(
+        default=None,
+        description="Reporting currency requested by the caller, when supplied.",
+        examples=["SGD"],
+    )
+    effective_reporting_currency: str = Field(
+        default="",
+        description=(
+            "Currency label used for the advisor brief response. Use reporting_currency_state "
+            "to distinguish an applied value from a fallback or unverified acceptance."
+        ),
+        examples=["SGD"],
+    )
+    reporting_currency_state: ReportingCurrencyState = Field(
+        default="unavailable",
+        description=(
+            "Evidence state for the requested reporting currency copied from the performance "
+            "workspace response."
+        ),
+        examples=["accepted_unverified"],
     )
     status: AdvisorBriefStatus = Field(
         description="Overall availability status of the advisor brief output.",
