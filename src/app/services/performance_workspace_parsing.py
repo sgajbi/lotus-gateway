@@ -39,7 +39,7 @@ def quantize_optional(value: Any) -> float | None:  # monetary-float-allow
         return None
     try:
         return float(quantize_performance(value))  # monetary-float-allow
-    except (TypeError, ValueError):
+    except (ArithmeticError, TypeError, ValueError):
         return None
 
 
