@@ -338,7 +338,10 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - Workbench advisor-brief workflow-pack posture preserves Lotus AI's bounded review evidence:
   latest review actor, latest review event time, transition count, and review-history state.
   Missing or malformed evidence remains absent; a terminal review state alone is not proof of a
-  source-recorded human decision
+  source-recorded human decision. Completed AI narrative output is published only when its raw
+  provider provenance matches the closed `disabled|stub|openai|local_openai_compatible` mode and
+  stub matrix; missing, unknown, or contradictory provenance returns source-backed partial posture
+  without unverified AI output.
 - legal-hold summary is returned as metadata for support posture; gateway retrieval does not expose
   legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and

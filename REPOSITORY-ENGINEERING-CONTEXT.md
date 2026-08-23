@@ -152,7 +152,12 @@ Current repository posture:
     not infer that an accepted request has produced an available, reviewed, current, or
     client-usable output. Request construction and response validation share the immutable
     `explain.v1` / `EXPLANATION_ONLY` task contract, so internally consistent task or output-label
-    drift also fails closed,
+    drift also fails closed. Provider provenance is a closed `disabled|stub|openai|
+    local_openai_compatible` vocabulary with deterministic modes requiring `stubbed=true` and
+    live modes requiring `stubbed=false`; missing, unknown, or contradictory posture fails closed
+    at the typed DPM boundary. Advisor Brief applies the same policy before publishing completed
+    AI narrative output and downgrades unverifiable completion to source-backed partial posture
+    without returning the unverified AI payload,
 15. canonical local startup now depends on environment-scoped service identity and `--app-dir src`
     to avoid misleading Windows import-path failures.
 16. RFC-0108 analytics UI observability is active for selected Workbench performance summary,

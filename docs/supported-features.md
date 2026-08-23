@@ -136,7 +136,9 @@ suitability, recommendation, communication, and execution claims are not support
    workload headers are never trusted.
 9. six DPM AI handoff families share the exact `explain.v1` / `EXPLANATION_ONLY` request and
    response boundary, with consistent task or output-label drift rejected before output reaches a
-   product client.
+   product client. Gateway accepts only the closed lotus-ai provider vocabulary and matching
+   deterministic/live stub posture; malformed provenance fails closed for DPM and completed
+   Advisor Brief output is downgraded to source-backed partial posture rather than published.
 
 ## Reporting And Archive
 
