@@ -303,7 +303,7 @@ def test_parse_attribution_result_bounds_http_failure_detail():
     assert "secret-token" not in str(partial_failures[0])
 
 
-def test_parse_attribution_result_classifies_fx_validation_as_currency_rejection():
+def test_parse_attribution_result_classifies_canonical_fx_request_as_currency_rejection():
     warnings: list[str] = []
     partial_failures = []
 
@@ -311,8 +311,15 @@ def test_parse_attribution_result_classifies_fx_validation_as_currency_rejection
         result=(
             422,
             {
-                "error_code": "VALIDATION_ERROR",
-                "validation_errors": [{"loc": ["body", "currency_mode"]}],
+                "detail": (
+                    "Stateful attribution input requires fx.rates when currency_mode=BOTH "
+                    "and sourced positions include currencies different from report_ccy."
+                ),
+                "error_code": "INVALID_REQUEST",
+                "message": (
+                    "Stateful attribution input requires fx.rates when currency_mode=BOTH "
+                    "and sourced positions include currencies different from report_ccy."
+                ),
             },
         ),
         metric_basis="NET",
