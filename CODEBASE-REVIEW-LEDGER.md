@@ -952,3 +952,18 @@ Reference branch: `origin/main`
   regression, OpenAPI description assertions, and route-level product-safe failure test.
 - Truth updates: proposal contract, supported-features, API-surface, repository context, and wiki
   source updated. No central skill change or new upstream issue was required.
+
+## Proposal Risk-Impact Canonical Gate Reason Correction (#561)
+
+- Discovery: the required post-merge canonical re-probe after rebuilding Gateway from `main` at
+  `d0c38241` returned the safe 502 contract-invalid response for `pp_30f90667bc42`.
+- Cause: canonical Advise publishes the valid `REQUIRES_CLIENT_CONSENT` / `CLIENT_CONSENT_REQUIRED`
+  pairing but omits source gate `reasons`; this is incomplete ready-gate evidence, not a
+  contradictory decision/workflow pairing.
+- Correction: accept the source matrix pairing, preserve the gate and next step, and publish
+  `workflow_gate_reason_evidence_missing` as explicit `partial` posture. Gateway never invents a
+  reason to claim `ready`.
+- Scope: Gateway source/projection contract, focused regression, docs/context/wiki truth; no Advise
+  policy or Workbench implementation change. Exact-main closure remains blocked until the corrected
+  mainline is rebuilt, canonical route validation returns 200, and releasability/parity evidence is
+  refreshed.

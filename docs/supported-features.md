@@ -112,8 +112,9 @@ calculation methodology or make Gateway the owner of portfolio/performance sourc
 Selected proposal Risk and Impact evidence validates decision-status, top-level-status,
 recommended-action, workflow-gate, and blocking-evidence relationships at the Gateway boundary.
 Contradictory source evidence fails closed; degraded decision evidence cannot publish an executable
-workflow gate as `ready`. Gateway preserves Advise policy authority and does not invent progression
-outcomes.
+workflow gate as `ready`; a blocking gate without source reason evidence remains explicit `partial`
+instead of being filled with an invented reason. Gateway preserves Advise policy authority and does
+not invent progression outcomes.
 
 Advisor-book discovery supports an explicit business date, exact client and mandate filters,
 deterministic sorting, and bounded paging. It identifies governed role assignments separately from

@@ -357,7 +357,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   not calculate risk or allocation deltas, infer approval, or fill unsupported benchmark/limit,
   scenario, or valuation-date evidence. The Gateway contract validates the closed gate→next-step
   matrix and decision-status relationships; contradictory source evidence fails closed, and a
-  degraded decision never leaves an executable `EXECUTION_READY`/`NONE` gate in `ready` posture.
+  degraded decision never leaves an executable `EXECUTION_READY`/`NONE` gate in `ready` posture. A
+  blocking gate without source reason evidence remains explicit `partial` rather than receiving an
+  invented reason.
 - proposal implementation-status reads use one Advise execution-status call and preserve all eight
   source handoff states, immutable-version posture, exact event/reference time, capability gaps,
   and the downstream execution ownership boundary. Gateway classifies attention and next action for

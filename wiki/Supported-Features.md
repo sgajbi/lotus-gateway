@@ -183,7 +183,8 @@ Authority and boundary:
    or treat lifecycle state as a recorded maker-checker decision. It validates decision-status,
    top-level-status, recommended-action, workflow-gate, and blocking-evidence relationships;
    contradictions fail closed and degraded decision evidence cannot publish executable-ready gate
-   posture,
+   posture. Blocking gate evidence without source reasons remains explicit partial; Gateway does not
+   invent a reason to promote it to ready,
 5. benchmark/limit, scenario, and valuation effective-date evidence remain explicitly not
    supported in v1 because the current producer contract does not publish them.
 
