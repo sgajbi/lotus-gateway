@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.contracts.performance_attribution import AttributionSummaryView
@@ -17,6 +19,15 @@ __all__ = [
     "PerformanceModuleCapability",
     "PerformanceWorkspaceCapabilities",
     "PerformanceWorkspaceResponse",
+    "ReportingCurrencyState",
+]
+
+
+ReportingCurrencyState = Literal[
+    "applied",
+    "accepted_unverified",
+    "rejected",
+    "unavailable",
 ]
 
 
@@ -132,10 +143,21 @@ class PerformanceWorkspaceResponse(BaseModel):
     effective_reporting_currency: str = Field(
         default="",
         description=(
-            "Reporting currency applied by the performance source; when the source rejects the "
-            "request, this is the portfolio base currency used for the fallback response."
+            "Currency label used for the response context. When the summary is rejected or "
+            "unavailable, this is the portfolio base currency; use reporting_currency_state "
+            "to distinguish an applied value from a fallback or unverified acceptance."
         ),
         examples=["SGD"],
+    )
+    reporting_currency_state: ReportingCurrencyState = Field(
+        default="unavailable",
+        description=(
+            "Evidence state for the reporting currency: applied when the source publishes "
+            "applied-currency evidence, accepted_unverified on a successful summary before "
+            "that evidence exists, rejected for typed currency validation failure, or "
+            "unavailable when no summary figures were returned."
+        ),
+        examples=["accepted_unverified"],
     )
     period: str
     report_start_date: str

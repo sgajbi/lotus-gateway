@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Protocol, TypeAlias
+from typing import Any, Protocol, TypeAlias, TypedDict
 
 from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import ContributionSummaryView
@@ -14,6 +14,7 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceResponse,
+    ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
 from app.services.performance_workspace_summary import ParsedWorkspaceSummary
@@ -137,6 +138,13 @@ class WorkspaceResponseContextFields:
     effective_as_of_date: str
     requested_reporting_currency: str | None
     effective_reporting_currency: str
+    reporting_currency_state: ReportingCurrencyState
+
+
+class _ResponseCurrencyFields(TypedDict):
+    requested_reporting_currency: str | None
+    effective_reporting_currency: str
+    reporting_currency_state: ReportingCurrencyState
 
 
 def assemble_performance_workspace_response(
@@ -155,8 +163,7 @@ def assemble_performance_workspace_response(
         as_of_date=context_fields.as_of_date,
         requested_as_of_date=context_fields.requested_as_of_date,
         effective_as_of_date=context_fields.effective_as_of_date,
-        requested_reporting_currency=context_fields.requested_reporting_currency,
-        effective_reporting_currency=context_fields.effective_reporting_currency,
+        **_response_currency_fields(context_fields),
         period=context_fields.period,
         report_start_date=context_fields.report_start_date,
         report_end_date=context_fields.report_end_date,
@@ -188,6 +195,16 @@ def assemble_performance_workspace_response(
         warnings=context.warnings,
         partial_failures=context.partial_failures,
     )
+
+
+def _response_currency_fields(
+    context_fields: WorkspaceResponseContextFields,
+) -> _ResponseCurrencyFields:
+    return {
+        "requested_reporting_currency": context_fields.requested_reporting_currency,
+        "effective_reporting_currency": context_fields.effective_reporting_currency,
+        "reporting_currency_state": context_fields.reporting_currency_state,
+    }
 
 
 def _build_response_context_fields(
@@ -228,6 +245,7 @@ def workspace_response_context_fields(
             context,
             workspace_summary_result=workspace_summary_result,
         ),
+        reporting_currency_state=_reporting_currency_state(workspace_summary_result),
     )
 
 
@@ -236,32 +254,48 @@ def _effective_reporting_currency(
     *,
     workspace_summary_result: GatheredResult | None,
 ) -> str:
-    if _workspace_summary_currency_rejected(workspace_summary_result):
+    if _reporting_currency_state(workspace_summary_result) != "accepted_unverified":
         return context.overview.portfolio.base_currency
     return context.reporting_currency or context.overview.portfolio.base_currency
+
+
+def _reporting_currency_state(result: GatheredResult | None) -> ReportingCurrencyState:
+    if _workspace_summary_currency_rejected(result):
+        return "rejected"
+    if _workspace_summary_succeeded(result):
+        return "accepted_unverified"
+    return "unavailable"
+
+
+def _workspace_summary_succeeded(result: GatheredResult | None) -> bool:
+    if isinstance(result, BaseException) or not isinstance(result, tuple):
+        return False
+    status_code, payload = result
+    if status_code >= 400 or not isinstance(payload, dict):
+        return False
+    results_by_period = payload.get("results_by_period")
+    return isinstance(results_by_period, dict) and bool(results_by_period)
 
 
 def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:
     if isinstance(result, BaseException) or not isinstance(result, tuple):
         return False
     status_code, payload = result
-    if status_code < 400 or not isinstance(payload, dict):
+    if status_code < 400 or status_code >= 500 or not isinstance(payload, dict):
         return False
-    return _contains_currency_rejection_marker(payload)
+    return _has_currency_validation_location(payload)
 
 
-def _contains_currency_rejection_marker(payload: dict[str, Any]) -> bool:
-    payload_text = " ".join(_nested_payload_strings(payload)).lower()
-    return "unsupported" in payload_text and any(
-        marker in payload_text for marker in ("currency", "report_ccy", "reporting_currency")
+def _has_currency_validation_location(payload: dict[str, Any]) -> bool:
+    if payload.get("error_code") != "VALIDATION_ERROR":
+        return False
+    validation_errors = payload.get("validation_errors")
+    if not isinstance(validation_errors, list):
+        return False
+    currency_fields = {"currency_mode", "fx", "report_ccy", "reporting_currency"}
+    return any(
+        isinstance(item, dict)
+        and isinstance(location := item.get("loc"), (list, tuple))
+        and any(str(part) in currency_fields for part in location)
+        for item in validation_errors
     )
-
-
-def _nested_payload_strings(value: object) -> list[str]:
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, dict):
-        return [text for nested in value.values() for text in _nested_payload_strings(nested)]
-    if isinstance(value, (list, tuple)):
-        return [text for nested in value for text in _nested_payload_strings(nested)]
-    return []

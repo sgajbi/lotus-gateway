@@ -6,6 +6,7 @@ from app.contracts.performance_workspace_common import (
     MoneyWeightedReturnSummary,
     PerformanceComparativeSummary,
     PerformanceWorkspaceCapabilities,
+    ReportingCurrencyState,
 )
 from app.contracts.workbench import (
     WorkbenchOverviewSummary,
@@ -54,10 +55,21 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     effective_reporting_currency: str = Field(
         default="",
         description=(
-            "Reporting currency applied by lotus-performance; when the source rejects the "
-            "request, this is the portfolio base currency used for the fallback response."
+            "Currency label used for the response context. When the summary is rejected or "
+            "unavailable, this is the portfolio base currency; use reporting_currency_state "
+            "to distinguish an applied value from a fallback or unverified acceptance."
         ),
         examples=["SGD"],
+    )
+    reporting_currency_state: ReportingCurrencyState = Field(
+        default="unavailable",
+        description=(
+            "Evidence state for the reporting currency: applied when lotus-performance "
+            "publishes applied-currency evidence, accepted_unverified on a successful summary "
+            "before that evidence exists, rejected for typed currency validation failure, or "
+            "unavailable when no summary figures were returned."
+        ),
+        examples=["accepted_unverified"],
     )
     period: str = Field(
         description="Resolved requested horizon for the performance summary response.",
@@ -132,6 +144,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                 "effective_as_of_date": "2026-02-24",
                 "requested_reporting_currency": "USD",
                 "effective_reporting_currency": "USD",
+                "reporting_currency_state": "accepted_unverified",
                 "period": "YTD",
                 "report_start_date": "2026-01-01",
                 "report_end_date": "2026-02-24",

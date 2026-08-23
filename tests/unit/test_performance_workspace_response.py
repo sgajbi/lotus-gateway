@@ -1,6 +1,8 @@
 from dataclasses import dataclass, replace
 from datetime import date
 
+import pytest
+
 from app.contracts.performance_workspace import (
     PerformanceBenchmarkOptionView,
     PerformanceChartPoint,
@@ -109,7 +111,13 @@ def _summary_views() -> WorkspaceSummaryViews:
         resolved_benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
     return WorkspaceSummaryViews(
-        workspace_summary_result=(200, {"calculation_id": "calc-workspace-summary"}),
+        workspace_summary_result=(
+            200,
+            {
+                "calculation_id": "calc-workspace-summary",
+                "results_by_period": {"YTD": {}},
+            },
+        ),
         parsed_summary=parsed_summary,
         contribution=None,
         attribution=None,
@@ -132,16 +140,59 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
     assert fields.segment == "2026-01-01:2026-03-27"
 
 
-def test_workspace_response_context_fields_fall_back_to_base_currency_on_summary_failure() -> None:
+@pytest.mark.parametrize(
+    ("result", "expected_currency", "expected_state"),
+    [
+        (
+            (200, {"results_by_period": {"YTD": {}}}),
+            "SGD",
+            "accepted_unverified",
+        ),
+        (
+            (
+                422,
+                {
+                    "error_code": "VALIDATION_ERROR",
+                    "validation_errors": [{"loc": ["body", "report_ccy"]}],
+                },
+            ),
+            "USD",
+            "rejected",
+        ),
+        (
+            (
+                422,
+                {
+                    "error_code": "VALIDATION_ERROR",
+                    "validation_errors": [{"loc": ["body", "as_of_date"]}],
+                },
+            ),
+            "USD",
+            "unavailable",
+        ),
+        ((503, {"detail": "upstream unavailable"}), "USD", "unavailable"),
+        (RuntimeError("summary timeout"), "USD", "unavailable"),
+    ],
+)
+def test_workspace_response_context_fields_classify_currency_state(
+    result: tuple[int, dict[str, object]] | RuntimeError,
+    expected_currency: str,
+    expected_state: str,
+) -> None:
     fields = workspace_response_context_fields(
-        _context(),
-        workspace_summary_result=(422, {"detail": "unsupported reporting currency"}),
+        replace(
+            _context(),
+            requested_reporting_currency="SGD",
+            reporting_currency="SGD",
+        ),
+        workspace_summary_result=result,
     )
 
-    assert fields.effective_reporting_currency == "USD"
+    assert fields.effective_reporting_currency == expected_currency
+    assert fields.reporting_currency_state == expected_state
 
 
-def test_context_fields_preserve_currency_on_unrelated_failure() -> None:
+def test_workspace_response_context_fields_do_not_text_match_currency_rejection() -> None:
     context = replace(
         _context(),
         requested_reporting_currency="SGD",
@@ -149,10 +200,11 @@ def test_context_fields_preserve_currency_on_unrelated_failure() -> None:
     )
     fields = workspace_response_context_fields(
         context,
-        workspace_summary_result=(503, {"detail": "upstream unavailable"}),
+        workspace_summary_result=(422, {"detail": "unsupported reporting currency"}),
     )
 
-    assert fields.effective_reporting_currency == "SGD"
+    assert fields.effective_reporting_currency == "USD"
+    assert fields.reporting_currency_state == "unavailable"
 
 
 def test_assemble_performance_workspace_response_preserves_context_and_components() -> None:
@@ -190,6 +242,7 @@ def test_assemble_performance_workspace_response_preserves_context_and_component
     assert response.contract_version == "v-test"
     assert response.portfolio_id == "PF_1001"
     assert response.report_start_date == "2026-01-01"
+    assert response.reporting_currency_state == "accepted_unverified"
     assert response.requested_chart_frequency_supported is False
     assert response.requested_attribution_dimension_supported is False
     assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
