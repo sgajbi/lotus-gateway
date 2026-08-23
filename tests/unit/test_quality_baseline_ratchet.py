@@ -64,6 +64,36 @@ def test_ratchet_rejects_new_finding_and_coverage_drop(tmp_path: Path) -> None:
     assert results[1].delta == Decimal("-0.01")
 
 
+def test_number_metric_accepts_explicit_zero_success_output(tmp_path: Path) -> None:
+    baseline = {
+        "schema_version": 1,
+        "metrics": [
+            {
+                "name": "dependency_findings",
+                "log": "deptry.txt",
+                "kind": "number",
+                "pattern": r"Found (\d+) dependency issues\.",
+                "zero_pattern": r"Success! No dependency issues found\.",
+                "comparison": "not_above",
+                "baseline": 1,
+                "threshold": 1,
+                "remediation": "remove dependency findings",
+            }
+        ],
+    }
+    artifact_dir = tmp_path / "artifacts"
+    artifact_dir.mkdir()
+    (artifact_dir / "deptry.txt").write_text(
+        "Success! No dependency issues found.\n",
+        encoding="utf-8",
+    )
+
+    results = evaluate_metrics(baseline, artifact_dir)
+
+    assert results[0].current == Decimal(0)
+    assert results[0].passed
+
+
 def test_explicit_baseline_update_records_current_values(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

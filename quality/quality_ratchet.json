@@ -46,6 +46,7 @@
       "log": "deptry.txt",
       "kind": "number",
       "pattern": "Found (\\d+) dependency issues\\.",
+      "zero_pattern": "Success! No dependency issues found\\.",
       "comparison": "not_above",
       "baseline": 48,
       "threshold": 48,
