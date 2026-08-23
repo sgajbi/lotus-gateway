@@ -52,6 +52,16 @@ def _read_metric(log_path: Path, metric: dict[str, Any]) -> Decimal:
     if kind == "count":
         return Decimal(len(matches))
     if kind == "number":
+        if (
+            not matches
+            and metric.get("zero_pattern")
+            and re.search(
+                metric["zero_pattern"],
+                text,
+                re.MULTILINE,
+            )
+        ):
+            return Decimal(0)
         if len(matches) != 1:
             raise ValueError(
                 "Expected one numeric result for "
