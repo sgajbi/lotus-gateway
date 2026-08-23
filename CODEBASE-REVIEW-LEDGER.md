@@ -34,9 +34,10 @@ Reference branch: `origin/main`
 - Objective: prevent a rejected reporting-currency request from being published as an effective
   currency, and remove the overloaded `portfolio_currency` name from the summary/benchmark
   pipeline.
-- Change: summary response assembly falls back to the portfolio base currency when the upstream
-  summary returns an exception or HTTP failure; the existing typed `WorkbenchPartialFailure`
-  remains visible. Declared response-context attributes replace defensive `getattr` calls, and
+- Change: summary response assembly falls back to the portfolio base currency only when the
+  upstream error payload explicitly identifies an unsupported currency; unrelated exceptions and
+  HTTP failures preserve the requested/unknown posture, with the existing typed
+  `WorkbenchPartialFailure` visible. Declared response-context attributes replace defensive `getattr` calls, and
   summary, horizon, attribution-trend, benchmark, and cache request parameters use
   `reporting_currency` internally without changing public API fields.
 - Regression proof: focused performance workspace tests include a 422 unsupported-currency case
