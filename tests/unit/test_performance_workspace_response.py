@@ -165,6 +165,36 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
             "unavailable",
         ),
         (
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "YTD": {
+                            "portfolio_twr": {
+                                "net": {"summary": {"period_return": {"base": "not-a-number"}}}
+                            }
+                        }
+                    }
+                },
+            ),
+            "USD",
+            "unavailable",
+        ),
+        (
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "YTD": {
+                            "portfolio_twr": {"net": {"summary": {"period_return": {"local": 1.0}}}}
+                        }
+                    }
+                },
+            ),
+            "USD",
+            "unavailable",
+        ),
+        (
             (200, {"results_by_period": {"YTD": {"error": "invalid summary"}}}),
             "USD",
             "unavailable",
