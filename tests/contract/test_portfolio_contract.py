@@ -460,6 +460,8 @@ def test_portfolio_performance_snapshot_contract_shape() -> None:
 def test_portfolio_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
+    assert not [path for path in spec["paths"] if path.startswith("/api/v1/foundation/")]
+    assert not [name for name in spec["components"]["schemas"] if name.startswith("Foundation")]
     assert "/api/v1/portfolio/portfolios" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workspace" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/book" in spec["paths"]

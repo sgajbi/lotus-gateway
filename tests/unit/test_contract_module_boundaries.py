@@ -642,16 +642,3 @@ def test_reporting_portfolio_contracts_live_outside_reporting_facade() -> None:
 
     assert expected_reporting_portfolio_contracts <= reporting_portfolio_contract_classes
     assert reporting_facade_classes.isdisjoint(expected_reporting_portfolio_contracts)
-
-
-def test_foundation_catalog_contracts_live_outside_foundation_facade() -> None:
-    foundation_facade_classes = _class_names(_CONTRACT_ROOT / "foundation.py")
-    foundation_catalog_contract_classes = _class_names(_CONTRACT_ROOT / "foundation_catalog.py")
-
-    expected_foundation_catalog_contracts = {
-        "FoundationPortfolioCatalogItem",
-        "FoundationPortfolioCatalogResponse",
-    }
-
-    assert expected_foundation_catalog_contracts <= foundation_catalog_contract_classes
-    assert foundation_facade_classes.isdisjoint(expected_foundation_catalog_contracts)

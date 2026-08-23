@@ -90,13 +90,6 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         ),
     },
     {
-        "name": "foundation",
-        "description": (
-            "Gateway-facing Foundation portfolio catalog and workspace APIs backed by source "
-            "portfolio, identity, allocation, and reference-data truth."
-        ),
-    },
-    {
         "name": "intake",
         "description": (
             "Gateway-facing intake package, upload, and commit APIs for governed front-office "

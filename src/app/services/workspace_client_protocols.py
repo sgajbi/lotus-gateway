@@ -1,27 +1,5 @@
 from typing import Any, Protocol
 
-from app.services.foundation_client_protocols import (
-    FoundationCoreClient as FoundationCoreClient,
-)
-from app.services.foundation_client_protocols import (
-    FoundationManageClient as FoundationManageClient,
-)
-from app.services.foundation_client_protocols import (
-    FoundationPerformanceClient as FoundationPerformanceClient,
-)
-from app.services.foundation_client_protocols import (
-    FoundationReportingClient as FoundationReportingClient,
-)
-from app.services.portfolio_client_protocols import (
-    PortfolioCoreClient as PortfolioCoreClient,
-)
-from app.services.portfolio_client_protocols import (
-    PortfolioManageClient as PortfolioManageClient,
-)
-from app.services.portfolio_client_protocols import (
-    PortfolioPerformanceClient as PortfolioPerformanceClient,
-)
-
 
 class PlatformCapabilitiesSourceClient(Protocol):
     async def get_capabilities(

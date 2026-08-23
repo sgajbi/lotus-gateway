@@ -2,7 +2,6 @@ from app.services.gateway_service_provider import (
     archive_document_service,
     composite_performance_service,
     domain_product_catalog_service,
-    foundation_service,
     idea_service,
     intake_service,
     source_product_service,
@@ -39,10 +38,6 @@ def test_gateway_service_provider_wires_smaller_route_services(monkeypatch) -> N
     assert domain_product_catalog_service()._catalog_path is not None
     assert (
         source_product_service()._lotus_core_query_client._query_base_url
-        == "http://core-query-provider:8001"
-    )
-    assert (
-        foundation_service()._lotus_core_query_client._query_base_url
         == "http://core-query-provider:8001"
     )
     assert (
