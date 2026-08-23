@@ -967,3 +967,20 @@ Reference branch: `origin/main`
   policy or Workbench implementation change. Exact-main closure remains blocked until the corrected
   mainline is rebuilt, canonical route validation returns 200, and releasability/parity evidence is
   refreshed.
+
+## Advisor Brief Review Context (#572)
+
+- Scope: bounded advisor-brief read and review-action slice. Existing shared performance workspace
+  controls now flow through both routes and are represented in the Advisor Brief response.
+- Authority and boundary: Gateway reuses the performance workspace's requested/effective date and
+  reporting-currency state. It does not calculate currency conversion, validate against a currency
+  catalogue, map as-of dates beyond the source-owned window, or promote workspace capabilities.
+- Compatibility: both query controls remain optional; omitted requests retain the existing route
+  behavior. Effective values and typed state are source/workspace-derived, and source links include
+  the selected controls only when supplied.
+- Tests: OpenAPI parameter/response assertions, read-route forwarding, review-action forwarding,
+  service response context, cache-key inputs, and source-route regression coverage passed in the
+  focused slice. Full repository/native validation remains part of delivery.
+- Truth updates: supported-features, API-surface, repository context, and wiki source are updated.
+  No migration, central context, upstream producer, or skill change is required. #572 remains open
+  for the deferred capability and source-contract work.

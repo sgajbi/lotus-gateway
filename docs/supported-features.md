@@ -50,8 +50,8 @@ evidence reads after the budget expires, and support is not inferred from a succ
 
 ## Performance Summary Review Controls
 
-Status: implementation-backed for the Workbench performance summary, details, and
-attribution-trend routes.
+Status: implementation-backed for the Workbench performance summary, details, attribution-trend,
+and advisor-brief routes.
 
 `GET /api/v1/workbench/{portfolio_id}/performance/summary` and
 `GET /api/v1/workbench/{portfolio_id}/performance/details` accept optional `as_of_date` and
@@ -69,8 +69,11 @@ period request, and publishes the same requested/effective context. Its state is
 `accepted_unverified` when at least one period returns a usable source row, `rejected` when a
 period returns typed currency validation failure, and `unavailable` when no usable period is
 returned. Partial period failures remain visible in `partial_failures`; no source-applied
-currency evidence is claimed. Advisor brief, currency-catalog validation,
-as-of-after-last-observation mapping, and workspace-wide capability promotion remain deferred
+currency evidence is claimed. The advisor-brief read and review-action routes accept the same
+controls, forward them to the shared performance workspace, and publish requested/effective date
+and currency context plus `reporting_currency_state`; source links retain the selected controls
+when supplied. Advisor brief does not claim source-applied currency evidence or promote workspace
+capabilities. Currency-catalog validation and as-of-after-last-observation mapping remain deferred
 under GitHub issue #572.
 
 ## Performance Horizon Window Policy

@@ -79,8 +79,8 @@ remain in `lotus-performance`.
 
 ## Performance Summary Review Controls
 
-Status: implementation-backed for the Workbench performance summary, details, and
-attribution-trend routes.
+Status: implementation-backed for the Workbench performance summary, details, attribution-trend,
+and advisor-brief routes.
 
 `GET /api/v1/workbench/{portfolio_id}/performance/summary` accepts optional `as_of_date` and
 `reporting_currency` query parameters. Gateway forwards the requested reporting currency to
@@ -99,10 +99,14 @@ controls, gives an explicit `report_end_date` precedence over `as_of_date`, forw
 currency to each bounded period request, and publishes the same requested/effective context. It
 reports `accepted_unverified` when at least one period has a usable source row, `rejected` for
 typed currency validation failure, and `unavailable` when no usable period is returned; partial
-period failures remain visible. These routes do not claim source-applied currency evidence.
-Advisor brief, currency-catalog validation, as-of-after-last-observation mapping, and workspace-wide
-capability promotion remain intentionally deferred under GitHub issue #572; the broader workspace
-must not claim those controls as supported until their owning routes and live evidence are complete.
+period failures remain visible. These routes do not claim source-applied currency evidence. The
+advisor-brief read and review-action routes accept the same controls, forward them to the shared
+performance workspace, and publish requested/effective date and currency context plus
+`reporting_currency_state`; source links retain the selected controls when supplied. Advisor brief
+does not claim source-applied currency evidence or promote workspace capabilities. Currency-catalog
+validation and as-of-after-last-observation mapping remain intentionally deferred under GitHub
+issue #572; the broader workspace must not claim those controls as supported until their owning
+routes and live evidence are complete.
 
 ## Performance Horizon Window Policy
 
