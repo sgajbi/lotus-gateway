@@ -8,6 +8,10 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 
 - Stateless service behavior with externalized durable state.
 - Explicit timeout and bounded retry/backoff for inter-service communication where applicable.
+- Request retry policy uses an explicit HTTPX allow-list: timeouts (when enabled), network errors,
+  and remote protocol disconnects may retry; redirect loops, unsupported protocols, local protocol
+  errors, and unclassified request errors are terminal and are not reinterpreted as deadline-worthy
+  transient polling failures.
 - Health/liveness/readiness endpoints for runtime orchestration.
 - Observability instrumentation for latency/error/throughput diagnostics.
 

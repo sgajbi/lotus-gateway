@@ -17,6 +17,7 @@ from app.clients.http_response_payloads import (
     unsupported_method_payload,
 )
 from app.clients.http_retry_policy import (
+    is_retryable_request_error,
     retry_attempts,
     retry_delay,
     should_retry_status,
@@ -39,6 +40,9 @@ def test_http_resilience_delegates_retry_policy() -> None:
         attempt=0,
         max_retries=1,
     )
+    assert is_retryable_request_error(httpx.NetworkError("disconnected")) is True
+    assert is_retryable_request_error(httpx.RemoteProtocolError("disconnected")) is True
+    assert is_retryable_request_error(httpx.TooManyRedirects("loop")) is False
     assert "_retry_attempts" not in resilience_functions
     assert "_retry_delay" not in resilience_functions
     assert "_should_retry_status" not in resilience_functions
@@ -156,6 +160,49 @@ class _NetworkErrorAsyncClient:
     async def get(self, url, params=None, headers=None):
         _ = url, params, headers
         raise httpx.NetworkError("disconnected")
+
+
+class _RetryableNetworkErrorThenSuccessAsyncClient:
+    calls = 0
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _RetryableNetworkErrorThenSuccessAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, _exc_type, exc, _tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = params, headers
+        _RetryableNetworkErrorThenSuccessAsyncClient.calls += 1
+        if _RetryableNetworkErrorThenSuccessAsyncClient.calls == 1:
+            raise httpx.NetworkError("disconnected")
+        return httpx.Response(200, json={"ok": True}, request=httpx.Request("GET", url))
+
+
+class _RaisedRequestErrorAsyncClient:
+    calls = 0
+    exception_type = httpx.RequestError
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _RaisedRequestErrorAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, _exc_type, exc, _tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = url, params, headers
+        _RaisedRequestErrorAsyncClient.calls += 1
+        raise _RaisedRequestErrorAsyncClient.exception_type("permanent request failure")
 
 
 class _ProtocolErrorAsyncClient:
@@ -401,6 +448,56 @@ async def test_request_outcome_classifies_transport_failure_without_parsing_payl
     assert outcome.status_code == 503
     assert outcome.failure_kind == RequestFailureKind.TRANSPORT
     assert outcome.is_transient_transport_failure is True
+
+
+@pytest.mark.asyncio
+async def test_request_outcome_retries_allowlisted_network_error(monkeypatch):
+    _RetryableNetworkErrorThenSuccessAsyncClient.calls = 0
+    monkeypatch.setattr("httpx.AsyncClient", _RetryableNetworkErrorThenSuccessAsyncClient)
+
+    outcome = await request_with_retry_outcome(
+        method="GET",
+        url="http://service/health",
+        timeout_seconds=1.0,
+        max_retries=1,
+        backoff_seconds=0.0,
+    )
+
+    assert outcome.status_code == 200
+    assert outcome.payload == {"ok": True}
+    assert _RetryableNetworkErrorThenSuccessAsyncClient.calls == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception_type",
+    [
+        httpx.TooManyRedirects,
+        httpx.UnsupportedProtocol,
+        httpx.LocalProtocolError,
+        httpx.RequestError,
+    ],
+)
+async def test_request_outcome_stops_for_terminal_request_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    exception_type: type[httpx.RequestError],
+) -> None:
+    _RaisedRequestErrorAsyncClient.calls = 0
+    _RaisedRequestErrorAsyncClient.exception_type = exception_type
+    monkeypatch.setattr("httpx.AsyncClient", _RaisedRequestErrorAsyncClient)
+
+    outcome = await request_with_retry_outcome(
+        method="GET",
+        url="http://service/health",
+        timeout_seconds=1.0,
+        max_retries=2,
+        backoff_seconds=0.0,
+    )
+
+    assert outcome.status_code == 503
+    assert outcome.failure_kind == RequestFailureKind.TERMINAL_REQUEST_ERROR
+    assert outcome.is_transient_transport_failure is False
+    assert _RaisedRequestErrorAsyncClient.calls == 1
 
 
 @pytest.mark.asyncio

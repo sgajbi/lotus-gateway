@@ -1,5 +1,11 @@
 import httpx
 
+_RETRYABLE_REQUEST_ERROR_TYPES = (
+    httpx.TimeoutException,
+    httpx.NetworkError,
+    httpx.RemoteProtocolError,
+)
+
 
 def retry_attempts(max_retries: int) -> int:
     return max(0, max_retries) + 1
@@ -31,6 +37,14 @@ def should_retry_request_error(
     attempt: int,
     max_retries: int,
 ) -> bool:
+    if not is_retryable_request_error(exc):
+        return False
     if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
         return False
     return attempt < max_retries
+
+
+def is_retryable_request_error(exc: httpx.RequestError) -> bool:
+    """Return whether an HTTPX request error can safely be retried."""
+
+    return isinstance(exc, _RETRYABLE_REQUEST_ERROR_TYPES)

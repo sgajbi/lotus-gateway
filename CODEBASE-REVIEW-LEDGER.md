@@ -51,6 +51,27 @@ Reference branch: `origin/main`
   `wiki/API-Surface.md`, and this ledger change because details support and classifier ownership
   changed. No central platform context or skill change is required.
 
+### Batch 2F — terminal HTTPX request-error taxonomy (#538)
+
+- Objective: stop permanent HTTPX request/protocol errors from being retried as transient transport
+  failures until the analytics result deadline.
+- Change: the shared retry-policy owner now allow-lists timeouts (when enabled), network errors,
+  and remote protocol disconnects. `TooManyRedirects`, `UnsupportedProtocol`,
+  `LocalProtocolError`, and unclassified `RequestError` values are terminal; typed JSON outcomes
+  publish `TERMINAL_REQUEST_ERROR`, so the analytics polling boundary returns the communication
+  failure immediately. The binary transport inherits the same shared policy rather than retaining
+  a divergent permanent-error retry path.
+- Regression proof: HTTPX policy tests cover allow-listed network/remote-protocol errors and
+  terminal redirect, unsupported-protocol, local-protocol, and unclassified request errors;
+  analytics polling proves terminal failure does not become deadline exhaustion. Existing timeout,
+  status-retry, JSON, binary, and remote-protocol tests remain green.
+- Compatibility: public response shapes and API routes are unchanged. Timeout and genuinely
+  transient network behavior remain bounded; only permanent request-construction/protocol errors
+  stop retrying. No migration, central context, or skill change is required.
+- Documentation decision: `docs/standards/scalability-availability.md` and
+  `wiki/Validation-and-CI.md` now state the explicit retry taxonomy; wiki publication and strict
+  parity are required after merge.
+
 ### Batch 2E — authoritative performance horizon windows (#551)
 
 - Objective: remove silent January-1/YTD fallback from accepted performance horizon resolution and

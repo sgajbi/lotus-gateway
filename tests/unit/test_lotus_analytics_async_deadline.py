@@ -443,6 +443,32 @@ async def test_source_503_remains_terminal_for_bounded_poll(
 
 
 @pytest.mark.asyncio
+async def test_terminal_request_error_stops_polling_without_deadline_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = _Clock()
+    _install_clock(monkeypatch, clock)
+    terminal_failure = JsonRequestOutcome(
+        503,
+        {"detail": "upstream communication failure: TooManyRedirects"},
+        RequestFailureKind.TERMINAL_REQUEST_ERROR,
+    )
+    calls = _install_transport(monkeypatch, [_accepted_response(), terminal_failure])
+    client = LotusAnalyticsClient(
+        base_url="http://analytics",
+        timeout_seconds=15.0,
+        workspace_summary_deadline_seconds=5.0,
+    )
+
+    status_code, payload = await _workspace_summary_call(client)
+
+    assert status_code == 503
+    assert payload == {"detail": "upstream communication failure: TooManyRedirects"}
+    assert [call["method"] for call in calls] == ["POST", "GET"]
+    assert clock.sleeps == [1.0]
+
+
+@pytest.mark.asyncio
 async def test_submission_timeout_after_budget_expiry_maps_to_deadline_without_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
