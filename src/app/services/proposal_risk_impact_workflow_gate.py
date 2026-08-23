@@ -6,6 +6,7 @@ from app.contracts.proposal_risk_impact import (
 from app.contracts.proposal_risk_impact_coherence import (
     decision_allows_workflow_gate,
     has_blocking_proposal_decision_evidence,
+    workflow_gate_has_reason_evidence,
 )
 from app.services.proposal_risk_impact_errors import (
     raise_proposal_risk_impact_contract_invalid,
@@ -40,9 +41,19 @@ def project_proposal_risk_impact_workflow_gate(
         )
     support_reference, selected = available[0]
     mismatch = any(gate != selected for _, gate in available[1:])
+    reason_evidence_missing = not workflow_gate_has_reason_evidence(
+        gate=selected.gate,
+        reason_count=len(selected.reasons),
+    )
+    if mismatch:
+        reason_code = "workflow_gate_source_mismatch"
+    elif reason_evidence_missing:
+        reason_code = "workflow_gate_reason_evidence_missing"
+    else:
+        reason_code = "workflow_gate_available"
     return ProposalRiskImpactWorkflowGate(
-        state="partial" if mismatch else "ready",
-        reason_code="workflow_gate_source_mismatch" if mismatch else "workflow_gate_available",
+        state="partial" if mismatch or reason_evidence_missing else "ready",
+        reason_code=reason_code,
         support_reference=support_reference,
         gate=selected.gate,
         recommended_next_step=selected.recommended_next_step,
@@ -62,7 +73,6 @@ def reconcile_proposal_risk_impact_workflow_gate(
 
     if (
         decision.state == "ready"
-        and workflow_gate.state == "ready"
         and decision.decision_status is not None
         and workflow_gate.gate is not None
         and not decision_allows_workflow_gate(
