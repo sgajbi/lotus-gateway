@@ -15,9 +15,12 @@ class _StubWorkbenchCoreClient:
         }
         self.snapshot_status = 200
         self.snapshot_payload = {
-            "as_of_date": "2026-02-24",
+            "as_of_date": "2026-04-10",
+            "source_evidence_current": True,
+            "freshness_status": "CURRENT",
             "freshness": {
-                "snapshot_timestamp": "2026-04-10T00:00:00Z",
+                "freshness_status": "CURRENT_SNAPSHOT",
+                "snapshot_timestamp": "2026-08-22T20:39:38Z",
             },
             "sections": {
                 "positions_baseline": [
@@ -95,6 +98,7 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
         core_client=client,
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-workbench-context",
+        requested_as_of_date="2026-04-10",
     )
 
     assert client.portfolio_calls == [
@@ -112,7 +116,7 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
             "correlation_id": "corr-workbench-context",
         }
     ]
-    assert context.requested_as_of_date is None
+    assert context.requested_as_of_date == "2026-04-10"
     assert context.effective_as_of_date == "2026-04-10"
     assert context.as_of_state == "confirmed"
     assert context.enrichment_as_of_date == "2026-04-10"
@@ -129,25 +133,13 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
 @pytest.mark.asyncio
 async def test_load_workbench_snapshot_context_keeps_requested_and_effective_dates_distinct():
     client = _StubWorkbenchCoreClient()
-
-    context = await load_workbench_snapshot_context(
-        core_client=client,
-        portfolio_id="PB_SG_GLOBAL_BAL_001",
-        correlation_id="corr-workbench-context",
-        requested_as_of_date="2026-08-23",
+    client.snapshot_payload.update(
+        {
+            "as_of_date": "2026-08-23",
+            "source_evidence_current": False,
+            "freshness_status": "UNAVAILABLE",
+        }
     )
-
-    assert client.snapshot_calls[0]["as_of_date"] == "2026-08-23"
-    assert context.requested_as_of_date == "2026-08-23"
-    assert context.effective_as_of_date == "2026-04-10"
-    assert context.as_of_state == "confirmed"
-    assert context.enrichment_as_of_date == "2026-08-23"
-
-
-@pytest.mark.asyncio
-async def test_load_workbench_snapshot_context_does_not_publish_unconfirmed_date():
-    client = _StubWorkbenchCoreClient()
-    client.snapshot_payload["freshness"] = {"snapshot_timestamp": None}
 
     context = await load_workbench_snapshot_context(
         core_client=client,
@@ -160,7 +152,30 @@ async def test_load_workbench_snapshot_context_does_not_publish_unconfirmed_date
     assert context.requested_as_of_date == "2026-08-23"
     assert context.effective_as_of_date is None
     assert context.as_of_state == "unavailable"
-    assert context.enrichment_as_of_date == "2026-08-23"
+    assert context.enrichment_as_of_date is None
+
+
+@pytest.mark.asyncio
+async def test_load_workbench_snapshot_context_does_not_publish_unconfirmed_date():
+    client = _StubWorkbenchCoreClient()
+    client.snapshot_payload.update(
+        {
+            "as_of_date": "2026-08-23",
+            "source_evidence_current": False,
+            "freshness_status": "UNAVAILABLE",
+        }
+    )
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-context",
+    )
+
+    assert context.requested_as_of_date is None
+    assert context.effective_as_of_date is None
+    assert context.as_of_state == "unavailable"
+    assert context.enrichment_as_of_date is None
 
 
 @pytest.mark.asyncio

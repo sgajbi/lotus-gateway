@@ -278,7 +278,13 @@ def test_resolve_snapshot_date_evidence_fails_closed_for_malformed_source_metada
 @pytest.mark.asyncio
 async def test_workbench_portfolio_360_publishes_unavailable_temporal_state():
     service, core_client, _, _ = _build_service()
-    core_client.core_payload["freshness"] = {"snapshot_timestamp": None}
+    core_client.core_payload.update(
+        {
+            "as_of_date": "2026-08-23",
+            "freshness_status": "UNAVAILABLE",
+            "source_evidence_current": False,
+        }
+    )
 
     response = await service.get_portfolio_360(
         portfolio_id="P1",
@@ -290,6 +296,10 @@ async def test_workbench_portfolio_360_publishes_unavailable_temporal_state():
     assert response.requested_as_of_date == "2026-08-23"
     assert response.effective_as_of_date is None
     assert response.as_of_state == "unavailable"
+    assert response.performance_snapshot is None
+    assert response.rebalance_snapshot is None
+    assert response.warnings == ["WORKBENCH_AS_OF_DATE_UNAVAILABLE"]
+    assert response.partial_failures[0].error_code == "WORKBENCH_AS_OF_DATE_UNAVAILABLE"
 
 
 @pytest.mark.parametrize(

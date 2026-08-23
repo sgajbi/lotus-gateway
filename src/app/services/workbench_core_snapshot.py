@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -21,34 +21,28 @@ class WorkbenchSnapshotDateEvidence:
 
 def resolve_snapshot_date_evidence(
     snapshot_payload: dict[str, Any],
+    *,
+    requested_as_of_date: str | None = None,
 ) -> WorkbenchSnapshotDateEvidence:
-    """Map Core temporal metadata without treating its request echo as confirmation."""
-    if "freshness" in snapshot_payload:
-        freshness = snapshot_payload.get("freshness")
-        if not isinstance(freshness, dict):
+    """Map Core's business-date authority and never use snapshot lineage as a date."""
+    freshness_status = snapshot_payload.get("freshness_status")
+    if freshness_status is not None:
+        if requested_as_of_date is None or freshness_status != "CURRENT":
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
-        snapshot_timestamp = freshness.get("snapshot_timestamp")
-        if snapshot_timestamp is None:
+        if snapshot_payload.get("source_evidence_current") is False:
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
-        effective_date = _snapshot_timestamp_date(snapshot_timestamp)
+        effective_date = _valid_iso_date(snapshot_payload.get("as_of_date"))
         if effective_date is None:
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
         return WorkbenchSnapshotDateEvidence(effective_date, "confirmed")
+
+    if "freshness" in snapshot_payload:
+        return WorkbenchSnapshotDateEvidence(None, "unavailable")
 
     legacy_as_of_date = _valid_iso_date(snapshot_payload.get("as_of_date"))
     if legacy_as_of_date is not None:
         return WorkbenchSnapshotDateEvidence(legacy_as_of_date, "accepted_unverified")
     return WorkbenchSnapshotDateEvidence(None, "unavailable")
-
-
-def _snapshot_timestamp_date(raw_timestamp: Any) -> str | None:
-    if not isinstance(raw_timestamp, str):
-        return None
-    try:
-        normalized_timestamp = raw_timestamp.replace("Z", "+00:00")
-        return datetime.fromisoformat(normalized_timestamp).date().isoformat()
-    except ValueError:
-        return None
 
 
 def _valid_iso_date(raw_date: Any) -> str | None:

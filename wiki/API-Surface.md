@@ -66,13 +66,16 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. Their response
   publishes `requested_as_of_date`, `effective_as_of_date`, and `as_of_state`; the legacy
-  top-level `as_of_date` is the effective source date or `null`. A valid Core
-  `freshness.snapshot_timestamp` produces `confirmed`, a legacy source date without freshness
-  evidence is `accepted_unverified`, and missing or invalid evidence is `unavailable`. The date
-  sent to Core when the query is omitted is an internal request bound, not a published business
-  date. Gateway does not use host time as effective portfolio truth. Composed performance
-  workspace requests fail closed with `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when no explicit report
-  end or usable Workbench date exists.
+  top-level `as_of_date` is the effective source date or `null`. For an explicit request, top-level
+  Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`;
+  `source_evidence_current` cannot be false. Nested `freshness.snapshot_timestamp` and
+  `snapshot_epoch` are lineage only and never become a business date. A legacy source date without
+  authoritative freshness evidence is `accepted_unverified`, and missing, invalid, or non-current
+  evidence is `unavailable`. When no date is requested and Core cannot resolve a latest business
+  date, Gateway reports `unavailable` and withholds date-dependent embedded enrichment. Gateway
+  does not use host time as effective portfolio truth. Composed performance workspace requests
+  fail closed with `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when no explicit report end or usable
+  Workbench date exists.
 
 - Performance attribution level totals are source-owned. `total_effect_pct` is nullable when
   `lotus-performance` omits the level aggregate; Gateway does not reconstruct it from rows or

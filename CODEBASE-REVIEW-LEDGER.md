@@ -8,15 +8,20 @@ Reference branch: `origin/main`
 
 - Objective: stop Workbench overview and portfolio-360 from publishing the Core request-bound
   date or Gateway host date as an effective portfolio business date.
-- Change: the shared Core snapshot mapping now reads `freshness.snapshot_timestamp` as source
-  temporal evidence, preserves requested and effective dates separately, and publishes the typed
-  `as_of_state` values `confirmed`, `accepted_unverified`, or `unavailable`. The legacy top-level
-  `as_of_date` is now the effective date or `null`; the date sent to Core for an omitted query is
-  retained only as an internal query/enrichment bound. Both Workbench snapshot routes accept the
-  same optional requested date control.
-- Regression proof: context tests cover source-confirmed evidence, explicit requested/effective
-  separation, and null freshness fail-closed behavior; router integration covers query propagation
-  and the additive response fields; OpenAPI contract tests pin both route parameters and response
+- Change: the shared Core snapshot mapping now uses top-level `freshness_status=CURRENT` and the
+  valid top-level `as_of_date` as business-date authority for an explicit request. It preserves
+  requested and effective dates separately and publishes the typed `as_of_state` values
+  `confirmed`, `accepted_unverified`, or `unavailable`. Nested `freshness.snapshot_timestamp` and
+  `snapshot_epoch` remain lineage only. The legacy top-level `as_of_date` is now the effective date
+  or `null`; when no date is requested and Core cannot resolve a latest business date, Gateway
+  reports `unavailable` and withholds date-dependent enrichment. Both Workbench snapshot routes
+  accept the same optional requested date control.
+- Regression proof: context and portfolio-360 tests cover the canonical Core pair: requested
+  `2026-04-10` with top-level `CURRENT` and requested `2026-08-23` with top-level `UNAVAILABLE`,
+  while both rows carry the same nested snapshot timestamp. Tests also prove omitted-date requests
+  cannot turn a host-date query bound into `confirmed`, and unavailable dates withhold embedded
+  performance and rebalance snapshots. Router integration covers query propagation and the
+  additive response fields; OpenAPI contract tests pin both route parameters and response
   metadata; composed performance workspace coverage proves downstream consumers fail closed when
   no usable date exists.
 - Compatibility: query names and existing financial fields remain available. New temporal fields
