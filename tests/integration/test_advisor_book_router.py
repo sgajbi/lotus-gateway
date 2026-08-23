@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 
 from app.contracts.advisor_book import AdvisorBookResponse
 from app.contracts.advisor_book_examples import ADVISOR_BOOK_RESPONSE_EXAMPLE
+from app.contracts.advisor_book_summary import AdvisorBookSummaryResponse
+from app.contracts.advisor_book_summary_examples import ADVISOR_BOOK_SUMMARY_RESPONSE_EXAMPLE
 from app.main import app
 from app.services.advisor_book_service import AdvisorBookServiceError
 
@@ -18,6 +20,18 @@ class _AdvisorBookService:
         if self.error is not None:
             raise self.error
         return AdvisorBookResponse.model_validate(ADVISOR_BOOK_RESPONSE_EXAMPLE)
+
+
+class _AdvisorBookSummaryService:
+    def __init__(self, *, error: AdvisorBookServiceError | None = None) -> None:
+        self.error = error
+        self.calls: list[dict[str, object]] = []
+
+    async def get_value_summary(self, **kwargs) -> AdvisorBookSummaryResponse:
+        self.calls.append(kwargs)
+        if self.error is not None:
+            raise self.error
+        return AdvisorBookSummaryResponse.model_validate(ADVISOR_BOOK_SUMMARY_RESPONSE_EXAMPLE)
 
 
 def _headers(**overrides: str) -> dict[str, str]:
@@ -155,3 +169,48 @@ def test_advisor_book_openapi_exposes_bounded_own_book_contract() -> None:
         "$ref": "#/components/schemas/AdvisorBookResponse"
     }
     assert AdvisorBookResponse.model_validate(example)
+
+
+def test_advisor_book_summary_route_preserves_trusted_scope_and_currency(monkeypatch) -> None:
+    service = _AdvisorBookSummaryService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_summary_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/summary",
+        params={"asOfDate": "2026-04-10", "reportingCurrency": "usd"},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == ADVISOR_BOOK_SUMMARY_RESPONSE_EXAMPLE
+    assert len(service.calls) == 1
+    assert service.calls[0]["reporting_currency"] == "USD"
+    assert service.calls[0]["caller"].portfolio_manager_id == "PM_SG_001"
+
+
+def test_advisor_book_summary_route_rejects_invalid_currency_before_service(monkeypatch) -> None:
+    service = _AdvisorBookSummaryService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_summary_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/summary",
+        params={"asOfDate": "2026-04-10", "reportingCurrency": "US1"},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "advisor_book_reporting_currency_invalid"
+    assert service.calls == []
+
+
+def test_advisor_book_summary_openapi_is_typed_and_explicit() -> None:
+    operation = app.openapi()["paths"]["/api/v1/advisor-book/summary"]["get"]
+    parameters = {item["name"] for item in operation["parameters"]}
+    example = operation["responses"]["200"]["content"]["application/json"]["example"]
+
+    assert {"asOfDate", "reportingCurrency", "X-Actor-Id", "X-Tenant-Id"} <= parameters
+    assert "one bounded Core AUM scope read" in operation["description"]
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AdvisorBookSummaryResponse"
+    }
+    assert AdvisorBookSummaryResponse.model_validate(example)

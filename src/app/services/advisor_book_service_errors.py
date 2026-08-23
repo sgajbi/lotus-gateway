@@ -30,6 +30,22 @@ def source_incomplete() -> AdvisorBookServiceError:
     )
 
 
+def value_source_unavailable() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_value_source_unavailable",
+        message="Advisor-book value information is temporarily unavailable.",
+        status_code=502,
+    )
+
+
+def value_source_contract_invalid() -> AdvisorBookServiceError:
+    return AdvisorBookServiceError(
+        code="advisor_book_value_source_contract_invalid",
+        message="Advisor-book value information could not be safely verified.",
+        status_code=502,
+    )
+
+
 def tenant_scope_unverified() -> AdvisorBookServiceError:
     return AdvisorBookServiceError(
         code="advisor_book_tenant_scope_unverified",

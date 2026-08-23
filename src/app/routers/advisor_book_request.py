@@ -46,6 +46,16 @@ _Limit = Annotated[
     int,
     Query(ge=1, le=100, description="Maximum number of portfolios returned on this page."),
 ]
+_ReportingCurrency = Annotated[
+    str,
+    Query(
+        alias="reportingCurrency",
+        min_length=3,
+        max_length=3,
+        description="Explicit reporting currency required for a cross-portfolio book value total.",
+        examples=["USD"],
+    ),
+]
 
 
 @dataclass(frozen=True)
@@ -97,6 +107,22 @@ def advisor_book_query(
         offset=offset,
         limit=limit,
     )
+
+
+def advisor_book_summary_query(
+    as_of_date: _AsOfDate,
+    reporting_currency: _ReportingCurrency,
+) -> tuple[date, str]:
+    normalized_currency = reporting_currency.strip().upper()
+    if not normalized_currency.isalpha():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "advisor_book_reporting_currency_invalid",
+                "message": "Reporting currency must be a three-letter alphabetic code.",
+            },
+        )
+    return as_of_date, normalized_currency
 
 
 def _optional_filter(value: str | None) -> str | None:
