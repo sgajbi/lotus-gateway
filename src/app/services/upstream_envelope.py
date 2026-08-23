@@ -1,5 +1,6 @@
 """Shared service-layer helpers for upstream-backed gateway envelopes."""
 
+from collections.abc import Callable, Mapping
 from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
@@ -185,19 +186,28 @@ def raise_product_safe_upstream_error(
     error_model: type[ErrorDetailT],
     error_code: str,
     default_detail: str,
+    detail_fields: Mapping[str, Any] | None = None,
+    detail_resolver: Callable[[int, dict[str, Any], str], str] | None = None,
 ) -> None:
-    """Raise a typed product-safe Gateway error for upstream-backed route families."""
+    """Raise a typed product-safe error with optional bounded fields and detail policy."""
 
     if upstream_status < status.HTTP_400_BAD_REQUEST:
         return
 
+    detail = safe_upstream_detail(upstream_payload, default_detail=default_detail)
+    if detail_resolver is not None:
+        detail = detail_resolver(upstream_status, upstream_payload, detail)
+    error_detail: dict[str, Any] = {
+        "upstream_status": upstream_status,
+        "error_code": error_code,
+        "detail": detail,
+    }
+    if detail_fields is not None:
+        error_detail.update(detail_fields)
+
     raise HTTPException(
         status_code=upstream_status,
-        detail=error_model(
-            upstream_status=upstream_status,
-            error_code=error_code,
-            detail=safe_upstream_detail(upstream_payload, default_detail=default_detail),
-        ).model_dump(),
+        detail=error_model(**error_detail).model_dump(),
     )
 
 

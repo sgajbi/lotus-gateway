@@ -75,11 +75,11 @@ def _append_reason(value: object, reason_codes: list[str]) -> None:
 
 def _append_field_paths(node: Mapping[str, Any], field_paths: list[str]) -> None:
     for key in ("field", "field_path", "path", "loc"):
+        if len(field_paths) >= _MAX_EVIDENCE_ITEMS:
+            return
         field_path = _safe_field_path(node.get(key))
         if field_path and field_path not in field_paths:
             field_paths.append(field_path)
-        if len(field_paths) >= _MAX_EVIDENCE_ITEMS:
-            return
 
 
 def _safe_field_path(value: object) -> str | None:

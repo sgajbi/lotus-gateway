@@ -7,6 +7,7 @@ from app.contracts.dpm_construction import (
     DpmConstructionGatewayResponse,
     DpmConstructionSupportability,
 )
+from app.contracts.dpm_pm_operating_quality import DpmPmOperatingQualityErrorDetail
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.services.upstream_envelope import (
     GATEWAY_SERVICE_ERROR_STATUS_RULES,
@@ -242,6 +243,31 @@ def test_raise_product_safe_upstream_error_builds_typed_detail() -> None:
         "upstream_status": 409,
         "error_code": "MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
         "detail": "CONSTRUCTION_IDEMPOTENCY_KEY_CONFLICT",
+    }
+
+
+def test_raise_product_safe_upstream_error_supports_bounded_fields_and_detail_policy() -> None:
+    def fail_closed_5xx(_status: int, _payload: dict[str, object], _safe_detail: str) -> str:
+        return "lotus-manage command-center request failed"
+
+    with pytest.raises(HTTPException) as exc_info:
+        raise_product_safe_upstream_error(
+            503,
+            {"detail": {"code": "INTERNAL_CODE"}},
+            error_model=DpmPmOperatingQualityErrorDetail,
+            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+            default_detail="lotus-manage command-center request failed",
+            detail_fields={"reason_codes": ["internal"], "field_paths": []},
+            detail_resolver=fail_closed_5xx,
+        )
+
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 503,
+        "error_code": "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        "detail": "lotus-manage command-center request failed",
+        "reason_codes": ["internal"],
+        "field_paths": [],
     }
 
 
