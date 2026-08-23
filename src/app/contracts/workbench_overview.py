@@ -45,9 +45,9 @@ class WorkbenchOverviewResponse(BaseModel):
     as_of_state: WorkbenchAsOfState = Field(
         default="unavailable",
         description=(
-            "Temporal evidence state: confirmed when Core freshness metadata supplies a valid "
-            "source timestamp, accepted_unverified for a legacy source date without that "
-            "metadata, or unavailable when no usable source date exists."
+            "Temporal evidence state: confirmed when Core freshness metadata confirms a valid "
+            "top-level business date, accepted_unverified for a legacy source date without "
+            "that metadata, or unavailable when no usable source date exists."
         ),
         examples=["confirmed"],
     )
@@ -161,9 +161,9 @@ class WorkbenchPortfolio360Response(BaseModel):
     as_of_state: WorkbenchAsOfState = Field(
         default="unavailable",
         description=(
-            "Temporal evidence state: confirmed when Core freshness metadata supplies a valid "
-            "source timestamp, accepted_unverified for a legacy source date without that "
-            "metadata, or unavailable when no usable source date exists."
+            "Temporal evidence state: confirmed when Core freshness metadata confirms a valid "
+            "top-level business date, accepted_unverified for a legacy source date without "
+            "that metadata, or unavailable when no usable source date exists."
         ),
         examples=["confirmed"],
     )

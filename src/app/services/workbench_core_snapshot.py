@@ -23,16 +23,18 @@ def resolve_snapshot_date_evidence(
     snapshot_payload: dict[str, Any],
     *,
     requested_as_of_date: str | None = None,
+    confirmation_as_of_date: str | None = None,
 ) -> WorkbenchSnapshotDateEvidence:
     """Map Core's business-date authority and never use snapshot lineage as a date."""
+    expected_date = _valid_iso_date(confirmation_as_of_date or requested_as_of_date)
     freshness_status = snapshot_payload.get("freshness_status")
     if freshness_status is not None:
-        if requested_as_of_date is None or freshness_status != "CURRENT":
+        if expected_date is None or freshness_status != "CURRENT":
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
         if snapshot_payload.get("source_evidence_current") is False:
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
         effective_date = _valid_iso_date(snapshot_payload.get("as_of_date"))
-        if effective_date is None:
+        if effective_date is None or effective_date != expected_date:
             return WorkbenchSnapshotDateEvidence(None, "unavailable")
         return WorkbenchSnapshotDateEvidence(effective_date, "confirmed")
 
@@ -40,7 +42,7 @@ def resolve_snapshot_date_evidence(
         return WorkbenchSnapshotDateEvidence(None, "unavailable")
 
     legacy_as_of_date = _valid_iso_date(snapshot_payload.get("as_of_date"))
-    if legacy_as_of_date is not None:
+    if expected_date is not None and legacy_as_of_date == expected_date:
         return WorkbenchSnapshotDateEvidence(legacy_as_of_date, "accepted_unverified")
     return WorkbenchSnapshotDateEvidence(None, "unavailable")
 
