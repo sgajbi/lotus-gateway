@@ -213,6 +213,24 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
         ),
         (
             (
+                200,
+                {
+                    "results_by_period": {
+                        "YTD": {
+                            "portfolio_twr": {
+                                "net": {
+                                    "breakdowns": {"monthly": [{"period_return": {"base": 1.0}}]}
+                                }
+                            }
+                        }
+                    }
+                },
+            ),
+            "SGD",
+            "accepted_unverified",
+        ),
+        (
+            (
                 422,
                 {
                     "error_code": "VALIDATION_ERROR",
