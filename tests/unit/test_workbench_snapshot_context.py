@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 from fastapi import HTTPException
 
@@ -52,8 +54,12 @@ class _StubWorkbenchCoreClient:
                 ],
             },
         }
+        self.support_status = 200
+        self.support_payload = {"business_date": "2026-04-10"}
+        self.support_error: Exception | None = None
         self.portfolio_calls: list[dict[str, str]] = []
         self.snapshot_calls: list[dict[str, object]] = []
+        self.support_calls: list[dict[str, str]] = []
 
     async def get_portfolio(
         self,
@@ -68,6 +74,22 @@ class _StubWorkbenchCoreClient:
             }
         )
         return self.portfolio_status, self.portfolio_payload
+
+    async def get_support_overview(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ):
+        if self.support_error is not None:
+            raise self.support_error
+        self.support_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.support_status, self.support_payload
 
     async def get_core_snapshot(
         self,
@@ -116,6 +138,7 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
             "correlation_id": "corr-workbench-context",
         }
     ]
+    assert client.support_calls == []
     assert context.requested_as_of_date == "2026-04-10"
     assert context.effective_as_of_date == "2026-04-10"
     assert context.as_of_state == "confirmed"
@@ -128,6 +151,88 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
         "CASH_SGD",
         "EQ_1",
     ]
+
+
+@pytest.mark.asyncio
+async def test_load_workbench_snapshot_context_resolves_latest_business_date_without_query() -> (
+    None
+):
+    client = _StubWorkbenchCoreClient()
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-latest-date",
+    )
+
+    assert client.support_calls == [
+        {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "correlation_id": "corr-workbench-latest-date",
+        }
+    ]
+    assert client.snapshot_calls[0]["as_of_date"] == "2026-04-10"
+    assert context.requested_as_of_date is None
+    assert context.effective_as_of_date == "2026-04-10"
+    assert context.as_of_state == "confirmed"
+    assert context.enrichment_as_of_date == "2026-04-10"
+
+
+@pytest.mark.asyncio
+async def test_context_withholds_date_when_support_is_unavailable() -> None:
+    client = _StubWorkbenchCoreClient()
+    client.support_status = 503
+    client.snapshot_payload.update(
+        {
+            "as_of_date": "2026-08-23",
+            "source_evidence_current": True,
+            "freshness_status": "CURRENT",
+        }
+    )
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-latest-date-unavailable",
+    )
+
+    assert client.snapshot_calls[0]["as_of_date"] == date.today().isoformat()
+    assert context.requested_as_of_date is None
+    assert context.effective_as_of_date is None
+    assert context.as_of_state == "unavailable"
+    assert context.enrichment_as_of_date is None
+
+
+@pytest.mark.asyncio
+async def test_context_withholds_date_when_support_business_date_is_invalid() -> None:
+    client = _StubWorkbenchCoreClient()
+    client.support_payload = {"business_date": "not-a-date"}
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-invalid-latest-date",
+    )
+
+    assert context.effective_as_of_date is None
+    assert context.as_of_state == "unavailable"
+    assert context.enrichment_as_of_date is None
+
+
+@pytest.mark.asyncio
+async def test_context_withholds_date_when_support_request_raises() -> None:
+    client = _StubWorkbenchCoreClient()
+    client.support_error = RuntimeError("support overview unavailable")
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-support-error",
+    )
+
+    assert context.effective_as_of_date is None
+    assert context.as_of_state == "unavailable"
+    assert context.enrichment_as_of_date is None
 
 
 @pytest.mark.asyncio

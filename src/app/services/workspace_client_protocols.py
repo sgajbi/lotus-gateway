@@ -52,6 +52,13 @@ class PlatformCapabilitiesRiskClient(Protocol):
 
 
 class WorkbenchCoreClient(Protocol):
+    async def get_support_overview(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
     async def get_portfolio_analytics_reference(
         self,
         *,

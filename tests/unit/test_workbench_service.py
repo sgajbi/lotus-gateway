@@ -11,17 +11,24 @@ class _StubLotusCoreQueryClient:
         snapshot_status_code: int,
         snapshot_payload: dict,
         reference_performance_end_date: str = "2026-02-23",
+        support_business_date: str = "2026-02-23",
     ):
         self.portfolio_status_code = portfolio_status_code
         self.portfolio_payload = portfolio_payload
         self.snapshot_status_code = snapshot_status_code
         self.snapshot_payload = snapshot_payload
         self.reference_performance_end_date = reference_performance_end_date
+        self.support_business_date = support_business_date
         self.reference_calls = 0
         self.snapshot_calls: list[dict[str, object]] = []
+        self.support_calls = 0
 
     async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
         return self.portfolio_status_code, self.portfolio_payload
+
+    async def get_support_overview(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+        self.support_calls += 1
+        return 200, {"business_date": self.support_business_date}
 
     async def get_core_snapshot(
         self,

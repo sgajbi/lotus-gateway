@@ -58,6 +58,10 @@ async def _analytics_reference(*args, **kwargs):
     return 200, {"performance_end_date": "2026-02-23"}
 
 
+async def _support_overview(*args, **kwargs):
+    return 200, {"business_date": "2026-02-23"}
+
+
 def test_workbench_router_success(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {
@@ -137,6 +141,7 @@ def test_workbench_router_success(monkeypatch):
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support_overview)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas)
     monkeypatch.setattr(
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
@@ -236,6 +241,7 @@ def test_workbench_router_partial_failure(monkeypatch):
         return 503, {"detail": "paused"}
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support_overview)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas)
     monkeypatch.setattr(
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
@@ -259,6 +265,82 @@ def test_workbench_router_partial_failure(monkeypatch):
     ]
     assert body["partial_failures"][0]["source_service"] == "lotus-performance"
     assert body["partial_failures"][1]["source_service"] == "lotus-manage"
+
+
+def test_workbench_portfolio_360_router_resolves_latest_business_date(monkeypatch):
+    snapshot_requests: list[str] = []
+    support_requests: list[str] = []
+
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
+
+    async def _support(*args, **kwargs):
+        support_requests.append(kwargs["portfolio_id"])
+        return 200, {"business_date": "2026-04-10"}
+
+    async def _pas_core(*args, **kwargs):
+        snapshot_requests.append(kwargs["as_of_date"])
+        return 200, {
+            "as_of_date": "2026-04-10",
+            "source_evidence_current": True,
+            "freshness_status": "CURRENT",
+            "freshness": {
+                "freshness_status": "CURRENT_SNAPSHOT",
+                "snapshot_timestamp": "2026-08-22T20:39:38Z",
+            },
+            "sections": {
+                "positions_baseline": [
+                    {
+                        "security_id": "EQ_1",
+                        "quantity": 10,
+                        "market_value_base": 500.0,
+                        "weight": 0.5,
+                    }
+                ],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [
+                    {"security_id": "EQ_1", "instrument_name": "Equity 1", "asset_class": "Equity"}
+                ],
+            },
+        }
+
+    async def _performance(*args, **kwargs):
+        return 200, {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.5}}}}
+            }
+        }
+
+    async def _dpm_runs(*args, **kwargs):
+        return 200, {"items": []}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_workspace_summary",
+        _performance,
+    )
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
+
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert support_requests == ["PF_1001"]
+    assert snapshot_requests == ["2026-04-10"]
+    assert body["requested_as_of_date"] is None
+    assert body["effective_as_of_date"] == "2026-04-10"
+    assert body["as_of_date"] == "2026-04-10"
+    assert body["as_of_state"] == "confirmed"
+    assert body["performance_snapshot"]["return_pct"] == 1.5
+    assert body["rebalance_snapshot"]["status"] == "NOT_AVAILABLE"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_portfolio_360_router(monkeypatch):
@@ -304,6 +386,7 @@ def test_workbench_portfolio_360_router(monkeypatch):
         return 200, {"items": []}
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support_overview)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
     monkeypatch.setattr(
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
@@ -453,6 +536,7 @@ def test_workbench_analytics_router(monkeypatch):
         return 200, {"items": []}
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support_overview)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)

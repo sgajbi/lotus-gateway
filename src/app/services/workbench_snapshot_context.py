@@ -36,22 +36,11 @@ async def load_workbench_snapshot_context(
     correlation_id: str,
     requested_as_of_date: str | None = None,
 ) -> WorkbenchSnapshotContext:
-    query_as_of_date = requested_as_of_date or date.today().isoformat()
-    (
-        portfolio_result,
-        snapshot_result,
-    ) = await asyncio.gather(
-        core_client.get_portfolio(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-        ),
-        core_client.get_core_snapshot(
-            portfolio_id=portfolio_id,
-            as_of_date=query_as_of_date,
-            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-            consumer_system="lotus-gateway",
-            correlation_id=correlation_id,
-        ),
+    resolved_as_of_date, portfolio_result, snapshot_result = await _load_workbench_sources(
+        core_client=core_client,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        requested_as_of_date=requested_as_of_date,
     )
     portfolio_status, portfolio_payload = portfolio_result
     snapshot_status, snapshot_payload = snapshot_result
@@ -66,6 +55,7 @@ async def load_workbench_snapshot_context(
     date_evidence = resolve_snapshot_date_evidence(
         snapshot_payload,
         requested_as_of_date=requested_as_of_date,
+        confirmation_as_of_date=resolved_as_of_date,
     )
     enrichment_as_of_date = date_evidence.effective_as_of_date
     return WorkbenchSnapshotContext(
@@ -77,6 +67,61 @@ async def load_workbench_snapshot_context(
         enrichment_as_of_date=enrichment_as_of_date,
         current_positions=extract_current_positions(snapshot_payload),
     )
+
+
+async def _load_workbench_sources(
+    *,
+    core_client: WorkbenchCoreClient,
+    portfolio_id: str,
+    correlation_id: str,
+    requested_as_of_date: str | None,
+) -> tuple[str | None, tuple[int, dict[str, Any]], tuple[int, dict[str, Any]]]:
+    resolved_as_of_date = requested_as_of_date
+    if requested_as_of_date is None:
+        resolved_as_of_date = await _resolve_latest_business_date(
+            core_client=core_client,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+    query_as_of_date = resolved_as_of_date or date.today().isoformat()
+    portfolio_result, snapshot_result = await asyncio.gather(
+        core_client.get_portfolio(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        ),
+        core_client.get_core_snapshot(
+            portfolio_id=portfolio_id,
+            as_of_date=query_as_of_date,
+            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
+            consumer_system="lotus-gateway",
+            correlation_id=correlation_id,
+        ),
+    )
+    return resolved_as_of_date, portfolio_result, snapshot_result
+
+
+async def _resolve_latest_business_date(
+    *,
+    core_client: WorkbenchCoreClient,
+    portfolio_id: str,
+    correlation_id: str,
+) -> str | None:
+    try:
+        status_code, payload = await core_client.get_support_overview(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+    except Exception:
+        return None
+    if status_code >= 400 or not isinstance(payload, dict):
+        return None
+    raw_business_date = payload.get("business_date")
+    if not isinstance(raw_business_date, str):
+        return None
+    try:
+        return date.fromisoformat(raw_business_date).isoformat()
+    except ValueError:
+        return None
 
 
 def raise_for_lotus_core_snapshot_error(

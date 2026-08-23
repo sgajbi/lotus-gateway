@@ -50,6 +50,8 @@ class _StubLotusCoreQueryClient:
                 "instrument_enrichment": [],
             },
         }
+        self.support_status = 200
+        self.support_payload: dict = {"business_date": "2026-02-24"}
         self.positions_status = 200
         self.positions_payload: dict = {"positions": []}
         self.summary_status = 200
@@ -65,6 +67,9 @@ class _StubLotusCoreQueryClient:
 
     async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
         return self.portfolio_status, self.portfolio_payload
+
+    async def get_support_overview(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+        return self.support_status, self.support_payload
 
     async def get_core_snapshot(
         self,
