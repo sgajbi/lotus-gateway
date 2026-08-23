@@ -1,4 +1,4 @@
-"""Validate that the report-only quality baseline produced usable evidence artifacts."""
+"""Validate that the quality baseline produced usable evidence artifacts."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ EXPECTED_BASELINE_LOGS = (
     "interrogate.txt",
     "spectral.txt",
     "demo-certification.txt",
+    "quality-ratchet.txt",
 )
 
 
@@ -78,7 +79,7 @@ def main() -> int:
         "--artifact-dir",
         type=Path,
         default=Path("output/quality-baseline"),
-        help="Directory containing report-only quality baseline logs.",
+        help="Directory containing quality baseline logs.",
     )
     parser.add_argument(
         "--openapi-path",
