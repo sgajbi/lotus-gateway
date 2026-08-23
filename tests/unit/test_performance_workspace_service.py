@@ -229,7 +229,10 @@ class _StubLotusCoreQueryClient:
                 "correlation_id": correlation_id,
             }
         )
-        return 200, {"performance_end_date": "2026-03-27"}
+        return 200, {
+            "performance_end_date": "2026-03-27",
+            "portfolio_open_date": "2020-06-15",
+        }
 
     async def get_benchmark_catalog(self, **kwargs):
         self.benchmark_catalog_calls.append(kwargs)
@@ -1692,6 +1695,28 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_rejects_long_horizon_comparison_periods() -> None:
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_performance_horizon_comparison(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-horizon-2y",
+            period="2Y",
+            detail_basis="NET",
+            benchmark_code=None,
+            chart_frequency="monthly",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail["error_code"] == "PERFORMANCE_HORIZON_PERIOD_UNSUPPORTED"
+
+
+@pytest.mark.asyncio
 async def test_workspace_service_maps_position_contributions_from_upstream_contract():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
@@ -2051,6 +2076,84 @@ async def test_performance_workspace_service_normalizes_qtd_workspace_summary_to
     assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("period", "expected_start_date"),
+    (("2Y", "2024-03-28"), ("10Y", "2016-03-28"), ("SI", "2020-06-15")),
+)
+async def test_performance_workspace_service_aligns_long_and_si_windows(
+    period: str,
+    expected_start_date: str,
+) -> None:
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-window",
+        period=period,
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.period == period
+    assert response.report_start_date == expected_start_date
+    assert response.evidence_view is not None
+    assert response.evidence_view.report_start_date == expected_start_date
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == expected_start_date
+    assert analytics_client.contribution_calls[0]["report_start_date"] == expected_start_date
+    assert analytics_client.attribution_calls[0]["report_start_date"] == expected_start_date
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_rejects_unknown_or_malformed_windows() -> None:
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    with pytest.raises(HTTPException) as unknown_period:
+        await service.get_performance_workspace_details(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-unknown-period",
+            period="UNKNOWN",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code=None,
+        )
+    assert unknown_period.value.status_code == 422
+    assert unknown_period.value.detail["error_code"] == "PERFORMANCE_PERIOD_UNSUPPORTED"
+
+    with pytest.raises(HTTPException) as malformed_date:
+        await service.get_performance_workspace_details(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-malformed-date",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code=None,
+            explicit_start_date="not-a-date",
+            explicit_end_date="2026-03-27",
+        )
+    assert malformed_date.value.status_code == 422
+    assert malformed_date.value.detail["error_code"] == "PERFORMANCE_DATE_INVALID"
+    assert analytics_client.workspace_summary_calls == []
 
 
 @pytest.mark.asyncio

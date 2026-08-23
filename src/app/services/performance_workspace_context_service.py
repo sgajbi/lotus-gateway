@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from fastapi import HTTPException, status
+
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
@@ -15,10 +17,14 @@ from app.services.performance_workspace_context import (
     assemble_workspace_request_context,
     build_workspace_dimension_context,
 )
-from app.services.performance_workspace_controls import resolve_requested_window
+from app.services.performance_workspace_controls import (
+    PerformanceWindowResolutionError,
+    resolve_requested_window,
+)
 from app.services.performance_workspace_reference import (
+    PerformanceReferenceWindow,
     analytics_reference_cache_key,
-    resolve_performance_report_end_date,
+    resolve_performance_reference_window,
 )
 from app.services.workbench_service import WorkbenchService
 from app.services.workspace_client_protocols import (
@@ -138,20 +144,32 @@ class PerformanceWorkspaceContextServiceMixin:
         explicit_end_date: str | None,
     ) -> WorkspaceReportWindow:
         async with server_timing_span("perf-reference"):
-            resolved_report_end_date = await self._determine_report_end_date(
+            reference_window = await self._determine_report_reference(
                 portfolio_id=portfolio_id,
                 as_of_date=overview_state.overview.as_of_date,
                 correlation_id=correlation_id,
+                period=period,
+                explicit_start_date=explicit_start_date,
                 explicit_end_date=explicit_end_date,
                 warnings=overview_state.warnings,
                 partial_failures=overview_state.partial_failures,
             )
-        report_end_date, report_start_date, effective_period = resolve_requested_window(
-            default_report_end_date=resolved_report_end_date,
-            period=period,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
-        )
+        try:
+            report_end_date, report_start_date, effective_period = resolve_requested_window(
+                default_report_end_date=reference_window.report_end_date,
+                period=period,
+                explicit_start_date=explicit_start_date,
+                explicit_end_date=explicit_end_date,
+                inception_date=reference_window.inception_date,
+            )
+        except PerformanceWindowResolutionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error_code": exc.error_code,
+                    "message": str(exc),
+                },
+            ) from exc
         return WorkspaceReportWindow(
             report_end_date=report_end_date,
             report_start_date=report_start_date,
@@ -184,19 +202,29 @@ class PerformanceWorkspaceContextServiceMixin:
             benchmark_catalog_result=benchmark_catalog_result,
         )
 
-    async def _determine_report_end_date(
+    async def _determine_report_reference(
         self,
         *,
         portfolio_id: str,
         as_of_date: str,
         correlation_id: str,
+        period: str,
+        explicit_start_date: str | None,
         explicit_end_date: str | None,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
-    ) -> str:
-        if explicit_end_date:
-            return explicit_end_date
-        return await self._resolve_report_end_date(
+    ) -> PerformanceReferenceWindow:
+        needs_inception_metadata = (
+            isinstance(period, str)
+            and period.strip().upper() == "SI"
+            and explicit_start_date is None
+        )
+        if explicit_end_date and not needs_inception_metadata:
+            return PerformanceReferenceWindow(
+                report_end_date=explicit_end_date,
+                inception_date=None,
+            )
+        return await self._resolve_report_reference(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
             correlation_id=correlation_id,
@@ -204,7 +232,7 @@ class PerformanceWorkspaceContextServiceMixin:
             partial_failures=partial_failures,
         )
 
-    async def _resolve_report_end_date(
+    async def _resolve_report_reference(
         self,
         *,
         portfolio_id: str,
@@ -212,7 +240,7 @@ class PerformanceWorkspaceContextServiceMixin:
         correlation_id: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
-    ) -> str:
+    ) -> PerformanceReferenceWindow:
         (
             status_code,
             payload,
@@ -231,7 +259,7 @@ class PerformanceWorkspaceContextServiceMixin:
                 ),
             ),
         )
-        return resolve_performance_report_end_date(
+        return resolve_performance_reference_window(
             result=(status_code, payload),
             fallback_as_of_date=as_of_date,
             warnings=warnings,

@@ -44,6 +44,25 @@ These controls do not claim source-applied currency evidence. Attribution trend,
 currency-catalog validation, as-of-after-last-observation mapping, and workspace-wide capability
 promotion remain deferred under GitHub issue #572.
 
+## Performance Horizon Window Policy
+
+Status: implementation-backed for Gateway performance workspace composition.
+
+The summary, details, attribution-trend, advisor-brief, and portfolio performance-snapshot
+families accept `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and `EXPLICIT`.
+`2Y` and `10Y` resolve to inclusive trailing windows from the authoritative report end date.
+`SI` uses Core `PortfolioAnalyticsReference.portfolio_open_date`; Gateway does not invent an
+inception date. If that source evidence is missing, invalid, or after the requested end date,
+Gateway returns `422 PERFORMANCE_INCEPTION_UNAVAILABLE` (or the more specific typed window error)
+and does not submit an analytics request. `EXPLICIT` requires `report_start_date`.
+
+Unknown periods and malformed window dates return a typed `422` rather than silently becoming a
+YTD request. The horizon-comparison module intentionally remains limited to `MTD`, `QTD`, `YTD`,
+and `EXPLICIT`, because it composes those three standard rows; longer horizons belong to the
+summary/details workspace family. The resolved inclusive start and end are reused for the
+Gateway response, evidence view, and composed Performance requests. This policy does not change
+calculation methodology or make Gateway the owner of portfolio/performance source truth.
+
 ## Advisory And Proposals
 
 1. proposal simulation, lifecycle, typed selected-proposal risk-and-impact evidence,

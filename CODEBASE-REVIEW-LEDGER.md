@@ -51,6 +51,37 @@ Reference branch: `origin/main`
   `wiki/API-Surface.md`, and this ledger change because details support and classifier ownership
   changed. No central platform context or skill change is required.
 
+### Batch 2E — authoritative performance horizon windows (#551)
+
+- Objective: remove silent January-1/YTD fallback from accepted performance horizon resolution and
+  make the Gateway, source request, response, and evidence windows describe the same inclusive
+  observations.
+- Change: the shared performance-window resolver now validates the closed Gateway vocabulary
+  (`MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, `EXPLICIT`), resolves `2Y` and `10Y`
+  with the existing trailing-year boundary rule, and resolves `SI` from Core's
+  `PortfolioAnalyticsReference.portfolio_open_date`. Long and since-inception workspace requests
+  are sent as explicit windows so the Gateway boundary is the one reused by summary, details,
+  composed contribution/attribution requests, response context, and evidence. Unknown periods,
+  malformed dates, missing/invalid inception evidence, and `EXPLICIT` without a start fail closed
+  with typed 422 errors. Compact horizon comparison rejects long periods rather than returning
+  standard rows under a mismatched top-level window.
+- Regression proof: focused controls/reference/service tests cover long-horizon boundaries, leap
+  semantics, source-owned SI resolution, missing/invalid inception, unknown/malformed requests,
+  summary/detail/evidence/upstream alignment, and horizon-comparison rejection. Workbench OpenAPI
+  contract assertions pin the published period vocabulary and 422 behavior; 105 focused unit,
+  contract, and router tests pass.
+- Compatibility: canonical supported periods remain available. Values that previously fell through
+  to fabricated YTD semantics now return a typed 422; this is an intentional correctness boundary.
+  Performance calculation methodology and upstream ownership remain unchanged. No migration,
+  central context, or skill change is required. No Workbench UI code changed; the canonical demo
+  continues to use YTD and existing runtime proof remains applicable.
+- Documentation decision: `docs/supported-features.md`, `wiki/Supported-Features.md`,
+  `wiki/API-Surface.md`, and this ledger change because the accepted period contract and failure
+  behavior changed. Wiki publication and strict parity are required after merge.
+- Deferred boundary: source end-after-last-observation classification remains owned by
+  `lotus-performance#469`; applied currency evidence remains `lotus-performance#470`; neither is
+  conflated with this start-window fix.
+
 ### Batch 2B — upstream rejection truth and currency naming
 
 - Objective: prevent a rejected reporting-currency request from being published as an effective

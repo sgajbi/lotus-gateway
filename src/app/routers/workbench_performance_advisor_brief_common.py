@@ -4,13 +4,11 @@ from typing import Annotated
 from fastapi import Header, Query
 
 from app.routers.workbench_caller_context import require_workbench_caller_context
+from app.routers.workbench_performance_common import PERFORMANCE_PERIOD_DESCRIPTION
 
 PERIOD_QUERY = Query(
     default="YTD",
-    description=(
-        "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
-        "paired with report dates."
-    ),
+    description=PERFORMANCE_PERIOD_DESCRIPTION,
     examples=["YTD"],
 )
 CHART_FREQUENCY_QUERY = Query(

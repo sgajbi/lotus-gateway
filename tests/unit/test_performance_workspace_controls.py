@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from app.services.performance_workspace_controls import (
     build_attribution_trend_windows,
     normalize_attribution_trend_frequency,
@@ -21,6 +23,67 @@ def test_resolve_report_start_date_uses_canonical_period_boundaries() -> None:
 
 def test_resolve_report_start_date_handles_leap_day_anniversaries() -> None:
     assert resolve_report_start_date(as_of_date=date(2024, 2, 29), period="1Y") == date(2023, 3, 1)
+
+
+def test_resolve_report_start_date_resolves_long_trailing_horizons() -> None:
+    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="2Y") == date(2024, 4, 1)
+    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="10Y") == date(2016, 4, 1)
+
+
+def test_resolve_report_start_date_uses_source_owned_inception_for_si() -> None:
+    assert resolve_report_start_date(
+        as_of_date=date(2026, 3, 31),
+        period="SI",
+        inception_date=date(2020, 6, 15),
+    ) == date(2020, 6, 15)
+
+
+def test_resolve_report_start_date_fails_closed_without_si_inception() -> None:
+    with pytest.raises(ValueError, match="source-owned inception"):
+        resolve_report_start_date(as_of_date=date(2026, 3, 31), period="SI")
+    with pytest.raises(ValueError, match="after the requested report end"):
+        resolve_report_start_date(
+            as_of_date=date(2026, 3, 31),
+            period="SI",
+            inception_date=date(2026, 4, 1),
+        )
+
+
+def test_resolve_requested_window_rejects_unknown_period_and_malformed_date() -> None:
+    with pytest.raises(ValueError, match="Unsupported performance period"):
+        resolve_requested_window(
+            default_report_end_date="2026-03-31",
+            period="UNKNOWN",
+            explicit_start_date=None,
+            explicit_end_date=None,
+        )
+
+    with pytest.raises(ValueError, match="report_end_date must be"):
+        resolve_requested_window(
+            default_report_end_date="not-a-date",
+            period="YTD",
+            explicit_start_date=None,
+            explicit_end_date=None,
+        )
+
+    with pytest.raises(ValueError, match="EXPLICIT performance periods require"):
+        resolve_requested_window(
+            default_report_end_date="2026-03-31",
+            period="EXPLICIT",
+            explicit_start_date=None,
+            explicit_end_date=None,
+        )
+
+
+def test_resolve_workspace_summary_request_uses_explicit_window_for_long_and_si_periods() -> None:
+    assert resolve_workspace_summary_request(
+        period="2Y",
+        report_start_date=date(2024, 4, 1),
+    ) == ("EXPLICIT", "2024-04-01")
+    assert resolve_workspace_summary_request(
+        period="SI",
+        report_start_date=date(2020, 6, 15),
+    ) == ("EXPLICIT", "2020-06-15")
 
 
 def test_resolve_requested_window_swaps_reversed_explicit_dates() -> None:
