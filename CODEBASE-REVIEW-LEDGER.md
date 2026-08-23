@@ -111,16 +111,16 @@ Reference branch: `origin/main`
 - Change: removed the non-main `push` trigger from `.github/workflows/quality-baseline.yml`; the
   `pull_request` event targeting `main` owns feature-revision evidence, and `workflow_dispatch`
   remains available for explicit operator revalidation. Concurrency now keys pull-request runs by
-  head SHA and cancels stale work.
+  PR number to cancel stale synchronized revisions; manual runs use a unique run ID.
 - Measurable improvement: a feature push before PR creation no longer launches a duplicate quality
   run; PR creation/synchronization produces one run per head SHA, and a new commit produces one run
   for the new SHA. The event matrix is durable in `docs/quality-baseline-event-matrix.md`.
 - Compatibility: application runtime, public API, schemas, migrations, thresholds, artifacts, and
   ratchet behavior are unchanged. Only CI scheduling changes; manual dispatch and the protected
   `Quality Baseline / Ratcheted Trend Gate` remain available.
-- Regression proof: workflow tests pin the authoritative event set, protected job name, SHA-based
-  concurrency, and stale-run cancellation. Focused validation also covers the complete artifact
-  and ratchet contract.
+- Regression proof: workflow tests pin the authoritative event set, protected job name, stable
+  pull-request concurrency, isolated manual dispatch, and stale-run cancellation. Focused
+  validation also covers the complete artifact and ratchet contract.
 - Documentation decision: repository context, CI quality gates, operations guidance, authored wiki,
   and the event-matrix runbook change because CI trigger semantics and operator expectations changed.
 

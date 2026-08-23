@@ -309,8 +309,9 @@ Important validation expectations:
    requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change,
 10. Quality Baseline uses the `pull_request` event targeting `main` as its sole authoritative
    automated feature-revision trigger; feature-branch pushes do not start a duplicate run. Its
-   concurrency group uses the pull-request head SHA, manual dispatch remains available, and the
-   event matrix is documented in `docs/quality-baseline-event-matrix.md`,
+   concurrency group uses the pull-request number to cancel stale synchronized revisions while
+   manual dispatch uses a unique run ID, and the event matrix is documented in
+   `docs/quality-baseline-event-matrix.md`,
 11. Docker parity matters because the gateway is a live integration boundary,
 12. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a

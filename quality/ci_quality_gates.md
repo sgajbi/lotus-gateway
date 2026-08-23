@@ -86,8 +86,9 @@ defect.
 Quality Baseline uses `pull_request` targeting `main` as the sole authoritative automated feature
 event. Feature-branch pushes do not start a duplicate run; PR creation and synchronization produce
 one protected check per head SHA. Manual dispatch remains available for operator-requested
-revalidation. The concurrency group keys pull-request runs by head SHA and cancels stale work; the
-full event matrix is documented in `docs/quality-baseline-event-matrix.md`.
+revalidation. The concurrency group keys pull-request runs by PR number, cancelling stale work
+across synchronized revisions, while manual runs use a unique run ID; the full event matrix is
+documented in `docs/quality-baseline-event-matrix.md`.
 
 The Gateway demo certification command is now repo-native through `make demo-certification`. It
 writes `output/demo-certification/gateway-demo-certification.json` and is run in Quality Baseline

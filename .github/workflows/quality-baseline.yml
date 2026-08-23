@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Pull-request head SHA is the authoritative feature revision. Manual runs use
-  # github.sha and remain available without replacing the protected PR check.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  # PR number cancels stale revisions across synchronize events. Manual runs use
+  # a unique run id and cannot replace the protected PR check.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
