@@ -138,7 +138,6 @@ class SourceProposalRiskImpactGateDecision(BaseModel):
         require_proposal_workflow_gate_coherence(
             gate=self.gate,
             recommended_next_step=self.recommended_next_step,
-            reason_count=len(self.reasons),
         )
         return self
 

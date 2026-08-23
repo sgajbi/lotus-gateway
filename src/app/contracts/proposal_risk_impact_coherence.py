@@ -82,14 +82,23 @@ def require_proposal_workflow_gate_coherence(
     *,
     gate: ProposalRiskImpactGate,
     recommended_next_step: ProposalRiskImpactGateNextStep,
-    reason_count: int,
+    reason_count: int | None = None,
 ) -> None:
-    """Reject a workflow gate whose next step or reason evidence contradicts it."""
+    """Reject a workflow gate whose matrix or ready reason evidence is contradictory."""
 
     if _WORKFLOW_GATE_NEXT_STEPS[gate] != recommended_next_step:
         raise ValueError("workflow gate does not match the recommended next step")
-    if gate in _BLOCKING_WORKFLOW_GATES and reason_count == 0:
+    if reason_count is not None and not workflow_gate_has_reason_evidence(
+        gate=gate,
+        reason_count=reason_count,
+    ):
         raise ValueError("blocking workflow gate requires at least one reason")
+
+
+def workflow_gate_has_reason_evidence(*, gate: ProposalRiskImpactGate, reason_count: int) -> bool:
+    """Return whether a gate has the reasons required to publish it as ready."""
+
+    return gate not in _BLOCKING_WORKFLOW_GATES or reason_count > 0
 
 
 def decision_allows_workflow_gate(
@@ -119,4 +128,5 @@ __all__ = [
     "has_blocking_proposal_decision_evidence",
     "require_proposal_decision_coherence",
     "require_proposal_workflow_gate_coherence",
+    "workflow_gate_has_reason_evidence",
 ]

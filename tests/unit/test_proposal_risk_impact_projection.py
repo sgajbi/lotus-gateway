@@ -198,6 +198,29 @@ def test_withholds_executable_gate_when_decision_retains_blocking_approval() -> 
     assert result.workflow_gate.reason_code == "workflow_gate_decision_evidence_blocked"
 
 
+def test_downgrades_gate_when_source_omits_blocking_reason_evidence() -> None:
+    payload = build_proposal_risk_impact_source_payload()
+    current_version = payload["current_version"]
+    assert isinstance(current_version, dict)
+    gate = {
+        "gate": "RISK_REVIEW_REQUIRED",
+        "recommended_next_step": "RISK_REVIEW",
+        "reasons": [],
+    }
+    current_version["gate_decision"] = deepcopy(gate)
+    current_version["proposal_result"]["gate_decision"] = deepcopy(gate)
+    current_version["artifact"]["gate_decision"] = deepcopy(gate)
+    payload["last_gate_decision"] = deepcopy(gate)
+
+    result = project_proposal_risk_impact(payload, expected_proposal_id="pp_risk_001")
+
+    assert result.decision.state == "ready"
+    assert result.workflow_gate.gate == "RISK_REVIEW_REQUIRED"
+    assert result.workflow_gate.recommended_next_step == "RISK_REVIEW"
+    assert result.workflow_gate.state == "partial"
+    assert result.workflow_gate.reason_code == "workflow_gate_reason_evidence_missing"
+
+
 def test_reports_artifact_path_when_decision_evidence_uses_fallback_copy() -> None:
     payload = build_proposal_risk_impact_source_payload()
     current_version = payload["current_version"]
