@@ -1,8 +1,17 @@
 from app.contracts.proposal_risk_impact import (
+    ProposalRiskImpactDecisionEvidence,
     ProposalRiskImpactGateReason,
     ProposalRiskImpactWorkflowGate,
 )
+from app.contracts.proposal_risk_impact_coherence import (
+    decision_allows_workflow_gate,
+    has_blocking_proposal_decision_evidence,
+)
+from app.services.proposal_risk_impact_errors import (
+    raise_proposal_risk_impact_contract_invalid,
+)
 from app.services.proposal_risk_impact_source_contract import (
+    SourceProposalRiskImpactDetail,
     SourceProposalRiskImpactGateDecision,
 )
 
@@ -44,4 +53,64 @@ def project_proposal_risk_impact_workflow_gate(
     )
 
 
-__all__ = ["project_proposal_risk_impact_workflow_gate"]
+def reconcile_proposal_risk_impact_workflow_gate(
+    *,
+    decision: ProposalRiskImpactDecisionEvidence,
+    workflow_gate: ProposalRiskImpactWorkflowGate,
+) -> ProposalRiskImpactWorkflowGate:
+    """Withhold executable-ready gate posture when decision evidence is degraded."""
+
+    if (
+        decision.state == "ready"
+        and workflow_gate.state == "ready"
+        and decision.decision_status is not None
+        and workflow_gate.gate is not None
+        and not decision_allows_workflow_gate(
+            decision_status=decision.decision_status,
+            gate=workflow_gate.gate,
+        )
+    ):
+        raise_proposal_risk_impact_contract_invalid()
+    if (
+        workflow_gate.state == "ready"
+        and workflow_gate.gate in {"EXECUTION_READY", "NONE"}
+        and (
+            decision.state != "ready"
+            or has_blocking_proposal_decision_evidence(
+                approval_requirements=decision.approval_requirements,
+                missing_evidence=decision.missing_evidence,
+            )
+        )
+    ):
+        return workflow_gate.model_copy(
+            update={
+                "state": "partial",
+                "reason_code": "workflow_gate_decision_evidence_blocked",
+            }
+        )
+    return workflow_gate
+
+
+def project_and_reconcile_proposal_risk_impact_workflow_gate(
+    *,
+    decision: ProposalRiskImpactDecisionEvidence,
+    source: SourceProposalRiskImpactDetail,
+) -> ProposalRiskImpactWorkflowGate:
+    """Select and reconcile the workflow gate against its decision evidence."""
+
+    return reconcile_proposal_risk_impact_workflow_gate(
+        decision=decision,
+        workflow_gate=project_proposal_risk_impact_workflow_gate(
+            source.last_gate_decision,
+            source.current_version.gate_decision,
+            source.current_version.proposal_result.gate_decision,
+            source.current_version.artifact.gate_decision,
+        ),
+    )
+
+
+__all__ = [
+    "project_and_reconcile_proposal_risk_impact_workflow_gate",
+    "project_proposal_risk_impact_workflow_gate",
+    "reconcile_proposal_risk_impact_workflow_gate",
+]

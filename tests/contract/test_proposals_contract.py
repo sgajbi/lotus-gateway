@@ -131,6 +131,13 @@ def test_proposal_risk_impact_openapi_contract_is_typed_and_additive() -> None:
         "capabilities",
         "lineage",
     }.issubset(data_schema["properties"])
+    decision_schema = spec["components"]["schemas"]["ProposalRiskImpactDecisionEvidence"]
+    workflow_gate_schema = spec["components"]["schemas"]["ProposalRiskImpactWorkflowGate"]
+    assert "correlated" in decision_schema["properties"]["top_level_status"]["description"]
+    assert "correlated" in decision_schema["properties"]["recommended_next_action"]["description"]
+    assert (
+        "correlated" in workflow_gate_schema["properties"]["recommended_next_step"]["description"]
+    )
 
 
 def test_proposal_implementation_status_openapi_contract_is_closed_and_typed() -> None:

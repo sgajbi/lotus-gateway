@@ -640,6 +640,42 @@ def test_get_proposal_risk_impact_returns_typed_selected_proposal_evidence(monke
     }
 
 
+def test_get_proposal_risk_impact_rejects_contradictory_decision_and_gate(monkeypatch):
+    async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
+        _ = self, include_evidence, correlation_id
+        payload = build_proposal_risk_impact_source_payload(proposal_id=proposal_id)
+        current_version = payload["current_version"]
+        assert isinstance(current_version, dict)
+        for container in (
+            current_version["proposal_result"],
+            current_version["artifact"],
+        ):
+            assert isinstance(container, dict)
+            decision = container["proposal_decision_summary"]
+            assert isinstance(decision, dict)
+            decision.update(
+                {
+                    "decision_status": "READY_FOR_CLIENT_REVIEW",
+                    "top_level_status": "READY",
+                    "recommended_next_action": "DISCUSS_WITH_CLIENT",
+                }
+            )
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal",
+        _fake_get_proposal,
+    )
+
+    response = TestClient(app).get("/api/v1/proposals/pp_risk_001/risk-impact")
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["error_code"] == (
+        "ADVISE_PROPOSAL_RISK_IMPACT_CONTRACT_INVALID"
+    )
+    assert "READY_FOR_CLIENT_REVIEW" not in response.text
+
+
 def test_get_proposal_risk_impact_fails_closed_on_source_contract_drift(monkeypatch):
     async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
         _ = self, proposal_id, include_evidence, correlation_id
