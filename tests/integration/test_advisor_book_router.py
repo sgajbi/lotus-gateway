@@ -210,6 +210,7 @@ def test_advisor_book_summary_openapi_is_typed_and_explicit() -> None:
 
     assert {"asOfDate", "reportingCurrency", "X-Actor-Id", "X-Tenant-Id"} <= parameters
     assert "one bounded Core AUM scope read" in operation["description"]
+    assert "does not certify every value fact as current" in operation["description"]
     assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/AdvisorBookSummaryResponse"
     }

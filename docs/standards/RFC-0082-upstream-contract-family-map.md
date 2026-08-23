@@ -24,7 +24,7 @@ outputs.
 | `get_effective_policy` | `GET /integration/policy/effective` | Control-plane and policy | expose effective policy context | preserve policy provenance |
 | `list_portfolios`, `get_portfolio`, `get_portfolio_positions`, `get_portfolio_transactions` | `/portfolios`, `/portfolios/{portfolio_id}`, `/positions`, `/transactions` | Operational Read | product-facing portfolio and activity views | do not convert convenience reads into analytics source truth |
 | `list_instruments`, lookup calls | `/instruments`, `/lookups/*` | Operational Read | selector and reference-data payloads | maintain source-service attribution |
-| `query_assets_under_management` and other reporting query calls | `/reporting/*/query` | Operational Read watchlist | reporting-oriented workspace summaries and bounded advisor-book value facts | consume Core-owned AUM totals and per-portfolio facts as a read model; do not define valuation or reporting semantics in gateway |
+| `query_assets_under_management` and other reporting query calls | `/reporting/*/query` | Operational Read watchlist | reporting-oriented workspace summaries and bounded advisor-book value facts | consume Core-owned AUM totals and per-portfolio facts as a read model; do not define valuation or reporting semantics or certify per-portfolio freshness in gateway |
 | `get_cashflow_projection` | `/portfolios/{portfolio_id}/cashflow-projection` | Operational Read watchlist | front-office cashflow projection panel | preserve upstream methodology and supportability |
 | `get_core_snapshot` | `/integration/portfolios/{portfolio_id}/core-snapshot` | Snapshot and simulation | simulation and workspace state bundle | do not add performance or risk analytics sections locally |
 | simulation session calls | `/simulation-sessions/*` | Snapshot and simulation | create and mutate projected state | gateway only brokers product flow; simulation semantics remain upstream |
@@ -166,9 +166,11 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    for the entitled cohort, and the summary consumes one Core AUM scope read with explicit date and
    reporting currency. It rejects cross-scope evidence, preserves source provenance and
    legacy-assignment basis, reports null source tenant scope as degraded, and leaves the aggregate
-   null for partial value coverage. It does not use the global catalogue as a fallback, calculate
-   valuation, or infer delegated, team, supervisor, household, performance, risk, attention,
-   suitability, or execution truth.
+   null for partial value coverage. Core's current AUM contract does not expose per-portfolio
+   snapshot freshness, so Gateway does not certify every value fact as current on the requested
+   date. It does not use the global catalogue as a fallback, calculate valuation, or infer
+   delegated, team, supervisor, household, performance, risk, attention, suitability, or execution
+   truth.
    `contracts/domain-data-products/lotus-gateway-consumers.v1.json` is the repo-native RFC-0084
    consumer declaration for this direct dependency and records `api_read`, fail-closed behavior,
    required trust metadata, and feature/PR/platform end-to-end validation ownership. Gateway #509

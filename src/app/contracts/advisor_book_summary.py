@@ -41,7 +41,11 @@ class AdvisorBookValueItem(BaseModel):
 
 class AdvisorBookValueSummary(BaseModel):
     resolved_as_of_date: date = Field(
-        description="Core-resolved business date for all value facts in this response.",
+        description=(
+            "Business date returned by Core for the bounded value query. Core's current AUM "
+            "contract does not expose per-portfolio snapshot freshness, so this is not a "
+            "currentness certification for every value fact."
+        ),
         examples=["2026-04-10"],
     )
     reporting_currency: str = Field(
@@ -90,7 +94,10 @@ class AdvisorBookValueSource(BaseModel):
         examples=["/reporting/assets-under-management/query"],
     )
     resolved_as_of_date: date = Field(
-        description="As-of date resolved by Core for the value read.",
+        description=(
+            "Business date returned by Core for the value read; per-portfolio snapshot freshness "
+            "is not exposed by the current source contract."
+        ),
         examples=["2026-04-10"],
     )
     reporting_currency: str = Field(

@@ -96,7 +96,9 @@ authority remains with the named downstream execution provider as the execution 
 4. advisor-book value summary uses Core's source-owned
    `POST /reporting/assets-under-management/query` as one explicit-date, explicit-currency,
    multi-portfolio operational read. Gateway preserves source value facts and coverage and does
-   not reconstruct AUM or publish a partial aggregate.
+   not reconstruct AUM or publish a partial aggregate. Core's current response does not expose
+   per-portfolio snapshot freshness, so Gateway does not certify every value fact as current on the
+   requested date.
 5. performance `evidence_view` payloads expose UI-safe product context for as-of date, period, the
    inclusive Gateway-resolved report start and end dates, basis, benchmark, source services,
    freshness, methodology, calculation versions, source calculation supportability, coverage,

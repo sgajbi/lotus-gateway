@@ -23,7 +23,10 @@ Reference branch: `origin/main`
 - Documentation decision: supported-features, architecture, repository context, RFC-0082 map,
   API-surface wiki, supported-features wiki, integrations wiki, and this ledger change. The Core
   AUM route remains an RFC-0082 operational-read dependency and does not create a new RFC-0084
-  domain-product declaration. Wiki publication and strict parity are required after merge.
+  domain-product declaration. Review follow-ups for source freshness evidence, source-zero reason
+  semantics, and scope-echo ordering are captured on #573. Current contract wording explicitly
+  does not certify per-portfolio freshness because Core does not expose it. Wiki publication and
+  strict parity are required after merge.
 
 ### Batch 2N — retire duplicate foundation portfolio-workspace routes (#574)
 

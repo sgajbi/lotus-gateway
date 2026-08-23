@@ -151,7 +151,9 @@ async def get_advisor_book(
         "currency because a book may contain portfolios with different base currencies. Gateway "
         "resolves membership from trusted caller context and performs one bounded Core AUM scope "
         "read; it does not value holdings, sum partial rows, or claim performance, cash, risk, "
-        "attention, mandate, suitability, or recommendation truth."
+        "attention, mandate, suitability, or recommendation truth. Core's current AUM contract "
+        "does not expose per-portfolio snapshot freshness, so the response does not certify every "
+        "value fact as current on the requested date."
     ),
     responses={
         200: {

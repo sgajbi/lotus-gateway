@@ -141,11 +141,12 @@ assets-under-management, attention, suitability, recommendation, communication, 
 coverage.
 
 The value-summary route composes only the trusted active membership cohort with Core-owned AUM
-facts. It preserves Core's resolved as-of date and reporting currency, returns per-portfolio value
+facts. It preserves Core's returned query date and reporting currency, returns per-portfolio value
 and position-count facts, uses the Core aggregate only when every entitled portfolio is covered,
-and leaves the aggregate null for partial coverage. Gateway does not value holdings, sum partial
-rows, substitute zero, or claim performance, cash, risk, attention, mandate, suitability, or
-recommendation truth.
+and leaves the aggregate null for partial coverage. Core's current AUM contract does not expose
+per-portfolio snapshot freshness, so this route does not certify every value fact as current on the
+requested date. Gateway does not value holdings, sum partial rows, substitute zero, or claim
+performance, cash, risk, attention, mandate, suitability, or recommendation truth.
 
 ## DPM Command Center
 
