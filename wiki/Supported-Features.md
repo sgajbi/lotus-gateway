@@ -84,7 +84,13 @@ and advisor-brief routes.
 
 `GET /api/v1/workbench/{portfolio_id}/performance/summary` accepts optional `as_of_date` and
 `reporting_currency` query parameters. Gateway forwards the requested reporting currency to
-`lotus-performance`, anchors the summary window to the requested as-of date when no explicit
+`lotus-performance` for the summary. Independent contribution and attribution detail requests
+currently use the portfolio base currency; Gateway does not send `currency_mode=BOTH` or
+`report_ccy` until lotus-performance#470 provides source-backed FX evidence. When the requested
+currency differs from the base, the details response retains `requested_reporting_currency`, uses
+the base `effective_reporting_currency`, and emits
+`PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE`. Gateway anchors the summary window to the requested
+as-of date when no explicit
 `report_end_date` is supplied, and publishes the requested/effective date and currency values plus
 `reporting_currency_state`. The top-level `as_of_date` is always the effective report-window date;
 `requested_as_of_date` preserves a distinct caller request when supplied. A successful summary is

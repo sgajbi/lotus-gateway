@@ -85,7 +85,12 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 - Workbench performance summary, details, attribution-trend, and advisor-brief routes accept optional `as_of_date`
   and `reporting_currency` query controls. Gateway forwards reporting currency to
-  `lotus-performance`, uses `as_of_date` as the
+  `lotus-performance` for the summary. Independent contribution and attribution detail requests
+  currently use the portfolio base currency; Gateway does not send `currency_mode=BOTH` or
+  `report_ccy` until lotus-performance#470 provides source-backed FX evidence. When the requested
+  currency differs from the base, the details response retains `requested_reporting_currency`, uses
+  the base `effective_reporting_currency`, and emits
+  `PERFORMANCE_DETAILS_CURRENCY_NOT_APPLIED_BASE`. Gateway uses `as_of_date` as the
   report-window end when `report_end_date` is absent, and publishes requested/effective date and
   currency fields plus `reporting_currency_state`. The top-level `as_of_date` is always the
   effective report-window date; `requested_as_of_date` preserves a distinct caller request when
