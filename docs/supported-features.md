@@ -109,6 +109,12 @@ calculation methodology or make Gateway the owner of portfolio/performance sourc
 7. authenticated own-book portfolio discovery through `GET /api/v1/advisor-book/portfolios`,
    backed by Core `PortfolioManagerBookMembership:v1` and bounded to trusted caller context.
 
+Selected proposal Risk and Impact evidence validates decision-status, top-level-status,
+recommended-action, workflow-gate, and blocking-evidence relationships at the Gateway boundary.
+Contradictory source evidence fails closed; degraded decision evidence cannot publish an executable
+workflow gate as `ready`. Gateway preserves Advise policy authority and does not invent progression
+outcomes.
+
 Advisor-book discovery supports an explicit business date, exact client and mandate filters,
 deterministic sorting, and bounded paging. It identifies governed role assignments separately from
 the bounded legacy advisor projection, reports missing Core tenant scope as degraded, rejects

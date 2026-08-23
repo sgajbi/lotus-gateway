@@ -208,6 +208,11 @@ Current repository posture:
     These boundaries are required across supported, partial, and unavailable evidence postures so
     Workbench can fail closed when calculation evidence does not match the advisor's review window;
     Workbench must not infer or reconstruct them.
+19. selected proposal Risk and Impact evidence is a typed anti-corruption projection over one
+    Advise detail read. Gateway centrally validates decision-status/top-level/action relationships,
+    the gate-to-next-step matrix, compatible decision/workflow gates, and blocking-evidence
+    posture. Contradictions fail closed; partial decision evidence cannot publish an executable
+    workflow gate as ready, and Gateway does not invent progression or approval truth.
 
 ## Architecture And Module Map
 
