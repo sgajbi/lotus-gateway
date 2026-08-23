@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from app.contracts.performance_workspace import (
@@ -139,6 +139,20 @@ def test_workspace_response_context_fields_fall_back_to_base_currency_on_summary
     )
 
     assert fields.effective_reporting_currency == "USD"
+
+
+def test_context_fields_preserve_currency_on_unrelated_failure() -> None:
+    context = replace(
+        _context(),
+        requested_reporting_currency="SGD",
+        reporting_currency="SGD",
+    )
+    fields = workspace_response_context_fields(
+        context,
+        workspace_summary_result=(503, {"detail": "upstream unavailable"}),
+    )
+
+    assert fields.effective_reporting_currency == "SGD"
 
 
 def test_assemble_performance_workspace_response_preserves_context_and_components() -> None:
