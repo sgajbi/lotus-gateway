@@ -26,6 +26,24 @@ the calculation remains pending. If submission acceptance is unknown, Gateway om
 identity rather than claiming a retrievable result. Gateway does not start execution or lineage
 evidence reads after the budget expires, and support is not inferred from a successful warm retry.
 
+## Performance Summary Review Controls
+
+Status: implementation-backed for the Workbench performance summary and details routes.
+
+`GET /api/v1/workbench/{portfolio_id}/performance/summary` and
+`GET /api/v1/workbench/{portfolio_id}/performance/details` accept optional `as_of_date` and
+`reporting_currency` query parameters. Gateway forwards reporting currency to
+`lotus-performance`, anchors the window to the requested as-of date when no explicit
+`report_end_date` is supplied, and publishes requested/effective date and currency context plus
+`reporting_currency_state`. A successful response is `accepted_unverified` until source-owned
+applied-currency evidence exists; typed currency validation is `rejected`; other missing or failed
+summary outcomes are `unavailable`. Non-success states use the portfolio base currency in the
+effective field rather than echoing the requested currency. Details classify the outcome from the
+single parsed summary result, so empty or malformed requested-period summaries are `unavailable`.
+These controls do not claim source-applied currency evidence. Attribution trend, advisor brief,
+currency-catalog validation, as-of-after-last-observation mapping, and workspace-wide capability
+promotion remain deferred under GitHub issue #572.
+
 ## Advisory And Proposals
 
 1. proposal simulation, lifecycle, typed selected-proposal risk-and-impact evidence,

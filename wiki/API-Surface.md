@@ -68,7 +68,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `lotus-performance` omits the level aggregate; Gateway does not reconstruct it from rows or
   convert missing evidence into numeric zero. An explicit source-authored zero remains `0.0`.
 
-- Workbench performance summary accepts optional `as_of_date` and `reporting_currency` query
+- Workbench performance summary and details accept optional `as_of_date` and `reporting_currency` query
   controls. Gateway forwards reporting currency to `lotus-performance`, uses `as_of_date` as the
   report-window end when `report_end_date` is absent, and publishes requested/effective date and
   currency fields plus `reporting_currency_state`. A structurally successful summary is
@@ -76,8 +76,11 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   currency validation rejection is `rejected`; exceptions, timeouts, unrelated failures, and
   malformed or unavailable summaries are `unavailable`. Non-success states publish the portfolio
   base currency in the existing effective field and retain the typed partial failure; the Gateway
-  does not classify human-readable error text. The control is summary-only for now; details,
-  attribution trend, and advisor brief remain on the follow-up path tracked by GitHub issue #572.
+  does not classify human-readable error text. Details classify the currency state from the single
+  parsed summary result; an empty or malformed requested-period summary is `unavailable` and uses
+  the portfolio base currency. Attribution trend, advisor brief, currency-catalog validation,
+  as-of-after-last-observation mapping, and capability promotion remain on the follow-up path
+  tracked by GitHub issue #572.
 
 - Portfolio workspace `as_of_date` is an optional review-date override. When it is omitted,
   Gateway lets lotus-core resolve the latest governed portfolio date first, then uses that same

@@ -1,6 +1,42 @@
 from app.services.performance_workspace_summary import parse_workspace_summary_result
 
 
+def test_parse_workspace_summary_result_marks_empty_requested_period_unavailable() -> None:
+    parsed = parse_workspace_summary_result(
+        result=(200, {"results_by_period": {"YTD": {}}}),
+        requested_period="YTD",
+        chart_frequency="monthly",
+        warnings=[],
+        partial_failures=[],
+    )
+
+    assert parsed.reporting_currency_state == "unavailable"
+
+
+def test_parse_workspace_summary_result_classifies_currency_once(monkeypatch) -> None:
+    import app.services.performance_workspace_summary as summary_parser
+
+    calls = 0
+    classify = summary_parser.classify_reporting_currency_outcome
+
+    def _classify(result, requested_period):
+        nonlocal calls
+        calls += 1
+        return classify(result, requested_period)
+
+    monkeypatch.setattr(summary_parser, "classify_reporting_currency_outcome", _classify)
+
+    parse_workspace_summary_result(
+        result=(200, {"results_by_period": {"YTD": {}}}),
+        requested_period="YTD",
+        chart_frequency="monthly",
+        warnings=[],
+        partial_failures=[],
+    )
+
+    assert calls == 1
+
+
 def test_parse_workspace_summary_result_returns_named_summary():
     warnings: list[str] = []
     partial_failures = []

@@ -17,7 +17,6 @@ from app.contracts.performance_workspace import (
     ReportingCurrencyState,
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
-from app.services.performance_workspace_currency import assess_reporting_currency
 from app.services.performance_workspace_summary import ParsedWorkspaceSummary
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -111,6 +110,10 @@ class WorkspaceSummaryViews:
     def resolved_benchmark_code(self) -> str | None:
         return self.parsed_summary.resolved_benchmark_code
 
+    @property
+    def reporting_currency_state(self) -> ReportingCurrencyState:
+        return self.parsed_summary.reporting_currency_state
+
 
 @dataclass(frozen=True)
 class WorkspaceResponseComponents:
@@ -198,20 +201,19 @@ def _build_response_context_fields(
 ) -> WorkspaceResponseContextFields:
     return workspace_response_context_fields(
         context,
-        workspace_summary_result=summary_views.workspace_summary_result,
+        reporting_currency_state=summary_views.reporting_currency_state,
     )
 
 
 def workspace_response_context_fields(
     context: WorkspaceResponseContext,
     *,
-    workspace_summary_result: GatheredResult | None = None,
+    reporting_currency_state: ReportingCurrencyState = "unavailable",
 ) -> WorkspaceResponseContextFields:
-    reporting_currency = assess_reporting_currency(
-        result=workspace_summary_result,
-        requested_period=context.effective_period,
-        base_currency=context.overview.portfolio.base_currency,
-        requested_currency=context.reporting_currency,
+    effective_reporting_currency = (
+        context.reporting_currency
+        if reporting_currency_state == "accepted_unverified"
+        else context.overview.portfolio.base_currency
     )
     return WorkspaceResponseContextFields(
         contract_version=context.overview.contract_version,
@@ -232,6 +234,6 @@ def workspace_response_context_fields(
         requested_as_of_date=context.requested_as_of_date,
         effective_as_of_date=context.report_end_date,
         requested_reporting_currency=context.requested_reporting_currency,
-        effective_reporting_currency=reporting_currency.effective_currency,
-        reporting_currency_state=reporting_currency.state,
+        effective_reporting_currency=effective_reporting_currency,
+        reporting_currency_state=reporting_currency_state,
     )

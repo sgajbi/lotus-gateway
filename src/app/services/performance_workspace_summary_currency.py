@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, TypeAlias
 
 from app.contracts.performance_workspace import ReportingCurrencyState
@@ -11,34 +10,11 @@ UpstreamPayload: TypeAlias = dict[str, Any]
 GatheredResult: TypeAlias = tuple[int, UpstreamPayload] | BaseException
 
 
-@dataclass(frozen=True)
-class ReportingCurrencyAssessment:
-    effective_currency: str
-    state: ReportingCurrencyState
-
-
-def assess_reporting_currency(
-    *,
+def classify_reporting_currency_outcome(
     result: GatheredResult | None,
-    requested_period: str,
-    base_currency: str,
-    requested_currency: str | None,
-) -> ReportingCurrencyAssessment:
-    state = _reporting_currency_state(result, requested_period=requested_period)
-    effective_currency = (
-        requested_currency or base_currency if state == "accepted_unverified" else base_currency
-    )
-    return ReportingCurrencyAssessment(
-        effective_currency=effective_currency,
-        state=state,
-    )
-
-
-def _reporting_currency_state(
-    result: GatheredResult | None,
-    *,
     requested_period: str,
 ) -> ReportingCurrencyState:
+    """Classify currency evidence from the summary result parsed for a response."""
     if _workspace_summary_currency_rejected(result):
         return "rejected"
     if _workspace_summary_succeeded(result, requested_period=requested_period):

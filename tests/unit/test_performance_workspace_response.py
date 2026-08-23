@@ -21,7 +21,10 @@ from app.services.performance_workspace_response import (
     assemble_performance_workspace_response,
     workspace_response_context_fields,
 )
-from app.services.performance_workspace_summary import ParsedWorkspaceSummary
+from app.services.performance_workspace_summary import (
+    ParsedWorkspaceSummary,
+    classify_reporting_currency_outcome,
+)
 
 
 @dataclass(frozen=True)
@@ -109,6 +112,7 @@ def _summary_views() -> WorkspaceSummaryViews:
         contribution=None,
         attribution=None,
         resolved_benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        reporting_currency_state="accepted_unverified",
     )
     return WorkspaceSummaryViews(
         workspace_summary_result=(
@@ -260,13 +264,17 @@ def test_workspace_response_context_fields_classify_currency_state(
     expected_currency: str,
     expected_state: str,
 ) -> None:
+    state = classify_reporting_currency_outcome(
+        result,
+        requested_period="YTD",
+    )
     fields = workspace_response_context_fields(
         replace(
             _context(),
             requested_reporting_currency="SGD",
             reporting_currency="SGD",
         ),
-        workspace_summary_result=result,
+        reporting_currency_state=state,
     )
 
     assert fields.effective_reporting_currency == expected_currency
@@ -279,13 +287,32 @@ def test_workspace_response_context_fields_do_not_text_match_currency_rejection(
         requested_reporting_currency="SGD",
         reporting_currency="SGD",
     )
+    state = classify_reporting_currency_outcome(
+        (422, {"detail": "unsupported reporting currency"}),
+        requested_period="YTD",
+    )
     fields = workspace_response_context_fields(
         context,
-        workspace_summary_result=(422, {"detail": "unsupported reporting currency"}),
+        reporting_currency_state=state,
     )
 
     assert fields.effective_reporting_currency == "USD"
     assert fields.reporting_currency_state == "unavailable"
+
+
+def test_response_context_uses_parser_state_without_reclassifying_raw_result() -> None:
+    context = replace(
+        _context(),
+        requested_reporting_currency="SGD",
+        reporting_currency="SGD",
+    )
+    fields = workspace_response_context_fields(
+        context,
+        reporting_currency_state="accepted_unverified",
+    )
+
+    assert fields.effective_reporting_currency == "SGD"
+    assert fields.reporting_currency_state == "accepted_unverified"
 
 
 def test_assemble_performance_workspace_response_preserves_context_and_components() -> None:

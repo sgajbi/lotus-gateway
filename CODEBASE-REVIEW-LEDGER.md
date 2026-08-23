@@ -29,6 +29,28 @@ Reference branch: `origin/main`
   its exact-mainline/live evidence is recorded; do not promote workspace capabilities from this
   bounded slice alone.
 
+### Batch 2D — details review controls and single summary classification (#572)
+
+- Objective: make the Workbench performance details route publish truthful review-date and
+  reporting-currency context using the same bounded semantics as summary.
+- Change: details accepts and forwards optional `as_of_date` and `reporting_currency` controls,
+  publishes requested/effective date and currency fields plus `reporting_currency_state`, and
+  preserves portfolio-base fallback for rejected, unavailable, empty, or malformed summaries.
+  Reporting-currency outcome classification now belongs to the summary parser as reusable
+  `classify_reporting_currency_outcome(result, requested_period)`; the response assembler projects
+  the parser's state rather than evaluating the raw result again.
+- Regression proof: parser coverage proves empty requested-period summaries are `unavailable`;
+  response tests prove precomputed-state projection; service and router tests prove forwarding,
+  uppercase normalization, explicit-window precedence, additive details fields, and fallback;
+  OpenAPI coverage proves the new query and response contract fields.
+- Compatibility: existing details fields, query names, omitted-parameter behavior, and capability
+  posture remain unchanged. The new controls and response fields are additive. This slice does
+  not claim source-applied currency evidence or promote trend, advisor-brief, currency-lookup,
+  as-of-after-last-observation, or workspace-wide capabilities.
+- Documentation decision: `docs/supported-features.md`, `wiki/Supported-Features.md`,
+  `wiki/API-Surface.md`, and this ledger change because details support and classifier ownership
+  changed. No central platform context or skill change is required.
+
 ### Batch 2B — upstream rejection truth and currency naming
 
 - Objective: prevent a rejected reporting-currency request from being published as an effective

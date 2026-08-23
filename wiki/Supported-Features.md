@@ -57,7 +57,7 @@ remain in `lotus-performance`.
 
 ## Performance Summary Review Controls
 
-Status: implementation-backed for the Workbench performance summary route only.
+Status: implementation-backed for the Workbench performance summary and details routes.
 
 `GET /api/v1/workbench/{portfolio_id}/performance/summary` accepts optional `as_of_date` and
 `reporting_currency` query parameters. Gateway forwards the requested reporting currency to
@@ -68,8 +68,11 @@ applied-currency evidence exists; typed currency validation is `rejected`; other
 summary outcomes are `unavailable`. Non-success states use the portfolio base currency in the
 existing effective field rather than echoing the requested currency, and rejection classification
 uses typed validation locations rather than error text. An explicit report window remains
-authoritative when both controls are supplied. Details,
-attribution trend, advisor brief, currency-catalog validation, and workspace-wide capability
+authoritative when both controls are supplied. The details route accepts the same controls and
+publishes the same requested/effective date and currency context. Its outcome is classified from
+the single parsed summary result, so empty or malformed requested-period summaries are
+`unavailable` and use the portfolio base currency. Attribution trend, advisor brief,
+currency-catalog validation, as-of-after-last-observation mapping, and workspace-wide capability
 promotion remain intentionally deferred under GitHub issue #572; the broader workspace must not
 claim those controls as supported until their owning routes and live evidence are complete.
 
