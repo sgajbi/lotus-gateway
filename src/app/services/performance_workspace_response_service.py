@@ -129,7 +129,7 @@ class PerformanceWorkspaceResponseServiceMixin:
         )
         return await evidence_builder._build_evidence_view(
             portfolio_id=portfolio_id,
-            as_of_date=context.overview.as_of_date,
+            as_of_date=context.report_end_date,
             period=context.effective_period,
             report_start_date=context.report_start_date.isoformat(),
             report_end_date=context.report_end_date,

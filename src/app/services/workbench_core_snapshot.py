@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -7,7 +9,55 @@ from app.contracts.workbench import (
     WorkbenchPortfolioSummary,
     WorkbenchPositionView,
 )
+from app.contracts.workbench_temporal import WorkbenchAsOfState
 from app.precision_policy import quantize_money, quantize_performance, quantize_quantity
+
+
+@dataclass(frozen=True, slots=True)
+class WorkbenchSnapshotDateEvidence:
+    effective_as_of_date: str | None
+    as_of_state: WorkbenchAsOfState
+
+
+def resolve_snapshot_date_evidence(
+    snapshot_payload: dict[str, Any],
+) -> WorkbenchSnapshotDateEvidence:
+    """Map Core temporal metadata without treating its request echo as confirmation."""
+    if "freshness" in snapshot_payload:
+        freshness = snapshot_payload.get("freshness")
+        if not isinstance(freshness, dict):
+            return WorkbenchSnapshotDateEvidence(None, "unavailable")
+        snapshot_timestamp = freshness.get("snapshot_timestamp")
+        if snapshot_timestamp is None:
+            return WorkbenchSnapshotDateEvidence(None, "unavailable")
+        effective_date = _snapshot_timestamp_date(snapshot_timestamp)
+        if effective_date is None:
+            return WorkbenchSnapshotDateEvidence(None, "unavailable")
+        return WorkbenchSnapshotDateEvidence(effective_date, "confirmed")
+
+    legacy_as_of_date = _valid_iso_date(snapshot_payload.get("as_of_date"))
+    if legacy_as_of_date is not None:
+        return WorkbenchSnapshotDateEvidence(legacy_as_of_date, "accepted_unverified")
+    return WorkbenchSnapshotDateEvidence(None, "unavailable")
+
+
+def _snapshot_timestamp_date(raw_timestamp: Any) -> str | None:
+    if not isinstance(raw_timestamp, str):
+        return None
+    try:
+        normalized_timestamp = raw_timestamp.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized_timestamp).date().isoformat()
+    except ValueError:
+        return None
+
+
+def _valid_iso_date(raw_date: Any) -> str | None:
+    if not isinstance(raw_date, str):
+        return None
+    try:
+        return date.fromisoformat(raw_date).isoformat()
+    except ValueError:
+        return None
 
 
 def extract_current_positions(snapshot_payload: dict[str, Any]) -> list[WorkbenchPositionView]:
@@ -100,8 +150,7 @@ def parse_lotus_core_snapshot(
     fallback_portfolio_id: str,
     portfolio_payload: dict[str, Any],
     snapshot_payload: dict[str, Any],
-    fallback_as_of_date: str,
-) -> tuple[WorkbenchPortfolioSummary, WorkbenchOverviewSummary, str]:
+) -> tuple[WorkbenchPortfolioSummary, WorkbenchOverviewSummary]:
     _validate_core_snapshot_payloads(
         portfolio_payload=portfolio_payload,
         snapshot_payload=snapshot_payload,
@@ -117,7 +166,6 @@ def parse_lotus_core_snapshot(
         total_market_value=total_market_value,
     )
 
-    as_of_date = str(snapshot_payload.get("as_of_date", fallback_as_of_date))
     portfolio = _build_workbench_portfolio_summary(
         fallback_portfolio_id=fallback_portfolio_id,
         portfolio_payload=portfolio_payload,
@@ -127,7 +175,7 @@ def parse_lotus_core_snapshot(
         cash_weight_pct=cash_weight,
         position_count=len(baseline_rows),
     )
-    return portfolio, overview, as_of_date
+    return portfolio, overview
 
 
 def _validate_core_snapshot_payloads(

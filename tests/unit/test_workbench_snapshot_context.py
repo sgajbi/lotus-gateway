@@ -16,6 +16,9 @@ class _StubWorkbenchCoreClient:
         self.snapshot_status = 200
         self.snapshot_payload = {
             "as_of_date": "2026-02-24",
+            "freshness": {
+                "snapshot_timestamp": "2026-04-10T00:00:00Z",
+            },
             "sections": {
                 "positions_baseline": [
                     {
@@ -109,7 +112,10 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
             "correlation_id": "corr-workbench-context",
         }
     ]
-    assert context.as_of_date == "2026-02-24"
+    assert context.requested_as_of_date is None
+    assert context.effective_as_of_date == "2026-04-10"
+    assert context.as_of_state == "confirmed"
+    assert context.enrichment_as_of_date == "2026-04-10"
     assert context.portfolio.portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert context.portfolio.base_currency == "SGD"
     assert context.overview.market_value_base == 2000.0
@@ -118,6 +124,43 @@ async def test_load_workbench_snapshot_context_preserves_core_snapshot_shape() -
         "CASH_SGD",
         "EQ_1",
     ]
+
+
+@pytest.mark.asyncio
+async def test_load_workbench_snapshot_context_keeps_requested_and_effective_dates_distinct():
+    client = _StubWorkbenchCoreClient()
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-context",
+        requested_as_of_date="2026-08-23",
+    )
+
+    assert client.snapshot_calls[0]["as_of_date"] == "2026-08-23"
+    assert context.requested_as_of_date == "2026-08-23"
+    assert context.effective_as_of_date == "2026-04-10"
+    assert context.as_of_state == "confirmed"
+    assert context.enrichment_as_of_date == "2026-08-23"
+
+
+@pytest.mark.asyncio
+async def test_load_workbench_snapshot_context_does_not_publish_unconfirmed_date():
+    client = _StubWorkbenchCoreClient()
+    client.snapshot_payload["freshness"] = {"snapshot_timestamp": None}
+
+    context = await load_workbench_snapshot_context(
+        core_client=client,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-workbench-context",
+        requested_as_of_date="2026-08-23",
+    )
+
+    assert client.snapshot_calls[0]["as_of_date"] == "2026-08-23"
+    assert context.requested_as_of_date == "2026-08-23"
+    assert context.effective_as_of_date is None
+    assert context.as_of_state == "unavailable"
+    assert context.enrichment_as_of_date == "2026-08-23"
 
 
 @pytest.mark.asyncio

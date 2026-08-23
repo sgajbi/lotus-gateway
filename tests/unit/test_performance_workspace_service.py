@@ -29,6 +29,8 @@ class _StubWorkbenchService:
             correlation_id=correlation_id,
             contract_version="v1",
             as_of_date="2026-03-27",
+            effective_as_of_date="2026-03-27",
+            as_of_state="confirmed",
             portfolio=WorkbenchPortfolioSummary(
                 portfolio_id=portfolio_id,
                 client_id="CIF_1001",
@@ -48,6 +50,19 @@ class _StubWorkbenchService:
                     detail="reporting snapshot is older than expected",
                 )
             ],
+        )
+
+
+class _UnavailableWorkbenchService(_StubWorkbenchService):
+    async def get_workbench_overview(self, *args, **kwargs):
+        response = await super().get_workbench_overview(*args, **kwargs)
+        return response.model_copy(
+            update={
+                "as_of_date": None,
+                "effective_as_of_date": None,
+                "requested_as_of_date": None,
+                "as_of_state": "unavailable",
+            }
         )
 
 
@@ -2975,3 +2990,30 @@ async def test_performance_workspace_service_surfaces_evidence_artifact_failure_
 
     assert exc_info.value.status_code == 404
     assert "artifact not found" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_fails_closed_without_workbench_date():
+    service = PerformanceWorkspaceService(
+        workbench_service=_UnavailableWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_performance_workspace_summary(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-performance-no-date",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code=None,
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == {
+        "error_code": "WORKBENCH_AS_OF_DATE_UNAVAILABLE",
+        "message": "A source-confirmed Workbench snapshot date is unavailable.",
+    }

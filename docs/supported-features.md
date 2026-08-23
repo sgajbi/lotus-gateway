@@ -16,6 +16,23 @@
 3. risk workspace summary, concentration, drawdown, rolling risk, and attribution,
 4. portfolio 360 composition.
 
+## Workbench Snapshot Date Semantics
+
+Status: implementation-backed for the Workbench overview and portfolio-360 routes.
+
+Both routes accept an optional requested `as_of_date`. Gateway preserves that request separately
+from the effective snapshot date and publishes `as_of_state`. Core `freshness.snapshot_timestamp`
+is the confirmation authority: a valid timestamp yields `confirmed` and its UTC calendar date;
+legacy Core payloads with only the request-bound date remain `accepted_unverified`; missing or
+invalid evidence yields `unavailable`. The legacy top-level `as_of_date` is now the effective date
+or `null`, never an invented host-today value. The date sent to Core when the caller omits the
+query is only an internal query bound and is not published as portfolio truth. Workbench rendering
+of unavailable dates remains downstream work tracked by `lotus-workbench#814`; mandate identity
+and display-name enrichment remain tracked by #591, and performance date semantics remain tracked
+by #572. Composed performance workspace consumers fail closed with typed
+`WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable Workbench date
+is available.
+
 Performance-summary cold calculations use a governed 30-second elapsed deadline across source
 submission and polling. The remaining budget governs each complete HTTP operation as well as its
 per-operation transport timeout, including slow multi-phase or response-trickle behavior. Gateway

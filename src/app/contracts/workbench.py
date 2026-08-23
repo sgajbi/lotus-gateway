@@ -25,10 +25,12 @@ from app.contracts.workbench_sandbox import (
     WorkbenchSandboxSessionCreateRequest,
     WorkbenchSandboxStateResponse,
 )
+from app.contracts.workbench_temporal import WorkbenchAsOfState
 
 __all__ = (
     "WorkbenchAnalyticsBucket",
     "WorkbenchAnalyticsResponse",
+    "WorkbenchAsOfState",
     "WorkbenchOverviewResponse",
     "WorkbenchOverviewSummary",
     "WorkbenchPartialFailure",

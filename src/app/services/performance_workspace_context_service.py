@@ -35,6 +35,25 @@ UpstreamPayload = dict[str, Any]
 UpstreamResult = tuple[int, UpstreamPayload]
 
 
+def _resolve_workbench_reference_as_of_date(
+    *,
+    overview: WorkbenchOverviewResponse,
+    explicit_end_date: str | None,
+) -> str:
+    reference_as_of_date = (
+        explicit_end_date or overview.effective_as_of_date or overview.requested_as_of_date
+    )
+    if reference_as_of_date is None:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "error_code": "WORKBENCH_AS_OF_DATE_UNAVAILABLE",
+                "message": "A source-confirmed Workbench snapshot date is unavailable.",
+            },
+        )
+    return reference_as_of_date
+
+
 class PerformanceWorkspaceContextServiceMixin:
     _upstream_cache: AsyncTtlCache[Any]
     _workbench_service: WorkbenchService
@@ -143,10 +162,14 @@ class PerformanceWorkspaceContextServiceMixin:
         explicit_start_date: str | None,
         explicit_end_date: str | None,
     ) -> WorkspaceReportWindow:
+        reference_as_of_date = _resolve_workbench_reference_as_of_date(
+            overview=overview_state.overview,
+            explicit_end_date=explicit_end_date,
+        )
         async with server_timing_span("perf-reference"):
             reference_window = await self._determine_report_reference(
                 portfolio_id=portfolio_id,
-                as_of_date=overview_state.overview.as_of_date,
+                as_of_date=reference_as_of_date,
                 correlation_id=correlation_id,
                 period=period,
                 explicit_start_date=explicit_start_date,
