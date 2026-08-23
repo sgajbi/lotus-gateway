@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "metrics": [
+    {
+      "name": "coverage_percent",
+      "log": "coverage.txt",
+      "kind": "number",
+      "pattern": "Total coverage: ([0-9.]+)%",
+      "comparison": "not_below",
+      "baseline": 94.77,
+      "threshold": 94.77,
+      "remediation": "Run make test-coverage and add meaningful behavioural tests for uncovered paths."
+    },
+    {
+      "name": "architecture_import_contract_failures",
+      "log": "import-linter.txt",
+      "kind": "count",
+      "pattern": "^-   ",
+      "comparison": "not_above",
+      "baseline": 11,
+      "threshold": 11,
+      "remediation": "Run lint-imports --config .importlinter and remove or explicitly govern new dependency-direction violations."
+    },
+    {
+      "name": "complexity_xenon_blocks",
+      "log": "complexity.txt",
+      "kind": "count",
+      "pattern": "ERROR:xenon:block",
+      "comparison": "not_above",
+      "baseline": 2,
+      "threshold": 2,
+      "remediation": "Run radon/xenon and simplify or extract the named high-complexity functions."
+    },
+    {
+      "name": "dead_code_findings",
+      "log": "vulture.txt",
+      "kind": "count",
+      "pattern": "^.+:\\d+: unused ",
+      "comparison": "not_above",
+      "baseline": 24,
+      "threshold": 24,
+      "remediation": "Run vulture src/app tests --min-confidence 80 and remove proven dead code or document a reviewed exception."
+    },
+    {
+      "name": "dependency_findings",
+      "log": "deptry.txt",
+      "kind": "number",
+      "pattern": "Found (\\d+) dependency issues\\.",
+      "comparison": "not_above",
+      "baseline": 48,
+      "threshold": 48,
+      "remediation": "Run deptry . and fix missing, transitive-only, or unused dependency declarations."
+    },
+    {
+      "name": "security_findings",
+      "log": "security.txt",
+      "kind": "group_sum",
+      "pattern": "Total issues \\(by severity\\):\\s+Undefined:[ \\t]*(\\d+)\\s+Low:[ \\t]*(\\d+)\\s+Medium:[ \\t]*(\\d+)\\s+High:[ \\t]*(\\d+)",
+      "comparison": "not_above",
+      "baseline": 3,
+      "threshold": 3,
+      "remediation": "Run bandit -q -r src/app -c pyproject.toml and make security-audit; fix or explicitly review each new finding."
+    },
+    {
+      "name": "documentation_percent",
+      "log": "interrogate.txt",
+      "kind": "number",
+      "pattern": "actual: ([0-9.]+)%",
+      "comparison": "not_below",
+      "baseline": 1.6,
+      "threshold": 1.6,
+      "remediation": "Run interrogate src/app and add useful public-facing documentation without writing filler docstrings."
+    },
+    {
+      "name": "openapi_spectral_problems",
+      "log": "spectral.txt",
+      "kind": "number",
+      "pattern": "✖ (\\d+) problems? \\(",
+      "comparison": "not_above",
+      "baseline": 4,
+      "threshold": 4,
+      "remediation": "Run spectral lint openapi.json --ruleset .spectral.yaml and fix new API governance violations."
+    }
+  ]
+}
