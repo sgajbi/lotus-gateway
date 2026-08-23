@@ -236,12 +236,32 @@ def _effective_reporting_currency(
     *,
     workspace_summary_result: GatheredResult | None,
 ) -> str:
-    if _workspace_summary_failed(workspace_summary_result):
+    if _workspace_summary_currency_rejected(workspace_summary_result):
         return context.overview.portfolio.base_currency
     return context.reporting_currency or context.overview.portfolio.base_currency
 
 
-def _workspace_summary_failed(result: GatheredResult | None) -> bool:
-    if isinstance(result, BaseException):
-        return True
-    return isinstance(result, tuple) and result[0] >= 400
+def _workspace_summary_currency_rejected(result: GatheredResult | None) -> bool:
+    if isinstance(result, BaseException) or not isinstance(result, tuple):
+        return False
+    status_code, payload = result
+    if status_code < 400 or not isinstance(payload, dict):
+        return False
+    return _contains_currency_rejection_marker(payload)
+
+
+def _contains_currency_rejection_marker(payload: dict[str, Any]) -> bool:
+    payload_text = " ".join(_nested_payload_strings(payload)).lower()
+    return "unsupported" in payload_text and any(
+        marker in payload_text for marker in ("currency", "report_ccy", "reporting_currency")
+    )
+
+
+def _nested_payload_strings(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [text for nested in value.values() for text in _nested_payload_strings(nested)]
+    if isinstance(value, (list, tuple)):
+        return [text for nested in value for text in _nested_payload_strings(nested)]
+    return []
