@@ -1,8 +1,8 @@
-from app.contracts.dpm_command_center import DpmOutcomeReviewErrorDetail
+from app.contracts.dpm_pm_operating_quality import DpmPmOperatingQualityErrorDetail
 from app.routers.dpm_openapi import manage_upstream_error_responses
 
 UPSTREAM_PM_OPERATING_QUALITY_ERROR_RESPONSES = manage_upstream_error_responses(
-    error_model=DpmOutcomeReviewErrorDetail,
+    error_model=DpmPmOperatingQualityErrorDetail,
     not_found_description=(
         "lotus-manage could not find the requested PM operating quality resource."
     ),

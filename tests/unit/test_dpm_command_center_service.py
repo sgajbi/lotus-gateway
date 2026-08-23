@@ -1,3 +1,4 @@
+import logging
 from typing import Any, cast
 
 import pytest
@@ -1532,8 +1533,22 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
 
 
 @pytest.mark.asyncio
-async def test_dpm_pm_operating_quality_manage_errors_are_product_safe() -> None:
-    client = _FakeDpmClient((422, {"detail": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"}))
+async def test_dpm_pm_operating_quality_manage_errors_are_product_safe(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="analytics_ui.gateway")
+    client = _FakeDpmClient(
+        (
+            422,
+            {
+                "detail": {
+                    "code": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED",
+                    "field": "policy.tenant_id",
+                    "message": "submitted value must not be returned",
+                }
+            },
+        )
+    )
     service = DpmCommandCenterService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -1548,6 +1563,57 @@ async def test_dpm_pm_operating_quality_manage_errors_are_product_safe() -> None
         "upstream_status": 422,
         "error_code": "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
         "detail": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED",
+        "reason_codes": ["PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"],
+        "field_paths": ["policy.tenant_id"],
+    }
+    [record] = [
+        record
+        for record in caplog.records
+        if record.message == "gateway.manage.pm_operating_quality.upstream_error"
+    ]
+    assert record.extra_fields == {
+        "event": "gateway.manage.pm_operating_quality.upstream_error",
+        "service": "lotus-manage",
+        "operation": "manage.rebalance.pm_operating_quality",
+        "correlation_id": "corr-pmq-error",
+        "upstream_status": 422,
+        "error_code": "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        "reason_codes": ["PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"],
+        "field_paths": ["policy.tenant_id"],
+    }
+    assert "submitted value must not be returned" not in str(record.extra_fields)
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_manage_five_x_errors_fail_closed() -> None:
+    client = _FakeDpmClient(
+        (
+            503,
+            {
+                "detail": {
+                    "code": "INTERNAL_SECRET_CODE",
+                    "field": "policy.tenant_id",
+                    "message": "internal failure details",
+                }
+            },
+        )
+    )
+    service = DpmCommandCenterService(dpm_client=client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.create_pm_operating_quality_score_run(
+            body={"pm_id": "PM_SG_DPM_001"},
+            correlation_id="corr-pmq-five-x",
+        )
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 503,
+        "error_code": "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        "detail": "lotus-manage command-center request failed",
+        "reason_codes": [],
+        "field_paths": [],
     }
 
 

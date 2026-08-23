@@ -9,6 +9,7 @@ from app.contracts.dpm_command_center import (
     DpmPmOperatingQualitySummaryGatewayResponse,
     DpmPortfolioMemoryGatewayResponse,
 )
+from app.contracts.dpm_pm_operating_quality import DpmPmOperatingQualityErrorDetail
 from app.main import app
 from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
@@ -278,6 +279,21 @@ def test_dpm_pm_operating_quality_gateway_response_contract_shape() -> None:
     )
 
 
+def test_dpm_pm_operating_quality_error_detail_contract_is_bounded_and_safe() -> None:
+    error = DpmPmOperatingQualityErrorDetail(
+        upstream_status=422,
+        error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        detail="PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED",
+        reason_codes=["missing"],
+        field_paths=["policy.tenant_id", "governance.approval.0"],
+    )
+
+    assert error.source_service == "lotus-manage"
+    assert error.reason_codes == ["missing"]
+    assert error.field_paths == ["policy.tenant_id", "governance.approval.0"]
+    assert "message" not in error.model_dump()
+
+
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
         correlation_id="corr-1",
@@ -508,6 +524,7 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     portfolio_memory_supportability_schema = schemas["DpmPortfolioMemorySupportability"]
     pm_quality_response_schema = schemas["DpmPmOperatingQualityGatewayResponse"]
     pm_quality_supportability_schema = schemas["DpmPmOperatingQualitySupportability"]
+    pm_quality_error_schema = schemas["DpmPmOperatingQualityErrorDetail"]
     pm_quality_summary_request_schema = schemas["DpmPmOperatingQualitySummaryRequest"]
     pm_quality_summary_response_schema = schemas["DpmPmOperatingQualitySummaryGatewayResponse"]
     response_schema = schemas["DpmOutcomeReviewGatewayResponse"]
@@ -532,6 +549,9 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
         assert property_schema.get("description")
 
     for property_schema in pm_quality_supportability_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in pm_quality_error_schema["properties"].values():
         assert property_schema.get("description")
 
     for property_schema in pm_quality_summary_request_schema["properties"].values():
@@ -561,6 +581,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     assert portfolio_memory_supportability_schema["properties"]["state"]["examples"]
     assert pm_quality_response_schema["properties"]["data"]["description"]
     assert pm_quality_supportability_schema["properties"]["state"]["examples"]
+    assert pm_quality_error_schema["properties"]["reason_codes"]["maxItems"] == 8
+    assert pm_quality_error_schema["properties"]["field_paths"]["maxItems"] == 8
     assert pm_quality_summary_request_schema["properties"]["requested_outputs"]["examples"]
     assert pm_quality_summary_response_schema["properties"]["data"]["description"]
     assert response_schema["properties"]["data"]["description"]
@@ -573,3 +595,14 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     assert exception_summary_request_schema["properties"]["requested_outputs"]["examples"]
     assert exception_summary_response_schema["properties"]["data"]["description"]
     assert supportability_schema["properties"]["state"]["examples"]
+
+
+def test_dpm_pm_operating_quality_openapi_uses_bounded_error_contract() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    operation = spec["paths"]["/api/v1/dpm/command-center/pm-operating-quality/score-runs"]["post"]
+
+    for status_code in ("409", "422", "503"):
+        error_ref = operation["responses"][status_code]["content"]["application/json"]["schema"][
+            "$ref"
+        ]
+        assert error_ref.endswith("/DpmPmOperatingQualityErrorDetail")
