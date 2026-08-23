@@ -970,7 +970,9 @@ Operational behavior:
    policy id/version, score-run id, fairness-analysis id, review-action id, reason codes, blocked
    actions, summary-invocation id, and list counts when available,
 2. upstream manage errors are surfaced as product-safe Gateway errors with
-   `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`,
+   `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`. Manage 4xx validation failures may add at most
+   eight sanitized `reason_codes` and `field_paths`; generic or 5xx failures use the safe fallback
+   and expose no validation metadata. Raw messages and submitted request values are never returned,
 3. upstream lotus-ai summary errors are surfaced as product-safe Gateway errors with
    `AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR`,
 4. Workbench PM quality UI is a Gateway-backed owning-repository slice in `lotus-workbench`;

@@ -1068,3 +1068,28 @@ Reference branch: `origin/main`
 - Truth updates: this ledger and GitHub issue #606 record the finding and fix. No repository
   context, operator documentation, or wiki change is needed because the supported product and
   runtime contracts are unchanged.
+
+## Bounded Manage PM-Quality Validation Reasons (#530)
+
+- Scope: bounded PM operating-quality Gateway error-contract and observability correction for
+  Manage 4xx failures; no shared error-policy change, migration, dependency, or upstream producer
+  change.
+- Defect: PM-quality routes collapsed actionable Manage validation metadata into a generic error
+  shape, leaving callers without safe recovery hints and operators without a route-specific,
+  correlation-linked summary of the rejected operation.
+- Change: PM-quality owns `DpmPmOperatingQualityErrorDetail` and a focused bounded parser. Manage
+  4xx responses may expose at most eight sanitized reason codes and field paths; malformed,
+  generic, and 5xx payloads fail closed to the existing safe fallback with empty arrays. Structured
+  warning fields include the correlation id, Manage service, operation family, upstream status,
+  stable error code, and the same sanitized evidence without raw messages or request values.
+- Compatibility: the existing upstream status, source service, stable error code, and safe detail
+  behavior remain intact for supported callers; the additive `reason_codes` and `field_paths`
+  fields are documented in OpenAPI. No authentication, tenant isolation, domain ownership,
+  upstream payload, migration, persistence, or runtime configuration behavior changes.
+- Regression proof: parser tests cover Pydantic list errors, indexed locations, Manage problem
+  details, deduplication/bounds, generic/unparseable details, and 5xx redaction; service tests
+  cover response shape, structured log safety, and 5xx fail-closed behavior; contract tests pin
+  focused module ownership and OpenAPI response references.
+- Truth updates: supported-features documentation, API-surface wiki, and this ledger describe the
+  additive bounded error contract. No repository context, central platform context, RFC, or
+  migration update is needed. Wiki publication and strict parity remain required after merge.
