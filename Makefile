@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides demo-certification openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency demo-certification openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -11,6 +11,7 @@ lint:
 	$(MAKE) workflow-action-runtime
 	$(MAKE) agent-quality-evidence
 	$(MAKE) folder-guides
+	$(MAKE) testclient-dependency
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
@@ -26,6 +27,9 @@ agent-quality-evidence:
 
 folder-guides:
 	python scripts/check_folder_guides.py
+
+testclient-dependency:
+	python scripts/check_testclient_dependency.py
 
 demo-certification:
 	python scripts/certify_demo_readiness.py
