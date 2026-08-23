@@ -70,12 +70,12 @@ SnapshotBenchmarkCode = Annotated[
         },
     ),
 ]
-SnapshotExplicitStartDate = Annotated[
+SnapshotReportStartDate = Annotated[
     str | None,
     Query(
         description=(
-            "Inclusive explicit start date when requesting an EXPLICIT window or overriding the "
-            "canonical period boundary for the resolved snapshot horizon."
+            "Canonical inclusive explicit start date for an EXPLICIT window. This name matches "
+            "the other performance routes."
         ),
         examples=["2026-01-01"],
         openapi_examples={
@@ -83,16 +83,50 @@ SnapshotExplicitStartDate = Annotated[
         },
     ),
 ]
-SnapshotExplicitEndDate = Annotated[
+SnapshotDeprecatedExplicitStartDate = Annotated[
     str | None,
     Query(
         description=(
-            "Inclusive explicit end date when requesting an EXPLICIT window or overriding the "
-            "resolved analytics reference end date for the snapshot horizon."
+            "Deprecated compatibility alias for report_start_date. Use report_start_date; this "
+            "alias is retained for one release."
         ),
+        deprecated=True,
+        examples=["2026-01-01"],
+        openapi_examples={
+            "legacy_quarter_start": {
+                "summary": "Deprecated explicit start alias",
+                "value": "2026-01-01",
+            }
+        },
+    ),
+]
+SnapshotReportEndDate = Annotated[
+    str | None,
+    Query(
+        description=(
+            "Canonical inclusive explicit end date for an EXPLICIT window. This name matches "
+            "the other performance routes."
+        ),
+        examples=["2026-04-10"],
+        openapi_examples={
+            "quarter_end": {"summary": "Explicit quarter end", "value": "2026-04-10"}
+        },
+    ),
+]
+SnapshotDeprecatedExplicitEndDate = Annotated[
+    str | None,
+    Query(
+        description=(
+            "Deprecated compatibility alias for report_end_date. Use report_end_date; this "
+            "alias is retained for one release."
+        ),
+        deprecated=True,
         examples=["2026-03-27"],
         openapi_examples={
-            "quarter_end": {"summary": "Explicit quarter end", "value": "2026-03-27"}
+            "legacy_quarter_end": {
+                "summary": "Deprecated explicit end alias",
+                "value": "2026-03-27",
+            }
         },
     ),
 ]
@@ -103,16 +137,20 @@ def build_portfolio_performance_snapshot_query(
     chart_frequency: SnapshotChartFrequency = "monthly",
     detail_basis: SnapshotDetailBasis = "NET",
     benchmark_code: SnapshotBenchmarkCode = None,
-    explicit_start_date: SnapshotExplicitStartDate = None,
-    explicit_end_date: SnapshotExplicitEndDate = None,
+    report_start_date: SnapshotReportStartDate = None,
+    explicit_start_date: SnapshotDeprecatedExplicitStartDate = None,
+    report_end_date: SnapshotReportEndDate = None,
+    explicit_end_date: SnapshotDeprecatedExplicitEndDate = None,
 ) -> PortfolioPerformanceSnapshotQuery:
     return PortfolioPerformanceSnapshotQuery(
         period=period,
         chart_frequency=chart_frequency,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
-        explicit_start_date=explicit_start_date,
-        explicit_end_date=explicit_end_date,
+        explicit_start_date=(
+            report_start_date if report_start_date is not None else explicit_start_date
+        ),
+        explicit_end_date=report_end_date if report_end_date is not None else explicit_end_date,
     )
 
 

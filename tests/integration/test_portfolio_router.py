@@ -1853,9 +1853,9 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
             "correlation_id": "corr-performance",
             "contract_version": "v1",
             "portfolio_id": "PF_1001",
-            "as_of_date": "2026-03-27",
-            "report_start_date": "2026-01-01",
-            "report_end_date": "2026-03-27",
+            "as_of_date": "2026-04-10",
+            "report_start_date": "2026-03-11",
+            "report_end_date": "2026-04-10",
             "period": "EXPLICIT",
             "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             "portfolio_return_pct": 15.1,
@@ -1869,7 +1869,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
                     "excess_return_pct": 0.2,
                 },
                 {
-                    "as_of_date": "2026-03-27",
+                    "as_of_date": "2026-04-10",
                     "portfolio_return_pct": 15.1,
                     "benchmark_return_pct": 14.72,
                     "excess_return_pct": 0.38,
@@ -1899,8 +1899,8 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
             "chart_frequency": "quarterly",
             "detail_basis": "GROSS",
             "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
-            "explicit_start_date": "2026-01-01",
-            "explicit_end_date": "2026-03-27",
+            "report_start_date": "2026-03-11",
+            "report_end_date": "2026-04-10",
         },
     )
 
@@ -1909,11 +1909,11 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     assert body["correlation_id"] == "corr-performance"
     assert body["contract_version"] == "v1"
     assert body["portfolio_id"] == "PF_1001"
-    assert body["as_of_date"] == "2026-03-27"
+    assert body["as_of_date"] == "2026-04-10"
     assert body["period"] == "EXPLICIT"
     assert body["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
-    assert body["report_start_date"] == "2026-01-01"
-    assert body["report_end_date"] == "2026-03-27"
+    assert body["report_start_date"] == "2026-03-11"
+    assert body["report_end_date"] == "2026-04-10"
     assert body["portfolio_return_pct"] == 15.1
     assert body["benchmark_return_pct"] == 14.72
     assert body["excess_return_pct"] == 0.38
@@ -1928,8 +1928,55 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     assert captured["chart_frequency"] == "quarterly"
     assert captured["detail_basis"] == "GROSS"
     assert captured["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
-    assert captured["explicit_start_date"] == "2026-01-01"
-    assert captured["explicit_end_date"] == "2026-03-27"
+    assert captured["explicit_start_date"] == "2026-03-11"
+    assert captured["explicit_end_date"] == "2026-04-10"
+
+
+def test_portfolio_performance_snapshot_router_supports_deprecated_window_aliases(monkeypatch):
+    captured: list[dict[str, object]] = []
+
+    async def _snapshot(*args, **kwargs):
+        captured.append(kwargs)
+        return {
+            "correlation_id": "corr-performance-alias",
+            "portfolio_id": "PF_1001",
+            "as_of_date": kwargs["explicit_end_date"],
+            "report_start_date": kwargs["explicit_start_date"],
+            "report_end_date": kwargs["explicit_end_date"],
+            "period": kwargs["period"],
+        }
+
+    monkeypatch.setattr(
+        portfolio_performance_workspace_service(),
+        "get_portfolio_performance_snapshot",
+        _snapshot,
+    )
+    client = TestClient(app)
+    legacy_response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        params={
+            "period": "EXPLICIT",
+            "explicit_start_date": "2026-03-11",
+            "explicit_end_date": "2026-04-10",
+        },
+    )
+    canonical_precedence_response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        params={
+            "period": "EXPLICIT",
+            "report_start_date": "2026-03-11",
+            "report_end_date": "2026-04-10",
+            "explicit_start_date": "2026-03-12",
+            "explicit_end_date": "2026-04-09",
+        },
+    )
+
+    assert legacy_response.status_code == 200
+    assert canonical_precedence_response.status_code == 200
+    assert captured[0]["explicit_start_date"] == "2026-03-11"
+    assert captured[0]["explicit_end_date"] == "2026-04-10"
+    assert captured[1]["explicit_start_date"] == "2026-03-11"
+    assert captured[1]["explicit_end_date"] == "2026-04-10"
 
 
 def test_portfolio_performance_snapshot_router_preserves_unavailable_state(monkeypatch):
