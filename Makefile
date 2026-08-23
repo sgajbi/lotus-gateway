@@ -78,11 +78,13 @@ ci: lint typecheck openapi-gate migration-smoke test-integration test-coverage s
 
 ci-local: check test-integration
 
+CI_LOCAL_COMPOSE_PROJECT ?= $(shell python scripts/ci_local_compose_project.py)
+
 ci-local-docker:
-	docker compose --project-name lotus-gateway-ci-local -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
+	docker compose --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
 
 ci-local-docker-down:
-	docker compose --project-name lotus-gateway-ci-local -f docker-compose.ci-local.yml down -v --remove-orphans
+	docker compose --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" -f docker-compose.ci-local.yml down -v --remove-orphans
 
 run:
 	uvicorn app.main:app --reload --app-dir src --port 8100
