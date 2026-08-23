@@ -13,6 +13,9 @@ from app.services.performance_workspace_attribution import (
     parse_attribution_supportability_evidence,
     parse_attribution_trend_results,
 )
+from app.services.performance_workspace_attribution_trend import (
+    classify_attribution_trend_currency_outcome,
+)
 
 _SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
 
@@ -393,6 +396,46 @@ def test_parse_attribution_trend_results_builds_cumulative_rows():
     assert rows[1].cumulative_total_effect_pct == 0.5
     assert warnings == []
     assert partial_failures == []
+
+
+@pytest.mark.parametrize(
+    ("results", "expected"),
+    [
+        pytest.param(
+            [
+                (
+                    200,
+                    {
+                        "results_by_period": {
+                            "EXPLICIT": {"levels": [{"totals": {"total_effect": 0.1}}]}
+                        }
+                    },
+                )
+            ],
+            "accepted_unverified",
+            id="successful-trend",
+        ),
+        pytest.param(
+            [
+                (
+                    422,
+                    {
+                        "error_code": "VALIDATION_ERROR",
+                        "validation_errors": [{"loc": ["body", "report_ccy"]}],
+                    },
+                )
+            ],
+            "rejected",
+            id="typed-currency-rejection",
+        ),
+        pytest.param([RuntimeError("unavailable")], "unavailable", id="failed-trend"),
+    ],
+)
+def test_classify_attribution_trend_currency_outcome(results, expected):
+    assert (
+        classify_attribution_trend_currency_outcome(results, requested_period="EXPLICIT")
+        == expected
+    )
 
 
 def test_parse_attribution_trend_results_does_not_synthesize_missing_cumulative_total():

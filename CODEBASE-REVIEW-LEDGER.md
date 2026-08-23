@@ -72,6 +72,26 @@ Reference branch: `origin/main`
   `wiki/Validation-and-CI.md` now state the explicit retry taxonomy; wiki publication and strict
   parity are required after merge.
 
+### Batch 2G — attribution-trend review controls (#572)
+
+- Objective: make the Workbench attribution-trend route participate in the same review-date and
+  reporting-currency context already supported by summary and details.
+- Change: attribution-trend accepts optional `as_of_date` and `reporting_currency`, preserves
+  explicit `report_end_date` precedence, forwards requested currency to each bounded
+  `lotus-performance` attribution request, and publishes requested/effective date and currency
+  fields plus `reporting_currency_state`. A shared currency-rejection predicate and a trend-specific
+  usable-period classifier prevent request echoes from claiming source evidence; typed rejection and
+  no-usable-period outcomes fall back to the portfolio base currency.
+- Regression proof: focused parser/service/router/client tests cover successful forwarding,
+  uppercase query normalization, explicit-window precedence, typed currency rejection, unavailable
+  periods, response context, OpenAPI fields, and omission-preserving upstream payloads.
+- Compatibility: omitted parameters keep the prior attribution payload; new response fields are
+  additive. Partial period failures remain visible. No capability promotion, advisor-brief,
+  currency-catalog validation, or as-of-after-last-observation mapping is included.
+- Documentation decision: supported-features, demo, API-surface wiki, and this ledger change because
+  the route's supported controls and response contract changed. No migration or central context/skill
+  change is needed.
+
 ### Batch 2E — authoritative performance horizon windows (#551)
 
 - Objective: remove silent January-1/YTD fallback from accepted performance horizon resolution and

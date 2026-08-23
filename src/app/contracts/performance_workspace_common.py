@@ -1,9 +1,8 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import ContributionSummaryView
+from app.contracts.performance_currency import ReportingCurrencyState
 from app.contracts.performance_evidence import PerformanceEvidenceView
 from app.contracts.performance_horizon import PerformanceBenchmarkOptionView
 from app.contracts.workbench import (
@@ -20,14 +19,6 @@ __all__ = [
     "PerformanceWorkspaceCapabilities",
     "PerformanceWorkspaceResponse",
     "ReportingCurrencyState",
-]
-
-
-ReportingCurrencyState = Literal[
-    "applied",
-    "accepted_unverified",
-    "rejected",
-    "unavailable",
 ]
 
 

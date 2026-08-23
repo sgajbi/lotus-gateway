@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any
 
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendRow
+from app.contracts.performance_currency import ReportingCurrencyState
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_attribution_supportability import (
     parse_attribution_residual_materiality,
@@ -19,8 +20,32 @@ from app.services.performance_workspace_parsing import (
     safe_str_list,
 )
 from app.services.performance_workspace_returns import resolve_results_period_key
+from app.services.performance_workspace_summary_currency import (
+    is_reporting_currency_rejection,
+)
 
 AttributionTrendResult = tuple[int, dict[str, Any]] | BaseException
+
+
+def classify_attribution_trend_currency_outcome(
+    results: Sequence[AttributionTrendResult],
+    *,
+    requested_period: str,
+) -> ReportingCurrencyState:
+    """Classify currency evidence across the trend's bounded period requests."""
+    if any(is_reporting_currency_rejection(result) for result in results):
+        return "rejected"
+    if any(
+        select_attribution_trend_period_payload(
+            payload=result[1],
+            requested_period=requested_period,
+        )
+        is not None
+        for result in results
+        if isinstance(result, tuple) and result[0] < 400 and isinstance(result[1], dict)
+    ):
+        return "accepted_unverified"
+    return "unavailable"
 
 
 @dataclass(frozen=True)
