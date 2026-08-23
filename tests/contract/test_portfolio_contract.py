@@ -1098,14 +1098,33 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_parameters["benchmark_code"]["examples"]["balanced"]["value"] == (
         "BMK_PB_GLOBAL_BALANCED_60_40"
     )
-    assert performance_snapshot_parameters["explicit_start_date"]["description"]
+    assert performance_snapshot_parameters["report_start_date"]["description"]
     assert (
-        performance_snapshot_parameters["explicit_start_date"]["examples"]["quarter_start"]["value"]
+        performance_snapshot_parameters["report_start_date"]["examples"]["quarter_start"]["value"]
         == "2026-01-01"
     )
-    assert performance_snapshot_parameters["explicit_end_date"]["description"]
+    assert not performance_snapshot_parameters["report_start_date"].get("deprecated", False)
+    assert performance_snapshot_parameters["explicit_start_date"]["deprecated"] is True
     assert (
-        performance_snapshot_parameters["explicit_end_date"]["examples"]["quarter_end"]["value"]
+        "report_start_date" in performance_snapshot_parameters["explicit_start_date"]["description"]
+    )
+    assert (
+        performance_snapshot_parameters["explicit_start_date"]["examples"]["legacy_quarter_start"][
+            "value"
+        ]
+        == "2026-01-01"
+    )
+    assert (
+        performance_snapshot_parameters["report_end_date"]["examples"]["quarter_end"]["value"]
+        == "2026-04-10"
+    )
+    assert not performance_snapshot_parameters["report_end_date"].get("deprecated", False)
+    assert performance_snapshot_parameters["explicit_end_date"]["deprecated"] is True
+    assert "report_end_date" in performance_snapshot_parameters["explicit_end_date"]["description"]
+    assert (
+        performance_snapshot_parameters["explicit_end_date"]["examples"]["legacy_quarter_end"][
+            "value"
+        ]
         == "2026-03-27"
     )
     assert performance_snapshot_schema["properties"]["correlation_id"]["description"]
@@ -1149,3 +1168,23 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_schema["properties"]["contract_version"]["default"] == "v1"
     assert book_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert book_schema["properties"]["positions"]["examples"]
+
+
+def test_performance_family_uses_one_canonical_explicit_window_vocabulary() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    family_paths = [
+        "/api/v1/workbench/{portfolio_id}/performance/summary",
+        "/api/v1/workbench/{portfolio_id}/performance/details",
+        "/api/v1/workbench/{portfolio_id}/performance/attribution-trend",
+        "/api/v1/workbench/{portfolio_id}/performance/advisor-brief",
+        "/api/v1/workbench/{portfolio_id}/performance/advisor-brief/review-actions",
+    ]
+
+    for path in family_paths:
+        method = "post" if path.endswith("review-actions") else "get"
+        parameters = {
+            parameter["name"] for parameter in spec["paths"][path][method].get("parameters", [])
+        }
+        assert {"report_start_date", "report_end_date"}.issubset(parameters), path
+        assert "explicit_start_date" not in parameters, path
+        assert "explicit_end_date" not in parameters, path
