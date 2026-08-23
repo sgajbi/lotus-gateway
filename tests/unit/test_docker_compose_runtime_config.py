@@ -25,3 +25,17 @@ def test_gateway_compose_mounts_domain_product_artifacts_read_only() -> None:
     assert (
         "../lotus-platform/output/trust-certification:/lotus-platform/output/trust-certification:ro"
     ) in compose_text
+
+
+def test_ci_local_compose_cleanup_uses_an_isolated_project_identity() -> None:
+    makefile_text = Path("Makefile").read_text(encoding="utf-8")
+
+    assert (
+        "docker compose --project-name lotus-gateway-ci-local -f docker-compose.ci-local.yml "
+        "up --build --abort-on-container-exit --exit-code-from ci-local ci-local"
+    ) in makefile_text
+    assert (
+        "docker compose --project-name lotus-gateway-ci-local -f docker-compose.ci-local.yml "
+        "down -v --remove-orphans"
+    ) in makefile_text
+    assert "docker compose -f docker-compose.ci-local.yml down" not in makefile_text
