@@ -204,11 +204,11 @@ def test_workspace_response_context_fields_preserve_supported_flags() -> None:
             "unavailable",
         ),
         ((503, {"detail": "upstream unavailable"}), "USD", "unavailable"),
-        (RuntimeError("summary timeout"), "USD", "unavailable"),
+        (TimeoutError("summary timeout"), "USD", "unavailable"),
     ],
 )
 def test_workspace_response_context_fields_classify_currency_state(
-    result: tuple[int, dict[str, object]] | RuntimeError,
+    result: tuple[int, dict[str, object]] | BaseException,
     expected_currency: str,
     expected_state: str,
 ) -> None:
