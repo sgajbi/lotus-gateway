@@ -22,8 +22,9 @@ The current local and PR-grade blocking gates are:
    `src/app/contracts/performance_workspace_details_contract.py`, and durable
    scorecard/context guidance in sync,
 6. proposal decision-vocabulary governance through
-   `scripts/check_proposal_decision_vocabulary.py`, which validates the packaged runtime policy and
-   reconciles it with the current Advise producer artifact in protected and scheduled CI,
+   `scripts/check_proposal_decision_vocabulary.py`, which requires an external source for the
+   blocking gate, rejects implicit packaged self-comparison, and reconciles the current Advise
+   producer artifact in protected and scheduled CI,
 7. `mypy` over `src`,
 8. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,

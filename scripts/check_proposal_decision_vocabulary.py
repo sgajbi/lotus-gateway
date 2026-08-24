@@ -137,7 +137,13 @@ def _source_vocabulary(args: argparse.Namespace) -> tuple[ProposalDecisionVocabu
     if source_url:
         payload, revision = fetch_github_contents_contract(source_url)
         return parse_proposal_decision_vocabulary(payload), f"github-blob:{revision}"
-    return load_proposal_decision_vocabulary(), "packaged-snapshot"
+    if args.allow_packaged_snapshot:
+        return load_proposal_decision_vocabulary(), "packaged-snapshot-explicit"
+    raise ValueError(
+        "current Advise proposal decision vocabulary is required; pass --source-contract, "
+        f"--source-url, or set {DEFAULT_SOURCE_URL_ENV}. Use --allow-packaged-snapshot only "
+        "for an explicit offline package-integrity check."
+    )
 
 
 def main() -> int:
@@ -147,6 +153,7 @@ def main() -> int:
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument("--source-contract", type=Path)
     source_group.add_argument("--source-url")
+    source_group.add_argument("--allow-packaged-snapshot", action="store_true")
     args = parser.parse_args()
     packaged = load_proposal_decision_vocabulary()
     source, source_revision = _source_vocabulary(args)

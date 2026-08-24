@@ -306,8 +306,11 @@ curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerS
 - `make ci-local-docker`
   dockerized parity check
 - `make proposal-decision-vocabulary-gate`
-  reconcile the packaged Advise proposal decision policy; protected CI supplies the current
-  producer artifact URL and records its blob revision
+  reconcile the packaged Advise proposal decision policy with a required source contract; set the
+  governed producer URL locally, while protected CI supplies it and records the blob revision
+- `make proposal-decision-vocabulary-snapshot-check`
+  explicitly validate only the packaged snapshot for offline package-integrity diagnosis; this is
+  not a producer-drift proof and is never used by protected CI
 - `make run-canonical`
   canonical local gateway runtime on port `8111`
 - `make clean`
