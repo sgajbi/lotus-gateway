@@ -4,6 +4,29 @@ Last updated: 2026-08-24
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2P — reconcile proposal decisions with the Advise vocabulary (#599)
+
+- Objective: move proposal decision, action, workflow-gate, and next-step compatibility from an
+  unguarded Gateway copy to one source-owned, versioned Advise contract so vocabulary evolution is
+  detected before a Gateway release.
+- Change: Gateway packages and validates `proposal-decision-vocabulary.v1`, loads it as the runtime
+  coherence policy, and compares the packaged snapshot with the current Advise artifact in Remote
+  Feature, PR Merge, Main Releasability, and a daily/operator-dispatched drift lane. Drift findings
+  name the changed pairing and the source Git blob revision. The existing stricter rule that
+  blocking workflow gates need source reason evidence remains separate and unchanged.
+- Regression proof: parser tests reject duplicate or out-of-type vocabulary values; comparator
+  tests prove pairing-specific drift and malformed GitHub source-envelope failures; contract tests
+  pin the canonical client-consent chain and prove runtime policy comes from the packaged artifact.
+  A built wheel contains the JSON resource. Full local `make ci` passed 2,247 combined tests,
+  94.70% coverage, the current Advise blob reconciliation, and dependency audit.
+- Compatibility: no route, OpenAPI payload, migration, dependency, or Workbench rendering change.
+  Existing fail-closed runtime coherence remains intact. Advise's top-level compatibility map is a
+  reviewed declaration rather than derived producer logic; the draft PR must keep that evidence
+  boundary explicit for review rather than claiming a stronger producer invariant.
+- Documentation decision: proposal contract, supported features, README, runbook, repository
+  context, CI quality guidance, scorecard, scripts guide, API/feature/CI wiki pages, and this ledger
+  move with implementation truth. Wiki publication and strict parity are required after merge.
+
 ### Batch 2O — publish bounded source-backed advisor-book value summary (#616)
 
 - Objective: expose a useful own-book value summary without turning Gateway into a valuation or
