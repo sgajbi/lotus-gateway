@@ -15,6 +15,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL: https://api.github.com/repos/sgajbi/lotus-advise/contents/docs/standards/proposal-decision-vocabulary.v1.json?ref=main
 
 jobs:
   workflow-lint:
