@@ -48,8 +48,12 @@ its extraction branches. They are retained as engineering history; current route
   `scripts/ci_local_compose_project.py`; `CI_LOCAL_COMPOSE_PROJECT` may override it with a unique
   identity, and cleanup must not remove an active product Gateway container
 - `make proposal-decision-vocabulary-gate`
-  validates the packaged Advise proposal decision vocabulary; protected CI supplies the official
-  producer URL so changed decision/action/gate pairings fail with the source blob revision
+  requires and reconciles the current Advise proposal decision vocabulary; protected CI supplies
+  the official producer URL so changed decision/action/gate pairings fail with the source blob
+  revision rather than silently comparing the packaged snapshot with itself
+- `make proposal-decision-vocabulary-snapshot-check`
+  explicitly validates packaged snapshot integrity for offline diagnosis; it is not producer-drift
+  evidence and is never used by protected CI
 - `make clean`
   removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or

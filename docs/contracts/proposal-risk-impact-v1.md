@@ -67,11 +67,13 @@ artifact as the runtime coherence policy. The loader rejects an unknown schema, 
 decision status, action, workflow gate, or gate next step before the application can publish an
 unvalidated pairing.
 
-`make proposal-decision-vocabulary-gate` compares the packaged policy with the current producer
-artifact when `LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL` is set. Remote Feature, PR Merge, Main
-Releasability, and the scheduled `Upstream Contract Drift` workflow supply the official Advise
-artifact URL and report its Git blob revision. A producer pairing change therefore becomes a named
-CI failure instead of an unannounced production `502`.
+`make proposal-decision-vocabulary-gate` requires a current producer contract through a local path,
+CLI URL, or `LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL`; it fails instead of comparing the
+snapshot with itself when none is available. Remote Feature, PR Merge, Main Releasability, and the
+scheduled `Upstream Contract Drift` workflow supply the official Advise artifact URL and report its
+Git blob revision. `make proposal-decision-vocabulary-snapshot-check` is an explicit offline
+package-integrity check and is never producer-drift evidence. A producer pairing change therefore
+becomes a named CI failure instead of an unannounced production `502`.
 
 The artifact governs status/action/gate compatibility. It does not claim that a blocking gate has
 supporting reason evidence. Gateway retains the stricter evidence rule: a blocking gate without

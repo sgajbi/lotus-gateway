@@ -12,8 +12,10 @@ Reference branch: `origin/main`
 - Change: Gateway packages and validates `proposal-decision-vocabulary.v1`, loads it as the runtime
   coherence policy, and compares the packaged snapshot with the current Advise artifact in Remote
   Feature, PR Merge, Main Releasability, and a daily/operator-dispatched drift lane. Drift findings
-  name the changed pairing and the source Git blob revision. The existing stricter rule that
-  blocking workflow gates need source reason evidence remains separate and unchanged.
+  name the changed pairing and the source Git blob revision. The blocking command rejects a missing
+  producer source instead of silently comparing the package with itself; an explicit offline
+  snapshot command is package-integrity diagnosis, never drift proof. The existing stricter rule
+  that blocking workflow gates need source reason evidence remains separate and unchanged.
 - Regression proof: parser tests reject duplicate or out-of-type vocabulary values; comparator
   tests prove pairing-specific drift and malformed GitHub source-envelope failures; contract tests
   pin the canonical client-consent chain and prove runtime policy comes from the packaged artifact.

@@ -312,9 +312,11 @@ Important validation expectations:
    hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. proposal decision vocabulary governance is part of `make lint` through
-   `scripts/check_proposal_decision_vocabulary.py`; local and Docker gates validate the packaged
-   artifact, while Remote Feature, PR Merge, Main Releasability, and scheduled drift lanes compare
-   it with the current Advise source artifact,
+   `scripts/check_proposal_decision_vocabulary.py`; the blocking target requires a current producer
+   source and never falls back to self-comparison. Unit/contract and Docker parity validate the
+   packaged artifact, while Remote Feature, PR Merge, Main Releasability, and scheduled drift lanes
+   compare it with the current Advise source artifact. The explicit offline snapshot target is not
+   producer-drift evidence,
 7. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
    with a warning when the token is absent so an authorized human or release actor can perform the
