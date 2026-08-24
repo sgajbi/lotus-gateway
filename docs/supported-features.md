@@ -130,7 +130,10 @@ recommended-action, workflow-gate, and blocking-evidence relationships at the Ga
 Contradictory source evidence fails closed; degraded decision evidence cannot publish an executable
 workflow gate as `ready`; a blocking gate without source reason evidence remains explicit `partial`
 instead of being filled with an invented reason. Gateway preserves Advise policy authority and does
-not invent progression outcomes.
+not invent progression outcomes. The compatibility policy is loaded from the packaged
+`lotus-advise` `proposal-decision-vocabulary.v1` snapshot and reconciled with the current producer
+artifact in protected and scheduled CI. The producer artifact governs pairings; Gateway's separate
+reason-evidence rule remains deliberately stricter.
 
 Advisor-book discovery supports an explicit business date, exact client and mandate filters,
 deterministic sorting, and bounded paging. It identifies governed role assignments separately from

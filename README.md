@@ -295,7 +295,8 @@ curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerS
 - `make install`
   install dependencies
 - `make lint`
-  lint, format check, and monetary-float guard
+  lint, format, monetary-float, refactor, workflow, agent-quality, folder, TestClient dependency,
+  and proposal decision-vocabulary governance
 - `make typecheck`
   mypy on `src/`
 - `make check`
@@ -304,6 +305,9 @@ curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerS
   PR-grade local proof with migration smoke, integration, coverage, and security audit
 - `make ci-local-docker`
   dockerized parity check
+- `make proposal-decision-vocabulary-gate`
+  reconcile the packaged Advise proposal decision policy; protected CI supplies the current
+  producer artifact URL and records its blob revision
 - `make run-canonical`
   canonical local gateway runtime on port `8111`
 - `make clean`
@@ -319,6 +323,7 @@ curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerS
 2. `Pull Request Merge Gate`
 3. `Main Releasability Gate`
 4. platform-facing validation when cross-app experience contracts change
+5. scheduled `Upstream Contract Drift` reconciliation for the Advise proposal decision vocabulary
 
 Repo-native gate mapping:
 
@@ -354,6 +359,11 @@ The Quality Baseline workflow publishes complexity, maintainability, dead-code, 
 security, import-boundary, documentation, coverage, and OpenAPI governance evidence. Its checked-in
 ratchet fails new measured regressions while preserving known findings as explicit trend data;
 individual clean checks can be promoted after their findings are classified and remediated.
+
+Remote Feature, PR Merge, and Main Releasability run the proposal decision-vocabulary gate against
+the current public Advise artifact. A daily and operator-dispatched drift workflow repeats that
+check even when no Gateway branch is active, so changed producer pairings become CI evidence before
+the next Gateway release.
 
 ## API Contract Notes
 

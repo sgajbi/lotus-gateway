@@ -28,8 +28,11 @@ make check
 make ci
 ```
 
-`make check` covers lint, formatting, monetary-float guard, typecheck, Workbench OpenAPI contract
-smoke, and unit/contract tests.
+`make check` covers lint, formatting, monetary-float guard, refactor and agent-quality thresholds,
+workflow governance, the packaged Advise proposal decision-vocabulary contract, typecheck,
+Workbench OpenAPI contract smoke, and unit/contract tests. Set
+`LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL` to the governed GitHub contents URL when the run
+must reconcile the current producer artifact; protected CI does this automatically.
 
 `make ci` adds migration smoke, integration tests, coverage, and security audit.
 

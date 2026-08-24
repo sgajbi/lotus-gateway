@@ -209,7 +209,11 @@ Authority and boundary:
    contradictions fail closed and degraded decision evidence cannot publish executable-ready gate
    posture. Blocking gate evidence without source reasons remains explicit partial; Gateway does not
    invent a reason to promote it to ready,
-5. benchmark/limit, scenario, and valuation effective-date evidence remain explicitly not
+5. the decision/action/gate pairings come from the packaged Advise
+   `proposal-decision-vocabulary.v1` artifact and are reconciled with the current producer artifact
+   in Remote Feature, PR Merge, Main Releasability, and scheduled drift CI; blocking-gate reason
+   evidence remains a separate stricter Gateway publication rule,
+6. benchmark/limit, scenario, and valuation effective-date evidence remain explicitly not
    supported in v1 because the current producer contract does not publish them.
 
 Detailed source authority and failure behavior are documented in the

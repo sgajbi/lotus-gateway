@@ -382,7 +382,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   matrix and decision-status relationships; contradictory source evidence fails closed, and a
   degraded decision never leaves an executable `EXECUTION_READY`/`NONE` gate in `ready` posture. A
   blocking gate without source reason evidence remains explicit `partial` rather than receiving an
-  invented reason.
+  invented reason. Gateway loads the pairing matrix from its packaged Advise
+  `proposal-decision-vocabulary.v1` snapshot; protected and scheduled CI reconcile that snapshot
+  with the current source artifact and name the changed status/gate pairing on drift.
 - proposal implementation-status reads use one Advise execution-status call and preserve all eight
   source handoff states, immutable-version posture, exact event/reference time, capability gaps,
   and the downstream execution ownership boundary. Gateway classifies attention and next action for
