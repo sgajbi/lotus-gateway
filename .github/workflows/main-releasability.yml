@@ -27,6 +27,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL: https://api.github.com/repos/sgajbi/lotus-advise/contents/docs/standards/proposal-decision-vocabulary.v1.json?ref=main
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
   IMAGE_TAG: ${{ github.sha }}
   LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}
