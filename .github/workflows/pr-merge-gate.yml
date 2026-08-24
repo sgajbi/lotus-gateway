@@ -47,6 +47,8 @@ jobs:
       - name: Security Audit
         run: make security-audit
       - name: Lint and Refactor Quality Thresholds
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: make lint
       - name: Typecheck
         run: make typecheck

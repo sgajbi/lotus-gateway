@@ -259,7 +259,10 @@ def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None
     )
 
     assert (
-        "      - name: Lint and Refactor Quality Thresholds\n        run: make lint"
+        "      - name: Lint and Refactor Quality Thresholds\n"
+        "        env:\n"
+        "          GITHUB_TOKEN: ${{ github.token }}\n"
+        "        run: make lint"
     ) in workflow
     assert (
         "  integration:\n    name: Main Releasability / Integration Tests\n"

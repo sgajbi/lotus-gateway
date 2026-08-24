@@ -31,4 +31,6 @@ jobs:
       - name: Install Gateway runtime package
         run: python -m pip install .
       - name: Reconcile source-owned proposal decision vocabulary
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: make proposal-decision-vocabulary-gate
