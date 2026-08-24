@@ -2,6 +2,10 @@
 
 from collections.abc import Sequence
 
+from app.contracts.proposal_decision_vocabulary import (
+    ProposalDecisionVocabulary,
+    load_proposal_decision_vocabulary,
+)
 from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactDecisionStatus,
     ProposalRiskImpactGate,
@@ -9,45 +13,7 @@ from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactNextAction,
 )
 
-_DECISION_STATUS_TOP_LEVELS: dict[str, frozenset[str]] = {
-    "READY_FOR_CLIENT_REVIEW": frozenset(("READY",)),
-    "REQUIRES_RISK_REVIEW": frozenset(("READY", "PENDING_REVIEW")),
-    "REQUIRES_COMPLIANCE_REVIEW": frozenset(("READY", "PENDING_REVIEW")),
-    "REQUIRES_CLIENT_CONSENT": frozenset(("READY", "PENDING_REVIEW")),
-    "BLOCKED_REMEDIATION_REQUIRED": frozenset(("BLOCKED",)),
-    "INSUFFICIENT_EVIDENCE": frozenset(("READY", "PENDING_REVIEW")),
-    "REVISION_RECOMMENDED": frozenset(("PENDING_REVIEW",)),
-}
-_DECISION_STATUS_NEXT_ACTIONS: dict[str, frozenset[str]] = {
-    "READY_FOR_CLIENT_REVIEW": frozenset(("DISCUSS_WITH_CLIENT",)),
-    "REQUIRES_RISK_REVIEW": frozenset(("REVIEW_RISK",)),
-    "REQUIRES_COMPLIANCE_REVIEW": frozenset(("REVIEW_COMPLIANCE",)),
-    "REQUIRES_CLIENT_CONSENT": frozenset(("DISCUSS_WITH_CLIENT",)),
-    "BLOCKED_REMEDIATION_REQUIRED": frozenset(("FIX_INPUT",)),
-    "INSUFFICIENT_EVIDENCE": frozenset(
-        ("REQUEST_CLIENT_CONTEXT", "REQUEST_MANDATE_CONTEXT", "REVISE_PROPOSAL")
-    ),
-    "REVISION_RECOMMENDED": frozenset(("REVISE_PROPOSAL",)),
-}
-_DECISION_STATUS_WORKFLOW_GATES: dict[str, frozenset[str]] = {
-    "READY_FOR_CLIENT_REVIEW": frozenset(("EXECUTION_READY", "NONE")),
-    "REQUIRES_RISK_REVIEW": frozenset(("RISK_REVIEW_REQUIRED",)),
-    "REQUIRES_COMPLIANCE_REVIEW": frozenset(("COMPLIANCE_REVIEW_REQUIRED",)),
-    "REQUIRES_CLIENT_CONSENT": frozenset(("CLIENT_CONSENT_REQUIRED",)),
-    "BLOCKED_REMEDIATION_REQUIRED": frozenset(("BLOCKED",)),
-    "INSUFFICIENT_EVIDENCE": frozenset(
-        ("RISK_REVIEW_REQUIRED", "COMPLIANCE_REVIEW_REQUIRED", "CLIENT_CONSENT_REQUIRED")
-    ),
-    "REVISION_RECOMMENDED": frozenset(("EXECUTION_READY", "NONE")),
-}
-_WORKFLOW_GATE_NEXT_STEPS: dict[str, str] = {
-    "BLOCKED": "FIX_INPUT",
-    "RISK_REVIEW_REQUIRED": "RISK_REVIEW",
-    "COMPLIANCE_REVIEW_REQUIRED": "COMPLIANCE_REVIEW",
-    "CLIENT_CONSENT_REQUIRED": "REQUEST_CLIENT_CONSENT",
-    "EXECUTION_READY": "EXECUTE",
-    "NONE": "NONE",
-}
+_VOCABULARY = load_proposal_decision_vocabulary()
 _BLOCKING_WORKFLOW_GATES = frozenset(
     ("BLOCKED", "RISK_REVIEW_REQUIRED", "COMPLIANCE_REVIEW_REQUIRED", "CLIENT_CONSENT_REQUIRED")
 )
@@ -62,9 +28,9 @@ def require_proposal_decision_coherence(
 ) -> None:
     """Reject decision fields that cannot describe one source-owned posture."""
 
-    if top_level_status not in _DECISION_STATUS_TOP_LEVELS[decision_status]:
+    if top_level_status not in _VOCABULARY.decision_status_top_levels[decision_status]:
         raise ValueError("proposal decision status does not match top-level status")
-    if recommended_next_action not in _DECISION_STATUS_NEXT_ACTIONS[decision_status]:
+    if recommended_next_action not in _VOCABULARY.decision_status_next_actions[decision_status]:
         raise ValueError("proposal decision status does not match recommended next action")
     has_blocking_missing_evidence = any(
         getattr(item, "blocking", False) is True for item in missing_evidence
@@ -86,7 +52,7 @@ def require_proposal_workflow_gate_coherence(
 ) -> None:
     """Reject a workflow gate whose matrix or ready reason evidence is contradictory."""
 
-    if _WORKFLOW_GATE_NEXT_STEPS[gate] != recommended_next_step:
+    if _VOCABULARY.workflow_gate_next_steps[gate] != recommended_next_step:
         raise ValueError("workflow gate does not match the recommended next step")
     if reason_count is not None and not workflow_gate_has_reason_evidence(
         gate=gate,
@@ -108,7 +74,13 @@ def decision_allows_workflow_gate(
 ) -> bool:
     """Return whether a decision status may be paired with a workflow gate."""
 
-    return gate in _DECISION_STATUS_WORKFLOW_GATES[decision_status]
+    return gate in _VOCABULARY.decision_status_workflow_gates[decision_status]
+
+
+def proposal_decision_vocabulary() -> ProposalDecisionVocabulary:
+    """Return the validated source-owned vocabulary used by runtime coherence checks."""
+
+    return _VOCABULARY
 
 
 def has_blocking_proposal_decision_evidence(
@@ -126,6 +98,7 @@ def has_blocking_proposal_decision_evidence(
 __all__ = [
     "decision_allows_workflow_gate",
     "has_blocking_proposal_decision_evidence",
+    "proposal_decision_vocabulary",
     "require_proposal_decision_coherence",
     "require_proposal_workflow_gate_coherence",
     "workflow_gate_has_reason_evidence",

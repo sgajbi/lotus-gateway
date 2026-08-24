@@ -38,6 +38,7 @@ ProposalRiskImpactDecisionStatus = Literal[
     "INSUFFICIENT_EVIDENCE",
     "REVISION_RECOMMENDED",
 ]
+ProposalRiskImpactTopLevelStatus = Literal["READY", "PENDING_REVIEW", "BLOCKED"]
 ProposalRiskImpactNextAction = Literal[
     "FIX_INPUT",
     "REVIEW_RISK",
@@ -193,5 +194,6 @@ __all__ = [
     "ProposalRiskImpactNextAction",
     "ProposalRiskImpactOverallState",
     "ProposalRiskImpactSectionState",
+    "ProposalRiskImpactTopLevelStatus",
     "ProposalRiskImpactWorkflowState",
 ]
