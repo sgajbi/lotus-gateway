@@ -74,6 +74,17 @@ def test_github_contents_decoder_rejects_unverifiable_source(envelope: object) -
         _decode_github_contents_envelope(envelope)
 
 
+def test_github_contents_decoder_reports_revision_for_invalid_json() -> None:
+    envelope = {
+        "encoding": "base64",
+        "sha": "source-blob-sha",
+        "content": base64.b64encode(b"{invalid").decode("ascii"),
+    }
+
+    with pytest.raises(ValueError, match="source=github-blob:source-blob-sha"):
+        _decode_github_contents_envelope(envelope)
+
+
 def test_github_contents_fetch_uses_configured_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -135,6 +146,29 @@ def test_gate_reports_source_revision_when_drift_is_found(
     output = capsys.readouterr().out
     assert "Proposal decision vocabulary gate failed: source=github-blob:source-blob-sha" in output
     assert "decision workflow gates differ for READY_FOR_CLIENT_REVIEW" in output
+
+
+def test_gate_reports_source_revision_when_source_schema_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _source_payload()
+    payload["decision_statuses"] = []
+    monkeypatch.setattr(
+        gate,
+        "fetch_github_contents_contract",
+        lambda _url: (payload, "source-blob-sha"),
+    )
+    args = SimpleNamespace(
+        source_contract=None,
+        source_url="https://example.test/vocabulary",
+        allow_packaged_snapshot=False,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="source=github-blob:source-blob-sha.*decision_statuses",
+    ):
+        _source_vocabulary(args)
 
 
 def test_gate_rejects_an_implicit_packaged_self_comparison(

@@ -124,10 +124,26 @@ def _decode_github_contents_envelope(envelope: object) -> tuple[dict[str, Any], 
         raise ValueError("GitHub contents response must contain base64 artifact content")
     if not isinstance(revision, str) or not revision:
         raise ValueError("GitHub contents response must contain the source blob revision")
-    payload = json.loads(base64.b64decode(encoded).decode("utf-8"))
+    try:
+        payload = json.loads(base64.b64decode(encoded).decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "source proposal decision vocabulary JSON is invalid: "
+            f"source=github-blob:{revision}: {exc.msg}"
+        ) from exc
     if not isinstance(payload, dict):
         raise ValueError("source proposal decision vocabulary must be a JSON object")
     return payload, revision
+
+
+def _parse_source_vocabulary(payload: dict[str, Any], revision: str) -> ProposalDecisionVocabulary:
+    source = f"github-blob:{revision}"
+    try:
+        return parse_proposal_decision_vocabulary(payload)
+    except ValueError as exc:
+        raise ValueError(
+            f"source proposal decision vocabulary is invalid: source={source}: {exc}"
+        ) from exc
 
 
 def _source_vocabulary(args: argparse.Namespace) -> tuple[ProposalDecisionVocabulary, str]:
@@ -136,7 +152,7 @@ def _source_vocabulary(args: argparse.Namespace) -> tuple[ProposalDecisionVocabu
     source_url = args.source_url or os.getenv(DEFAULT_SOURCE_URL_ENV)
     if source_url:
         payload, revision = fetch_github_contents_contract(source_url)
-        return parse_proposal_decision_vocabulary(payload), f"github-blob:{revision}"
+        return _parse_source_vocabulary(payload, revision), f"github-blob:{revision}"
     if args.allow_packaged_snapshot:
         return load_proposal_decision_vocabulary(), "packaged-snapshot-explicit"
     raise ValueError(
