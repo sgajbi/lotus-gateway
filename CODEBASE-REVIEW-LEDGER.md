@@ -17,8 +17,9 @@ Reference branch: `origin/main`
 - Regression proof: parser tests reject duplicate or out-of-type vocabulary values; comparator
   tests prove pairing-specific drift and malformed GitHub source-envelope failures; contract tests
   pin the canonical client-consent chain and prove runtime policy comes from the packaged artifact.
-  A built wheel contains the JSON resource. Full local `make ci` passed 2,247 combined tests,
-  94.70% coverage, the current Advise blob reconciliation, and dependency audit.
+  A built wheel contains the JSON resource. Final-head local coverage passed 2,261 combined tests at
+  94.79%, above both the 84% floor and the 94.77% no-regression ratchet; full `make ci` also passed
+  the current Advise blob reconciliation and dependency audit.
 - Compatibility: no route, OpenAPI payload, migration, dependency, or Workbench rendering change.
   Existing fail-closed runtime coherence remains intact. Advise's top-level compatibility map is a
   reviewed declaration rather than derived producer logic; the draft PR must keep that evidence
