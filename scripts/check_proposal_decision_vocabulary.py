@@ -146,7 +146,7 @@ def _source_vocabulary(args: argparse.Namespace) -> tuple[ProposalDecisionVocabu
     )
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Compare Gateway proposal policy with the Advise vocabulary artifact."
     )
@@ -154,12 +154,12 @@ def main() -> int:
     source_group.add_argument("--source-contract", type=Path)
     source_group.add_argument("--source-url")
     source_group.add_argument("--allow-packaged-snapshot", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     packaged = load_proposal_decision_vocabulary()
     source, source_revision = _source_vocabulary(args)
     findings = compare_vocabularies(packaged, source)
     if findings:
-        print("Proposal decision vocabulary gate failed:")
+        print(f"Proposal decision vocabulary gate failed: source={source_revision}")
         for finding in findings:
             print(f"- {finding}")
         return 1

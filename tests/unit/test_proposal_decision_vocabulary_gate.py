@@ -4,6 +4,7 @@ import json
 from importlib import resources
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.request import Request
 
 import pytest
 
@@ -11,10 +12,12 @@ from app.contracts.proposal_decision_vocabulary import (
     load_proposal_decision_vocabulary,
     parse_proposal_decision_vocabulary,
 )
+from scripts import check_proposal_decision_vocabulary as gate
 from scripts.check_proposal_decision_vocabulary import (
     _decode_github_contents_envelope,
     _source_vocabulary,
     compare_vocabularies,
+    fetch_github_contents_contract,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -71,6 +74,69 @@ def test_github_contents_decoder_rejects_unverifiable_source(envelope: object) -
         _decode_github_contents_envelope(envelope)
 
 
+def test_github_contents_fetch_uses_configured_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = _source_payload()
+    envelope = {
+        "encoding": "base64",
+        "sha": "source-blob-sha",
+        "content": base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii"),
+    }
+    captured_request: Request | None = None
+    captured_timeout: int | None = None
+
+    class _Response:
+        def __enter__(self) -> "_Response":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(envelope).encode("utf-8")
+
+    def fake_urlopen(request: Request, timeout: int) -> _Response:
+        nonlocal captured_request, captured_timeout
+        captured_request = request
+        captured_timeout = timeout
+        return _Response()
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+    monkeypatch.setattr(gate, "urlopen", fake_urlopen)
+
+    decoded, revision = fetch_github_contents_contract("https://example.test/vocabulary")
+
+    assert captured_request is not None
+    assert captured_request.get_header("Authorization") == "Bearer test-token"
+    assert captured_timeout == 30
+    assert decoded == payload
+    assert revision == "source-blob-sha"
+
+
+def test_gate_reports_source_revision_when_drift_is_found(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    vocabulary = load_proposal_decision_vocabulary()
+    monkeypatch.setattr(
+        gate,
+        "_source_vocabulary",
+        lambda _args: (vocabulary, "github-blob:source-blob-sha"),
+    )
+    monkeypatch.setattr(
+        gate,
+        "compare_vocabularies",
+        lambda _packaged, _source: ["decision workflow gates differ for READY_FOR_CLIENT_REVIEW"],
+    )
+
+    assert gate.main([]) == 1
+
+    output = capsys.readouterr().out
+    assert "Proposal decision vocabulary gate failed: source=github-blob:source-blob-sha" in output
+    assert "decision workflow gates differ for READY_FOR_CLIENT_REVIEW" in output
+
+
 def test_gate_rejects_an_implicit_packaged_self_comparison(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -119,11 +185,13 @@ def test_protected_and_scheduled_lanes_reconcile_the_current_advise_artifact() -
     for name in protected_workflows:
         source = (workflow_root / name).read_text(encoding="utf-8")
         assert SOURCE_URL_ENV in source
+        assert "GITHUB_TOKEN: ${{ github.token }}" in source
         assert "make lint" in source
         assert "--allow-packaged-snapshot" not in source
 
     drift_source = (workflow_root / "upstream-contract-drift.yml").read_text(encoding="utf-8")
     assert SOURCE_URL_ENV in drift_source
+    assert "GITHUB_TOKEN: ${{ github.token }}" in drift_source
     assert "schedule:" in drift_source
     assert "lotus-advise-proposal-decision-vocabulary" in drift_source
     assert "make proposal-decision-vocabulary-gate" in drift_source
