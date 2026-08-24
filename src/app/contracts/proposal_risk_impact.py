@@ -12,6 +12,7 @@ from app.contracts.proposal_risk_impact_allocation import (
     ProposalRiskImpactNextAction,
     ProposalRiskImpactOverallState,
     ProposalRiskImpactSectionState,
+    ProposalRiskImpactTopLevelStatus,
     ProposalRiskImpactWorkflowState,
 )
 from app.contracts.proposal_risk_impact_coherence import (
@@ -99,7 +100,7 @@ class ProposalRiskImpactDecisionEvidence(BaseModel):
         default=None,
         description="Source decision status; its allowed top-level/action pairing is governed.",
     )
-    top_level_status: Literal["READY", "PENDING_REVIEW", "BLOCKED"] | None = Field(
+    top_level_status: ProposalRiskImpactTopLevelStatus | None = Field(
         default=None,
         description="Source decision top-level status correlated with decision_status.",
     )
