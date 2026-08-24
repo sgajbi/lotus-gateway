@@ -21,19 +21,22 @@ The current local and PR-grade blocking gates are:
    keeps the executable 316/49 ratchet, the current evidence-selected largest hotspot
    `src/app/contracts/performance_workspace_details_contract.py`, and durable
    scorecard/context guidance in sync,
-6. `mypy` over `src`,
-7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+6. proposal decision-vocabulary governance through
+   `scripts/check_proposal_decision_vocabulary.py`, which validates the packaged runtime policy and
+   reconciles it with the current Advise producer artifact in protected and scheduled CI,
+7. `mypy` over `src`,
+8. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-8. migration contract smoke,
-9. unit and contract tests,
-10. integration tests,
-11. coverage with an 84% floor,
-12. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-13. Docker build and local Docker parity in the PR Merge Gate,
-14. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
+9. migration contract smoke,
+10. unit and contract tests,
+11. integration tests,
+12. coverage with an 84% floor,
+13. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+14. Docker build and local Docker parity in the PR Merge Gate,
+15. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
     labels, SBOM generation, pre-push Trivy image scan that fails on fixable HIGH/CRITICAL
     findings, release manifest generation, and artifact upload,
-15. main-only CI image promotion controls: GHCR push by CI, digest capture, cosign signing,
+16. main-only CI image promotion controls: GHCR push by CI, digest capture, cosign signing,
     provenance attestation, and Kubernetes deployment reference by digest.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the

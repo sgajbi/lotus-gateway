@@ -57,6 +57,26 @@ Contradictory decision/gate evidence fails closed with
 evidence remains explicit `partial` and retains its selected source reference. Gateway validates
 these relationships but does not reinterpret Advise policy or invent a progression outcome.
 
+## Source vocabulary governance
+
+Advise publishes the versioned pairing authority at
+`docs/standards/proposal-decision-vocabulary.v1.json`. Gateway packages one validated reconciliation
+snapshot at
+`src/app/contracts/upstream/lotus_advise_proposal_decision_vocabulary.v1.json` and loads that
+artifact as the runtime coherence policy. The loader rejects an unknown schema, source owner,
+decision status, action, workflow gate, or gate next step before the application can publish an
+unvalidated pairing.
+
+`make proposal-decision-vocabulary-gate` compares the packaged policy with the current producer
+artifact when `LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL` is set. Remote Feature, PR Merge, Main
+Releasability, and the scheduled `Upstream Contract Drift` workflow supply the official Advise
+artifact URL and report its Git blob revision. A producer pairing change therefore becomes a named
+CI failure instead of an unannounced production `502`.
+
+The artifact governs status/action/gate compatibility. It does not claim that a blocking gate has
+supporting reason evidence. Gateway retains the stricter evidence rule: a blocking gate without
+source reasons remains `partial`, and Gateway never invents a reason or progression outcome.
+
 ## Supportability states
 
 - `ready`: the typed source evidence required for that section is present and internally aligned.
@@ -81,6 +101,8 @@ The general `GET /api/v1/proposals/{proposal_id}` contract remains unchanged for
 
 - `tests/unit/test_proposal_risk_impact_projection.py`
 - `tests/unit/test_proposal_risk_impact_coherence.py`
+- `tests/unit/test_proposal_decision_vocabulary.py`
 - `tests/unit/test_proposal_risk_impact_service.py`
+- `tests/contract/test_proposal_decision_vocabulary_contract.py`
 - `tests/contract/test_proposals_contract.py`
 - `tests/integration/test_proposals_router.py`

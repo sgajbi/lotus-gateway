@@ -28,6 +28,9 @@ its extraction branches. They are retained as engineering history; current route
 5. `Quality Baseline`
    blocking no-regression evidence for refactor thresholds, workflow governance, and artifact
    integrity plus report-only evidence for progressive enterprise-readiness gates
+6. `Upstream Contract Drift`
+   scheduled and operator-dispatched reconciliation of the packaged proposal decision policy with
+   the current Advise producer artifact
 
 ## Local command mapping
 
@@ -44,6 +47,9 @@ its extraction branches. They are retained as engineering history; current route
   cleanup scoped to the stable checkout-specific Compose project derived by
   `scripts/ci_local_compose_project.py`; `CI_LOCAL_COMPOSE_PROJECT` may override it with a unique
   identity, and cleanup must not remove an active product Gateway container
+- `make proposal-decision-vocabulary-gate`
+  validates the packaged Advise proposal decision vocabulary; protected CI supplies the official
+  producer URL so changed decision/action/gate pairings fail with the source blob revision
 - `make clean`
   removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or
@@ -83,6 +89,8 @@ same actual revision may supersede one another.
 - workbench-facing contract integrity
 - startup and migration truth
 - upstream composition safety
+- Advise proposal decision/action/gate vocabulary drift before a changed producer contract reaches
+  Gateway runtime publication
 - live integration-boundary parity
 - CI action-runtime compatibility with the platform baseline:
   `actions/checkout@v6`, `actions/setup-python@v6`, `actions/setup-node@v5`, and

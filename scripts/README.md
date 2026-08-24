@@ -13,6 +13,7 @@ certification, cleanup, runtime helpers, and evidence validation.
 | Safety | Cleanup or filesystem scripts must guard repo-root scope before deletion. | `scripts/clean_generated_artifacts.py` |
 | CI fit | Add scripts to Make targets when they are low-noise and suitable for local or CI gates. | `Makefile` |
 | Evidence | Scripts that generate evidence should write under ignored `output/` unless source truth is intended. | `.gitignore` |
+| Upstream contract drift | `check_proposal_decision_vocabulary.py` validates the packaged snapshot locally and reconciles the current public Advise artifact when its governed URL is supplied. | `make proposal-decision-vocabulary-gate` |
 
 ## Validation
 

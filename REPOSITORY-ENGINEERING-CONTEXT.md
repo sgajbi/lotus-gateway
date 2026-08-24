@@ -221,7 +221,11 @@ Current repository posture:
     the gate-to-next-step matrix, compatible decision/workflow gates, and blocking-evidence
     posture. Contradictions fail closed; partial decision evidence cannot publish an executable
     workflow gate as ready, and incomplete blocking-gate reason evidence remains partial rather than
-    being invented. Gateway does not invent progression or approval truth.
+    being invented. The runtime pairing policy is loaded from the packaged Advise
+    `proposal-decision-vocabulary.v1` snapshot under `src/app/contracts/upstream`; protected and
+    scheduled CI reconcile it with the current producer artifact and report the producer Git blob
+    revision. The source artifact governs pairings, while the stricter Gateway reason-evidence rule
+    remains separate. Gateway does not invent progression or approval truth.
 
 ## Architecture And Module Map
 
@@ -307,22 +311,26 @@ Important validation expectations:
     current evidence-selected `src/app/contracts/performance_workspace_details_contract.py`
    hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
-6. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
+6. proposal decision vocabulary governance is part of `make lint` through
+   `scripts/check_proposal_decision_vocabulary.py`; local and Docker gates validate the packaged
+   artifact, while Remote Feature, PR Merge, Main Releasability, and scheduled drift lanes compare
+   it with the current Advise source artifact,
+7. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
    with a warning when the token is absent so an authorized human or release actor can perform the
    rebase merge without leaving a false red helper check,
-7. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
+8. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
    a pull request is merged into `main`, preserving exact-main release evidence for authorized
    human or release-actor merges as well as token-backed auto-merge; `main-releasability.yml` is
    intentionally `workflow_dispatch`-only so this dispatcher remains the single automatic
    post-merge path and does not duplicate a push-triggered release run; its concurrency identity is
    always the checked-out `github.sha`, while caller-supplied `expected_sha` remains validation-only,
    so malformed input and newer merges cannot cancel another revision's evidence,
-8. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
+9. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
-9. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
+10. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
    `quality/quality_ratchet.json`; every Quality Baseline run must publish current value, baseline,
    delta, threshold, and remediation evidence. Baseline updates auto-tighten only; any loosening
    requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change.
@@ -330,25 +338,25 @@ Important validation expectations:
    `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate
    markers are measurement failures, while non-zero status with reviewed baseline findings remains
    explicit debt evidence,
-10. Quality Baseline uses the `pull_request` event targeting `main` as its sole authoritative
+11. Quality Baseline uses the `pull_request` event targeting `main` as its sole authoritative
    automated feature-revision trigger; feature-branch pushes do not start a duplicate run. Its
    concurrency group uses the pull-request number to cancel stale synchronized revisions while
    manual dispatch uses a unique run ID, and the event matrix is documented in
    `docs/quality-baseline-event-matrix.md`,
-11. Docker parity matters because the gateway is a live integration boundary,
-12. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
+12. Docker parity matters because the gateway is a live integration boundary,
+13. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
    release manifest. Main Releasability is the only lane that pushes to GHCR; it captures the
    digest after push, signs the digest-pinned image, creates provenance attestation evidence, and
    requires Kubernetes deployment by digest while preserving the same image for environment
    promotion,
-13. `/version` exposes the same non-secret build and deployment metadata expected in release
+14. `/version` exposes the same non-secret build and deployment metadata expected in release
     manifests: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
     version. Image digest is deployment/runtime metadata captured after push and must not be baked
     into Docker build args, ENV, or OCI labels as `unknown`,
-14. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+15. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
-15. the Starlette TestClient dependency is test-only: the `dev` extra provides
+16. the Starlette TestClient dependency is test-only: the `dev` extra provides
     `httpx2>=2.12.0,<3.0.0`, and `scripts/check_testclient_dependency.py` is a hard gate against
     missing/outdated HTTPX2 or Starlette's legacy `httpx` fallback warning. The production-only
     `requirements-audit.txt` intentionally excludes HTTPX2 because the application image does not
