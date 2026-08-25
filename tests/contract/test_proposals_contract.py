@@ -381,7 +381,12 @@ def _memo_audit_event(event_type: str = "MEMO_DRAFT_CREATED") -> dict:
         "event_type": event_type,
         "actor_id": "advisor_1",
         "occurred_at": "2026-05-23T12:00:00+00:00",
-        "reason": {"memo_hash": "sha256:memo-001", "source_input_hash": "sha256:source-001"},
+        "reason": {
+            "lifecycle_status": "DRAFT",
+            "memo_status": "BLOCKED",
+            "memo_hash": "sha256:memo-001",
+            "source_input_hash": "sha256:source-001",
+        },
     }
 
 
@@ -440,6 +445,10 @@ def _memo_response_payload() -> dict:
         },
         "review_posture": {
             "status": "RECORDED",
+            "idempotency_key": "ui-memo-review-2-pp_1-001",
+            "idempotency_request_hash": "sha256:review-request-001",
+            "memo_hash": "sha256:memo-001",
+            "source_input_hash": "sha256:source-001",
             "review_action": "APPROVE_FOR_ADVISOR_USE",
             "client_ready_publication": "BLOCKED",
         },
@@ -616,7 +625,16 @@ def test_proposal_memo_contract_shapes() -> None:
                     "client_ready_publication": "BLOCKED",
                     "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
                 },
-                "review_posture": {"status": "NOT_RECORDED"},
+                "review_posture": {
+                    "status": "RECORDED",
+                    "idempotency_key": "ui-memo-review-2-pp_1-001",
+                    "idempotency_request_hash": "sha256:review-request-001",
+                    "memo_hash": "sha256:memo-001",
+                    "source_input_hash": "sha256:source-001",
+                    "review_action": "APPROVE_FOR_ADVISOR_USE",
+                    "source_memo_hash": "sha256:memo-001",
+                    "client_ready_publication": "BLOCKED",
+                },
                 "report_package_posture": {"status": "NOT_RECORDED"},
                 "ai_commentary_posture": {"status": "NOT_RECORDED"},
             },
@@ -636,6 +654,10 @@ def test_proposal_memo_contract_shapes() -> None:
     assert report_request.client_ready_document_requested is False
     assert ai_request.requested_sections
     assert memo_payload.data.memo_hash == "sha256:memo-001"
+    assert memo_payload.data.review_posture.idempotency_key == "ui-memo-review-2-pp_1-001"
+    assert memo_payload.data.review_posture.memo_hash == "sha256:memo-001"
+    assert memo_payload.data.audit_events[0].reason.lifecycle_status == "DRAFT"
+    assert memo_payload.data.audit_events[0].reason.memo_status == "BLOCKED"
     assert projection_payload.data.audience == "COMPLIANCE"
     assert review_payload.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
     assert report_event_payload.data.replayed is False
@@ -643,6 +665,10 @@ def test_proposal_memo_contract_shapes() -> None:
     assert ai_payload.data.commentary.authority == "NON_AUTHORITATIVE"
     assert lineage_payload.data.memos[0].memo_hash == "sha256:memo-001"
     assert replay_payload.data.hashes.memo_hash == "sha256:memo-001"
+    assert replay_payload.data.evidence.review_posture.idempotency_request_hash == (
+        "sha256:review-request-001"
+    )
+    assert replay_payload.data.audit_events[0].reason.lifecycle_status == "DRAFT"
 
 
 def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:

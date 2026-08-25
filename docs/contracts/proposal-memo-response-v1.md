@@ -29,6 +29,12 @@ properties. Advise still owns the values and vocabulary; Gateway does not reinte
 small set of source-owned metadata fields remains a bounded scalar-keyed map so Gateway can
 preserve evidence without inventing domain semantics.
 
+Recorded memo-review posture preserves the source idempotency key and request hash together with
+the memo and source-input hashes. Memo audit-event reasons preserve the source `memo_status` and
+`lifecycle_status` when present. These fields are optional because a `NOT_RECORDED` posture and
+non-lifecycle audit events do not carry them; when Advise supplies them, the closed Gateway models
+publish them without recomputation or omission.
+
 ## Compatibility and failure behavior
 
 - Existing route paths, request bodies, correlation propagation, idempotency headers, and source
@@ -45,6 +51,9 @@ preserve evidence without inventing domain semantics.
   source, and does not publish the invalid payload as a `200` response.
 - Memo detail requires `audit_events` and rejects any response where `event_count` differs from
   the number of returned events; Gateway never fabricates an empty event list for a claimed count.
+- Recorded review and audit-event evidence remains closed: newly published source hash,
+  idempotency, memo-status, and lifecycle-status fields are named contract properties, while
+  unknown fields still fail with the same product-safe contract error.
 - Memo lineage requires `memos`, requires `memo_count` to equal the returned item count, requires
   `latest_memo_id` to identify the final source-ordered item, and rejects descending proposal
   version order. This prevents contradictory completeness evidence from reaching Workbench.

@@ -1107,7 +1107,10 @@ The response data preserves Advise-owned memo identity, hashes, append-only even
 report handles, archive references, and blocked client-ready publication. Nested evidence packs,
 projection policies, sections, postures, commentary, replay evidence, and report explanations are
 closed typed OpenAPI structures with named properties; bounded scalar metadata maps remain
-source-owned evidence. Gateway does not infer
+source-owned evidence. Recorded memo-review posture retains Advise's idempotency key and request
+hash plus the memo and source-input hashes; audit-event reasons retain source memo and lifecycle
+status when present. These remain optional, named fields for source events that carry them, and
+unknown fields still fail closed. Gateway does not infer
 memo readiness, generate commentary, render or archive reports, or turn advisor-use evidence into
 client-ready output. A malformed successful Advise memo payload returns a product-safe `502`
 (`ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`) instead of an incomplete success. Lineage also rejects
