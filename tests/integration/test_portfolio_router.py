@@ -1791,6 +1791,48 @@ def test_portfolio_positions_router(monkeypatch):
     assert captured["reporting_currency"] == "USD"
 
 
+def test_portfolio_transaction_routes_fail_closed_for_invalid_source_timestamps(monkeypatch):
+    async def _invalid_transactions(*args, **kwargs):
+        return 200, {
+            "reporting_currency": "USD",
+            "total": 1,
+            "skip": kwargs["skip"],
+            "limit": kwargs["limit"],
+            "transactions": [
+                {
+                    "transaction_id": "TX_INVALID",
+                    "transaction_date": "2026-03-27",
+                    "transaction_type": "BUY",
+                    "security_id": "EQ_1",
+                    "instrument_id": "INST_EQ_1",
+                    "quantity": 1,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _invalid_transactions
+    )
+    client = TestClient(app)
+
+    for path in (
+        "/api/v1/portfolio/portfolios/PF_1001/transactions",
+        "/api/v1/portfolio/portfolios/PF_1001/income-summary",
+        "/api/v1/portfolio/portfolios/PF_1001/activity-summary",
+    ):
+        response = client.get(path)
+        assert response.status_code == 502
+        assert response.json() == {
+            "detail": {
+                "code": "portfolio_transaction_source_contract_invalid",
+                "message": (
+                    "lotus-core transaction ledger returned an invalid transaction timestamp "
+                    "contract"
+                ),
+            }
+        }
+
+
 def test_portfolio_income_summary_router(monkeypatch):
     captured: list[dict[str, object]] = []
 

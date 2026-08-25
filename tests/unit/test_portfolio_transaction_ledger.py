@@ -12,6 +12,7 @@ from app.services.portfolio_transaction_ledger import (
     portfolio_transactions_cache_key,
     portfolio_transactions_client_kwargs,
 )
+from app.services.portfolio_transaction_temporal import PortfolioTransactionTemporalContractError
 
 
 def _request_context() -> PortfolioTransactionsRequestContext:
@@ -343,7 +344,7 @@ def test_parse_transaction_views_quantizes_amounts_and_preserves_event_identifie
                 {
                     "transaction_id": "TX_1",
                     "transaction_date": "2026-03-27T09:30:00Z",
-                    "settlement_date": "2026-03-29",
+                    "settlement_date": "2026-03-29T00:00:00Z",
                     "transaction_type": "FX_FORWARD",
                     "component_type": "FX_CONTRACT_OPEN",
                     "security_id": "EQ_1",
@@ -382,6 +383,9 @@ def test_parse_transaction_views_quantizes_amounts_and_preserves_event_identifie
     assert transaction.swap_event_id == "FXSWAP-2026-0001"
     assert transaction.near_leg_group_id == "FXSWAP-2026-0001-NEAR"
     assert transaction.far_leg_group_id == "FXSWAP-2026-0001-FAR"
+    assert transaction.transaction_date.isoformat() == "2026-03-27T09:30:00+00:00"
+    assert transaction.settlement_date is not None
+    assert transaction.settlement_date.isoformat() == "2026-03-29T00:00:00+00:00"
 
 
 def test_parse_transaction_views_preserves_missing_optional_amounts():
@@ -390,7 +394,7 @@ def test_parse_transaction_views_preserves_missing_optional_amounts():
             "transactions": [
                 {
                     "transaction_id": "TX_2",
-                    "transaction_date": "2026-03-27",
+                    "transaction_date": "2026-03-27T00:00:00Z",
                     "transaction_type": "DIVIDEND",
                     "security_id": "EQ_1",
                     "instrument_id": "INST_EQ_1",
@@ -403,3 +407,28 @@ def test_parse_transaction_views_preserves_missing_optional_amounts():
     assert transaction.gross_amount is None
     assert transaction.net_cost_base is None
     assert transaction.realized_gain_loss_base is None
+
+
+@pytest.mark.parametrize(
+    "transaction_date, settlement_date",
+    [
+        ("2026-03-27", None),
+        ("2026-03-27T09:30:00", None),
+        ("2026-03-27T09:30:00Z", "2026-03-29"),
+    ],
+)
+def test_parse_transaction_views_rejects_unsafe_source_timestamps(
+    transaction_date: str,
+    settlement_date: str | None,
+) -> None:
+    row = {
+        "transaction_id": "TX_INVALID",
+        "transaction_date": transaction_date,
+        "settlement_date": settlement_date,
+        "transaction_type": "BUY",
+        "security_id": "EQ_1",
+        "instrument_id": "INST_EQ_1",
+    }
+
+    with pytest.raises(PortfolioTransactionTemporalContractError):
+        parse_transaction_views({"transactions": [row]})

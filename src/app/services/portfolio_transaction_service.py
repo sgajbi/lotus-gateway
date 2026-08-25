@@ -23,6 +23,9 @@ from app.services.portfolio_transaction_summary import (
     build_income_summary_response,
     build_transaction_summary_context,
 )
+from app.services.portfolio_transaction_temporal import (
+    PortfolioTransactionTemporalContractError,
+)
 from app.services.portfolio_upstream_payloads import require_payload
 
 UpstreamResult = tuple[int, dict[str, Any]]
@@ -63,32 +66,42 @@ class PortfolioTransactionServiceMixin:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
-        return await build_transaction_ledger_response_for_request(
-            request=PortfolioTransactionLedgerRequest(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                include_projected=include_projected,
-                skip=skip,
-                limit=limit,
-                transaction_type=transaction_type,
-                security_id=security_id,
-                instrument_id=instrument_id,
-                component_type=component_type,
-                linked_transaction_group_id=linked_transaction_group_id,
-                fx_contract_id=fx_contract_id,
-                swap_event_id=swap_event_id,
-                near_leg_group_id=near_leg_group_id,
-                far_leg_group_id=far_leg_group_id,
-                sort_by=sort_by,
-                sort_order=sort_order,
-                start_date=start_date,
-                end_date=end_date,
-                reporting_currency=reporting_currency,
-            ),
-            contract_version=settings.contract_version,
-            load_payload=self._load_transaction_ledger_payload,
+        request = PortfolioTransactionLedgerRequest(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            skip=skip,
+            limit=limit,
+            transaction_type=transaction_type,
+            security_id=security_id,
+            instrument_id=instrument_id,
+            component_type=component_type,
+            linked_transaction_group_id=linked_transaction_group_id,
+            fx_contract_id=fx_contract_id,
+            swap_event_id=swap_event_id,
+            near_leg_group_id=near_leg_group_id,
+            far_leg_group_id=far_leg_group_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
         )
+        return await self._build_transaction_ledger_response(request)
+
+    async def _build_transaction_ledger_response(
+        self,
+        request: PortfolioTransactionLedgerRequest,
+    ) -> PortfolioTransactionLedgerResponse:
+        try:
+            return await build_transaction_ledger_response_for_request(
+                request=request,
+                contract_version=settings.contract_version,
+                load_payload=self._load_transaction_ledger_payload,
+            )
+        except PortfolioTransactionTemporalContractError as exc:
+            raise _invalid_transaction_timestamp_contract() from exc
 
     async def _load_transaction_ledger_payload(
         self,
@@ -173,6 +186,8 @@ class PortfolioTransactionServiceMixin:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             ) from exc
+        except PortfolioTransactionTemporalContractError as exc:
+            raise _invalid_transaction_timestamp_contract() from exc
 
     async def _load_transaction_rows_page(
         self,
@@ -195,3 +210,15 @@ class PortfolioTransactionServiceMixin:
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
+
+
+def _invalid_transaction_timestamp_contract() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail={
+            "code": "portfolio_transaction_source_contract_invalid",
+            "message": (
+                "lotus-core transaction ledger returned an invalid transaction timestamp contract"
+            ),
+        },
+    )

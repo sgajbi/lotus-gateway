@@ -21,6 +21,7 @@ from app.services.portfolio_transaction_summary import (
     transaction_date_value,
     transaction_page_rows,
 )
+from app.services.portfolio_transaction_temporal import PortfolioTransactionTemporalContractError
 
 _SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
 
@@ -56,8 +57,11 @@ async def test_build_transaction_summary_context_loads_ytd_and_filters_window() 
             "reporting_currency": "CHF",
             "total": 3,
             "transactions": [
-                {"transaction_type": "DIVIDEND", "transaction_date": "2026-02-28"},
-                {"transaction_type": "DEPOSIT", "transaction_date": "2026-03-05"},
+                {
+                    "transaction_type": "DIVIDEND",
+                    "transaction_date": "2026-02-28T09:30:00Z",
+                },
+                {"transaction_type": "DEPOSIT", "transaction_date": "2026-03-05T09:30:00Z"},
             ],
         },
         {
@@ -250,7 +254,7 @@ def test_summarize_activity_rows_groups_transfers_fees_and_taxes() -> None:
     assert "UNKNOWN" not in buckets
 
 
-def test_transaction_date_helpers_parse_iso_dates_and_reject_invalid_values() -> None:
+def test_transaction_date_helpers_parse_utc_calendar_dates_and_reject_invalid_values() -> None:
     transaction_date = transaction_date_value({"transaction_date": "2026-03-27T09:30:00Z"})
 
     assert transaction_date == date(2026, 3, 27)
@@ -259,7 +263,13 @@ def test_transaction_date_helpers_parse_iso_dates_and_reject_invalid_values() ->
         start_date=date(2026, 3, 1),
         end_date=date(2026, 3, 31),
     )
-    assert transaction_date_value({"transaction_date": "not-a-date"}) is None
+    assert transaction_date_value({"transaction_date": "2026-04-01T00:30:00+02:00"}) == date(
+        2026, 3, 31
+    )
+    with pytest.raises(PortfolioTransactionTemporalContractError):
+        transaction_date_value({"transaction_date": "not-a-date"})
+    with pytest.raises(PortfolioTransactionTemporalContractError):
+        transaction_date_value({})
     assert not transaction_date_in_range(
         transaction_date=None,
         start_date=date(2026, 3, 1),

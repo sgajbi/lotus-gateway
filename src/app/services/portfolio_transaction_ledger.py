@@ -7,6 +7,7 @@ from app.contracts.portfolio_transactions import (
     PortfolioTransactionView,
 )
 from app.precision_policy import quantize_money, quantize_price, quantize_quantity
+from app.services.portfolio_transaction_temporal import parse_transaction_timestamp
 
 
 @dataclass(frozen=True)
@@ -269,8 +270,15 @@ def parse_transaction_views(payload: dict[str, Any]) -> list[PortfolioTransactio
 def parse_transaction_view(item: dict[str, Any]) -> PortfolioTransactionView:
     return PortfolioTransactionView(
         transaction_id=str(item.get("transaction_id", "")),
-        transaction_date=str(item.get("transaction_date", "")),
-        settlement_date=optional_str(item.get("settlement_date")),
+        transaction_date=parse_transaction_timestamp(
+            item.get("transaction_date"),
+            field_name="transaction_date",
+        ),
+        settlement_date=parse_transaction_timestamp(
+            item.get("settlement_date"),
+            field_name="settlement_date",
+            required=False,
+        ),
         transaction_type=str(item.get("transaction_type", "")),
         component_type=optional_str(item.get("component_type")),
         security_id=str(item.get("security_id", "")),

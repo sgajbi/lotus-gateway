@@ -32,6 +32,9 @@ from app.services.portfolio_transaction_income_summary import (
 from app.services.portfolio_transaction_income_summary import (
     summarize_income_rows as summarize_income_rows,
 )
+from app.services.portfolio_transaction_temporal import (
+    transaction_date_value as parse_transaction_date_value,
+)
 
 __all__ = [
     "InvalidPortfolioReportingWindow",
@@ -189,14 +192,8 @@ def resolve_reporting_window(
     return window_start, window_end
 
 
-def transaction_date_value(item: dict[str, Any]) -> date | None:
-    raw_value = optional_text(item.get("transaction_date"))
-    if raw_value is None:
-        return None
-    try:
-        return date.fromisoformat(raw_value[:10])
-    except ValueError:
-        return None
+def transaction_date_value(item: dict[str, Any]) -> date:
+    return parse_transaction_date_value(item)
 
 
 def transaction_date_in_range(

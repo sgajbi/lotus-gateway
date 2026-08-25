@@ -64,6 +64,24 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
+## Portfolio transaction temporal contract
+
+The transaction ledger, income-summary, and activity-summary routes preserve Core ownership of
+business semantics at the Gateway boundary:
+
+- `transaction_date` is the Core transaction event timestamp used for event-date filtering and
+  ordering; `settlement_date` is a separate optional Core settlement timestamp.
+- Both fields are returned as UTC-normalized ISO-8601 date-times with an explicit timezone offset.
+  Gateway does not invent a booking date or convert timestamps using browser locale.
+- Summary date windows are inclusive UTC calendar-day windows, aligned with the Core transaction
+  query boundary.
+- Missing, date-only, naive, malformed, or impossible source timestamps fail closed with `502`
+  and `portfolio_transaction_source_contract_invalid`; Gateway never emits a partial malformed row
+  or silently drops it.
+
+The response schema and executable OpenAPI tests are the contract authority. Workbench display and
+consumer migration remain tracked by parent issue #569.
+
 ## Current contract notes
 
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. Their response
