@@ -91,13 +91,15 @@ campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd r
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
 different new clone between the same files. A stable, Python-version-independent AST scope digest
-distinguishes replacements in different class/function scopes without hashing mutable scope bodies;
-stable adjacent source-line anchors distinguish replacements within one scope. Fragment
-normalization collapses layout whitespace using a deterministic scanner while preserving quoted
-literal contents. Occurrence ordinals are assigned by measured location order but are not
-themselves part of the absolute source coordinates, so unrelated line shifts or non-local body
-edits do not invalidate every fingerprint. A removed clone also creates a stale-fingerprint
-failure until a reviewed `--update-baseline` banks the
+distinguishes replacements in different class/function scopes without hashing mutable scope bodies.
+The identity deliberately does not hash adjacent source lines: blank, comment, or unrelated
+statements beside an unchanged clone must not invalidate its fingerprint. Same-scope relocation is
+a documented identity trade-off because position-sensitive anchors would make ordinary edits
+fragile. Fragment normalization collapses layout whitespace using a deterministic scanner while
+preserving quoted literal contents. Occurrence ordinals are assigned by measured location order
+but are not themselves part of the absolute source coordinates, so unrelated line shifts or
+non-local body edits do not invalidate every fingerprint. A removed clone also creates a
+stale-fingerprint failure until a reviewed `--update-baseline` banks the
 improvement; this prevents the removed duplication from being silently reintroduced later.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
