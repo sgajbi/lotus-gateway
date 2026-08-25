@@ -70,7 +70,7 @@ class WorkbenchMandateConstraintLimit(BaseModel):
 
 
 class WorkbenchMandateConstraintMeasure(BaseModel):
-    value: float | None = Field(
+    value: float | None = Field(  # monetary-float-allow
         default=None,
         description="Source-owned observed risk or mandate-health measure.",
         examples=[0.0859],
