@@ -106,7 +106,8 @@ Current repository posture:
    normalized route identity for every discovered integration path, and module-level route
    visibility with an explicit DTO-only exemption. Unresolved private helper routes are exempt
    only when a conservative AST trace reaches that helper's own caller-supplied parameters
-   through supported aliases, f-string/concatenation, or attribute/subscript forms; arbitrary
+   through supported aliases, f-string/concatenation, or attribute/subscript forms, contains no
+   opaque component, and contributes no `/integration/`-bearing literal of its own; arbitrary
    internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
