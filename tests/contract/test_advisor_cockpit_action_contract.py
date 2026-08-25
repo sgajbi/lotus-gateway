@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,48 @@ from tests.support.advisor_cockpit_fixtures import (
     advisor_action_item_payload,
     advisor_action_page_payload,
 )
+
+
+def _assert_closed_action_schema_graph(schemas: dict[str, Any]) -> set[str]:
+    roots = {
+        "AdvisorCockpitActionEnvelopeResponse",
+        "AdvisorCockpitActionPageEnvelopeResponse",
+    }
+    visited: set[str] = set()
+
+    def visit_fragment(fragment: object, path: str, pending: list[str]) -> None:
+        if not isinstance(fragment, dict):
+            return
+        if fragment.get("type") == "object":
+            assert fragment.get("additionalProperties") is False, (
+                f"{path}.additionalProperties must be false"
+            )
+        if "$ref" in fragment:
+            ref = fragment["$ref"]
+            assert isinstance(ref, str) and ref.startswith("#/components/schemas/")
+            pending.append(ref.rsplit("/", 1)[-1])
+        for key in ("anyOf", "allOf", "oneOf"):
+            for index, child in enumerate(fragment.get(key, [])):
+                visit_fragment(child, f"{path}.{key}[{index}]", pending)
+        visit_fragment(fragment.get("items"), f"{path}.items", pending)
+        additional_properties = fragment.get("additionalProperties")
+        if additional_properties is True:
+            raise AssertionError(f"{path}.additionalProperties must be false")
+        if isinstance(additional_properties, dict):
+            visit_fragment(additional_properties, f"{path}.additionalProperties", pending)
+        for property_name, property_schema in fragment.get("properties", {}).items():
+            visit_fragment(property_schema, f"{path}.{property_name}", pending)
+
+    pending = list(roots)
+    while pending:
+        schema_name = pending.pop()
+        if schema_name in visited:
+            continue
+        assert schema_name in schemas, schema_name
+        visited.add(schema_name)
+        visit_fragment(schemas[schema_name], schema_name, pending)
+
+    return visited
 
 
 def test_advisor_cockpit_action_contract_accepts_source_owned_read_shapes() -> None:
@@ -78,6 +121,7 @@ def test_advisor_cockpit_action_openapi_uses_typed_non_free_form_schemas() -> No
     schemas = TestClient(app).get("/openapi.json").json()["components"]["schemas"]
     list_schema = schemas["AdvisorCockpitActionPageEnvelopeResponse"]
     detail_schema = schemas["AdvisorCockpitActionEnvelopeResponse"]
+    visited = _assert_closed_action_schema_graph(schemas)
 
     assert (
         list_schema["properties"]["data"]["$ref"] == "#/components/schemas/AdvisorCockpitActionPage"
@@ -86,9 +130,11 @@ def test_advisor_cockpit_action_openapi_uses_typed_non_free_form_schemas() -> No
         detail_schema["properties"]["data"]["$ref"]
         == "#/components/schemas/AdvisorCockpitActionItem"
     )
-    assert schemas["AdvisorCockpitActionPage"]["additionalProperties"] is False
-    assert schemas["AdvisorCockpitActionItem"]["additionalProperties"] is False
-    assert schemas["AdvisorCockpitActionEvidenceRef"]["additionalProperties"] is False
+    assert {
+        "AdvisorCockpitActionPage",
+        "AdvisorCockpitActionItem",
+        "AdvisorCockpitActionEvidenceRef",
+    }.issubset(visited)
     assert "supportability" not in schemas["AdvisorCockpitActionItem"]["properties"]
     assert "gateway_posture" not in schemas["AdvisorCockpitActionItem"]["properties"]
     assert list_schema["examples"][0]["data"]["items"][0]["action_family"] == (
@@ -97,6 +143,17 @@ def test_advisor_cockpit_action_openapi_uses_typed_non_free_form_schemas() -> No
     assert detail_schema["examples"][0]["data"]["unsupported_capabilities"] == [
         "CLIENT_READY_PUBLICATION"
     ]
+
+
+def test_advisor_cockpit_action_openapi_fitness_rejects_nested_free_form_objects() -> None:
+    schemas = deepcopy(TestClient(app).get("/openapi.json").json()["components"]["schemas"])
+    schemas["AdvisorCockpitActionEvidenceRef"]["additionalProperties"] = True
+
+    with pytest.raises(
+        AssertionError,
+        match=r"AdvisorCockpitActionEvidenceRef\.additionalProperties",
+    ):
+        _assert_closed_action_schema_graph(schemas)
 
 
 def test_advisor_cockpit_action_page_has_a_bounded_item_collection() -> None:
