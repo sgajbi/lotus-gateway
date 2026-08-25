@@ -104,8 +104,11 @@ Current repository posture:
    and the RFC-0084 unit gate statically checks Core client route arguments in async or sync methods
    under `lotus_core*.py` against that inventory in both directions, including `path=`/`url=` shapes,
    normalized route identity for every discovered integration path, and module-level route
-   visibility with an explicit DTO-only exemption. Capabilities, effective policy, and
-   core-snapshot remain explicitly classified control-plane/snapshot operations,
+   visibility with an explicit DTO-only exemption. Unresolved private helper routes are exempt
+   only when a conservative AST trace reaches that helper's own caller-supplied parameters
+   through supported aliases, f-string/concatenation, or attribute/subscript forms; arbitrary
+   internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
+   remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,

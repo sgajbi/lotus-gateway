@@ -185,11 +185,13 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    owns the systematic inventory and declaration parity for the remaining implemented direct
    domain-product reads. The RFC-0084 unit gate now checks both the declared route inventory and
    Core client route arguments in async or sync methods, including `path=`/`url=` transport shapes,
-   normalized route identity for every discovered integration path, and module-level route
-   visibility with an explicit DTO-only exemption. Capabilities, effective policy, and
-   core-snapshot remain explicitly classified control-plane/snapshot operations. This batch
-   records the Core analytics-reference, benchmark, and external OMS supportability dependencies
-   without transferring their domain ownership to Gateway.
+   normalized route identity for every discovered integration path, module-level route visibility
+   with an explicit DTO-only exemption, and caller-parameter tracing for unresolved private helper
+   routes. Private helpers are exempt only for supported parameter-derived expressions; arbitrary
+   internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
+   remain explicitly classified control-plane/snapshot operations. This batch records the Core
+   analytics-reference, benchmark, and external OMS supportability dependencies without
+   transferring their domain ownership to Gateway.
 
 ## Gap Register
 
