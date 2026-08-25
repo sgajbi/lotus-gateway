@@ -483,7 +483,7 @@ def test_duplicate_fingerprint_context_survives_unrelated_scope_body_edit(
     )
 
 
-def test_duplicate_fingerprint_rejects_same_scope_replacement(tmp_path: Path) -> None:
+def test_duplicate_fingerprint_allows_same_scope_relocation(tmp_path: Path) -> None:
     baseline_root = tmp_path / "baseline-source"
     moved_root = tmp_path / "moved-source"
     baseline_source = "def shared():\n    if enabled:\n        return 1\n    return 1\n"
@@ -523,9 +523,59 @@ def test_duplicate_fingerprint_rejects_same_scope_replacement(tmp_path: Path) ->
 
     result = evaluate(moved, build_baseline(baseline), status=0)
 
-    assert not result.passed
-    assert len(result.unexpected_fingerprints) == 1
-    assert len(result.stale_fingerprints) == 1
+    # Source-pair, fragment, and enclosing scope are stable identity evidence. A
+    # same-scope relocation is intentionally not treated as a new clone because
+    # adjacent source edits cannot be distinguished from that relocation without
+    # making unchanged fingerprints fragile.
+    assert result.passed
+    assert result.unexpected_fingerprints == ()
+    assert result.stale_fingerprints == ()
+
+
+def test_duplicate_fingerprint_survives_adjacent_source_edit(tmp_path: Path) -> None:
+    baseline_root = tmp_path / "baseline-source"
+    moved_root = tmp_path / "moved-source"
+    baseline_source = "def shared():\n    before = 0\n    return 1\n    after = 3\n"
+    moved_source = "def shared():\n    before = 0\n    added = 2\n    return 1\n    after = 3\n"
+    for root, source in ((baseline_root, baseline_source), (moved_root, moved_source)):
+        for name in ("a.py", "b.py"):
+            path = root / "src" / "app" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source, encoding="utf-8")
+
+    entry = _entry(
+        "src/app/a.py",
+        "src/app/b.py",
+        fragment="return 1\n",
+        lines=1,
+        first_start=3,
+        second_start=3,
+    )
+    baseline = load_report(
+        _write_report(tmp_path / "baseline-report", [entry]), source_root=baseline_root
+    )
+    moved = load_report(
+        _write_report(
+            tmp_path / "moved-report",
+            [
+                _entry(
+                    "src/app/a.py",
+                    "src/app/b.py",
+                    fragment="return 1\n",
+                    lines=1,
+                    first_start=4,
+                    second_start=4,
+                )
+            ],
+        ),
+        source_root=moved_root,
+    )
+
+    result = evaluate(moved, build_baseline(baseline), status=0)
+
+    assert result.passed
+    assert result.unexpected_fingerprints == ()
+    assert result.stale_fingerprints == ()
 
 
 def test_duplicate_fingerprint_preserves_python_literal_whitespace(tmp_path: Path) -> None:

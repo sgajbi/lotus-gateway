@@ -45,25 +45,12 @@ class DuplicateIdentity:
     sources: tuple[str, str]
     locations: tuple[tuple[str, int], tuple[str, int]]
     context_digests: tuple[str | None, str | None]
-    local_contexts: tuple[tuple[str, str] | None, tuple[str, str] | None]
 
     @property
     def grouping_key(
         self,
-    ) -> tuple[
-        str,
-        str,
-        tuple[str, str],
-        tuple[str | None, str | None],
-        tuple[tuple[str, str] | None, tuple[str, str] | None],
-    ]:
-        return (
-            self.format,
-            self.fragment_digest,
-            self.sources,
-            self.context_digests,
-            self.local_contexts,
-        )
+    ) -> tuple[str, str, tuple[str, str], tuple[str | None, str | None]]:
+        return self.format, self.fragment_digest, self.sources, self.context_digests
 
 
 @dataclass(frozen=True)
@@ -218,18 +205,6 @@ def _string_literal_end(text: str, start: int) -> int | None:
     return len(text)
 
 
-def _local_context(source_text: str, start: int, lines: int) -> tuple[str, str]:
-    """Return adjacent normalized source lines without absolute coordinates."""
-    source_lines = source_text.splitlines()
-    start_index = start - 1
-    end_index = start_index + lines
-    before = _normalise_fragment(source_lines[start_index - 1]) if start_index > 0 else "<start>"
-    after = (
-        _normalise_fragment(source_lines[end_index]) if end_index < len(source_lines) else "<end>"
-    )
-    return before, after
-
-
 def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdentity:
     first = entry.get("firstFile")
     second = entry.get("secondFile")
@@ -259,25 +234,11 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
             _context_digest(source_root, first_file, first_start, lines)
             if source_root is not None
             else None,
-            _local_context(
-                (source_root / PurePosixPath(first_file)).read_text(encoding="utf-8"),
-                first_start,
-                lines,
-            )
-            if source_root is not None
-            else None,
         ),
         (
             second_file,
             second_start,
             _context_digest(source_root, second_file, second_start, lines)
-            if source_root is not None
-            else None,
-            _local_context(
-                (source_root / PurePosixPath(second_file)).read_text(encoding="utf-8"),
-                second_start,
-                lines,
-            )
             if source_root is not None
             else None,
         ),
@@ -288,7 +249,6 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
         (location_contexts[1][0], location_contexts[1][1]),
     )
     context_digests = (location_contexts[0][2], location_contexts[1][2])
-    local_contexts = (location_contexts[0][3], location_contexts[1][3])
     return DuplicateIdentity(
         format_name,
         fragment_digest,
@@ -298,7 +258,6 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
         sources,
         locations,
         context_digests,
-        local_contexts,
     )
 
 
@@ -309,7 +268,6 @@ def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> Duplicat
         "occurrence_index": occurrence_index,
         "sources": identity.sources,
         "context_digests": identity.context_digests,
-        "local_contexts": identity.local_contexts,
     }
     digest = hashlib.sha256(
         json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -330,14 +288,7 @@ def load_report(path: Path, *, source_root: Path | None = None) -> DuplicateRepo
         raise ValueError("duplicate report has invalid duplicate entries or total statistics")
     identities = tuple(_identity(entry, source_root) for entry in duplicates)
     grouped_indices: defaultdict[
-        tuple[
-            str,
-            str,
-            tuple[str, str],
-            tuple[str | None, str | None],
-            tuple[tuple[str, str] | None, tuple[str, str] | None],
-        ],
-        list[int],
+        tuple[str, str, tuple[str, str], tuple[str | None, str | None]], list[int]
     ] = defaultdict(list)
     for index, identity in enumerate(identities):
         grouped_indices[identity.grouping_key].append(index)
@@ -482,6 +433,16 @@ def _print_result(result: RatchetResult) -> None:
     )
     print(f"Unexpected stable duplicate findings: {len(result.unexpected_fingerprints)}")
     print(f"Stale baseline duplicate findings: {len(result.stale_fingerprints)}")
+    metrics_unchanged = (
+        result.clone_count == result.baseline_clone_count
+        and result.report.duplicated_lines == result.baseline_duplicated_lines
+        and result.report.duplicated_percentage == result.baseline_duplicated_percentage
+    )
+    if result.unexpected_fingerprints and result.stale_fingerprints and metrics_unchanged:
+        print(
+            "  all fingerprints changed while duplicate metrics held steady; this indicates "
+            "an identity-algorithm or generating-environment change, not new duplication"
+        )
     if result.status != 0:
         print(f"Duplicate detector failed with QUALITY_COMMAND_STATUS={result.status}.")
     for finding in sorted(
