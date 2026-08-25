@@ -267,6 +267,38 @@ async def test_fetch_benchmark_context_fetches_assignment_and_catalog_concurrent
 
 
 @pytest.mark.asyncio
+async def test_fetch_benchmark_context_sanitizes_assignment_exception_detail():
+    class ExceptionAssignmentClient(FakeCoreClient):
+        async def get_benchmark_assignment(self, **kwargs):
+            raise RuntimeError("GET https://core.internal/secret-token timed out")
+
+    client = ExceptionAssignmentClient()
+    cache = AsyncTtlCache[Any](ttl_seconds=30)
+    warnings: list[str] = []
+    partial_failures = []
+
+    benchmark_code, catalog_result = await fetch_benchmark_context(
+        cache=cache,
+        core_client=client,
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-1",
+        report_end_date="2026-03-27",
+        reporting_currency="USD",
+        benchmark_code=None,
+        include_benchmark_catalog=False,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert benchmark_code is None
+    assert catalog_result == (200, {})
+    assert warnings == ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"]
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
+    assert partial_failures[0].detail == "benchmark assignment unavailable"
+    assert "secret-token" not in str(partial_failures[0])
+
+
+@pytest.mark.asyncio
 async def test_fetch_benchmark_context_skips_catalog_when_not_requested():
     client = FakeCoreClient()
     cache = AsyncTtlCache[Any](ttl_seconds=30)
