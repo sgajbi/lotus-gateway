@@ -6,6 +6,7 @@ from app.contracts.portfolio_allocation import (
     PortfolioAllocationContributor,
     PortfolioAllocationLookThroughCapability,
     PortfolioLookThroughMode,
+    _StrictPortfolioAllocationModel,
 )
 from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 from app.contracts.portfolio_position_book import (
@@ -59,7 +60,7 @@ class PortfolioCashBalance(BaseModel):
     )
 
 
-class PortfolioAllocationBucket(BaseModel):
+class PortfolioAllocationBucket(_StrictPortfolioAllocationModel):
     bucket: str = Field(
         description="Bucket label within the requested allocation dimension.",
         examples=["Equity"],
@@ -75,10 +76,8 @@ class PortfolioAllocationBucket(BaseModel):
     )
     market_value_reporting_currency: Decimal = Field(
         default=Decimal("0.00"),
-        description=(
-            "Exact source bucket value in the effective reporting currency. This field is the "
-            "reconciliation denominator for contributor values and omitted residuals."
-        ),
+        description="Exact bucket value in effective reporting currency; "
+        "reconciliation denominator for contributors and residual.",
         examples=["700.123"],
     )
     weight_pct: float | None = Field(
@@ -106,14 +105,14 @@ class PortfolioAllocationBucket(BaseModel):
     omitted_market_value_reporting_currency: Decimal = Field(
         default=Decimal("0.00"),
         description=(
-            "Exact source-owned signed value omitted from the bounded contributor list. "
-            "Contributor values plus this residual reconcile to market_value_reporting_currency."
+            "Exact signed source value omitted from bounded contributors; it reconciles the "
+            "bucket with retained contributor values."
         ),
         examples=["0.00"],
     )
 
 
-class PortfolioAllocationView(BaseModel):
+class PortfolioAllocationView(_StrictPortfolioAllocationModel):
     dimension: str = Field(
         description="Allocation dimension represented by the current view.",
         examples=["asset_class"],
@@ -134,7 +133,7 @@ class PortfolioAllocationView(BaseModel):
     )
 
 
-class PortfolioAllocationResponse(BaseModel):
+class PortfolioAllocationResponse(_StrictPortfolioAllocationModel):
     correlation_id: str = Field(
         description="Opaque correlation identifier for the allocation response envelope.",
         examples=["corr-portfolio-allocation"],
