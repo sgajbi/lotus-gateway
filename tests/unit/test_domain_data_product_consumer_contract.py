@@ -156,6 +156,8 @@ def _caller_supplied_route_expression(
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
 ) -> bool:
+    if any(isinstance(child, ast.Call) for child in ast.walk(expression)):
+        return False
     if isinstance(expression, ast.Name):
         if expression.id in own_parameters:
             return True
@@ -578,6 +580,9 @@ class FakeCoreClient:
 
     async def _get_internal_route(self, path):
         return await self._request(url=build_route(path))
+
+    async def _get_mixed_internal_route(self, path):
+        return await self._request(url=path + build_route(path))
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -594,13 +599,15 @@ class FakeCoreClient:
     )
 
     implemented = _implemented_core_domain_product_reads(tmp_path)
-    for client_module in (
-        "lotus_core_private_helper_client.py",
-        "lotus_core_private_only_client.py",
-    ):
+    expected_internal_routes = (
+        ("lotus_core_private_helper_client.py", "_get_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
+        ("lotus_core_private_only_client.py", "_get_internal_route"),
+    )
+    for client_module, client_method in expected_internal_routes:
         assert (
             client_module,
-            "_get_internal_route",
+            client_method,
             _UNRESOLVED_ROUTE_TEMPLATE,
         ) in implemented
 
