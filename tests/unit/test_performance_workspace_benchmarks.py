@@ -62,9 +62,11 @@ async def test_fetch_assigned_benchmark_code_returns_assignment_id():
 
 
 @pytest.mark.asyncio
-async def test_fetch_assigned_benchmark_code_fails_closed_for_upstream_failure():
+async def test_fetch_assigned_benchmark_code_records_upstream_failure():
     client = FakeCoreClient()
     client.assignment_payloads = [(503, {"detail": "core unavailable"})]
+    warnings: list[str] = []
+    partial_failures = []
 
     benchmark_code = await fetch_assigned_benchmark_code(
         core_client=client,
@@ -72,9 +74,16 @@ async def test_fetch_assigned_benchmark_code_fails_closed_for_upstream_failure()
         as_of_date="2026-03-27",
         reporting_currency="USD",
         correlation_id="corr-1",
+        warnings=warnings,
+        partial_failures=partial_failures,
     )
 
     assert benchmark_code is None
+    assert warnings == ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-core"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "benchmark assignment unavailable"
 
 
 @pytest.mark.asyncio

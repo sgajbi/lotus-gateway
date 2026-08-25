@@ -23,6 +23,10 @@ access policy, SLO policy, evidence policy, maturity matrix, or operating report
 
 Catalog responses preserve platform provenance fields including `governedByRfcs`, `sourceManifestPath`, and `sourceDeclarationDirectory`. Dependency-graph responses preserve `governedByRfcs` and the source catalog reference. These fields are sourced from the generated platform artifacts; Gateway does not derive replacement provenance locally.
 
+Performance composition preserves the Core benchmark-assignment boundary: a valid unassigned
+portfolio remains distinct from an assignment lookup failure, which is surfaced as the sanitized
+`BENCHMARK_ASSIGNMENT_UNAVAILABLE` warning and Core partial-failure evidence.
+
 ## Operating rule
 
 Gateway must preserve platform product IDs, producer repositories, approved consumers, dependency edges, artifact provenance, and degraded trust states exactly. If platform evidence is unavailable or invalid, Gateway returns bounded product-safe reason text such as `live_trust_certification_unavailable` or a generic artifact-unavailable detail; configured filesystem paths remain operator diagnostics, not product-facing API payloads.

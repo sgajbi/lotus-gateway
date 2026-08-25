@@ -131,6 +131,19 @@ def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
             ),
             "validation_lanes": ["feature", "pr-merge", "platform-end-to-end"],
             "failure_posture": "degrade_to_partial",
+            "failure_posture_conditions": [
+                {
+                    "condition": (
+                        "Core assignment lookup returns an HTTP error or invalid payload"
+                    ),
+                    "posture": "degrade_to_partial",
+                    "reason_codes": ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"],
+                    "behavior": (
+                        "Preserve the bounded response without assuming an assignment; "
+                        "append the warning and sanitized lotus-core partial failure."
+                    ),
+                }
+            ],
             "required_trust_metadata": [
                 "product_name",
                 "product_version",
