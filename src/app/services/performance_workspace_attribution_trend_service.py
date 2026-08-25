@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendResponse
 from app.contracts.performance_currency import ReportingCurrencyState
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_attribution import parse_attribution_trend_results
 from app.services.performance_workspace_attribution_trend import (
@@ -189,6 +190,8 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             reporting_currency=reporting_currency,
             benchmark_code=benchmark_code,
             include_benchmark_catalog=False,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
         )
         return assemble_attribution_trend_request_context(
             overview_state=overview_state,
@@ -311,5 +314,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
         reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> WorkspaceBenchmarkContext:
         raise NotImplementedError

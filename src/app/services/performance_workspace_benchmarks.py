@@ -4,11 +4,14 @@ import asyncio
 from collections.abc import Awaitable, Sequence
 from typing import Any, TypeAlias, cast
 
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_benchmark_catalog import (
     parse_benchmark_catalog_result,
 )
+from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_parsing import safe_str
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import PerformanceWorkspaceCoreClient
 
 __all__ = [
@@ -52,6 +55,8 @@ async def fetch_assigned_benchmark_code(
     as_of_date: str,
     reporting_currency: str,
     correlation_id: str,
+    warnings: list[str] | None = None,
+    partial_failures: list[WorkbenchPartialFailure] | None = None,
 ) -> str | None:
     status_code, payload = await core_client.get_benchmark_assignment(
         portfolio_id=portfolio_id,
@@ -60,6 +65,20 @@ async def fetch_assigned_benchmark_code(
         correlation_id=correlation_id,
     )
     if status_code >= 400 or not isinstance(payload, dict):
+        _record_benchmark_assignment_failure(
+            warnings=warnings,
+            partial_failures=partial_failures,
+            error_code=(
+                f"HTTP_{status_code}"
+                if isinstance(status_code, int)
+                else "INVALID_UPSTREAM_PAYLOAD"
+            ),
+            detail=(
+                safe_upstream_detail(payload, default_detail="benchmark assignment unavailable")
+                if isinstance(payload, dict)
+                else "benchmark assignment returned an invalid payload"
+            ),
+        )
         return None
     return safe_str(payload.get("benchmark_id"))
 
@@ -73,6 +92,8 @@ async def resolve_benchmark_code(
     as_of_date: str,
     reporting_currency: str,
     benchmark_code: str | None,
+    warnings: list[str] | None = None,
+    partial_failures: list[WorkbenchPartialFailure] | None = None,
 ) -> str | None:
     if benchmark_code:
         return benchmark_code
@@ -90,6 +111,8 @@ async def resolve_benchmark_code(
             as_of_date=as_of_date,
             reporting_currency=reporting_currency,
             correlation_id=correlation_id,
+            warnings=warnings,
+            partial_failures=partial_failures,
         ),
     )
     if resolved_benchmark_code:
@@ -105,6 +128,8 @@ async def resolve_benchmark_code(
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         correlation_id=correlation_id,
+        warnings=warnings,
+        partial_failures=partial_failures,
     )
     if refreshed_benchmark_code:
         cache.set(cache_key, refreshed_benchmark_code)
@@ -121,6 +146,8 @@ async def fetch_benchmark_context(
     reporting_currency: str,
     benchmark_code: str | None,
     include_benchmark_catalog: bool,
+    warnings: list[str] | None = None,
+    partial_failures: list[WorkbenchPartialFailure] | None = None,
 ) -> tuple[str | None, GatheredResult]:
     assignment_task, benchmark_catalog_task = _benchmark_context_tasks(
         cache=cache,
@@ -131,6 +158,8 @@ async def fetch_benchmark_context(
         reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
         include_benchmark_catalog=include_benchmark_catalog,
+        warnings=warnings,
+        partial_failures=partial_failures,
     )
     benchmark_context_results = await asyncio.gather(
         assignment_task,
@@ -140,6 +169,8 @@ async def fetch_benchmark_context(
     return _resolve_benchmark_context_results(
         benchmark_code=benchmark_code,
         benchmark_context_results=benchmark_context_results,
+        warnings=warnings,
+        partial_failures=partial_failures,
     )
 
 
@@ -153,6 +184,8 @@ def _benchmark_context_tasks(
     reporting_currency: str,
     benchmark_code: str | None,
     include_benchmark_catalog: bool,
+    warnings: list[str] | None,
+    partial_failures: list[WorkbenchPartialFailure] | None,
 ) -> tuple[Awaitable[str | None], Awaitable[GatheredResult]]:
     return (
         _benchmark_assignment_task(
@@ -163,6 +196,8 @@ def _benchmark_context_tasks(
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
             benchmark_code=benchmark_code,
+            warnings=warnings,
+            partial_failures=partial_failures,
         ),
         _benchmark_catalog_task(
             cache=cache,
@@ -184,6 +219,8 @@ def _benchmark_assignment_task(
     report_end_date: str,
     reporting_currency: str,
     benchmark_code: str | None,
+    warnings: list[str] | None,
+    partial_failures: list[WorkbenchPartialFailure] | None,
 ) -> Awaitable[str | None]:
     if benchmark_code:
         return _empty_async_scalar_result(None)
@@ -195,6 +232,8 @@ def _benchmark_assignment_task(
         as_of_date=report_end_date,
         reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
+        warnings=warnings,
+        partial_failures=partial_failures,
     )
 
 
@@ -228,6 +267,8 @@ def _resolve_benchmark_context_results(
     *,
     benchmark_code: str | None,
     benchmark_context_results: Sequence[object],
+    warnings: list[str] | None,
+    partial_failures: list[WorkbenchPartialFailure] | None,
 ) -> tuple[str | None, GatheredResult]:
     resolved_benchmark_code_result = cast(
         str | None | BaseException,
@@ -235,6 +276,12 @@ def _resolve_benchmark_context_results(
     )
     benchmark_catalog_result_value = cast(GatheredResult, benchmark_context_results[1])
     if isinstance(resolved_benchmark_code_result, BaseException):
+        _record_benchmark_assignment_failure(
+            warnings=warnings,
+            partial_failures=partial_failures,
+            error_code="UPSTREAM_EXCEPTION",
+            detail=str(resolved_benchmark_code_result),
+        )
         return benchmark_code, benchmark_catalog_result_value
     return benchmark_code or cast(str | None, resolved_benchmark_code_result), (
         benchmark_catalog_result_value
@@ -247,3 +294,16 @@ async def _empty_async_result() -> tuple[int, dict[str, Any]]:
 
 async def _empty_async_scalar_result(value: str | None) -> str | None:
     return value
+
+
+def _record_benchmark_assignment_failure(
+    *,
+    warnings: list[str] | None,
+    partial_failures: list[WorkbenchPartialFailure] | None,
+    error_code: str,
+    detail: str,
+) -> None:
+    if warnings is None or partial_failures is None:
+        return
+    warnings.append("BENCHMARK_ASSIGNMENT_UNAVAILABLE")
+    partial_failures.append(build_performance_failure("lotus-core", error_code, detail))

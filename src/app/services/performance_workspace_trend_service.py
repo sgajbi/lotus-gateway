@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.contracts.performance_workspace import PerformanceHorizonComparisonResponse
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_attribution_trend_service import (
     PerformanceWorkspaceAttributionTrendServiceMixin,
@@ -175,6 +176,8 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
             reporting_currency=overview_state.overview.portfolio.base_currency,
             benchmark_code=benchmark_code,
             include_benchmark_catalog=True,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
         )
         return assemble_horizon_comparison_request_context(
             overview_state=overview_state,
@@ -247,5 +250,7 @@ class PerformanceWorkspaceTrendServiceMixin(PerformanceWorkspaceAttributionTrend
         reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> WorkspaceBenchmarkContext:
         raise NotImplementedError

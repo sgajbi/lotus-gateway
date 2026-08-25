@@ -123,6 +123,8 @@ class PerformanceWorkspaceContextServiceMixin:
             reporting_currency=reporting_currency,
             benchmark_code=request_parameters.benchmark_code,
             include_benchmark_catalog=request_parameters.include_benchmark_catalog,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
         )
         return assemble_workspace_request_context(
             overview_state=overview_state,
@@ -208,6 +210,8 @@ class PerformanceWorkspaceContextServiceMixin:
         reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> WorkspaceBenchmarkContext:
         async with server_timing_span("perf-benchmark"):
             resolved_benchmark_code, benchmark_catalog_result = await fetch_benchmark_context(
@@ -219,6 +223,8 @@ class PerformanceWorkspaceContextServiceMixin:
                 reporting_currency=reporting_currency,
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=include_benchmark_catalog,
+                warnings=warnings,
+                partial_failures=partial_failures,
             )
         return WorkspaceBenchmarkContext(
             benchmark_code=resolved_benchmark_code,

@@ -2829,6 +2829,36 @@ async def test_performance_workspace_service_handles_benchmark_catalog_failure()
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_surfaces_benchmark_assignment_failure():
+    class _FailingAssignmentQueryClient(_StubLotusCoreQueryClient):
+        async def get_benchmark_assignment(self, **kwargs):  # noqa: ARG002
+            return 503, {"detail": "benchmark assignment unavailable"}
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_FailingAssignmentQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+    )
+
+    assert "BENCHMARK_ASSIGNMENT_UNAVAILABLE" in response.warnings
+    assert any(
+        failure.error_code == "HTTP_503" and failure.source_service == "lotus-core"
+        for failure in response.partial_failures
+    )
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_marks_aggregate_contribution_as_partial_fallback():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
