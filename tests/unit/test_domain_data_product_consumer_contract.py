@@ -100,8 +100,8 @@ def _resolve_route_templates(
 def _route_argument_templates(
     node: ast.AsyncFunctionDef | ast.FunctionDef,
     assignments: dict[str, ast.AST],
-) -> list[tuple[set[str], bool]]:
-    routes: list[tuple[set[str], bool]] = []
+) -> list[tuple[ast.AST, set[str], bool]]:
+    routes: list[tuple[ast.AST, set[str], bool]] = []
     for call in ast.walk(node):
         if not isinstance(call, ast.Call):
             continue
@@ -109,7 +109,10 @@ def _route_argument_templates(
             if keyword.arg not in _ROUTE_ARGUMENT_NAMES:
                 continue
             resolved = _resolve_route_templates(keyword.value, assignments)
-            routes.append((resolved, not resolved))
+            unresolved = not resolved or not any(
+                _has_concrete_route_segment(route_template) for route_template in resolved
+            )
+            routes.append((keyword.value, resolved, unresolved))
     return routes
 
 
@@ -129,6 +132,61 @@ def _has_concrete_route_segment(route_template: str) -> bool:
     return re.search(r"/[A-Za-z0-9]", route_template) is not None
 
 
+def _function_parameter_names(node: ast.AsyncFunctionDef | ast.FunctionDef) -> frozenset[str]:
+    arguments = node.args
+    parameter_names = {
+        argument.arg
+        for argument in (
+            *arguments.posonlyargs,
+            *arguments.args,
+            *arguments.kwonlyargs,
+        )
+    }
+    if arguments.vararg is not None:
+        parameter_names.add(arguments.vararg.arg)
+    if arguments.kwarg is not None:
+        parameter_names.add(arguments.kwarg.arg)
+    parameter_names.difference_update({"self", "cls"})
+    return frozenset(parameter_names)
+
+
+def _caller_supplied_route_expression(
+    expression: ast.AST,
+    own_parameters: frozenset[str],
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> bool:
+    if isinstance(expression, ast.Name):
+        if expression.id in own_parameters:
+            return True
+        if expression.id in resolving or expression.id not in assignments:
+            return False
+        return _caller_supplied_route_expression(
+            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
+        )
+    if isinstance(expression, ast.JoinedStr):
+        return any(
+            _caller_supplied_route_expression(value.value, own_parameters, assignments, resolving)
+            for value in expression.values
+            if isinstance(value, ast.FormattedValue)
+        )
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
+        return _caller_supplied_route_expression(
+            expression.left, own_parameters, assignments, resolving
+        ) or _caller_supplied_route_expression(
+            expression.right, own_parameters, assignments, resolving
+        )
+    if isinstance(expression, ast.Attribute):
+        return _caller_supplied_route_expression(
+            expression.value, own_parameters, assignments, resolving
+        )
+    if isinstance(expression, ast.Subscript):
+        return _caller_supplied_route_expression(
+            expression.value, own_parameters, assignments, resolving
+        )
+    return False
+
+
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
     routes: set[str] = set()
     module_assignments = _assignment_values(tree)
@@ -136,7 +194,7 @@ def _core_client_route_templates(tree: ast.Module) -> set[str]:
         if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
             continue
         assignments = module_assignments | _assignment_values(node)
-        for route_templates, _ in _route_argument_templates(node, assignments):
+        for _, route_templates, _ in _route_argument_templates(node, assignments):
             routes.update(route for route in route_templates if _has_concrete_route_segment(route))
     return routes
 
@@ -171,20 +229,27 @@ def _implemented_core_domain_product_reads(
             if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
                 continue
             assignments = module_assignments | _assignment_values(node)
+            own_parameters = _function_parameter_names(node)
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            for route_templates, unresolved_route in _route_argument_templates(node, assignments):
+            for (
+                route_expression,
+                route_templates,
+                unresolved_route,
+            ) in _route_argument_templates(node, assignments):
                 integration_routes = {
                     route
                     for template in route_templates
                     if (route := _integration_route_template(template)) is not None
                 }
-                if not integration_routes and not (
-                    unresolved_route and not node.name.startswith("_")
-                ):
+                if not integration_routes and not unresolved_route:
                     continue
                 if unresolved_route:
+                    if node.name.startswith("_") and _caller_supplied_route_expression(
+                        route_expression, own_parameters, assignments
+                    ):
+                        continue
                     implemented.add((client_path.name, node.name, _UNRESOLVED_ROUTE_TEMPLATE))
                     continue
                 for route_template in integration_routes:
@@ -197,7 +262,6 @@ def _implemented_core_domain_product_reads(
 
 
 def _assert_implemented_core_reads_are_declared(client_root: Path = CLIENT_ROOT) -> None:
-    _assert_core_client_route_visibility(client_root)
     declared = {
         (
             Path(route["client_module"]).name,
@@ -215,6 +279,7 @@ def _assert_implemented_core_reads_are_declared(client_root: Path = CLIENT_ROOT)
         raise AssertionError(
             "Core integration reads missing from the RFC-0084 route inventory: " + details
         )
+    _assert_core_client_route_visibility(client_root)
 
 
 def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
@@ -455,7 +520,6 @@ class FakeCoreClient:
         + "\n",
         encoding="utf-8",
     )
-
     with pytest.raises(AssertionError) as exc_info:
         _assert_implemented_core_reads_are_declared(tmp_path)
 
@@ -486,6 +550,74 @@ class FakeCoreClient:
     message = str(exc_info.value)
     assert "lotus_core_url_client.py:get_undeclared_sync_product_read" in message
     assert "lotus_core_url_client.py:get_undeclared_url_product_read" in message
+
+
+def test_private_helper_route_exemption_requires_caller_supplied_expression(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "lotus_core_private_helper_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def get_capabilities(self):
+        return await self._request(url="/integration/capabilities")
+
+    async def _get_parameter_route(self, path):
+        return await self._request(url=path)
+
+    async def _get_parameter_alias(self, path):
+        route = path
+        return await self._request(url=route)
+
+    async def _get_parameter_fstring(self, path):
+        url = f"{self._base_url}{path}"
+        return await self._request(url=url)
+
+    async def _get_parameter_varargs(self, *routes, **options):
+        route = routes[0] + options["suffix"]
+        return await self._request(url=route)
+
+    async def _get_internal_route(self, path):
+        return await self._request(url=build_route(path))
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (tmp_path / "lotus_core_private_only_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def _get_internal_route(self, path):
+        return await self._request(url=build_route(path))
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    implemented = _implemented_core_domain_product_reads(tmp_path)
+    for client_module in (
+        "lotus_core_private_helper_client.py",
+        "lotus_core_private_only_client.py",
+    ):
+        assert (
+            client_module,
+            "_get_internal_route",
+            _UNRESOLVED_ROUTE_TEMPLATE,
+        ) in implemented
+
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_implemented_core_reads_are_declared(tmp_path)
+
+    message = str(exc_info.value)
+    assert (
+        f"lotus_core_private_helper_client.py:_get_internal_route [{_UNRESOLVED_ROUTE_TEMPLATE}]"
+    ) in message
+    for parameter_helper in (
+        "_get_parameter_route",
+        "_get_parameter_alias",
+        "_get_parameter_fstring",
+        "_get_parameter_varargs",
+    ):
+        assert parameter_helper not in message
 
 
 def test_uncovered_core_client_module_fails_closed(tmp_path: Path) -> None:

@@ -33,11 +33,14 @@ as `path=` or `url=` in async or sync functions in `lotus_core*.py` (including l
 route assignments, normalized f-string and `.format(...)` templates) must be represented in the
 route inventory. The comparison includes route identity as well as client method, so an existing
 inventoried method cannot hide an additional endpoint; unresolved public route construction fails
-closed. Every Core client module must expose a statically resolvable transport route; the explicit
-`lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no transport
-surface. Core capabilities, effective policy, and core-snapshot calls are explicitly classified as
-non-domain-product control-plane operations. An unclassified new Core integration route fails the
-gate rather than silently escaping the mesh declaration.
+closed. Unresolved private routes are exempt only when a conservative AST trace reaches that
+helper's own caller-supplied parameters through local aliases, supported f-string/concatenation
+forms, or parameter-derived attribute/subscript access; arbitrary internal route builders remain
+fail-closed. Every Core client module must expose a statically resolvable transport route; the
+explicit `lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no
+transport surface. Core capabilities, effective policy, and core-snapshot calls are explicitly
+classified as non-domain-product control-plane operations. An unclassified new Core integration
+route fails the gate rather than silently escaping the mesh declaration.
 
 ## Operating rule
 
