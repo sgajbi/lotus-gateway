@@ -270,6 +270,7 @@ def test_reporting_openapi_contract_registered() -> None:
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
     review_schema = spec["components"]["schemas"]["ReportingReviewResponse"]
     batch_request_schema = spec["components"]["schemas"]["BatchCreateRequest"]
+    batch_item_schema = spec["components"]["schemas"]["BatchItemStatusResponse"]
 
     assert legacy_snapshot_path["description"]
     assert summary_path["description"]
@@ -305,6 +306,21 @@ def test_reporting_openapi_contract_registered() -> None:
     assert "missing_caller_context" in batch_400_examples
     assert "invalid_batch_selector" not in batch_400_examples
     assert batch_status_path["summary"] == "Get report batch status"
+    assert batch_item_schema["properties"]["archive_state"]["enum"] == [
+        "available",
+        "pending",
+        "unavailable",
+    ]
+    assert batch_item_schema["properties"]["archive_reason_code"]["enum"] == [
+        "archive_available",
+        "not_archived",
+        "archive_pending",
+        "archive_failed",
+    ]
+    assert (
+        "Gateway-controlled"
+        in batch_item_schema["properties"]["archive_download_url"]["description"]
+    )
     assert batch_run_path["summary"] == "Run one bounded report batch worker pass"
     assert schedule_list_path["summary"] == "List governed report batch schedules"
     assert schedule_run_path["summary"] == "Run one bounded report batch scheduler pass"

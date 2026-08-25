@@ -1039,7 +1039,15 @@ def _batch_payload() -> dict[str, object]:
     }
 
 
-def _batch_status_payload(status: str = "materialized") -> dict[str, object]:
+def _batch_status_payload(
+    status: str = "materialized",
+    *,
+    item_status: str | None = None,
+    report_job_id: str | None = None,
+    report_job_status: str | None = None,
+    archive_document_id: str | None = None,
+) -> dict[str, object]:
+    effective_item_status = item_status or status
     return {
         "batch_id": "rbch_1",
         "selector_mode": "explicit_portfolio_list",
@@ -1057,8 +1065,10 @@ def _batch_status_payload(status: str = "materialized") -> dict[str, object]:
                 "batch_item_id": "rbci_1",
                 "item_position": 1,
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "status": status,
-                "report_job_id": None,
+                "status": effective_item_status,
+                "report_job_id": report_job_id,
+                "report_job_status": report_job_status,
+                "archive_document_id": archive_document_id,
                 "attempt_count": 0,
                 "retry_eligible": False,
                 "next_retry_at": None,
@@ -1173,7 +1183,13 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     async def _mock_get_batch(self, *, batch_id, caller_headers, correlation_id):
         calls.append(("get", batch_id, caller_headers))
         assert correlation_id == "corr-gateway-batch"
-        return 200, _batch_status_payload()
+        return 200, _batch_status_payload(
+            status="completed",
+            item_status="succeeded",
+            report_job_id="rjob_1",
+            report_job_status="archived",
+            archive_document_id="doc_batch_1",
+        )
 
     async def _mock_get_capabilities(self, *, consumer_system, tenant_id, correlation_id):
         calls.append(("capabilities", tenant_id, {"consumer_system": consumer_system}))
@@ -1343,6 +1359,14 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     }
     assert status_response.status_code == 200
     assert status_response.json()["items"][0]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert status_response.json()["items"][0]["archive_state"] == "available"
+    assert status_response.json()["items"][0]["archive_document_id"] == "doc_batch_1"
+    assert status_response.json()["items"][0]["archive_metadata_url"] == (
+        "/api/v1/documents/doc_batch_1"
+    )
+    assert status_response.json()["items"][0]["archive_download_url"] == (
+        "/api/v1/documents/doc_batch_1/download"
+    )
     assert status_response.json()["supportability"]["state"] == "ready"
     assert status_response.json()["render_supportability"]["state"] == "ready"
     assert pause_response.json()["status"] == "paused"
