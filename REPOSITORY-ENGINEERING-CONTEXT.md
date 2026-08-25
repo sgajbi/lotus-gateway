@@ -93,11 +93,12 @@ Current repository posture:
    household, performance, risk, attention, suitability, communication, or execution truth. Its
    repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
    trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
-   fail-closed for entitlement, `PortfolioAnalyticsReference:v1`, `BenchmarkAssignment:v1` degrades
-   to partial composition with sanitized `BENCHMARK_ASSIGNMENT_UNAVAILABLE` evidence on lookup
-   failure, and `BenchmarkDefinition:v1` degrades to partial composition except for the explicit since-inception
-   window requirement, and `ExternalOrderExecutionAcknowledgement:v1` is fail-closed for OMS
-   supportability. The source-backed route inventory is maintained in
+   fail-closed for entitlement, `PortfolioAnalyticsReference:v1` is fail-closed by default with
+   bounded partial overrides for ordinary reference loss and fail-closed typed since-inception
+   window errors, `BenchmarkAssignment:v1` degrades to partial composition with sanitized
+   `BENCHMARK_ASSIGNMENT_UNAVAILABLE` evidence on lookup failure, `BenchmarkDefinition:v1`
+   degrades to partial composition, and `ExternalOrderExecutionAcknowledgement:v1` is fail-closed
+   for OMS supportability. The source-backed route inventory is maintained in
    `contracts/domain-data-products/lotus-gateway-core-route-inventory.v1.json`; the AUM route
    remains an RFC-0082 operational-read dependency rather than a new domain-product declaration,
 5. report job initiation/search/status/event-history/cancellation routes are active for

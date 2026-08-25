@@ -87,6 +87,90 @@ async def test_fetch_assigned_benchmark_code_records_upstream_failure():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"benchmark_id": None}, {"benchmark_id": []}, {"benchmark_id": {}}],
+)
+async def test_fetch_assigned_benchmark_code_rejects_malformed_success_payload(payload):
+    client = FakeCoreClient()
+    client.assignment_payloads = [(200, payload)]
+    warnings: list[str] = []
+    partial_failures = []
+
+    benchmark_code = await fetch_assigned_benchmark_code(
+        core_client=client,
+        portfolio_id="DEMO_ADV_USD_001",
+        as_of_date="2026-03-27",
+        reporting_currency="USD",
+        correlation_id="corr-1",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert benchmark_code is None
+    assert warnings == ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"]
+    assert partial_failures[0].error_code == "INVALID_UPSTREAM_PAYLOAD"
+
+
+@pytest.mark.asyncio
+async def test_resolve_benchmark_code_records_failure_for_each_coalesced_request():
+    assignment_started = asyncio.Event()
+    release_assignment = asyncio.Event()
+    second_cache_lookup = asyncio.Event()
+
+    class CoordinatedFailureClient(FakeCoreClient):
+        async def get_benchmark_assignment(self, **kwargs):
+            self.assignment_calls.append(kwargs)
+            assignment_started.set()
+            await release_assignment.wait()
+            return 503, {"detail": "core unavailable"}
+
+    client = CoordinatedFailureClient()
+
+    class CoordinatedCache(AsyncTtlCache[Any]):
+        lookup_count = 0
+
+        async def get_or_set_with_status(self, *args, **kwargs):
+            self.lookup_count += 1
+            if self.lookup_count == 2:
+                second_cache_lookup.set()
+            return await super().get_or_set_with_status(*args, **kwargs)
+
+    cache = CoordinatedCache(ttl_seconds=30)
+
+    async def resolve(correlation_id: str):
+        warnings: list[str] = []
+        partial_failures = []
+        benchmark_code = await resolve_benchmark_code(
+            cache=cache,
+            core_client=client,
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id=correlation_id,
+            as_of_date="2026-03-27",
+            reporting_currency="USD",
+            benchmark_code=None,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        return benchmark_code, warnings, partial_failures
+
+    first = asyncio.create_task(resolve("corr-1"))
+    await assignment_started.wait()
+    second = asyncio.create_task(resolve("corr-2"))
+    await second_cache_lookup.wait()
+    release_assignment.set()
+    results = await asyncio.gather(first, second)
+
+    assert [result[0] for result in results] == [None, None]
+    assert [result[1] for result in results] == [
+        ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"],
+        ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"],
+    ]
+    assert all(len(result[2]) == 1 for result in results)
+    assert len(client.assignment_calls) == 1
+
+
+@pytest.mark.asyncio
 async def test_resolve_benchmark_code_keeps_explicit_code_local():
     client = FakeCoreClient()
     cache = AsyncTtlCache[Any](ttl_seconds=30)
