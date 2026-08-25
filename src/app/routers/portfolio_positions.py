@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 
 from app.contracts.portfolio_holdings import PortfolioPositionBookResponse
+from app.contracts.portfolio_tax_lots import PortfolioTaxLotResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 
@@ -20,6 +21,18 @@ async def _get_portfolio_positions(
         as_of_date=as_of_date,
         include_projected=include_projected,
         reporting_currency=reporting_currency,
+    )
+
+
+async def _get_portfolio_position_lots(
+    *,
+    portfolio_id: str,
+    security_id: str,
+) -> PortfolioTaxLotResponse:
+    return await portfolio_service().get_portfolio_tax_lots(
+        portfolio_id=portfolio_id,
+        security_id=security_id,
+        correlation_id=correlation_id_var.get(),
     )
 
 
@@ -65,4 +78,25 @@ async def get_portfolio_positions(
         as_of_date=as_of_date,
         include_projected=include_projected,
         reporting_currency=reporting_currency,
+    )
+
+
+@router.get(
+    "/portfolios/{portfolio_id}/positions/{security_id}/lots",
+    response_model=PortfolioTaxLotResponse,
+    summary="Get portfolio position tax lots",
+    description=(
+        "Returns the current source BUY lot records for one exact portfolio/security key. "
+        "The response preserves Core lot identity, acquisition, quantity, cost, and lineage "
+        "fields. Gateway does not calculate holding periods, lot valuation, unrealized P&L, "
+        "or reporting-currency restatement; use the source contract for those future semantics."
+    ),
+)
+async def get_portfolio_position_lots(
+    portfolio_id: str,
+    security_id: str,
+) -> PortfolioTaxLotResponse:
+    return await _get_portfolio_position_lots(
+        portfolio_id=portfolio_id,
+        security_id=security_id,
     )

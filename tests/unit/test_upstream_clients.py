@@ -4526,6 +4526,31 @@ async def test_lotus_core_query_client_support_routes_use_control_plane_contract
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_get_position_lots_quotes_both_path_segments():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(
+        200, {"portfolio_id": "PF/1001", "security_id": "SEC/AAPL", "lots": []}
+    )
+
+    status_code, payload = await client.get_position_lots(
+        portfolio_id="PF/1001",
+        security_id="SEC/AAPL",
+        correlation_id="corr-lots-client",
+    )
+
+    assert status_code == 200
+    assert payload["lots"] == []
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://core-query/portfolios/PF%2F1001/positions/SEC%2FAAPL/lots"
+    assert request["params"] == {}
+    assert request["headers"]["X-Correlation-Id"] == "corr-lots-client"
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_external_execution_acknowledgement_uses_control_plane():
     client = LotusCoreQueryClient(
         base_url="http://core-query",

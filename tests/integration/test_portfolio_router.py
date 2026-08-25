@@ -1340,6 +1340,81 @@ def test_portfolio_transactions_router(monkeypatch):
     assert captured["sort_order"] == "asc"
 
 
+def test_portfolio_position_tax_lots_router_preserves_source_lot_fields(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _lots(*args, **kwargs):
+        captured.update(kwargs)
+        return 200, {
+            "portfolio_id": "PF_1001",
+            "security_id": "SEC_AAPL",
+            "lots": [
+                {
+                    "lot_id": "LOT-001",
+                    "source_transaction_id": "TXN-001",
+                    "portfolio_id": "PF_1001",
+                    "instrument_id": "AAPL",
+                    "security_id": "SEC_AAPL",
+                    "acquisition_date": "2026-02-28",
+                    "original_quantity": 100.0,
+                    "open_quantity": 75.0,
+                    "lot_cost_local": 15005.5,
+                    "lot_cost_base": 15005.5,
+                    "accrued_interest_paid_local": 0,
+                    "economic_event_id": "EVT-001",
+                    "source_system": "OMS_PRIMARY",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_position_lots", _lots)
+    response = TestClient(app).get("/api/v1/portfolio/portfolios/PF_1001/positions/SEC_AAPL/lots")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["security_id"] == "SEC_AAPL"
+    assert body["lots"][0]["lot_id"] == "LOT-001"
+    assert body["lots"][0]["acquisition_date"] == "2026-02-28"
+    assert body["lots"][0]["lot_cost_base"] == "15005.5"
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "security_id": "SEC_AAPL",
+        "correlation_id": captured["correlation_id"],
+    }
+
+
+def test_portfolio_position_tax_lots_router_rejects_mismatched_source_identity(monkeypatch):
+    async def _lots(*args, **kwargs):
+        return 200, {
+            "portfolio_id": "PF_1001",
+            "security_id": "SEC_AAPL",
+            "lots": [
+                {
+                    "lot_id": "LOT-001",
+                    "source_transaction_id": "TXN-001",
+                    "portfolio_id": "PF_OTHER",
+                    "instrument_id": "AAPL",
+                    "security_id": "SEC_AAPL",
+                    "acquisition_date": "2026-02-28",
+                    "original_quantity": 100.0,
+                    "open_quantity": 75.0,
+                    "lot_cost_local": 15005.5,
+                    "lot_cost_base": 15005.5,
+                    "accrued_interest_paid_local": 0,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_position_lots", _lots)
+    response = TestClient(app).get("/api/v1/portfolio/portfolios/PF_1001/positions/SEC_AAPL/lots")
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == (
+        "lotus-core portfolio tax-lot lookup returned an invalid payload"
+    )
+
+
 def test_portfolio_liquidity_router(monkeypatch):
     captured: dict[str, object] = {}
 

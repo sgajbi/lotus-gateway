@@ -161,6 +161,22 @@ class PortfolioUpstreamAccessMixin:
             ),
         )
 
+    async def _get_portfolio_position_lots_result(
+        self,
+        *,
+        portfolio_id: str,
+        security_id: str,
+        correlation_id: str,
+    ) -> UpstreamResult:
+        return await self._get_cached_upstream_result(
+            ("position_lots", portfolio_id, security_id),
+            lambda: self._lotus_core_query_client.get_position_lots(
+                portfolio_id=portfolio_id,
+                security_id=security_id,
+                correlation_id=correlation_id,
+            ),
+        )
+
     async def _get_portfolio_transactions_result_for_context(
         self,
         context: PortfolioTransactionsRequestContext,

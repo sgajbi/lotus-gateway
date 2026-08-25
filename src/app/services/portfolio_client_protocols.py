@@ -68,6 +68,14 @@ class PortfolioCoreClient(Protocol):
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
+    async def get_position_lots(
+        self,
+        *,
+        portfolio_id: str,
+        security_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
     async def get_portfolio_transactions(
         self,
         *,

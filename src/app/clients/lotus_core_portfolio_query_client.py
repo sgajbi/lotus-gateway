@@ -105,6 +105,21 @@ class LotusCorePortfolioQueryClientMixin:
             params=params,
         )
 
+    async def get_position_lots(
+        self,
+        *,
+        portfolio_id: str,
+        security_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        portfolio_path = quote(portfolio_id, safe="")
+        security_path = quote(security_id, safe="")
+        return await self._get_query_resource(
+            operation="core.portfolios.position-lots.list",
+            path=f"/portfolios/{portfolio_path}/positions/{security_path}/lots",
+            correlation_id=correlation_id,
+        )
+
     async def get_portfolio_transactions(
         self,
         portfolio_id: str,
