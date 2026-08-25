@@ -164,7 +164,12 @@ Current repository posture:
    pending, and unavailable archive posture and emits metadata/download links only for a confirmed
    archived source document. Those links remain behind the existing tenant/region archive
    preflight, and Gateway never exposes raw storage locations or substitutes a newer correction
-   document,
+   document. The read-only `/api/v1/report-batches/preflight` route now evaluates the same
+   validated batch setup against Core's `PortfolioManagerBookMembership:v1` once and Report's
+   ordering catalogue once, returning ordered per-portfolio `ready`, `partial`, `stale`,
+   `permission_blocked`, or `unavailable` posture plus separate membership/configuration
+   supportability. It is non-authoritative and never creates a batch or report job; mutation
+   repeats all scope and configuration checks,
 7. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,

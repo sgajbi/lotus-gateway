@@ -185,8 +185,9 @@ performance, cash, risk, attention, mandate, suitability, or recommendation trut
 2. portfolio-review report job submission,
 3. report-job search/status/event-history/cancellation,
 4. RFC-0104 report-batch materialization/status/control/retry/recovery/bounded operator-run,
-5. report-batch scheduler list and run-due,
-6. archived generated-document metadata and controlled binary download.
+5. read-only report-batch candidate preflight,
+6. report-batch scheduler list and run-due,
+7. archived generated-document metadata and controlled binary download.
 
 Report ordering publishes business labels, available configuration, sections, output-format
 posture, and only implemented submission paths. `lotus-report` remains the catalogue and report
@@ -197,7 +198,11 @@ distribution, prove PDF generation, or claim archive completion. Batch status pr
 directly linked Report job and archive identity, and publishes an available/pending/unavailable
 archive posture with bounded reasons. Gateway-controlled metadata/download links appear only for a
 confirmed archived source document; the existing archive routes re-check caller scope and no raw
-storage location is exposed.
+storage location is exposed. `POST /api/v1/report-batches/preflight` is a read-only,
+non-authoritative composition over the validated batch setup, one Core membership read, and one
+Report ordering-catalogue read. It preserves requested portfolio order and returns explicit
+candidate postures plus separate membership and report-configuration posture; batch mutation
+repeats every boundary check.
 
 ## Data Products
 

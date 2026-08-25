@@ -4,6 +4,29 @@ Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2U — publish report-batch candidate preflight (#542)
+
+- Objective: let Workbench inspect an explicit report-batch selection before mutation without
+  inventing membership or report-configuration truth.
+- Change: add `POST /api/v1/report-batches/preflight` with `report-batch-preflight.v1`. The
+  read-only service validates the existing `BatchCreateRequest`, requires the trusted caller,
+  reads Core's `PortfolioManagerBookMembership:v1` once with inactive members included, reads the
+  Report ordering catalogue once, preserves requested portfolio order, and maps active, inactive,
+  missing, source-degraded, and output-configuration outcomes to bounded candidate posture. Source
+  membership evidence and Report configuration posture are separate; caller-supplied candidate
+  headers do not authorize results.
+- Regression proof: unit tests cover ready/mixed, inactive, permission-blocked, source-unavailable,
+  unavailable-output, missing-caller, and single-read behavior; integration tests prove the static
+  preflight route, trusted-header boundary, correlation forwarding, read-only response, and OpenAPI
+  candidate enum.
+- Compatibility: additive read-only route and contract only. Existing batch creation, idempotency,
+  mutation re-verification, Report lifecycle, status/archive contracts, and caller boundaries are
+  unchanged. No migration, configuration, retry-policy, dependency, or downstream mutation change.
+- Documentation decision: repository context, supported-features docs/wiki, API-surface wiki, and
+  this ledger change because the Gateway public surface and non-authoritative boundary changed. No
+  central platform context or runbook change is required. Wiki publication and strict parity are
+  required after merge.
+
 ### Batch 2T — publish source-owned report-batch archive identity (#543)
 
 - Objective: make completed report-batch outputs safely openable through Gateway without inventing

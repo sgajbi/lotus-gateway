@@ -162,6 +162,14 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   scope. The response publishes only implemented Gateway submission paths. Client/book scope does
   not expand portfolio membership, and ordering eligibility is not client-distribution approval or
   proof of document/archive completion
+- `POST /api/v1/report-batches/preflight` accepts the same validated explicit batch setup as batch
+  creation without an idempotency key or mutation. Gateway reads Core's
+  `PortfolioManagerBookMembership:v1` once and the Report ordering catalogue once, preserves
+  requested portfolio order, and returns `ready`, `partial`, `stale`, `permission_blocked`, or
+  `unavailable` candidate posture with separate source membership and Report configuration posture.
+  It is non-authoritative; `POST /api/v1/report-batches` repeats scope and configuration checks
+  before creating durable Report-owned state. Browser-supplied candidate headers never authorize a
+  result
 - reporting review preserves `client_sections`, `advisor_sections`, readiness, evidence, and
   partial/unavailable section states from `lotus-report`; advisor-only material must stay under
   `advisor_sections`
@@ -827,6 +835,25 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches" \
   -H "X-Caller-Capabilities: advisor.book.read" \
   -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\"]},\"max_batch_size\":250}"
 ```
+
+Report batch candidate preflight:
+
+```bash
+curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches/preflight" \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: ADVISOR" \
+  -H "X-Caller-Capabilities: advisor.book.read" \
+  -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\"]},\"max_batch_size\":250}"
+```
+
+The preflight response uses `report-batch-preflight.v1`, returns one candidate result per requested
+portfolio in request order, and separates source membership posture from report-configuration
+posture. It does not reserve, create, or authorize a later batch.
 
 Report batch status:
 
