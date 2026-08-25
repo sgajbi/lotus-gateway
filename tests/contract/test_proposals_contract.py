@@ -1,3 +1,6 @@
+from copy import deepcopy
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -1282,113 +1285,151 @@ def test_proposals_openapi_write_contract() -> None:
     assert transition_data_schema["properties"]["approval"]["description"]
 
 
-def test_proposal_memo_openapi_data_schemas_are_closed_and_typed() -> None:
-    client = TestClient(app)
-    schemas = client.get("/openapi.json").json()["components"]["schemas"]
-    expected_data_refs = {
-        "ProposalMemoEnvelopeResponse": "ProposalMemoResponse",
-        "ProposalMemoProjectionEnvelopeResponse": "ProposalMemoProjectionResponse",
-        "ProposalMemoReviewEnvelopeResponse": "ProposalMemoReviewResponse",
-        "ProposalMemoReportPackageEventEnvelopeResponse": "ProposalMemoReportPackageEventResponse",
-        "ProposalMemoReportPackageEnvelopeResponse": "ProposalMemoReportPackageResponse",
-        "ProposalMemoAiCommentaryEnvelopeResponse": "ProposalMemoAiCommentaryResponse",
-        "ProposalMemoLineageEnvelopeResponse": "ProposalMemoLineageResponse",
-        "ProposalMemoReplayEvidenceEnvelopeResponse": "ProposalMemoReplayEvidenceResponse",
-    }
-    expected_properties = {
-        "ProposalMemoResponse": {
-            "proposal",
-            "proposal_version_no",
-            "proposal_version_id",
-            "memo_id",
-            "artifact_id",
-            "memo_version",
-            "memo_status",
-            "lifecycle_status",
-            "created_by",
-            "created_at",
-            "source_input_hash",
-            "memo_hash",
-            "memo",
-            "projection",
-            "review_posture",
-            "report_package_posture",
-            "ai_commentary_posture",
-            "replay_metadata",
-            "audit_events",
-            "event_count",
-            "replay_evidence_path",
-            "lineage_path",
-            "read_posture",
-        },
-        "ProposalMemoProjectionResponse": {
-            "proposal",
-            "proposal_version_no",
-            "memo_id",
-            "memo_hash",
-            "audience",
-            "projection",
-            "sections",
-            "projection_posture",
-        },
-        "ProposalMemoReviewResponse": {"memo", "review_event", "replayed"},
-        "ProposalMemoReportPackageEventResponse": {
-            "memo",
-            "report_package_event",
-            "replayed",
-        },
-        "ProposalMemoReportPackageResponse": {
-            "memo",
-            "report_package_event",
-            "report",
-            "replayed",
-        },
-        "ProposalMemoAiCommentaryResponse": {"memo", "ai_event", "commentary", "replayed"},
-        "ProposalMemoLineageResponse": {
-            "proposal",
-            "memo_count",
-            "latest_memo_id",
-            "lineage_complete",
-            "memos",
-            "lineage_posture",
-        },
-        "ProposalMemoReplayEvidenceResponse": {
-            "subject",
-            "hashes",
-            "replay_metadata",
-            "audit_events",
-            "evidence",
-            "explanation",
-        },
-    }
+_EXPECTED_MEMO_DATA_REFS = {
+    "ProposalMemoEnvelopeResponse": "ProposalMemoResponse",
+    "ProposalMemoProjectionEnvelopeResponse": "ProposalMemoProjectionResponse",
+    "ProposalMemoReviewEnvelopeResponse": "ProposalMemoReviewResponse",
+    "ProposalMemoReportPackageEventEnvelopeResponse": "ProposalMemoReportPackageEventResponse",
+    "ProposalMemoReportPackageEnvelopeResponse": "ProposalMemoReportPackageResponse",
+    "ProposalMemoAiCommentaryEnvelopeResponse": "ProposalMemoAiCommentaryResponse",
+    "ProposalMemoLineageEnvelopeResponse": "ProposalMemoLineageResponse",
+    "ProposalMemoReplayEvidenceEnvelopeResponse": "ProposalMemoReplayEvidenceResponse",
+}
+_EXPECTED_MEMO_PROPERTIES = {
+    "ProposalMemoResponse": {
+        "proposal",
+        "proposal_version_no",
+        "proposal_version_id",
+        "memo_id",
+        "artifact_id",
+        "memo_version",
+        "memo_status",
+        "lifecycle_status",
+        "created_by",
+        "created_at",
+        "source_input_hash",
+        "memo_hash",
+        "memo",
+        "projection",
+        "review_posture",
+        "report_package_posture",
+        "ai_commentary_posture",
+        "replay_metadata",
+        "audit_events",
+        "event_count",
+        "replay_evidence_path",
+        "lineage_path",
+        "read_posture",
+    },
+    "ProposalMemoProjectionResponse": {
+        "proposal",
+        "proposal_version_no",
+        "memo_id",
+        "memo_hash",
+        "audience",
+        "projection",
+        "sections",
+        "projection_posture",
+    },
+    "ProposalMemoReviewResponse": {"memo", "review_event", "replayed"},
+    "ProposalMemoReportPackageEventResponse": {
+        "memo",
+        "report_package_event",
+        "replayed",
+    },
+    "ProposalMemoReportPackageResponse": {
+        "memo",
+        "report_package_event",
+        "report",
+        "replayed",
+    },
+    "ProposalMemoAiCommentaryResponse": {"memo", "ai_event", "commentary", "replayed"},
+    "ProposalMemoLineageResponse": {
+        "proposal",
+        "memo_count",
+        "latest_memo_id",
+        "lineage_complete",
+        "memos",
+        "lineage_posture",
+    },
+    "ProposalMemoReplayEvidenceResponse": {
+        "subject",
+        "hashes",
+        "replay_metadata",
+        "audit_events",
+        "evidence",
+        "explanation",
+    },
+}
+
+
+def _assert_closed_memo_schemas(schemas: dict[str, Any]) -> None:
     visited: set[str] = set()
 
-    def assert_closed_memo_schema(schema_name: str) -> None:
+    def visit_fragment(fragment: object, path: str) -> None:
+        if not isinstance(fragment, dict):
+            return
+        ref = fragment.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/components/schemas/ProposalMemo"):
+            assert_closed_memo_schema(ref.rsplit("/", 1)[-1], path)
+        for key in ("anyOf", "allOf", "oneOf"):
+            for index, child in enumerate(fragment.get(key, [])):
+                visit_fragment(child, f"{path}.{key}[{index}]")
+        if "items" in fragment:
+            visit_fragment(fragment["items"], f"{path}.items")
+        if "additionalProperties" in fragment:
+            additional_properties = fragment["additionalProperties"]
+            assert additional_properties is not True, (
+                f"{path}.additionalProperties must be false or a typed schema"
+            )
+            visit_fragment(additional_properties, f"{path}.additionalProperties")
+
+    def assert_closed_memo_schema(schema_name: str, path: str) -> None:
         if schema_name in visited:
             return
         visited.add(schema_name)
         schema = schemas[schema_name]
-        assert schema["additionalProperties"] is False
+        assert schema["additionalProperties"] is False, path
         assert schema.get("properties"), schema_name
+        for property_name, property_schema in schema["properties"].items():
+            visit_fragment(property_schema, f"{path}.{property_name}")
 
-        def visit_fragment(fragment: object) -> None:
-            if not isinstance(fragment, dict):
-                return
-            ref = fragment.get("$ref")
-            if isinstance(ref, str) and ref.startswith("#/components/schemas/ProposalMemo"):
-                assert_closed_memo_schema(ref.rsplit("/", 1)[-1])
-            for key in ("anyOf", "allOf", "oneOf"):
-                for child in fragment.get(key, []):
-                    visit_fragment(child)
-            visit_fragment(fragment.get("items"))
-            visit_fragment(fragment.get("additionalProperties"))
-
-        for property_schema in schema["properties"].values():
-            visit_fragment(property_schema)
-
-    for envelope_name, data_name in expected_data_refs.items():
+    for envelope_name, data_name in _EXPECTED_MEMO_DATA_REFS.items():
         data_schema = schemas[envelope_name]["properties"]["data"]
         assert data_schema["$ref"].endswith(f"/{data_name}")
         assert schemas[data_name]["additionalProperties"] is False
-        assert expected_properties[data_name].issubset(schemas[data_name]["properties"])
-        assert_closed_memo_schema(data_name)
+        assert _EXPECTED_MEMO_PROPERTIES[data_name].issubset(schemas[data_name]["properties"])
+        assert_closed_memo_schema(data_name, data_name)
+
+
+def test_proposal_memo_openapi_data_schemas_are_closed_and_typed() -> None:
+    client = TestClient(app)
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+
+    _assert_closed_memo_schemas(schemas)
+
+
+def test_proposal_memo_openapi_fitness_rejects_nested_free_form_objects() -> None:
+    client = TestClient(app)
+    schemas = deepcopy(client.get("/openapi.json").json()["components"]["schemas"])
+    schemas["ProposalMemoResponse"]["properties"]["projection"] = {
+        "type": "object",
+        "additionalProperties": True,
+    }
+
+    with pytest.raises(
+        AssertionError,
+        match=r"ProposalMemoResponse\.projection\.additionalProperties",
+    ):
+        _assert_closed_memo_schemas(schemas)
+
+
+def test_proposal_memo_openapi_fitness_accepts_bounded_scalar_maps() -> None:
+    client = TestClient(app)
+    schemas = deepcopy(client.get("/openapi.json").json()["components"]["schemas"])
+    schemas["ProposalMemoResponse"]["properties"]["bounded_metadata"] = {
+        "type": "object",
+        "additionalProperties": {"type": "string"},
+    }
+
+    _assert_closed_memo_schemas(schemas)
