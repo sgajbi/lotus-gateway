@@ -701,6 +701,133 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert captured_payload["stateful_input"]["reporting_currency"] == "USD"
 
 
+def test_workbench_risk_summary_router_composes_manage_mandate_evidence(monkeypatch):
+    async def _risk_calculate(self, payload, correlation_id):  # noqa: ARG001
+        return 200, {
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-05-03",
+                    "metrics": {
+                        "VOLATILITY": {"value": 0.12},
+                        "SHARPE": {"value": 1.2},
+                        "SORTINO": {"value": 1.4},
+                        "BETA": {"value": 0.9},
+                        "TRACKING_ERROR": {"value": 0.04},
+                        "INFORMATION_RATIO": {"value": 0.4},
+                        "VAR": {"value": -0.02},
+                    },
+                }
+            }
+        }
+
+    async def _mandate(self, portfolio_id, correlation_id, as_of_date=None):  # noqa: ARG001
+        return 200, {
+            "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+            "portfolio_id": portfolio_id,
+            "mandate_version": "3",
+            "as_of_date": "2026-05-03",
+            "risk_profile": "BALANCED",
+            "constraints": {
+                "cash_band_min_weight": 0.02,
+                "cash_band_max_weight": 0.10,
+                "turnover_budget": 0.15,
+                "max_tracking_error": 0.05,
+            },
+            "review_policy": {
+                "review_frequency": "QUARTERLY",
+                "last_review_date": "2026-03-31",
+                "next_review_due_date": "2026-06-30",
+            },
+            "source_lineage": [
+                {
+                    "product_name": "DiscretionaryMandateBinding",
+                    "product_version": "v1",
+                    "source_system": "lotus-core",
+                    "data_quality_status": "COMPLETE",
+                }
+            ],
+        }
+
+    async def _health(self, mandate_id, correlation_id, as_of_date=None):  # noqa: ARG001
+        return 200, {
+            "health_snapshot_id": "mh_1",
+            "mandate_id": mandate_id,
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "as_of_date": "2026-05-03",
+            "health_state": "READY",
+            "dimension_scores": [
+                {
+                    "dimension": "CASH_LIQUIDITY",
+                    "state": "READY",
+                    "reason_code": "CASH_LIQUIDITY_READY",
+                }
+            ],
+        }
+
+    async def _overview(
+        self,
+        portfolio_id,
+        correlation_id,
+        include_performance_snapshot=True,
+        include_rebalance_snapshot=True,
+        requested_as_of_date=None,
+    ):
+        return WorkbenchOverviewResponse(
+            correlation_id=correlation_id,
+            as_of_date="2026-05-03",
+            requested_as_of_date=requested_as_of_date,
+            effective_as_of_date="2026-05-03",
+            as_of_state="confirmed",
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id=portfolio_id,
+                base_currency="SGD",
+            ),
+            overview=WorkbenchOverviewSummary(
+                market_value_base=1_000_000,
+                cash_weight_pct=8.59,
+                position_count=12,
+            ),
+        )
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_calculate",
+        _risk_calculate,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_mandate_by_portfolio",
+        _mandate,
+    )
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_mandate_health", _health)
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_workbench_overview",
+        _overview,
+    )
+    monkeypatch.setattr(
+        "app.services.workbench_service_provider._RISK_WORKSPACE_SERVICE",
+        None,
+    )
+    monkeypatch.setattr(
+        "app.services.workbench_service_provider._RISK_WORKSPACE_SERVICE_SIGNATURE",
+        None,
+    )
+
+    response = TestClient(app).get(
+        "/api/v1/workbench/PB_SG_GLOBAL_BAL_001/risk/summary"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-05-03&reporting_currency=SGD",
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-risk-mandate"},
+    )
+
+    assert response.status_code == 200
+    comparison = response.json()["mandate_comparison"]
+    assert comparison["risk_profile"] == "BALANCED"
+    assert comparison["date_alignment_state"] == "aligned"
+    assert comparison["review_policy"]["state"] == "scheduled"
+    assert comparison["constraints"][0]["headroom"] == 0.0141
+    assert comparison["constraints"][1]["state"] == "within"
+
+
 def test_workbench_risk_summary_router_requires_caller_context():
     client = TestClient(app)
     response = client.get(
