@@ -19,16 +19,14 @@ from app.contracts.risk_workspace_concentration import (
     WorkbenchTopPositionDriver,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
-from app.services.risk_mandate_comparison import (
-    compose_concentration_mandate_comparison,
-    compose_summary_mandate_comparison,
-)
+from app.services.risk_mandate_concentration import compose_concentration_mandate_comparison
 from app.services.risk_mandate_sources import (
     ManageMandateHealthSource,
     ManageMandateSource,
     RiskMandateSources,
     WorkbenchCashMeasureSource,
 )
+from app.services.risk_mandate_summary import compose_summary_mandate_comparison
 
 
 def _mandate(**constraint_overrides: float | None) -> ManageMandateSource:

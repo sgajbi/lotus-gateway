@@ -512,6 +512,19 @@ def test_risk_workspace_attribution_orchestration_lives_in_focused_mixin() -> No
     assert not attribution_orchestration_methods & service_methods
 
 
+def test_risk_workspace_mandate_orchestration_lives_in_focused_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "risk_workspace_service.py")
+    mandate_service_methods = _function_names(_SERVICE_ROOT / "risk_workspace_mandate_service.py")
+    mandate_orchestration_methods = {
+        "_load_summary_with_mandate",
+        "_load_concentration_with_mandate",
+        "_load_mandate_sources",
+    }
+
+    assert mandate_orchestration_methods <= mandate_service_methods
+    assert not mandate_orchestration_methods & service_methods
+
+
 def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
