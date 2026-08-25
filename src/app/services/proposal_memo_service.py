@@ -1,7 +1,18 @@
 from typing import Any
 
+from app.contracts.proposal_memo_action_models import (
+    ProposalMemoAiCommentaryResponse,
+    ProposalMemoReportPackageEventResponse,
+    ProposalMemoReportPackageResponse,
+    ProposalMemoReviewResponse,
+)
+from app.contracts.proposal_memo_lineage_models import (
+    ProposalMemoLineageResponse,
+    ProposalMemoReplayEvidenceResponse,
+)
+from app.contracts.proposal_memo_models import ProposalMemoProjectionResponse, ProposalMemoResponse
+from app.contracts.proposal_memos import ProposalMemoReportPackageEventEnvelopeResponse
 from app.contracts.proposals import (
-    ProposalEnvelopeResponse,
     ProposalMemoAiCommentaryEnvelopeResponse,
     ProposalMemoEnvelopeResponse,
     ProposalMemoLineageEnvelopeResponse,
@@ -11,18 +22,11 @@ from app.contracts.proposals import (
     ProposalMemoReviewEnvelopeResponse,
 )
 from app.services.proposal_client_protocols import ProposalClient
-from app.services.upstream_envelope import build_gateway_envelope
+from app.services.upstream_envelope import build_typed_gateway_envelope
 
 
 class ProposalMemoServiceMixin:
     _advise_client: ProposalClient
-
-    def _opaque_envelope(
-        self,
-        correlation_id: str,
-        upstream_payload: dict[str, Any],
-    ) -> ProposalEnvelopeResponse:
-        raise NotImplementedError
 
     def _raise_for_upstream_error(
         self,
@@ -47,8 +51,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoEnvelopeResponse,
+            ProposalMemoResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -65,8 +70,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoEnvelopeResponse,
+            ProposalMemoResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -85,8 +91,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoProjectionEnvelopeResponse,
+            ProposalMemoProjectionResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -107,8 +114,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoReviewEnvelopeResponse,
+            ProposalMemoReviewResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -120,7 +128,7 @@ class ProposalMemoServiceMixin:
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalMemoReportPackageEventEnvelopeResponse:
         (
             upstream_status,
             upstream_payload,
@@ -132,7 +140,12 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._opaque_envelope(correlation_id, upstream_payload)
+        return build_typed_gateway_envelope(
+            ProposalMemoReportPackageEventEnvelopeResponse,
+            ProposalMemoReportPackageEventResponse,
+            correlation_id=correlation_id,
+            upstream_payload=upstream_payload,
+        )
 
     async def request_proposal_memo_report_package(
         self,
@@ -153,8 +166,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoReportPackageEnvelopeResponse,
+            ProposalMemoReportPackageResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -178,8 +192,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoAiCommentaryEnvelopeResponse,
+            ProposalMemoAiCommentaryResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -194,8 +209,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoLineageEnvelopeResponse,
+            ProposalMemoLineageResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
@@ -215,8 +231,9 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_gateway_envelope(
+        return build_typed_gateway_envelope(
             ProposalMemoReplayEvidenceEnvelopeResponse,
+            ProposalMemoReplayEvidenceResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
         )
