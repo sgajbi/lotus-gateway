@@ -516,6 +516,16 @@ Performance attribution level totals are also source-owned. Gateway preserves ex
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
 `lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.
 
+Workbench risk summary and concentration responses include a typed `mandate_comparison` composed
+from Manage-owned mandate, health, review-policy, and lineage evidence; Risk-owned tracking-error
+and concentration measures; and the Core-owned cash measure already resolved by the Workbench
+snapshot. Gateway may normalize percentage points to ratios and calculate signed presentation
+headroom only from date- and basis-aligned source facts. It must not calculate mandate health,
+invent a limit, blend source dates, accept cross-portfolio evidence, or publish a conflicting
+verdict as within/breach. Manage's historical mandate/health selection contract is tracked by
+`lotus-manage#639`; until it lands, historical risk reads preserve latest source dates and report
+explicit mismatch posture.
+
 The Workbench performance summary, details, attribution-trend, and advisor-brief routes accept
 optional `as_of_date` and `reporting_currency` controls. Gateway forwards the selected reporting
 currency to `lotus-performance`, uses the requested as-of date as the report-window end when an

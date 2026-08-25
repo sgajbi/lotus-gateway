@@ -107,12 +107,19 @@ authority remains with the named downstream execution provider as the execution 
 5. risk workspace module payloads preserve source calculation supportability from `lotus-risk`
    alongside dependency-specific supportability entries; Gateway does not recompute risk
    supportability
-6. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
-7. archived document retrieval is product-facing only through gateway document routes; Workbench
+6. risk summary and concentration compose `lotus-manage` mandate identity, constraints, health,
+   review cadence, and lineage with `lotus-risk` measures and the date-resolved Workbench cash
+   measure. Manage owns cash-health verdicts and approved limits; Risk owns tracking error and
+   concentration measures; Core owns the cash measure. Gateway calculates only signed presentation
+   headroom from aligned source facts, rejects conflicting or cross-portfolio evidence, and emits
+   explicit unavailable posture for missing limits, measures, dates, or bases. Historical Manage
+   selection remains tracked by `lotus-manage#639`.
+7. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
+8. archived document retrieval is product-facing only through gateway document routes; Workbench
    does not call `lotus-archive` directly
-8. idea review queue and candidate detail retrieval are product-facing only through gateway idea
+9. idea review queue and candidate detail retrieval are product-facing only through gateway idea
    routes; Workbench must not call `lotus-idea` directly for these read surfaces
-9. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise`,
+10. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise`,
    `lotus-manage`, or `lotus-idea` directly for proposal, management, or idea workflow data
 9. RFC-0023 advisory narrative posture remains `lotus-advise` truth. Gateway exposes reviewed
    narrative, report-request, delivery-summary, delivery-event, and the request-bound typed

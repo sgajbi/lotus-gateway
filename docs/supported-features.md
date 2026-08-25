@@ -99,6 +99,25 @@ the calculation remains pending. If submission acceptance is unknown, Gateway om
 identity rather than claiming a retrievable result. Gateway does not start execution or lineage
 evidence reads after the budget expires, and support is not inferred from a successful warm retry.
 
+## Risk Mandate Comparison
+
+Status: implementation-backed for the Gateway contract and date-aligned source composition;
+historical Manage reads remain tracked by `lotus-manage#639`.
+
+The Workbench risk summary combines Risk-owned measures with the approved Manage mandate,
+Manage-owned cash-health verdict, review cadence, and bounded source lineage. The concentration
+route publishes the same mandate identity with a compact position/issuer comparison. Gateway
+calculates signed headroom only when a source limit and source measure are both present and their
+business dates and valuation basis align. A missing limit is `not_defined`; missing, stale,
+mismatched, malformed, or contradictory evidence is `measure_unavailable` or supportability
+`unavailable`, never an inferred all-clear.
+
+Cash percentage points from the Workbench snapshot are normalized to the ratio unit used by the
+mandate, but Manage remains the cash-band verdict authority. Gateway rejects a Manage verdict that
+contradicts same-date cash and limit evidence instead of publishing either competing judgement.
+Risk remains the tracking-error and concentration-measure authority. Turnover and other
+unmeasured constraints remain explicitly unavailable until an owning service supplies a measure.
+
 ## Performance Summary Review Controls
 
 Status: implementation-backed for the Workbench performance summary, details, attribution-trend,
