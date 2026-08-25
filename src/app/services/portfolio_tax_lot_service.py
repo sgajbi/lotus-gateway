@@ -64,10 +64,10 @@ def _build_portfolio_tax_lot_response(
     payload: dict[str, Any],
 ) -> PortfolioTaxLotResponse:
     source_portfolio_id = payload.get("portfolio_id")
-    if source_portfolio_id is not None and source_portfolio_id != portfolio_id:
+    if source_portfolio_id != portfolio_id:
         raise ValueError("source portfolio identity does not match the requested portfolio")
     source_security_id = payload.get("security_id")
-    if source_security_id is not None and source_security_id != security_id:
+    if source_security_id != security_id:
         raise ValueError("source security identity does not match the requested security")
 
     raw_lots = payload.get("lots")
@@ -78,12 +78,11 @@ def _build_portfolio_tax_lot_response(
     for raw_lot in raw_lots:
         if not isinstance(raw_lot, dict):
             raise ValueError("source lot records must be objects")
-        lot = {
-            **raw_lot,
-            "portfolio_id": raw_lot.get("portfolio_id", portfolio_id),
-            "security_id": raw_lot.get("security_id", security_id),
-        }
-        parsed_lot = _validate_lot_identity(lot, portfolio_id=portfolio_id, security_id=security_id)
+        parsed_lot = _validate_lot_identity(
+            raw_lot,
+            portfolio_id=portfolio_id,
+            security_id=security_id,
+        )
         lots.append(parsed_lot)
 
     return PortfolioTaxLotResponse(

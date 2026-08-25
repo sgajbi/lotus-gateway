@@ -62,7 +62,39 @@ def test_tax_lot_builder_rejects_cross_portfolio_source_identity():
             contract_version="v1",
             portfolio_id="PF_1001",
             security_id="SEC_AAPL",
-            payload={"lots": [_lot_payload(portfolio_id="PF_OTHER")]},
+            payload={
+                "portfolio_id": "PF_1001",
+                "security_id": "SEC_AAPL",
+                "lots": [_lot_payload(portfolio_id="PF_OTHER")],
+            },
+        )
+
+
+def test_tax_lot_builder_rejects_missing_envelope_identity():
+    with pytest.raises(ValueError, match="identity"):
+        _build_portfolio_tax_lot_response(
+            correlation_id="corr-lots",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            security_id="SEC_AAPL",
+            payload={"lots": [_lot_payload()]},
+        )
+
+
+def test_tax_lot_builder_rejects_missing_lot_identity_instead_of_stamping_request_ids():
+    lot = _lot_payload()
+    lot.pop("portfolio_id")
+    with pytest.raises(ValueError, match="portfolio_id"):
+        _build_portfolio_tax_lot_response(
+            correlation_id="corr-lots",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            security_id="SEC_AAPL",
+            payload={
+                "portfolio_id": "PF_1001",
+                "security_id": "SEC_AAPL",
+                "lots": [lot],
+            },
         )
 
 
