@@ -206,3 +206,13 @@ class WorkbenchMandateComparison(BaseModel):
     supportability: WorkbenchMandateComparisonSupportability = Field(
         description="Availability and trust posture of the mandate comparison.",
     )
+
+
+class WorkbenchMandateComparisonEnvelope(BaseModel):
+    mandate_comparison: WorkbenchMandateComparison | None = Field(
+        default=None,
+        description=(
+            "Manage-owned mandate evidence composed with source-owned risk measures for advisor "
+            "decision support."
+        ),
+    )
