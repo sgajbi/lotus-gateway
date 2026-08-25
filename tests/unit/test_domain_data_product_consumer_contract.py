@@ -20,6 +20,10 @@ ROUTE_INVENTORY_PATH = (
 )
 _ROUTE_TEMPLATE_PLACEHOLDER_PATTERN = re.compile(r"\{[^{}]*\}")
 _UNRESOLVED_ROUTE_TEMPLATE = "<unresolved integration route>"
+_ROUTE_ARGUMENT_NAMES = frozenset({"path", "url"})
+_CORE_CLIENT_ROUTE_VISIBILITY_EXEMPTIONS = {
+    "lotus_core_transaction_params.py": "parameter and DTO definitions only; no transport calls",
+}
 
 
 def _consumer_contract() -> dict:
@@ -93,8 +97,8 @@ def _resolve_route_templates(
     return set()
 
 
-def _path_argument_templates(
-    node: ast.AsyncFunctionDef,
+def _route_argument_templates(
+    node: ast.AsyncFunctionDef | ast.FunctionDef,
     assignments: dict[str, ast.AST],
 ) -> list[tuple[set[str], bool]]:
     routes: list[tuple[set[str], bool]] = []
@@ -102,7 +106,7 @@ def _path_argument_templates(
         if not isinstance(call, ast.Call):
             continue
         for keyword in call.keywords:
-            if keyword.arg != "path":
+            if keyword.arg not in _ROUTE_ARGUMENT_NAMES:
                 continue
             resolved = _resolve_route_templates(keyword.value, assignments)
             routes.append((resolved, not resolved))
@@ -111,6 +115,48 @@ def _path_argument_templates(
 
 def _normalize_route_template(route_template: str) -> str:
     return _ROUTE_TEMPLATE_PLACEHOLDER_PATTERN.sub("{}", route_template)
+
+
+def _integration_route_template(route_template: str) -> str | None:
+    marker = "/integration/"
+    route_start = route_template.find(marker)
+    if route_start < 0:
+        return None
+    return route_template[route_start:]
+
+
+def _has_concrete_route_segment(route_template: str) -> bool:
+    return re.search(r"/[A-Za-z0-9]", route_template) is not None
+
+
+def _core_client_route_templates(tree: ast.Module) -> set[str]:
+    routes: set[str] = set()
+    module_assignments = _assignment_values(tree)
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
+            continue
+        assignments = module_assignments | _assignment_values(node)
+        for route_templates, _ in _route_argument_templates(node, assignments):
+            routes.update(route for route in route_templates if _has_concrete_route_segment(route))
+    return routes
+
+
+def _assert_core_client_route_visibility(client_root: Path = CLIENT_ROOT) -> None:
+    uncovered_modules: list[str] = []
+    for client_path in sorted(client_root.glob("lotus_core*.py")):
+        if client_path.name in _CORE_CLIENT_ROUTE_VISIBILITY_EXEMPTIONS:
+            continue
+        tree = ast.parse(
+            client_path.read_text(encoding="utf-8"),
+            filename=str(client_path),
+        )
+        if not _core_client_route_templates(tree):
+            uncovered_modules.append(client_path.name)
+    if uncovered_modules:
+        details = ", ".join(uncovered_modules)
+        raise AssertionError(
+            "Core client modules without a statically resolvable transport route: " + details
+        )
 
 
 def _implemented_core_domain_product_reads(
@@ -122,30 +168,36 @@ def _implemented_core_domain_product_reads(
         tree = ast.parse(source, filename=str(client_path))
         module_assignments = _assignment_values(tree)
         for node in ast.walk(tree):
-            if not isinstance(node, ast.AsyncFunctionDef):
+            if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
                 continue
             assignments = module_assignments | _assignment_values(node)
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            for path_templates, unresolved_path in _path_argument_templates(node, assignments):
-                if not any("/integration/" in template for template in path_templates) and not (
-                    unresolved_path and not node.name.startswith("_")
+            for route_templates, unresolved_route in _route_argument_templates(node, assignments):
+                integration_routes = {
+                    route
+                    for template in route_templates
+                    if (route := _integration_route_template(template)) is not None
+                }
+                if not integration_routes and not (
+                    unresolved_route and not node.name.startswith("_")
                 ):
                     continue
-                if unresolved_path:
+                if unresolved_route:
                     implemented.add((client_path.name, node.name, _UNRESOLVED_ROUTE_TEMPLATE))
                     continue
-                for path_template in path_templates:
-                    if any(marker in path_template for marker in non_domain_markers):
+                for route_template in integration_routes:
+                    if any(marker in route_template for marker in non_domain_markers):
                         continue
                     implemented.add(
-                        (client_path.name, node.name, _normalize_route_template(path_template))
+                        (client_path.name, node.name, _normalize_route_template(route_template))
                     )
     return implemented
 
 
 def _assert_implemented_core_reads_are_declared(client_root: Path = CLIENT_ROOT) -> None:
+    _assert_core_client_route_visibility(client_root)
     declared = {
         (
             Path(route["client_module"]).name,
@@ -411,6 +463,46 @@ class FakeCoreClient:
     assert "lotus_core_query_client.py:get_undeclared_local_product_read" in message
     assert "lotus_core_query_client.py:get_undeclared_module_product_read" in message
     assert "lotus_core_query_client.py:get_undeclared_format_product_read" in message
+
+
+def test_alternate_url_and_sync_core_reads_fail_closed(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_url_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def get_undeclared_url_product_read(self):
+        url = f"{self._base_url}/integration/products/undeclared-url"
+        return await self._request(url=url)
+
+    def get_undeclared_sync_product_read(self):
+        return self._request(url="/integration/products/undeclared-sync")
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_implemented_core_reads_are_declared(tmp_path)
+
+    message = str(exc_info.value)
+    assert "lotus_core_url_client.py:get_undeclared_sync_product_read" in message
+    assert "lotus_core_url_client.py:get_undeclared_url_product_read" in message
+
+
+def test_uncovered_core_client_module_fails_closed(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_uncovered_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def get_unresolved_product_read(self, route_builder):
+        return await self._request(url=route_builder())
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_implemented_core_reads_are_declared(tmp_path)
+
+    assert "lotus_core_uncovered_client.py" in str(exc_info.value)
 
 
 def test_declared_core_method_with_extra_integration_read_fails_closed(tmp_path: Path) -> None:
