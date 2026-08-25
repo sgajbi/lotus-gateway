@@ -17,6 +17,11 @@ from typing import Any
 
 STATUS_PATTERN = re.compile(r"^QUALITY_COMMAND_STATUS=(\d+)$", re.MULTILINE)
 FRAGMENT_WHITESPACE = re.compile(r"\s+")
+# Python 3.12 introduced dedicated f-string tokens while Python 3.11 exposes
+# the complete literal as STRING. Keep private sentinels for the older
+# interpreter so both token shapes can be regression-tested on Python 3.11.
+FSTRING_START_TOKEN = getattr(tokenize, "FSTRING_START", 10_001)
+FSTRING_END_TOKEN = getattr(tokenize, "FSTRING_END", 10_002)
 DETECTOR_POLICY = {
     "name": "jscpd",
     "version": "4.2.2",
@@ -189,25 +194,72 @@ def _normalise_fragment(fragment: str) -> str:
     """Normalize Python layout while preserving actual string-token contents."""
     text = fragment.replace("\r\n", "\n").replace("\r", "\n")
     try:
-        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
-        pieces = []
-        for token in tokens:
-            if token.type in {
-                tokenize.ENCODING,
-                tokenize.ENDMARKER,
-                tokenize.INDENT,
-                tokenize.DEDENT,
-                tokenize.NEWLINE,
-                tokenize.NL,
-            }:
-                continue
-            value = token.string
-            if token.type == tokenize.COMMENT:
-                value = FRAGMENT_WHITESPACE.sub(" ", value).strip()
-            pieces.append(value)
-        return " ".join(pieces).strip()
+        return _normalise_token_stream(
+            text,
+            tokenize.generate_tokens(io.StringIO(text).readline),
+        )
     except (IndentationError, SyntaxError, tokenize.TokenError):
         return _normalise_fragment_lexically(text)
+
+
+def _normalise_token_stream(text: str, tokens: Any) -> str:
+    """Normalize a complete token stream with stable f-string handling.
+
+    Python 3.11 reports an f-string as one STRING token, while Python 3.12+
+    reports FSTRING_START/MIDDLE/END plus expression tokens. Reconstructing
+    the source span for the complete f-string makes both token shapes produce
+    the same identity without changing whitespace that is part of the literal.
+    """
+    pieces: list[str] = []
+    fstring_depth = 0
+    fstring_start: tuple[int, int] | None = None
+    for token in list(tokens):
+        if token.type == FSTRING_START_TOKEN:
+            if fstring_depth == 0:
+                fstring_start = token.start
+            fstring_depth += 1
+            continue
+        if fstring_depth:
+            if token.type == FSTRING_END_TOKEN:
+                fstring_depth -= 1
+                if fstring_depth == 0 and fstring_start is not None:
+                    pieces.append(_source_span(text, fstring_start, token.end))
+                    fstring_start = None
+            continue
+        if token.type in {
+            tokenize.ENCODING,
+            tokenize.ENDMARKER,
+            tokenize.INDENT,
+            tokenize.DEDENT,
+            tokenize.NEWLINE,
+            tokenize.NL,
+        }:
+            continue
+        value = token.string
+        if token.type == tokenize.COMMENT:
+            value = FRAGMENT_WHITESPACE.sub(" ", value).strip()
+        pieces.append(value)
+    return " ".join(pieces).strip()
+
+
+def _source_span(
+    text: str,
+    start: tuple[int, int],
+    end: tuple[int, int],
+) -> str:
+    """Return a token-position span from normalized source text."""
+    lines = text.splitlines(keepends=True)
+    offsets: list[int] = [0]
+    for line in lines:
+        offsets.append(offsets[-1] + len(line))
+
+    def absolute(position: tuple[int, int]) -> int:
+        line, column = position
+        if line < 1 or line > len(lines) + 1:
+            raise ValueError("token position is outside fragment")
+        return offsets[line - 1] + column
+
+    return text[absolute(start) : absolute(end)]
 
 
 def _normalise_fragment_lexically(text: str) -> str:
