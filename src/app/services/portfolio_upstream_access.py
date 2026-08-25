@@ -121,6 +121,7 @@ class PortfolioUpstreamAccessMixin:
         dimensions: list[str],
         reporting_currency: str | None = None,
         look_through_mode: str | None = None,
+        contributor_limit_per_bucket: int | None = None,
     ) -> UpstreamResult:
         dimensions_key = tuple(dimensions)
         return await self._get_cached_upstream_result(
@@ -131,6 +132,7 @@ class PortfolioUpstreamAccessMixin:
                 dimensions_key,
                 reporting_currency,
                 look_through_mode,
+                contributor_limit_per_bucket,
             ),
             lambda: self._lotus_core_query_client.query_asset_allocation(
                 correlation_id=correlation_id,
@@ -139,6 +141,7 @@ class PortfolioUpstreamAccessMixin:
                 dimensions=dimensions,
                 reporting_currency=reporting_currency,
                 look_through_mode=look_through_mode,
+                contributor_limit_per_bucket=contributor_limit_per_bucket,
             ),
         )
 

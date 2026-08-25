@@ -4,6 +4,7 @@ from app.services.portfolio_holdings_payloads import (
     ALLOCATION_VIEW_DIMENSIONS,
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
+    PortfolioAllocationSourceContractError,
     PortfolioPositionBookLoadRequest,
     PortfolioPositionBookPayloadLoaders,
     build_portfolio_allocation_response,
@@ -46,7 +47,7 @@ async def test_load_portfolio_allocation_payloads_queries_sources_and_requires_p
             correlation_id="corr-allocation",
             as_of_date="2026-03-31",
             reporting_currency="USD",
-            look_through_mode="full",
+            look_through_mode="prefer_look_through",
         ),
         PortfolioAllocationPayloadLoaders(
             query_aum_result=query_aum_result,
@@ -87,7 +88,8 @@ async def test_load_portfolio_allocation_payloads_queries_sources_and_requires_p
             "as_of_date": "2026-03-31",
             "dimensions": ALLOCATION_VIEW_DIMENSIONS,
             "reporting_currency": "USD",
-            "look_through_mode": "full",
+            "look_through_mode": "prefer_look_through",
+            "contributor_limit_per_bucket": 50,
         },
     ) in calls
     assert required == [
@@ -190,9 +192,11 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
         allocation_payload={
             "reporting_currency": " SGD ",
             "look_through": {
-                "requested_mode": "full",
-                "effective_mode": "direct_only",
-                "applied": False,
+                "requested_mode": "prefer_look_through",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": "Look-through components were not available.",
             },
             "views": [
                 {
@@ -203,6 +207,26 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
                             "position_count": 2,
                             "market_value_reporting_currency": "700.123",
                             "weight": "0.7",
+                            "contributor_count": 1,
+                            "contributors": [
+                                {
+                                    "contributor_type": "direct_position",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "EQ_1",
+                                    "booked_security_id": "EQ_1",
+                                    "source_snapshot_id": 101,
+                                    "component_record_id": None,
+                                    "component_weight": None,
+                                    "component_effective_from": None,
+                                    "component_effective_to": None,
+                                    "component_source_system": None,
+                                    "component_source_record_id": None,
+                                    "market_value_reporting_currency": "700.123",
+                                    "bucket_weight": "1.0",
+                                }
+                            ],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": "0",
                         }
                     ],
                 }
@@ -215,9 +239,11 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
     assert response.as_of_date == "2026-03-26"
     assert response.reporting_currency == "SGD"
     assert response.look_through is not None
-    assert response.look_through.requested_mode == "full"
+    assert response.look_through.requested_mode == "prefer_look_through"
     assert response.look_through.effective_mode == "direct_only"
     assert response.look_through.applied is False
+    assert response.look_through.supported is False
+    assert response.look_through.limitation_reason == "Look-through components were not available."
     assert response.summary.assets_under_management_base == 1000.0
     assert response.summary.cash_market_value_base == 100.0
     assert response.summary.cash_weight_pct == 10.0
@@ -249,14 +275,14 @@ def test_build_portfolio_allocation_response_uses_request_currency_and_default_d
 
 def test_parse_look_through_capability_rejects_incomplete_payloads() -> None:
     assert parse_look_through_capability(None) is None
-    assert parse_look_through_capability({"requested_mode": "full"}) is None
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_look_through_capability({"requested_mode": "prefer_look_through"})
 
 
-def test_parse_allocation_views_quantizes_buckets_and_ignores_non_mapping_rows() -> None:
+def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() -> None:
     views = parse_allocation_views(
         {
             "views": [
-                "ignored",
                 {
                     "dimension": "asset_class",
                     "buckets": [
@@ -265,8 +291,42 @@ def test_parse_allocation_views_quantizes_buckets_and_ignores_non_mapping_rows()
                             "position_count": 3,
                             "market_value_reporting_currency": "1234.567",
                             "weight": "0.345678",
-                        },
-                        "ignored",
+                            "contributor_count": 2,
+                            "contributors": [
+                                {
+                                    "contributor_type": "look_through_component",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "ETF_1",
+                                    "booked_security_id": "FUND_1",
+                                    "source_snapshot_id": 101,
+                                    "component_record_id": 501,
+                                    "component_weight": "0.6",
+                                    "component_effective_from": "2026-01-01",
+                                    "component_effective_to": None,
+                                    "component_source_system": "fund-master",
+                                    "component_source_record_id": "FUND_1-ETF_1",
+                                    "market_value_reporting_currency": "600.00",
+                                    "bucket_weight": "0.485591",
+                                },
+                                {
+                                    "contributor_type": "direct_position",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "EQ_2",
+                                    "booked_security_id": "EQ_2",
+                                    "source_snapshot_id": 101,
+                                    "component_record_id": None,
+                                    "component_weight": None,
+                                    "component_effective_from": None,
+                                    "component_effective_to": None,
+                                    "component_source_system": None,
+                                    "component_source_record_id": None,
+                                    "market_value_reporting_currency": "534.567",
+                                    "bucket_weight": "0.432756",
+                                },
+                            ],
+                            "contributors_truncated": True,
+                            "omitted_market_value_reporting_currency": "100.00",
+                        }
                     ],
                 },
             ]
@@ -281,6 +341,133 @@ def test_parse_allocation_views_quantizes_buckets_and_ignores_non_mapping_rows()
     assert bucket.position_count == 3
     assert bucket.market_value_base == 1234.57
     assert bucket.weight_pct == 34.5678
+    assert bucket.contributor_count == 2
+    assert bucket.contributors_truncated is True
+    assert bucket.omitted_market_value_reporting_currency == 100
+    assert bucket.contributors[0].contributor_type == "look_through_component"
+    assert bucket.contributors[0].booked_security_id == "FUND_1"
+    assert bucket.contributors[0].component_effective_from.isoformat() == "2026-01-01"
+    assert bucket.contributors[0].market_value_reporting_currency == 600
+    assert bucket.contributors[1].booked_security_id == "EQ_2"
+
+
+def test_parse_allocation_views_rejects_partial_contributor_payload() -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_views(
+            {
+                "views": [
+                    {
+                        "dimension": "region",
+                        "buckets": [
+                            {
+                                "dimension_value": "Asia",
+                                "position_count": 1,
+                                "market_value_reporting_currency": "100",
+                                "weight": "1",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+
+
+def test_parse_allocation_views_rejects_non_reconciling_contributor_residual() -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_views(
+            {
+                "views": [
+                    {
+                        "dimension": "region",
+                        "buckets": [
+                            {
+                                "dimension_value": "Asia",
+                                "position_count": 1,
+                                "market_value_reporting_currency": "100",
+                                "weight": "1",
+                                "contributor_count": 1,
+                                "contributors": [
+                                    {
+                                        "contributor_type": "direct_position",
+                                        "portfolio_id": "PF_1001",
+                                        "security_id": "EQ_1",
+                                        "booked_security_id": "EQ_1",
+                                        "source_snapshot_id": 101,
+                                        "component_record_id": None,
+                                        "component_weight": None,
+                                        "component_effective_from": None,
+                                        "component_effective_to": None,
+                                        "component_source_system": None,
+                                        "component_source_record_id": None,
+                                        "market_value_reporting_currency": "99",
+                                        "bucket_weight": "0.99",
+                                    }
+                                ],
+                                "contributors_truncated": False,
+                                "omitted_market_value_reporting_currency": "0",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    ("contributor_count", "contributors_truncated"),
+    [(0, True), (2, False)],
+)
+def test_parse_allocation_views_rejects_inconsistent_contributor_counts(
+    contributor_count: int,
+    contributors_truncated: bool,
+) -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_views(
+            {
+                "views": [
+                    {
+                        "dimension": "region",
+                        "buckets": [
+                            {
+                                "dimension_value": "Asia",
+                                "position_count": 1,
+                                "market_value_reporting_currency": "100",
+                                "weight": "1",
+                                "contributor_count": contributor_count,
+                                "contributors": [
+                                    {
+                                        "contributor_type": "direct_position",
+                                        "portfolio_id": "PF_1001",
+                                        "security_id": "EQ_1",
+                                        "booked_security_id": "EQ_1",
+                                        "source_snapshot_id": 101,
+                                        "component_record_id": None,
+                                        "component_weight": None,
+                                        "component_effective_from": None,
+                                        "component_effective_to": None,
+                                        "component_source_system": None,
+                                        "component_source_record_id": None,
+                                        "market_value_reporting_currency": "100",
+                                        "bucket_weight": "1",
+                                    }
+                                ],
+                                "contributors_truncated": contributors_truncated,
+                                "omitted_market_value_reporting_currency": "0",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+
+
+def test_parse_allocation_views_treats_missing_view_collection_as_empty() -> None:
+    assert parse_allocation_views({"views": None}) == []
+
+
+def test_parse_allocation_views_rejects_malformed_view_collection() -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_views({"views": {"dimension": "region"}})
 
 
 def test_parse_cash_balances_quantizes_values_and_weight() -> None:

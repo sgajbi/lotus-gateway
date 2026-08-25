@@ -56,6 +56,7 @@ class PortfolioCoreClient(Protocol):
         dimensions: list[str],
         reporting_currency: str | None = None,
         look_through_mode: str | None = None,
+        contributor_limit_per_bucket: int | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_portfolio_positions(

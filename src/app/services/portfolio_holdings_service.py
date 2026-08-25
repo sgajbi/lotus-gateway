@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+from fastapi import HTTPException, status
+
 from app.config import settings
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
@@ -20,6 +22,7 @@ from app.services.portfolio_holdings_payloads import (
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
     PortfolioAllocationPayloads,
+    PortfolioAllocationSourceContractError,
     PortfolioPositionBookLoadRequest,
     PortfolioPositionBookPayloadLoaders,
     PortfolioPositionBookPayloads,
@@ -166,6 +169,7 @@ class PortfolioHoldingsServiceMixin(PortfolioProjectedCashflowServiceMixin):
         as_of_date: str | None,
         reporting_currency: str | None = None,
         look_through_mode: str | None = "direct_only",
+        contributor_limit_per_bucket: int = 50,
     ) -> PortfolioAllocationResponse:
         payloads = await self._load_portfolio_allocation_payloads(
             portfolio_id=portfolio_id,
@@ -173,18 +177,29 @@ class PortfolioHoldingsServiceMixin(PortfolioProjectedCashflowServiceMixin):
             as_of_date=as_of_date,
             reporting_currency=reporting_currency,
             look_through_mode=look_through_mode,
+            contributor_limit_per_bucket=contributor_limit_per_bucket,
         )
-        return build_portfolio_allocation_response(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            default_as_of_date=datetime.now(UTC).date().isoformat(),
-            reporting_currency=reporting_currency,
-            aum_payload=payloads.aum_payload,
-            positions_payload=payloads.positions_payload,
-            allocation_payload=payloads.allocation_payload,
-        )
+        try:
+            return build_portfolio_allocation_response(
+                correlation_id=correlation_id,
+                contract_version=settings.contract_version,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                default_as_of_date=datetime.now(UTC).date().isoformat(),
+                reporting_currency=reporting_currency,
+                aum_payload=payloads.aum_payload,
+                positions_payload=payloads.positions_payload,
+                allocation_payload=payloads.allocation_payload,
+            )
+        except PortfolioAllocationSourceContractError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "source_service": "lotus-core",
+                    "error_code": "PORTFOLIO_ALLOCATION_CONTRACT_INVALID",
+                    "detail": "lotus-core allocation payload did not match the governed contract.",
+                },
+            ) from exc
 
     async def _load_portfolio_allocation_payloads(
         self,
@@ -194,6 +209,7 @@ class PortfolioHoldingsServiceMixin(PortfolioProjectedCashflowServiceMixin):
         as_of_date: str | None,
         reporting_currency: str | None,
         look_through_mode: str | None,
+        contributor_limit_per_bucket: int,
     ) -> PortfolioAllocationPayloads:
         upstream = holdings_upstream_access(self)
         return await load_portfolio_allocation_payloads(
@@ -203,6 +219,7 @@ class PortfolioHoldingsServiceMixin(PortfolioProjectedCashflowServiceMixin):
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
                 look_through_mode=look_through_mode,
+                contributor_limit_per_bucket=contributor_limit_per_bucket,
             ),
             PortfolioAllocationPayloadLoaders(
                 query_aum_result=upstream._query_aum_result,

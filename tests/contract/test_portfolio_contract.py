@@ -485,6 +485,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     summary_schema = spec["components"]["schemas"]["PortfolioSummary"]
     cash_balance_schema = spec["components"]["schemas"]["PortfolioCashBalance"]
     allocation_bucket_schema = spec["components"]["schemas"]["PortfolioAllocationBucket"]
+    allocation_contributor_schema = spec["components"]["schemas"]["PortfolioAllocationContributor"]
     allocation_view_schema = spec["components"]["schemas"]["PortfolioAllocationView"]
     partial_failure_schema = spec["components"]["schemas"]["PortfolioPartialFailure"]
     top_position_schema = spec["components"]["schemas"]["PortfolioTopPosition"]
@@ -676,7 +677,20 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert allocation_bucket_schema["properties"]["bucket"]["description"]
     assert allocation_bucket_schema["properties"]["position_count"]["description"]
     assert allocation_bucket_schema["properties"]["market_value_base"]["description"]
+    assert allocation_bucket_schema["properties"]["market_value_reporting_currency"]["description"]
     assert allocation_bucket_schema["properties"]["weight_pct"]["description"]
+    assert allocation_bucket_schema["properties"]["contributor_count"]["description"]
+    assert allocation_bucket_schema["properties"]["contributors"]["description"]
+    assert allocation_bucket_schema["properties"]["contributors_truncated"]["description"]
+    assert allocation_bucket_schema["properties"]["omitted_market_value_reporting_currency"][
+        "description"
+    ]
+    assert allocation_contributor_schema["properties"]["contributor_type"]["description"]
+    assert allocation_contributor_schema["properties"]["booked_security_id"]["description"]
+    assert allocation_contributor_schema["properties"]["source_snapshot_id"]["description"]
+    assert allocation_contributor_schema["properties"]["market_value_reporting_currency"][
+        "description"
+    ]
     assert allocation_view_schema["properties"]["dimension"]["description"]
     assert allocation_view_schema["properties"]["buckets"]["description"]
     assert partial_failure_schema["properties"]["source_service"]["description"]
@@ -1012,9 +1026,19 @@ def test_portfolio_openapi_contract_registered() -> None:
     )
     assert allocation_parameters["reporting_currency"]["description"]
     assert allocation_parameters["look_through_mode"]["description"]
+    assert allocation_parameters["look_through_mode"]["schema"]["enum"] == [
+        "direct_only",
+        "prefer_look_through",
+    ]
+    assert allocation_parameters["contributor_limit_per_bucket"]["description"]
+    assert allocation_parameters["contributor_limit_per_bucket"]["schema"]["minimum"] == 1
+    assert allocation_parameters["contributor_limit_per_bucket"]["schema"]["maximum"] == 250
     assert allocation_look_through_schema["properties"]["requested_mode"]["description"]
     assert allocation_look_through_schema["properties"]["effective_mode"]["description"]
     assert allocation_look_through_schema["properties"]["applied"]["description"]
+    assert allocation_look_through_schema["properties"]["supported"]["description"]
+    assert allocation_look_through_schema["properties"]["decomposed_position_count"]["description"]
+    assert allocation_look_through_schema["properties"]["limitation_reason"]["description"]
     assert position_parameters["include_projected"]["description"]
     assert position_parameters["reporting_currency"]["description"]
     assert positions_schema["properties"]["as_of_date"]["description"]

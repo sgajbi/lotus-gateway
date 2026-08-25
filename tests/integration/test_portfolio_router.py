@@ -416,7 +416,30 @@ def test_portfolio_readiness_router(monkeypatch):
 
     async def _allocation(*args, **kwargs):
         return 200, {
-            "views": [{"dimension": "asset_class", "buckets": [{"dimension_value": "Equity"}]}]
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
+            "views": [
+                {
+                    "dimension": "asset_class",
+                    "buckets": [
+                        {
+                            "dimension_value": "Equity",
+                            "market_value_reporting_currency": 0,
+                            "weight": 0,
+                            "position_count": 0,
+                            "contributor_count": 0,
+                            "contributors": [],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": 0,
+                        }
+                    ],
+                }
+            ],
         }
 
     async def _transactions(*args, **kwargs):
@@ -873,7 +896,30 @@ def test_portfolio_insights_router(monkeypatch):
 
     async def _allocation(*args, **kwargs):
         return 200, {
-            "views": [{"dimension": "asset_class", "buckets": [{"dimension_value": "Equity"}]}]
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
+            "views": [
+                {
+                    "dimension": "asset_class",
+                    "buckets": [
+                        {
+                            "dimension_value": "Equity",
+                            "market_value_reporting_currency": 0,
+                            "weight": 0,
+                            "position_count": 0,
+                            "contributor_count": 0,
+                            "contributors": [],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": 0,
+                        }
+                    ],
+                }
+            ],
         }
 
     async def _transactions(*args, **kwargs):
@@ -1165,7 +1211,16 @@ def test_portfolio_book_router(monkeypatch):
 
     async def _allocation(*args, **kwargs):
         captured["allocation_reporting_currency"] = kwargs.get("reporting_currency")
-        return 200, {"views": [{"dimension": "asset_class", "buckets": []}]}
+        return 200, {
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
+            "views": [{"dimension": "asset_class", "buckets": []}],
+        }
 
     async def _cash_balances(*args, **kwargs):
         captured["cash_reporting_currency"] = kwargs.get("reporting_currency")
@@ -1643,17 +1698,47 @@ def test_portfolio_allocations_router(monkeypatch):
     async def _allocation(*args, **kwargs):
         captured["reporting_currency"] = kwargs.get("reporting_currency")
         captured["look_through_mode"] = kwargs.get("look_through_mode")
+        captured["contributor_limit_per_bucket"] = kwargs.get("contributor_limit_per_bucket")
         return 200, {
             "reporting_currency": "USD",
             "look_through": {
-                "requested_mode": "full",
-                "effective_mode": "direct_only",
-                "applied": False,
+                "requested_mode": "prefer_look_through",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": "Look-through components were not available.",
             },
             "views": [
                 {
                     "dimension": "region",
-                    "buckets": [{"dimension_value": "Equity", "position_count": 1, "weight": 0.7}],
+                    "buckets": [
+                        {
+                            "dimension_value": "Equity",
+                            "position_count": 1,
+                            "market_value_reporting_currency": 700,
+                            "weight": 0.7,
+                            "contributor_count": 1,
+                            "contributors": [
+                                {
+                                    "contributor_type": "direct_position",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "EQ_1",
+                                    "booked_security_id": "EQ_1",
+                                    "source_snapshot_id": 101,
+                                    "component_record_id": None,
+                                    "component_weight": None,
+                                    "component_effective_from": None,
+                                    "component_effective_to": None,
+                                    "component_source_system": None,
+                                    "component_source_record_id": None,
+                                    "market_value_reporting_currency": 700,
+                                    "bucket_weight": 1,
+                                }
+                            ],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": 0,
+                        }
+                    ],
                 }
             ],
         }
@@ -1668,7 +1753,8 @@ def test_portfolio_allocations_router(monkeypatch):
         params={
             "as_of_date": "2026-03-27",
             "reporting_currency": "USD",
-            "look_through_mode": "full",
+            "look_through_mode": "prefer_look_through",
+            "contributor_limit_per_bucket": 25,
         },
     )
     assert response.status_code == 200
@@ -1680,9 +1766,12 @@ def test_portfolio_allocations_router(monkeypatch):
         "as_of_date": "2026-03-27",
         "reporting_currency": "USD",
         "look_through": {
-            "requested_mode": "full",
+            "requested_mode": "prefer_look_through",
             "effective_mode": "direct_only",
             "applied": False,
+            "supported": False,
+            "decomposed_position_count": 0,
+            "limitation_reason": "Look-through components were not available.",
         },
         "summary": {
             "assets_under_management_base": 1000.0,
@@ -1699,8 +1788,29 @@ def test_portfolio_allocations_router(monkeypatch):
                     {
                         "bucket": "Equity",
                         "position_count": 1,
-                        "market_value_base": 0.0,
+                        "market_value_base": 700.0,
+                        "market_value_reporting_currency": "700",
                         "weight_pct": 70.0,
+                        "contributor_count": 1,
+                        "contributors": [
+                            {
+                                "contributor_type": "direct_position",
+                                "portfolio_id": "PF_1001",
+                                "security_id": "EQ_1",
+                                "booked_security_id": "EQ_1",
+                                "source_snapshot_id": 101,
+                                "component_record_id": None,
+                                "component_weight": None,
+                                "component_effective_from": None,
+                                "component_effective_to": None,
+                                "component_source_system": None,
+                                "component_source_record_id": None,
+                                "market_value_reporting_currency": "700",
+                                "bucket_weight": "1",
+                            }
+                        ],
+                        "contributors_truncated": False,
+                        "omitted_market_value_reporting_currency": "0",
                     }
                 ],
             }
@@ -1708,7 +1818,19 @@ def test_portfolio_allocations_router(monkeypatch):
     }
     assert captured["reporting_currency"] == "USD"
     assert captured["positions_reporting_currency"] == "USD"
-    assert captured["look_through_mode"] == "full"
+    assert captured["look_through_mode"] == "prefer_look_through"
+    assert captured["contributor_limit_per_bucket"] == 25
+
+
+def test_portfolio_allocations_router_rejects_legacy_look_through_alias():
+    from fastapi.testclient import TestClient
+
+    response = TestClient(app).get(
+        "/api/v1/portfolio/portfolios/PF_1001/allocations",
+        params={"look_through_mode": "full"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_portfolio_positions_router(monkeypatch):

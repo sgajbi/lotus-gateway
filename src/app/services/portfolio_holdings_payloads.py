@@ -3,18 +3,32 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationBucket,
+    PortfolioAllocationContributor,
     PortfolioAllocationLookThroughCapability,
     PortfolioAllocationResponse,
     PortfolioAllocationView,
     PortfolioCashBalance,
 )
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.portfolio_allocation_source_contract import (
+    SourceAllocationBucket,
+    SourceAllocationContributor,
+    SourceAllocationLookThrough,
+    SourceAllocationView,
+)
 from app.services.portfolio_position_book import parse_position_book_summary
 
 UpstreamResult = tuple[int, dict[str, Any]]
 ALLOCATION_VIEW_DIMENSIONS = ["asset_class", "currency", "sector", "region"]
+DEFAULT_CONTRIBUTOR_LIMIT_PER_BUCKET = 50
+
+
+class PortfolioAllocationSourceContractError(ValueError):
+    """Raised when a successful Core allocation payload is not safely consumable."""
 
 
 @dataclass(frozen=True)
@@ -24,6 +38,7 @@ class PortfolioAllocationLoadRequest:
     as_of_date: str | None
     reporting_currency: str | None
     look_through_mode: str | None
+    contributor_limit_per_bucket: int = DEFAULT_CONTRIBUTOR_LIMIT_PER_BUCKET
 
 
 @dataclass(frozen=True)
@@ -89,6 +104,7 @@ async def load_portfolio_allocation_payloads(
             dimensions=ALLOCATION_VIEW_DIMENSIONS,
             reporting_currency=request.reporting_currency,
             look_through_mode=request.look_through_mode,
+            contributor_limit_per_bucket=request.contributor_limit_per_bucket,
         ),
     )
     return PortfolioAllocationPayloads(
@@ -151,6 +167,7 @@ def build_portfolio_allocation_response(
     positions_payload: dict[str, Any],
     allocation_payload: dict[str, Any],
 ) -> PortfolioAllocationResponse:
+    _require_source_look_through_for_non_empty_views(allocation_payload)
     return PortfolioAllocationResponse(
         correlation_id=correlation_id,
         contract_version=contract_version,
@@ -164,42 +181,92 @@ def build_portfolio_allocation_response(
     )
 
 
+def _require_source_look_through_for_non_empty_views(payload: dict[str, Any]) -> None:
+    views = payload.get("views")
+    if isinstance(views, list) and views and not isinstance(payload.get("look_through"), dict):
+        raise PortfolioAllocationSourceContractError(
+            "lotus-core allocation look-through metadata missing"
+        )
+
+
 def parse_look_through_capability(
     payload: Any,
 ) -> PortfolioAllocationLookThroughCapability | None:
     if not isinstance(payload, dict):
         return None
-    requested_mode = optional_str(payload.get("requested_mode"))
-    effective_mode = optional_str(payload.get("effective_mode"))
-    if requested_mode is None or effective_mode is None:
-        return None
+    try:
+        source = SourceAllocationLookThrough.model_validate(payload)
+    except ValidationError as exc:
+        raise PortfolioAllocationSourceContractError(
+            "lotus-core allocation look-through contract invalid"
+        ) from exc
     return PortfolioAllocationLookThroughCapability(
-        requested_mode=requested_mode,
-        effective_mode=effective_mode,
-        applied=bool(payload.get("applied", False)),
+        requested_mode=source.requested_mode,
+        effective_mode=source.applied_mode,
+        applied=source.applied_mode == "prefer_look_through",
+        supported=source.supported,
+        decomposed_position_count=source.decomposed_position_count,
+        limitation_reason=source.limitation_reason,
     )
 
 
 def parse_allocation_views(payload: dict[str, Any]) -> list[PortfolioAllocationView]:
+    raw_views = payload.get("views", [])
+    if raw_views is None:
+        return []
+    if not isinstance(raw_views, list):
+        raise PortfolioAllocationSourceContractError("lotus-core allocation views contract invalid")
+    if not raw_views:
+        return []
+    try:
+        source_views = [SourceAllocationView.model_validate(view) for view in raw_views]
+    except ValidationError as exc:
+        raise PortfolioAllocationSourceContractError(
+            "lotus-core allocation contributor contract invalid"
+        ) from exc
     return [
         PortfolioAllocationView(
-            dimension=str(view.get("dimension")),
-            buckets=[
-                PortfolioAllocationBucket(
-                    bucket=str(bucket.get("dimension_value")),
-                    position_count=int(bucket.get("position_count", 0)),
-                    market_value_base=float(
-                        quantize_money(bucket.get("market_value_reporting_currency", 0))
-                    ),
-                    weight_pct=float(quantize_performance(float(bucket.get("weight", 0)) * 100)),
-                )
-                for bucket in view.get("buckets", [])
-                if isinstance(bucket, dict)
-            ],
+            dimension=view.dimension,
+            buckets=[_map_allocation_bucket(bucket) for bucket in view.buckets],
         )
-        for view in payload.get("views", [])
-        if isinstance(view, dict)
+        for view in source_views
     ]
+
+
+def _map_allocation_bucket(source: SourceAllocationBucket) -> PortfolioAllocationBucket:
+    return PortfolioAllocationBucket(
+        bucket=source.dimension_value,
+        position_count=source.position_count,
+        # Pydantic coerces exact Decimal to the legacy display shape.
+        market_value_base=quantize_money(source.market_value_reporting_currency),  # type: ignore[arg-type]
+        market_value_reporting_currency=source.market_value_reporting_currency,
+        # Pydantic coerces exact Decimal to the legacy display shape.
+        weight_pct=quantize_performance(source.weight * 100),  # type: ignore[arg-type]
+        contributor_count=source.contributor_count,
+        contributors=[_map_allocation_contributor(item) for item in source.contributors],
+        contributors_truncated=source.contributors_truncated,
+        omitted_market_value_reporting_currency=source.omitted_market_value_reporting_currency,
+    )
+
+
+def _map_allocation_contributor(
+    source: SourceAllocationContributor,
+) -> PortfolioAllocationContributor:
+    return PortfolioAllocationContributor(
+        contributor_type=source.contributor_type,
+        portfolio_id=source.portfolio_id,
+        security_id=source.security_id,
+        booked_security_id=source.booked_security_id,
+        source_snapshot_id=source.source_snapshot_id,
+        component_record_id=source.component_record_id,
+        component_weight=source.component_weight,
+        component_effective_from=source.component_effective_from,
+        component_effective_to=source.component_effective_to,
+        component_source_system=source.component_source_system,
+        component_source_record_id=source.component_source_record_id,
+        market_value_reporting_currency=source.market_value_reporting_currency,
+        bucket_weight=source.bucket_weight,
+    )
 
 
 def parse_cash_balances(payload: dict[str, Any], total_aum: float) -> list[PortfolioCashBalance]:
