@@ -57,3 +57,11 @@ def test_repository_context_and_review_ledger_record_known_follow_up_owners() ->
     assert "Gateway/Workbench #436" in ledger
     assert "Core #513" in ledger
     assert "No duplicate downstream issue was opened" in ledger
+    for product_name in (
+        "PortfolioAnalyticsReference:v1",
+        "BenchmarkAssignment:v1",
+        "BenchmarkDefinition:v1",
+        "ExternalOrderExecutionAcknowledgement:v1",
+    ):
+        assert product_name in context
+    assert "lotus-gateway-core-route-inventory.v1.json" in context

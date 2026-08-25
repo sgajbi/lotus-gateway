@@ -8,48 +8,20 @@ CONTRACT_PATH = (
     / "lotus-gateway-consumers.v1.json"
 )
 CLIENT_ROOT = Path(__file__).resolve().parents[2] / "src" / "app" / "clients"
-
-# This is intentionally an implementation-backed inventory rather than a prose copy of RFC-0082:
-# each entry names the client method and route fragments that prove the declared Core product is
-# still directly consumed by Gateway.  A missing method/route or an undeclared product fails the
-# contract test before federation can publish a stale dependency edge.
-IMPLEMENTED_CORE_ROUTE_INVENTORY = {
-    "PortfolioManagerBookMembership": {
-        "client": "lotus_core_portfolio_query_client.py",
-        "method": "get_portfolio_manager_book_memberships",
-        "route_fragments": (
-            "/integration/portfolio-manager-books/",
-            "/memberships",
-        ),
-    },
-    "PortfolioAnalyticsReference": {
-        "client": "lotus_core_query_client.py",
-        "method": "get_portfolio_analytics_reference",
-        "route_fragments": ("/integration/portfolios/", "/analytics/reference"),
-    },
-    "BenchmarkAssignment": {
-        "client": "lotus_core_query_client.py",
-        "method": "get_benchmark_assignment",
-        "route_fragments": ("/integration/portfolios/", "/benchmark-assignment"),
-    },
-    "BenchmarkDefinition": {
-        "client": "lotus_core_query_client.py",
-        "method": "get_benchmark_catalog",
-        "route_fragments": ("/integration/benchmarks/catalog",),
-    },
-    "ExternalOrderExecutionAcknowledgement": {
-        "client": "lotus_core_query_client.py",
-        "method": "get_external_order_execution_acknowledgement",
-        "route_fragments": (
-            "/integration/portfolios/",
-            "/external-order-execution-acknowledgement",
-        ),
-    },
-}
+ROUTE_INVENTORY_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "contracts"
+    / "domain-data-products"
+    / "lotus-gateway-core-route-inventory.v1.json"
+)
 
 
 def _consumer_contract() -> dict:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+
+
+def _route_inventory() -> dict:
+    return json.loads(ROUTE_INVENTORY_PATH.read_text(encoding="utf-8"))
 
 
 def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
@@ -97,7 +69,38 @@ def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
                 "owning portfolio state."
             ),
             "validation_lanes": ["feature", "pr-merge", "platform-end-to-end"],
-            "failure_posture": "degrade_to_partial",
+            "failure_posture": "fail_closed",
+            "failure_posture_conditions": [
+                {
+                    "condition": (
+                        "reference unavailable for a request that does not require inception "
+                        "metadata"
+                    ),
+                    "posture": "degrade_to_partial",
+                    "reason_codes": [
+                        "PERFORMANCE_REFERENCE_UNAVAILABLE",
+                        "PERFORMANCE_REFERENCE_MISSING_END_DATE",
+                    ],
+                    "behavior": (
+                        "Preserve the bounded partial response and record the typed source failure."
+                    ),
+                },
+                {
+                    "condition": (
+                        "period=SI without explicit start and Core portfolio_open_date is "
+                        "unavailable, invalid, or after the requested end date"
+                    ),
+                    "posture": "fail_closed",
+                    "reason_codes": [
+                        "PERFORMANCE_INCEPTION_UNAVAILABLE",
+                        "PERFORMANCE_INCEPTION_AFTER_WINDOW_END",
+                    ],
+                    "behavior": (
+                        "Return the typed performance window error and do not submit the "
+                        "analytics request."
+                    ),
+                },
+            ],
             "required_trust_metadata": [
                 "product_name",
                 "product_version",
@@ -185,14 +188,26 @@ def test_gateway_declarations_match_implemented_core_route_inventory() -> None:
     contract_products = {
         dependency["product_name"] for dependency in _consumer_contract()["dependencies"]
     }
+    inventory = _route_inventory()
+    inventory_products = {route["product_name"] for route in inventory["routes"]}
 
-    assert contract_products == set(IMPLEMENTED_CORE_ROUTE_INVENTORY)
+    assert inventory["contract_id"] == "lotus-gateway-core-direct-route-inventory"
+    assert inventory["governed_by_rfc"] == "RFC-0084"
+    assert inventory_products == contract_products
 
-    for product_name, route_definition in IMPLEMENTED_CORE_ROUTE_INVENTORY.items():
-        client_source = (CLIENT_ROOT / route_definition["client"]).read_text(encoding="utf-8")
-        assert f"async def {route_definition['method']}" in client_source
-        for route_fragment in route_definition["route_fragments"]:
-            assert route_fragment in client_source, (
-                f"{product_name} route fragment {route_fragment!r} is missing from "
-                f"{route_definition['client']}"
-            )
+    for route_definition in inventory["routes"]:
+        product_name = route_definition["product_name"]
+        client_source = (CLIENT_ROOT / Path(route_definition["client_module"]).name).read_text(
+            encoding="utf-8"
+        )
+        assert f"async def {route_definition['client_method']}" in client_source
+        route_template = route_definition["route_template"]
+        route_fragments = tuple(
+            fragment.split("}", 1)[-1] for fragment in route_template.split("{") if fragment
+        )
+        for route_fragment in route_fragments:
+            if route_fragment and route_fragment not in client_source:
+                raise AssertionError(
+                    f"{product_name} route fragment {route_fragment!r} is missing from "
+                    f"{route_definition['client_module']}"
+                )

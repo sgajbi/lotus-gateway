@@ -43,7 +43,27 @@
         "pr-merge",
         "platform-end-to-end"
       ],
-      "failure_posture": "degrade_to_partial",
+      "failure_posture": "fail_closed",
+      "failure_posture_conditions": [
+        {
+          "condition": "reference unavailable for a request that does not require inception metadata",
+          "posture": "degrade_to_partial",
+          "reason_codes": [
+            "PERFORMANCE_REFERENCE_UNAVAILABLE",
+            "PERFORMANCE_REFERENCE_MISSING_END_DATE"
+          ],
+          "behavior": "Preserve the bounded partial response and record the typed source failure."
+        },
+        {
+          "condition": "period=SI without explicit start and Core portfolio_open_date is unavailable, invalid, or after the requested end date",
+          "posture": "fail_closed",
+          "reason_codes": [
+            "PERFORMANCE_INCEPTION_UNAVAILABLE",
+            "PERFORMANCE_INCEPTION_AFTER_WINDOW_END"
+          ],
+          "behavior": "Return the typed performance window error and do not submit the analytics request."
+        }
+      ],
       "required_trust_metadata": [
         "product_name",
         "product_version",

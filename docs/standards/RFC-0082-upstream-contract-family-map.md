@@ -177,7 +177,11 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    declaration, `required_trust_metadata` names fields the producer contract must supply for safe
    consumption; it does not claim that Gateway independently revalidates every listed field.
    Gateway applies strict source-identity validation to entitlement reads and bounded partial
-   handling to enrichment reads according to each dependency's failure posture. Gateway #509
+   handling to enrichment reads according to each dependency's failure posture. The
+   `PortfolioAnalyticsReference:v1` dependency is conservatively catalogued as fail-closed and
+   explicitly overrides to bounded partial handling for ordinary reference loss; the supported
+   since-inception path remains fail-closed with a typed error when Core-owned inception metadata
+   is unavailable, invalid, or after the requested end date. Gateway #509
    owns the systematic inventory and declaration parity for the remaining implemented direct
    domain-product reads; this batch records the Core analytics-reference, benchmark, and external
    OMS supportability dependencies without transferring their domain ownership to Gateway.

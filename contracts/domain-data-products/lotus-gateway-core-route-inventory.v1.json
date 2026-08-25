@@ -1,0 +1,44 @@
+{
+  "contract_id": "lotus-gateway-core-direct-route-inventory",
+  "contract_version": "1.0.0",
+  "governed_by_rfc": "RFC-0084",
+  "consumer_repository": "lotus-gateway",
+  "description": "Implementation-backed inventory of direct Core domain-product reads represented by the Gateway RFC-0084 consumer declaration.",
+  "routes": [
+    {
+      "product_name": "PortfolioManagerBookMembership",
+      "product_version": "v1",
+      "client_module": "src/app/clients/lotus_core_portfolio_query_client.py",
+      "client_method": "get_portfolio_manager_book_memberships",
+      "route_template": "/integration/portfolio-manager-books/{portfolio_manager_id}/memberships"
+    },
+    {
+      "product_name": "PortfolioAnalyticsReference",
+      "product_version": "v1",
+      "client_module": "src/app/clients/lotus_core_query_client.py",
+      "client_method": "get_portfolio_analytics_reference",
+      "route_template": "/integration/portfolios/{portfolio_id}/analytics/reference"
+    },
+    {
+      "product_name": "BenchmarkAssignment",
+      "product_version": "v1",
+      "client_module": "src/app/clients/lotus_core_query_client.py",
+      "client_method": "get_benchmark_assignment",
+      "route_template": "/integration/portfolios/{portfolio_id}/benchmark-assignment"
+    },
+    {
+      "product_name": "BenchmarkDefinition",
+      "product_version": "v1",
+      "client_module": "src/app/clients/lotus_core_query_client.py",
+      "client_method": "get_benchmark_catalog",
+      "route_template": "/integration/benchmarks/catalog"
+    },
+    {
+      "product_name": "ExternalOrderExecutionAcknowledgement",
+      "product_version": "v1",
+      "client_module": "src/app/clients/lotus_core_query_client.py",
+      "client_method": "get_external_order_execution_acknowledgement",
+      "route_template": "/integration/portfolios/{portfolio_id}/external-order-execution-acknowledgement"
+    }
+  ]
+}
