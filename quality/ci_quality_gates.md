@@ -88,7 +88,9 @@ until individual findings are remediated and promoted to clean thresholds:
 Duplicate-code enforcement is intentionally no-new-regression rather than an immediate cleanup
 campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
-source-pair fingerprints so removing one known clone cannot mask a different new clone.
+source-pair fingerprints so removing one known clone cannot mask a different new clone. A removed
+clone also creates a stale-fingerprint failure until a reviewed `--update-baseline` banks the
+improvement; this prevents the removed duplication from being silently reintroduced later.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
 workflow-governance, and agent quality evidence thresholds, plus the no-new-regression ratchet,

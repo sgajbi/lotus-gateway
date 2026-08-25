@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from scripts.check_duplicate_code_ratchet import (
     evaluate,
     load_report,
     load_status,
+    main,
 )
 
 
@@ -60,6 +62,7 @@ def test_duplicate_ratchet_accepts_exact_reviewed_baseline(tmp_path: Path) -> No
     assert result.passed
     assert result.clone_count == 1
     assert result.unexpected_fingerprints == ()
+    assert result.stale_fingerprints == ()
 
 
 def test_duplicate_ratchet_rejects_new_identity_at_same_count(tmp_path: Path) -> None:
@@ -79,6 +82,66 @@ def test_duplicate_ratchet_rejects_new_identity_at_same_count(tmp_path: Path) ->
     assert not result.passed
     assert len(result.unexpected_fingerprints) == 1
     assert result.clone_count == result.baseline_clone_count
+
+
+def test_duplicate_ratchet_rejects_stale_baseline_fingerprint(tmp_path: Path) -> None:
+    baseline, report = _baseline_and_report(tmp_path, [_entry("src/app/a.py", "src/app/b.py")])
+    baseline["allowed_fingerprints"].append("removed-clone")
+
+    result = evaluate(report, baseline, status=0)
+
+    assert not result.passed
+    assert result.can_update_baseline
+    assert result.stale_fingerprints == ("removed-clone",)
+
+
+def test_duplicate_baseline_update_banks_removed_fingerprint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline_report = _write_report(
+        tmp_path / "baseline-report",
+        [_entry("src/app/a.py", "src/app/b.py"), _entry("src/app/c.py", "src/app/d.py")],
+    )
+    current_report = _write_report(
+        tmp_path / "current-report", [_entry("src/app/a.py", "src/app/b.py")]
+    )
+    status_path = tmp_path / "detector.txt"
+    status_path.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+    baseline_path = tmp_path / "baseline.json"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "check_duplicate_code_ratchet.py",
+            "--report",
+            str(baseline_report),
+            "--artifact-log",
+            str(status_path),
+            "--baseline",
+            str(baseline_path),
+            "--initialize-baseline",
+        ],
+    )
+    assert main() == 0
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "check_duplicate_code_ratchet.py",
+            "--report",
+            str(current_report),
+            "--artifact-log",
+            str(status_path),
+            "--baseline",
+            str(baseline_path),
+            "--update-baseline",
+        ],
+    )
+    assert main() == 0
+    updated = json.loads(baseline_path.read_text(encoding="utf-8"))
+    assert len(updated["allowed_fingerprints"]) == 1
 
 
 def test_duplicate_ratchet_rejects_count_and_line_regression(tmp_path: Path) -> None:
