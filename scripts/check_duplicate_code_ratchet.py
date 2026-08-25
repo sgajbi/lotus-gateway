@@ -86,11 +86,7 @@ def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
-    identity = {
-        "format": entry.get("format"),
-        "fragment": fragment.replace("\r\n", "\n").strip(),
-        "sources": sorted((first_file, second_file)),
-    }
+    identity = {"format": entry.get("format"), "sources": sorted((first_file, second_file))}
     digest = hashlib.sha256(
         json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
@@ -225,6 +221,18 @@ def _print_result(result: RatchetResult) -> None:
     print(f"Unexpected stable duplicate findings: {len(result.unexpected_fingerprints)}")
     if result.status != 0:
         print(f"Duplicate detector failed with QUALITY_COMMAND_STATUS={result.status}.")
+    for finding in sorted(
+        (
+            finding
+            for finding in result.report.findings
+            if finding.fingerprint in result.unexpected_fingerprints
+        ),
+        key=lambda finding: (finding.first_file, finding.second_file, finding.lines),
+    ):
+        print(
+            "  unexpected source pair: "
+            f"{finding.first_file} <-> {finding.second_file} ({finding.lines} lines)"
+        )
     if not result.passed:
         print(
             "Duplicate-code ratchet failed: remove the new clone, correct the detector input, "

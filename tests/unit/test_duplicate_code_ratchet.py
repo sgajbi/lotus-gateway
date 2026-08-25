@@ -160,7 +160,16 @@ def test_duplicate_fingerprint_normalizes_path_separators_and_source_order(
 ) -> None:
     first = load_report(_write_report(tmp_path / "first", [_entry("src/app/a.py", "src/app/b.py")]))
     second = load_report(
-        _write_report(tmp_path / "second", [_entry("src\\app\\b.py", "src\\app\\a.py")])
+        _write_report(
+            tmp_path / "second",
+            [
+                _entry(
+                    "src\\app\\b.py",
+                    "src\\app\\a.py",
+                    fragment="def differently_named():\n    return 2\n",
+                )
+            ],
+        )
     )
 
     assert (
