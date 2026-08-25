@@ -133,6 +133,7 @@ def test_workbench_openapi_contract_registered() -> None:
     analytics_bucket_schema = spec["components"]["schemas"]["WorkbenchAnalyticsBucket"]
     top_change_schema = spec["components"]["schemas"]["WorkbenchTopChange"]
     risk_summary_schema = spec["components"]["schemas"]["WorkbenchRiskSummaryResponse"]
+    risk_concentration_schema = spec["components"]["schemas"]["WorkbenchRiskConcentrationResponse"]
     create_request_schema = spec["components"]["schemas"]["WorkbenchSandboxSessionCreateRequest"]
     change_input_schema = spec["components"]["schemas"]["WorkbenchSandboxChangeInput"]
     apply_request_schema = spec["components"]["schemas"]["WorkbenchSandboxApplyChangesRequest"]
@@ -494,6 +495,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_schema["properties"]["warnings"]["description"]
     assert risk_summary_schema["properties"]["partial_failures"]["description"]
     assert risk_summary_schema["properties"]["metadata"]["description"]
+    assert risk_summary_schema["properties"]["mandate_comparison"]["description"]
     assert (
         risk_summary_schema["example"]["payload"]["periods"][0]["metrics"][0]["key"] == "VOLATILITY"
     )
@@ -502,6 +504,15 @@ def test_workbench_openapi_contract_registered() -> None:
     )
     assert risk_summary_schema["example"]["supportability"][1]["key"] == "risk_free_series"
     assert risk_summary_schema["example"]["warnings"] == ["RISK_SUMMARY_PARTIAL"]
+    assert risk_summary_schema["example"]["mandate_comparison"]["risk_profile"] == "BALANCED"
+    assert (
+        risk_summary_schema["example"]["mandate_comparison"]["constraints"][0]["state"] == "within"
+    )
+    assert risk_concentration_schema["properties"]["mandate_comparison"]["description"]
+    assert (
+        risk_concentration_schema["example"]["mandate_comparison"]["constraints"][1]["state"]
+        == "breach"
+    )
     assert (
         risk_summary_schema["example"]["partial_failures"][0]["error_code"]
         == "RISK_FREE_UNAVAILABLE"
@@ -511,6 +522,15 @@ def test_workbench_openapi_contract_registered() -> None:
     supportability_item_schema = spec["components"]["schemas"]["WorkbenchRiskSupportabilityItem"]
     metadata_schema = spec["components"]["schemas"]["WorkbenchRiskMetadata"]
     summary_payload_schema = spec["components"]["schemas"]["WorkbenchRiskSummaryPayload"]
+    mandate_comparison_schema = spec["components"]["schemas"]["WorkbenchMandateComparison"]
+    mandate_constraint_schema = spec["components"]["schemas"][
+        "WorkbenchMandateConstraintComparison"
+    ]
+    assert mandate_comparison_schema["properties"]["comparison_as_of_date"]["description"]
+    assert mandate_comparison_schema["properties"]["date_alignment_state"]["description"]
+    assert mandate_comparison_schema["properties"]["source_lineage"]["description"]
+    assert mandate_constraint_schema["properties"]["headroom"]["description"]
+    assert mandate_constraint_schema["properties"]["source_state"]["description"]
     assert metric_schema["properties"]["key"]["description"]
     assert metric_schema["properties"]["value"]["examples"] == [0.12]
     assert metric_schema["properties"]["details"]["description"]
