@@ -1,21 +1,27 @@
 from dataclasses import dataclass
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ManageMandateConstraintsSource(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    cash_band_min_weight: float = 0.0
-    cash_band_max_weight: float = 1.0
-    single_position_max_weight: float | None = None
-    issuer_max_weight: float | None = None
-    sector_max_weight: float | None = None
-    region_max_weight: float | None = None
-    currency_max_weight: float | None = None
-    turnover_budget: float | None = None
-    max_tracking_error: float | None = None
+    cash_band_min_weight: float = Field(default=0.0, ge=0, le=1)
+    cash_band_max_weight: float = Field(default=1.0, ge=0, le=1)
+    single_position_max_weight: float | None = Field(default=None, ge=0, le=1)
+    issuer_max_weight: float | None = Field(default=None, ge=0, le=1)
+    sector_max_weight: float | None = Field(default=None, ge=0, le=1)
+    region_max_weight: float | None = Field(default=None, ge=0, le=1)
+    currency_max_weight: float | None = Field(default=None, ge=0, le=1)
+    turnover_budget: float | None = Field(default=None, ge=0, le=1)
+    max_tracking_error: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_cash_band(self) -> "ManageMandateConstraintsSource":
+        if self.cash_band_min_weight > self.cash_band_max_weight:
+            raise ValueError("cash mandate minimum must not exceed maximum")
+        return self
 
 
 class ManageMandateReviewPolicySource(BaseModel):
@@ -47,7 +53,7 @@ class ManageMandateSource(BaseModel):
     risk_profile: str
     constraints: ManageMandateConstraintsSource
     review_policy: ManageMandateReviewPolicySource
-    source_lineage: list[ManageMandateLineageSource] = Field(default_factory=list)
+    source_lineage: list[ManageMandateLineageSource] = Field(default_factory=list, max_length=32)
 
 
 class ManageMandateHealthDimensionSource(BaseModel):
@@ -68,7 +74,10 @@ class ManageMandateHealthSource(BaseModel):
     portfolio_id: str
     as_of_date: date
     health_state: str
-    dimension_scores: list[ManageMandateHealthDimensionSource] = Field(default_factory=list)
+    dimension_scores: list[ManageMandateHealthDimensionSource] = Field(
+        default_factory=list,
+        max_length=32,
+    )
 
     def dimension(self, key: str) -> ManageMandateHealthDimensionSource | None:
         return next((item for item in self.dimension_scores if item.dimension == key), None)

@@ -202,6 +202,44 @@ async def test_source_loader_degrades_malformed_health_without_losing_mandate_or
 
 
 @pytest.mark.asyncio
+async def test_source_loader_rejects_cross_portfolio_health_evidence() -> None:
+    manage = _ManageClient()
+    manage.health_payload["portfolio_id"] = "PB_OTHER"
+
+    sources = await load_risk_mandate_sources(
+        manage_client=manage,
+        cash_source=_CashSource(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-1",
+        as_of_date="2026-05-03",
+    )
+
+    assert sources.mandate is not None
+    assert sources.health is None
+    assert sources.health_failure_reason == (
+        "Lotus Manage returned health evidence for a different mandate or portfolio."
+    )
+
+
+@pytest.mark.asyncio
+async def test_source_loader_rejects_invalid_mandate_ratio_bounds() -> None:
+    manage = _ManageClient()
+    manage.mandate_payload["constraints"]["cash_band_max_weight"] = 1.5
+
+    sources = await load_risk_mandate_sources(
+        manage_client=manage,
+        cash_source=_CashSource(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-1",
+        as_of_date="2026-05-03",
+    )
+
+    assert sources.mandate is None
+    assert sources.health is None
+    assert sources.mandate_failure_reason == "Lotus Manage returned incomplete mandate evidence."
+
+
+@pytest.mark.asyncio
 async def test_source_loader_keeps_manage_evidence_when_cash_snapshot_fails() -> None:
     cash = _CashSource()
     cash.failure = HTTPException(status_code=502, detail="Core unavailable")
