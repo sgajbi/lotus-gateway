@@ -62,7 +62,7 @@ security-audit:
 duplicate-code:
 	cd quality && npm ci --ignore-scripts
 	mkdir -p output/duplicate-code
-	set -o pipefail; quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code --pattern 'src/app/**/*.py' . --noTips 2>&1 | tee output/duplicate-code/detector.txt; status=$${PIPESTATUS[0]}; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/detector.txt; exit "$${status}"
+	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code --pattern 'src/app/**/*.py' . --noTips > output/duplicate-code/detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/detector.txt; cat output/duplicate-code/detector.txt; exit "$${status}"
 	python scripts/check_duplicate_code_ratchet.py --report output/duplicate-code/jscpd-report.json --artifact-log output/duplicate-code/detector.txt --baseline quality/duplicate_code_baseline.json
 
 test:

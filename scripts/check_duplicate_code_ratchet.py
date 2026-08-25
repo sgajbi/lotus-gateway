@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 STATUS_PATTERN = re.compile(r"^QUALITY_COMMAND_STATUS=(\d+)$", re.MULTILINE)
+FRAGMENT_WHITESPACE = re.compile(r"\s+")
 DETECTOR_POLICY = {
     "name": "jscpd",
     "version": "4.2.2",
@@ -95,7 +96,15 @@ def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
-    identity = {"format": entry.get("format"), "sources": sorted((first_file, second_file))}
+    normalised_fragment = FRAGMENT_WHITESPACE.sub(" ", fragment).strip()
+    if not normalised_fragment:
+        raise ValueError("duplicate report entry has an empty fragment")
+    fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
+    identity = {
+        "format": entry.get("format"),
+        "fragment_digest": fragment_digest,
+        "sources": sorted((first_file, second_file)),
+    }
     digest = hashlib.sha256(
         json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
@@ -256,7 +265,7 @@ def _print_result(result: RatchetResult) -> None:
         key=lambda finding: (finding.first_file, finding.second_file, finding.lines),
     ):
         print(
-            "  unexpected source pair: "
+            "  unexpected source pair and fragment: "
             f"{finding.first_file} <-> {finding.second_file} ({finding.lines} lines)"
         )
     if result.stale_fingerprints:
