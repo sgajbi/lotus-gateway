@@ -10,6 +10,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 - `GET /api/v1/portfolio/portfolios`
 - `GET /api/v1/portfolio/portfolios/{portfolio_id}/workspace`
+- `GET /api/v1/portfolio/portfolios/{portfolio_id}/allocations`
 - `GET /api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`
 - `GET /api/v1/platform/capabilities`
 - `GET /api/v1/domain-products/catalog`
@@ -585,6 +586,29 @@ curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
 The portfolio workspace uses the product-owned Gateway contract for first-paint portfolio context.
 Use the dedicated Workbench performance routes for detailed performance evidence and horizon
 semantics.
+
+Portfolio allocation contributors:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/allocations?as_of_date=2026-03-27&reporting_currency=USD&look_through_mode=prefer_look_through&contributor_limit_per_bucket=50"
+```
+
+The allocation response is a Gateway composition contract backed by Core's
+`POST /reporting/asset-allocation/query` response. Core owns allocation calculation, look-through
+eligibility, contributor ordering, source lineage, bucket totals, and residual values. Gateway
+validates and maps those fields without recomputing allocation or joining the separate positions
+response. Each bucket publishes typed direct-position or look-through-component contributors,
+booked/component identity, source snapshot and component-record lineage, reporting-currency value,
+component weight, and bounded truncation/residual metadata. `effective_mode` is Core's
+`applied_mode`; `applied` is true only when Core actually applied `prefer_look_through`.
+
+`contributor_limit_per_bucket` is bounded to 1–250 and defaults to 50. When Core truncates the
+ordered contributor list, `contributors_truncated` and
+`omitted_market_value_reporting_currency` remain explicit so consumers never infer completeness.
+Malformed successful Core allocation payloads fail closed with a typed `502` contract error.
+`full` is not a supported alias: callers must use the canonical `direct_only` or
+`prefer_look_through` vocabulary. Workbench consumes the Gateway route and does not call Core or
+reconstruct look-through contributors from booked positions.
 
 Performance summary:
 

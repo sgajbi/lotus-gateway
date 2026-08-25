@@ -118,9 +118,22 @@ Current repository posture:
    `/api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`; Gateway publishes
    only Core's current BUY-lot identity, acquisition, quantity, cost, and lineage fields. It does
    not invent as-of valuation, holding-period, unrealized-P&L, disposal, or reporting-currency
-   semantics. Core follow-up evidence for those semantics is tracked by #1033, with valuation and
-   disposal ownership remaining in Core issues #788 and #481; Gateway delivery is tracked by #630
-   under parent issue #586.
+semantics. Core follow-up evidence for those semantics is tracked by #1033, with valuation and
+disposal ownership remaining in Core issues #788 and #481; Gateway delivery is tracked by #630
+under parent issue #586.
+   current source-backed allocation reads are active at
+   `/api/v1/portfolio/portfolios/{portfolio_id}/allocations`. Core owns allocation calculation,
+   classification, look-through eligibility, contributor ordering, source lineage, bucket totals,
+   and bounded residuals. Gateway validates the Core contributor contract and publishes typed
+   direct-position/look-through-component rows, preserving booked/component identity, source
+   snapshot and component-record lineage, reporting-currency contribution values, effective
+   look-through posture, and explicit truncation. Gateway does not recalculate allocation, join
+   direct positions to infer components, or invent target, benchmark, drift, suitability,
+   recommendation, order, execution, or settlement truth. The route accepts only canonical
+   `direct_only` and `prefer_look_through` modes and bounds contributor detail to 1–250 rows per
+   bucket, default 50; malformed successful Core payloads fail closed with
+   `PORTFOLIO_ALLOCATION_CONTRACT_INVALID`. This is the bounded Gateway delivery for #496; Core
+   source-contract history remains tracked by lotus-core#801 and is not closed by Gateway.
    repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
    trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
    fail-closed for entitlement, `PortfolioAnalyticsReference:v1` is fail-closed by default with

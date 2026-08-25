@@ -1374,3 +1374,34 @@ Reference branch: `origin/main`
 - Truth updates: supported-features documentation, API-surface wiki, and this ledger describe the
   additive bounded error contract. No repository context, central platform context, RFC, or
   migration update is needed. Wiki publication and strict parity remain required after merge.
+
+## Source-backed Allocation Contributor Contract (#496)
+
+- Scope: bounded Gateway contract publication for Core-owned allocation contributor lineage and
+  look-through posture; no allocation calculation or domain-semantic duplication.
+- Defect: `parse_allocation_views()` discarded Core contributor identity, parent/component lineage,
+  source snapshot/component-record evidence, truncation, and omitted-value reconciliation. The
+  Gateway route also documented the stale `full` look-through value and did not forward Core's
+  bounded per-bucket contributor limit.
+- Change: added a focused typed Core-source contract and fail-closed validation for successful
+  non-empty allocation payloads; mapped direct and look-through contributors into additive Gateway
+  response fields; preserved Workbench's existing `requested_mode`, `effective_mode`, and `applied`
+  keys while deriving them truthfully from Core `applied_mode`; forwarded a 1–250 contributor limit
+  with default 50 and included it in the upstream cache key.
+- Measured signal: source contributor rows are no longer dropped; source contributor count and
+  omitted residual must reconcile exactly before mapping; malformed, partial, or unsupported source
+  shape cannot become a successful aggregate response. The route rejects `full` with `422`, exposes
+  bounded OpenAPI metadata, and returns a typed `502` contract error for malformed successful Core
+  payloads.
+- Ownership: Core remains authoritative for allocation calculations, classification, eligibility,
+  ordering, lineage, totals, and residuals. Gateway owns only typed consumer mapping and safe
+  boundary validation. Workbench does not call Core directly or infer expanded contributors from
+  direct positions.
+- Regression proof: focused payload, source-adapter, service, router, and OpenAPI tests cover direct
+  and component lineage, source mode mapping, forwarding of contributor limits, truncation/residual
+  preservation, malformed and non-reconciling source rejection, typed `502` behavior, and legacy
+  alias rejection.
+- Truth updates: supported-features, API-surface wiki, repository context, and this ledger record
+  the new source-backed contract. No database schema, migration, central platform context, skill,
+  supported-feature owner, or CI gate change is needed; existing repository-native quality gates
+  remain mandatory.
