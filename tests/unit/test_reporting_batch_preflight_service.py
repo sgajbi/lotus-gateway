@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from app.contracts.reporting_batches import BatchCreateRequest
-from app.services.advisor_book_service_errors import source_unavailable
+from app.services.advisor_book_service_errors import AdvisorBookServiceError, source_unavailable
 from app.services.advisor_book_source_contract import SourceAdvisorBookResponse
 from app.services.reporting_batch_preflight_service import ReportingBatchPreflightService
 from app.services.reporting_batch_scope import ReportingBatchScopeError
@@ -23,13 +23,21 @@ class _MembershipService:
 
 
 class _ReportingCatalogueClient:
-    def __init__(self, payload: dict[str, Any] | None = None, status_code: int = 200):
+    def __init__(
+        self,
+        payload: dict[str, Any] | None = None,
+        status_code: int = 200,
+        error: Exception | None = None,
+    ):
         self.payload = payload or _catalogue_payload()
         self.status_code = status_code
+        self.error = error
         self.calls: list[str] = []
 
     async def get_report_ordering_catalogue(self, *, correlation_id: str):
         self.calls.append(correlation_id)
+        if self.error is not None:
+            raise self.error
         return self.status_code, self.payload
 
 
@@ -42,6 +50,12 @@ def _request(*portfolio_ids: str) -> BatchCreateRequest:
         reporting_currency="USD",
         options={"sections": ["OVERVIEW"]},
     )
+
+
+def _request_with_formats(*formats: str) -> BatchCreateRequest:
+    payload = _request("PB_READY").model_dump()
+    payload["requested_output_formats"] = list(formats)
+    return BatchCreateRequest.model_validate(payload)
 
 
 def _headers() -> dict[str, str]:
@@ -108,6 +122,8 @@ def _catalogue_payload(
     *,
     output_state: str = "ready",
     status: str = "ready",
+    family_status: str | None = None,
+    include_batch_mode: bool = True,
 ) -> dict[str, Any]:
     return {
         "source_service": "lotus-report",
@@ -120,15 +136,19 @@ def _catalogue_payload(
                 "intended_use": "advisor_client_portfolio_review",
                 "audience_roles": ["client_advisor", "portfolio_manager"],
                 "client_release_posture": "advisor_review_required_distribution_not_supported",
-                "ordering_modes": [
-                    {
-                        "mode_id": "explicit_portfolio_batch",
-                        "business_label": "Portfolio batch",
-                        "description": "Create a bounded portfolio batch.",
-                        "default_output_format": "pdf",
-                        "interactive": True,
-                    }
-                ],
+                "ordering_modes": (
+                    [
+                        {
+                            "mode_id": "explicit_portfolio_batch",
+                            "business_label": "Portfolio batch",
+                            "description": "Create a bounded portfolio batch.",
+                            "default_output_format": "pdf",
+                            "interactive": True,
+                        }
+                    ]
+                    if include_batch_mode
+                    else []
+                ),
                 "output_formats": [
                     {
                         "format_id": "pdf",
@@ -139,7 +159,7 @@ def _catalogue_payload(
                     }
                 ],
                 "supportability": {
-                    "state": status,
+                    "state": family_status or status,
                     "reason_code": "catalogue_posture",
                     "message": "Catalogue posture.",
                 },
@@ -220,6 +240,95 @@ async def test_preflight_fails_closed_when_membership_source_is_unavailable() ->
 
 
 @pytest.mark.asyncio
+async def test_preflight_fails_closed_when_core_returns_no_membership_evidence() -> None:
+    membership = _MembershipService()
+    catalogue = _ReportingCatalogueClient()
+    service = ReportingBatchPreflightService(
+        membership_service=membership,
+        reporting_client=catalogue,
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-no-source",
+    )
+
+    assert response.reason_code == "no_reportable_candidates"
+    assert response.source_posture.reason_code == "membership_source_unavailable"
+    assert response.configuration_posture.reason_code == "configuration_not_evaluated"
+    assert catalogue.calls == []
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_membership_evidence_is_incomplete() -> None:
+    membership = _MembershipService(
+        _source_payload([_member("PB_READY")], supportability="INCOMPLETE")
+    )
+    catalogue = _ReportingCatalogueClient()
+    service = ReportingBatchPreflightService(
+        membership_service=membership,
+        reporting_client=catalogue,
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-incomplete",
+    )
+
+    assert response.source_posture.state == "incomplete"
+    assert response.source_posture.reason_code == "membership_source_incomplete"
+    assert response.candidates[0].reason_code == "membership_source_incomplete"
+    assert catalogue.calls == []
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_core_does_not_confirm_tenant_scope() -> None:
+    membership = _MembershipService(_source_payload([_member("PB_READY")], tenant_id=None))
+    catalogue = _ReportingCatalogueClient()
+    service = ReportingBatchPreflightService(
+        membership_service=membership,
+        reporting_client=catalogue,
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-tenant",
+    )
+
+    assert response.source_posture.reason_code == "tenant_scope_unverified"
+    assert response.candidates[0].reason_code == "tenant_scope_unverified"
+    assert catalogue.calls == []
+
+
+@pytest.mark.asyncio
+async def test_preflight_maps_membership_access_denial_to_scope_error() -> None:
+    membership = _MembershipService(
+        error=AdvisorBookServiceError(
+            code="advisor_book_access_denied",
+            message="Caller is not permitted.",
+            status_code=403,
+        )
+    )
+    service = ReportingBatchPreflightService(
+        membership_service=membership,
+        reporting_client=_ReportingCatalogueClient(),
+    )
+
+    with pytest.raises(ReportingBatchScopeError) as exc_info:
+        await service.preflight(
+            request=_request("PB_READY"),
+            caller_headers=_headers(),
+            correlation_id="corr-preflight-denied",
+        )
+
+    assert exc_info.value.code == "report_batch_access_denied"
+    assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_preflight_does_not_claim_ready_when_requested_output_is_unavailable() -> None:
     membership = _MembershipService(_source_payload([_member("PB_READY")]))
     catalogue = _ReportingCatalogueClient(_catalogue_payload(output_state="unavailable"))
@@ -260,6 +369,143 @@ async def test_preflight_surfaces_degraded_report_configuration_as_partial() -> 
     assert response.configuration_posture.state == "partial"
     assert response.candidates[0].state == "partial"
     assert response.partial_count == 1
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_report_catalogue_call_fails() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=_ReportingCatalogueClient(error=RuntimeError("catalogue timeout")),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-catalogue-error",
+    )
+
+    assert response.configuration_posture.reason_code == "report_catalogue_unavailable"
+    assert response.candidates[0].state == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_report_catalogue_is_invalid() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=_ReportingCatalogueClient(payload={"invalid": "payload"}),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-catalogue-invalid",
+    )
+
+    assert response.configuration_posture.reason_code == "report_catalogue_contract_invalid"
+    assert response.candidates[0].state == "unavailable"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("formats", "reason_code"),
+    [([], "report_output_formats_missing"), (["pdf", "pdf"], "report_output_formats_duplicate")],
+)
+async def test_preflight_rejects_invalid_output_format_requests(
+    formats: list[str], reason_code: str
+) -> None:
+    catalogue = _ReportingCatalogueClient()
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=catalogue,
+    )
+
+    response = await service.preflight(
+        request=_request_with_formats(*formats),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-formats",
+    )
+
+    assert response.configuration_posture.reason_code == reason_code
+    assert response.candidates[0].state == "unavailable"
+    assert catalogue.calls == []
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_report_batch_mode_is_not_catalogued() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=_ReportingCatalogueClient(
+            payload=_catalogue_payload(include_batch_mode=False)
+        ),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-mode",
+    )
+
+    assert response.configuration_posture.reason_code == "report_batch_mode_unavailable"
+    assert response.candidates[0].state == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_preflight_fails_closed_when_report_family_is_unavailable() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=_ReportingCatalogueClient(
+            payload=_catalogue_payload(status="ready", family_status="unavailable")
+        ),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-family",
+    )
+
+    assert response.configuration_posture.reason_code == "catalogue_posture"
+    assert response.candidates[0].state == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_preflight_reports_catalogue_degradation_separately() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(_source_payload([_member("PB_READY")])),
+        reporting_client=_ReportingCatalogueClient(
+            payload=_catalogue_payload(status="partial", family_status="ready")
+        ),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-catalogue-partial",
+    )
+
+    assert response.configuration_posture.state == "partial"
+    assert response.configuration_posture.reason_code == "catalogue_posture"
+    assert response.candidates[0].state == "partial"
+
+
+@pytest.mark.asyncio
+async def test_preflight_reports_ready_when_every_requested_portfolio_is_ready() -> None:
+    service = ReportingBatchPreflightService(
+        membership_service=_MembershipService(
+            _source_payload([_member("PB_READY_1"), _member("PB_READY_2")])
+        ),
+        reporting_client=_ReportingCatalogueClient(),
+    )
+
+    response = await service.preflight(
+        request=_request("PB_READY_1", "PB_READY_2"),
+        caller_headers=_headers(),
+        correlation_id="corr-preflight-ready",
+    )
+
+    assert response.state == "ready"
+    assert response.reason_code == "preflight_ready"
+    assert response.ready_count == 2
 
 
 @pytest.mark.asyncio
