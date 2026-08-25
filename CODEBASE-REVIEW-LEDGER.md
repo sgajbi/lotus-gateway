@@ -4,6 +4,27 @@ Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2S — fail closed on ambiguous advisor-book zero coverage (#632, parent #616)
+
+- Objective: prevent Gateway from presenting an unproven Core zero/zero AUM response as a
+  confidently covered advisor-book value.
+- Change: the bounded advisor-book summary marks the exact source pair
+  `aum_reporting_currency == 0` and `position_count == 0` unavailable, publishes the named
+  `advisor_book_value_coverage_ambiguous` reason, excludes the item from covered count and book
+  aggregate, and keeps the summary partial with a null total. Non-zero and ordinary missing-row
+  behavior remain unchanged.
+- Regression proof: focused service and OpenAPI contract tests cover item-level fail-closed mapping,
+  coverage counting, aggregate suppression, and the public reason enum; router integration coverage
+  remains green.
+- Compatibility: response behavior changes only for the previously ambiguous exact zero/zero source
+  pair; the route and schema remain additive, with nullable value fields and an additive reason enum.
+  No migration, configuration, dependency, retry, or source-contract change is included. Core owns
+  the durable snapshot-presence distinction in #1034; Gateway does not claim that zero/zero means an
+  empty snapshot.
+- Documentation decision: repository context, API-surface wiki, supported-features wiki, and this
+  ledger change because the supported failure semantics changed. No central platform context or
+  runbook change is required. Wiki publication and strict parity are required after merge.
+
 ### Batch 2R — publish bounded source-backed tax-lot drill-down (#630, parent #586)
 
 - Objective: expose useful current Core lot evidence through a typed Gateway boundary without

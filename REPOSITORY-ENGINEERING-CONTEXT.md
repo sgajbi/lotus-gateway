@@ -105,6 +105,12 @@ Current repository posture:
    not certify per-portfolio freshness because Core's current AUM response does not expose it.
    Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
    household, performance, risk, attention, suitability, communication, or execution truth. Its
+   interim handling is fail-closed for the exact Core response pair
+   `aum_reporting_currency == 0` and `position_count == 0`: Gateway marks that portfolio's value
+   coverage unavailable, excludes it from the covered count and aggregate, and does not claim the
+   row is an empty snapshot. Core's current DTO cannot distinguish no snapshot from measured zero;
+   source-owned evidence is tracked by lotus-core#1034 and the bounded Gateway implementation by
+   #632 under parent issue #616.
    current source-backed portfolio position tax-lot drill-down is active at
    `/api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`; Gateway publishes
    only Core's current BUY-lot identity, acquisition, quantity, cost, and lineage fields. It does

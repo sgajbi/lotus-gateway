@@ -127,6 +127,12 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   cash, attention, mandate, suitability, or recommendation truth. Core's current AUM contract does
   not expose per-portfolio snapshot freshness, so the response does not certify every value fact
   as current on the requested date.
+- When Core returns the exact pair `aum_reporting_currency == 0` and `position_count == 0`, Gateway
+  treats the portfolio coverage as ambiguous and fail-closed: the item value and position count are
+  null, it is excluded from covered count and aggregate calculation, and the response carries
+  `advisor_book_value_coverage_ambiguous`. This does not claim that the source row is empty; Core's
+  source-owned contract gap is tracked by `lotus-core#1034` and the bounded Gateway handling by
+  `#632` under parent issue `#616`.
 - portfolio position tax-lot drill-down returns a typed, closed envelope of the current Core BUY
   lots for one exact portfolio/security pair. It preserves source lot identity, acquisition date,
   original/open quantity, local/base cost, accrued interest, and optional source lineage fields;
