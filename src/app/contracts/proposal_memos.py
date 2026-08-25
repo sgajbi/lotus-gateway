@@ -3,6 +3,20 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.contracts.proposal_common import ProposalEnvelopeBase
+from app.contracts.proposal_memo_action_models import (
+    ProposalMemoAiCommentaryResponse,
+    ProposalMemoReportPackageEventResponse,
+    ProposalMemoReportPackageResponse,
+    ProposalMemoReviewResponse,
+)
+from app.contracts.proposal_memo_lineage_models import (
+    ProposalMemoLineageResponse,
+    ProposalMemoReplayEvidenceResponse,
+)
+from app.contracts.proposal_memo_models import (
+    ProposalMemoProjectionResponse,
+    ProposalMemoResponse,
+)
 
 
 class ProposalMemoCreateRequest(BaseModel):
@@ -13,8 +27,8 @@ class ProposalMemoCreateRequest(BaseModel):
     lifecycle_status: str = Field(
         default="DRAFT",
         description=(
-            "Requested durable memo lifecycle status. Gateway forwards the value to "
-            "lotus-advise and does not decide memo finalization locally."
+            "Requested durable memo lifecycle status. Gateway forwards the value to lotus-advise "
+            "and does not decide memo finalization locally."
         ),
         examples=["DRAFT"],
     )
@@ -28,15 +42,12 @@ class ProposalMemoCreateRequest(BaseModel):
 class ProposalMemoReviewRequest(BaseModel):
     action: Literal["APPROVE_FOR_ADVISOR_USE", "REJECT", "REQUEST_CHANGES"] = Field(
         description=(
-            "Bounded memo review action. Gateway forwards the action to lotus-advise and "
-            "does not alter memo evidence, readiness, or publication state."
+            "Bounded memo review action. Gateway forwards the action to lotus-advise and does "
+            "not alter memo evidence, readiness, or publication state."
         ),
         examples=["APPROVE_FOR_ADVISOR_USE"],
     )
-    reviewed_by: str = Field(
-        description="Reviewer actor identifier.",
-        examples=["compliance_1"],
-    )
+    reviewed_by: str = Field(description="Reviewer actor identifier.", examples=["compliance_1"])
     reason: str = Field(
         description="Business reason for the memo review decision.",
         examples=["Memo is ready for advisor discussion; client-ready release remains blocked."],
@@ -68,14 +79,12 @@ class ProposalMemoReportPackageRequest(BaseModel):
     )
     client_ready_document_requested: bool = Field(
         default=False,
-        description=(
-            "Whether client-ready document release is requested. RFC-0024 keeps this blocked."
-        ),
+        description="Whether client-ready release is requested. RFC-0024 keeps this blocked.",
         examples=[False],
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Structured report-package request reason forwarded unchanged to lotus-advise.",
+        description="Structured report-package reason forwarded unchanged to lotus-advise.",
         examples=[{"purpose": "advisor-use memo report package"}],
     )
 
@@ -91,89 +100,71 @@ class ProposalMemoAiCommentaryRequest(BaseModel):
     )
     requested_sections: list[str] = Field(
         default_factory=lambda: ["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"],
-        description=(
-            "Bounded advisor-use commentary sections requested from lotus-ai through Advise."
-        ),
+        description="Bounded advisor-use commentary sections requested through Advise.",
         examples=[["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"]],
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Structured AI commentary request reason forwarded unchanged to lotus-advise.",
+        description="Structured AI commentary reason forwarded unchanged to lotus-advise.",
         examples=[{"purpose": "advisor-use commentary draft"}],
     )
 
 
 class ProposalMemoEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Memo payload returned by lotus-advise. Gateway preserves memo evidence, projection, "
-            "review, report/render/archive, archive refs, AI commentary, supportability, and "
-            "lineage posture without recomputing or inferring memo facts."
-        ),
-        examples=[
-            {
-                "memo_id": "memo_001",
-                "memo_status": "PENDING_REVIEW",
-                "memo_hash": "sha256:memo-001",
-                "projection": {"client_ready_publication": "BLOCKED"},
-            }
-        ],
-    )
+    data: ProposalMemoResponse = Field(description="Source-owned persisted proposal memo response.")
 
 
 class ProposalMemoProjectionEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Audience-filtered memo projection returned by lotus-advise. Gateway does not "
-            "redact, rank, or construct memo sections locally."
-        ),
+    data: ProposalMemoProjectionResponse = Field(
+        description="Source-owned audience-specific memo projection."
     )
 
 
 class ProposalMemoReviewEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Memo review response returned by lotus-advise with append-only event posture.",
+    data: ProposalMemoReviewResponse = Field(
+        description="Source-owned memo review event and refreshed memo response."
+    )
+
+
+class ProposalMemoReportPackageEventEnvelopeResponse(ProposalEnvelopeBase):
+    data: ProposalMemoReportPackageEventResponse = Field(
+        description="Source-owned memo report-package event and refreshed memo response."
     )
 
 
 class ProposalMemoReportPackageEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Memo report/render/archive request response returned by lotus-advise, including "
-            "report, render, archive, and memo lineage refs when available."
-        ),
+    data: ProposalMemoReportPackageResponse = Field(
+        description="Source-owned memo report-package response and typed report handle."
     )
 
 
 class ProposalMemoAiCommentaryEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Review-gated advisor-use AI commentary response returned by lotus-advise. The "
-            "commentary is non-authoritative and cannot alter memo evidence or approval posture."
-        ),
+    data: ProposalMemoAiCommentaryResponse = Field(
+        description="Source-owned memo AI commentary event and non-authoritative commentary."
     )
 
 
 class ProposalMemoLineageEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Proposal memo lineage returned by lotus-advise, including memo hashes, event counts, "
-            "report-package posture, archive refs, and AI commentary posture."
-        ),
-    )
+    data: ProposalMemoLineageResponse = Field(description="Source-owned proposal memo lineage.")
 
 
 class ProposalMemoReplayEvidenceEnvelopeResponse(ProposalEnvelopeBase):
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "Memo replay evidence returned by lotus-advise, preserving source hashes, audit "
-            "events, supportability, and blocked client-ready posture."
-        ),
+    data: ProposalMemoReplayEvidenceResponse = Field(
+        description="Source-owned proposal memo replay evidence."
     )
+
+
+__all__ = [
+    "ProposalMemoAiCommentaryEnvelopeResponse",
+    "ProposalMemoAiCommentaryRequest",
+    "ProposalMemoCreateRequest",
+    "ProposalMemoEnvelopeResponse",
+    "ProposalMemoLineageEnvelopeResponse",
+    "ProposalMemoProjectionEnvelopeResponse",
+    "ProposalMemoReplayEvidenceEnvelopeResponse",
+    "ProposalMemoReportPackageEnvelopeResponse",
+    "ProposalMemoReportPackageEventEnvelopeResponse",
+    "ProposalMemoReportPackageRequest",
+    "ProposalMemoReviewEnvelopeResponse",
+    "ProposalMemoReviewRequest",
+]
