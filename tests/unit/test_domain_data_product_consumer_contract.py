@@ -118,6 +118,54 @@ def _assignment_values(tree: ast.AST) -> dict[str, ast.AST]:
     }
 
 
+def _binding_targets(node: ast.AST) -> tuple[ast.AST, ...]:
+    if isinstance(node, ast.Assign):
+        return tuple(node.targets)
+    if isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+        return (node.target,)
+    if isinstance(node, (ast.AsyncFor, ast.For)):
+        return (node.target,)
+    if isinstance(node, (ast.AsyncWith, ast.With)):
+        return tuple(item.optional_vars for item in node.items if item.optional_vars is not None)
+    return ()
+
+
+def _assigned_names(tree: ast.AST) -> frozenset[str]:
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        for target in _binding_targets(node):
+            names.update(
+                bound_name.id for bound_name in ast.walk(target) if isinstance(bound_name, ast.Name)
+            )
+        if isinstance(node, ast.ExceptHandler) and node.name is not None:
+            names.add(node.name)
+        if isinstance(node, ast.MatchAs) and node.name is not None:
+            names.add(node.name)
+        if isinstance(node, ast.comprehension):
+            names.update(
+                bound_name.id
+                for bound_name in ast.walk(node.target)
+                if isinstance(bound_name, ast.Name)
+            )
+    return frozenset(names)
+
+
+def _assigned_instance_attributes(tree: ast.AST) -> frozenset[str]:
+    attributes: set[str] = set()
+    for node in ast.walk(tree):
+        for target in _binding_targets(node):
+            attributes.update(
+                bound_attribute.attr
+                for bound_attribute in ast.walk(target)
+                if (
+                    isinstance(bound_attribute, ast.Attribute)
+                    and isinstance(bound_attribute.value, ast.Name)
+                    and bound_attribute.value.id == "self"
+                )
+            )
+    return frozenset(attributes)
+
+
 def _resolve_route_templates(
     expression: ast.AST,
     assignments: dict[str, ast.AST],
@@ -202,9 +250,11 @@ def _resolve_route_templates(
             _has_stable_route_prefix(template) for template in format_templates
         )
         replacements = [
-            *expression.args,
-            *(keyword.value for keyword in expression.keywords),
+            *((None, argument) for argument in expression.args),
+            *((keyword.arg, keyword.value) for keyword in expression.keywords),
         ]
+        if any(keyword.arg is None for keyword in expression.keywords):
+            return set()
         if any(
             _route_interpolation_is_opaque(
                 replacement,
@@ -213,17 +263,55 @@ def _resolve_route_templates(
                 quote_provenance_is_safe=quote_provenance_is_safe,
                 allow_unencoded_parameter=not has_concrete_prefix,
             )
-            for replacement in replacements
+            for _, replacement in replacements
         ):
             return set()
-        return _resolve_route_templates(
-            expression.func.value,
+        return _apply_static_format_replacements(
+            format_templates,
+            replacements,
             assignments,
-            resolving,
             own_parameters,
             quote_provenance_is_safe,
         )
     return set()
+
+
+def _apply_static_format_replacements(
+    format_templates: set[str],
+    replacements: list[tuple[str | None, ast.AST]],
+    assignments: dict[str, ast.AST],
+    own_parameters: frozenset[str],
+    quote_provenance_is_safe: bool,
+) -> set[str]:
+    rendered_templates = set(format_templates)
+    for position, (keyword_name, replacement) in enumerate(replacements):
+        static_value = _resolved_route_interpolation(
+            replacement,
+            assignments,
+            own_parameters,
+            quote_provenance_is_safe,
+        )
+        if static_value is None:
+            continue
+        placeholders = (
+            ("{}", "{" + str(position) + "}")
+            if keyword_name is None
+            else ("{" + keyword_name + "}",)
+        )
+        updated_templates: set[str] = set()
+        for template in rendered_templates:
+            for placeholder in placeholders:
+                if placeholder in template:
+                    updated_templates.add(
+                        template.replace(placeholder, static_value, 1)
+                        if keyword_name is None
+                        else template.replace(placeholder, static_value)
+                    )
+                    break
+            else:
+                return set()
+        rendered_templates = updated_templates
+    return rendered_templates
 
 
 def _resolved_route_interpolation(
@@ -472,6 +560,7 @@ def _route_expression_matches_allowlist_shape(
     expression: ast.AST,
     own_parameters: frozenset[str],
     assigned_names: frozenset[str],
+    assigned_instance_attributes: frozenset[str],
 ) -> bool:
     shape = _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTION_SHAPES.get((client_module, client_method))
     if shape is None:
@@ -506,6 +595,7 @@ def _route_expression_matches_allowlist_shape(
             and path_value.value.id == "path"
             and "path" in own_parameters
             and "path" not in assigned_names
+            and base_url_attribute not in assigned_instance_attributes
         )
     return False
 
@@ -559,7 +649,8 @@ def _implemented_core_domain_product_reads(
                 continue
             function_assignments = _assignment_values(node)
             assignments = module_assignments | function_assignments
-            assigned_names = frozenset(function_assignments)
+            assigned_names = _assigned_names(node)
+            assigned_instance_attributes = _assigned_instance_attributes(node)
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
@@ -584,6 +675,7 @@ def _implemented_core_domain_product_reads(
                             route_expression,
                             _function_parameter_names(node),
                             assigned_names,
+                            assigned_instance_attributes,
                         )
                     ):
                         continue
@@ -973,11 +1065,18 @@ class FakeCoreClient:
         hidden_route = "/integration/hidden-product"
         return await self._request(url=f"{hidden_route}/{suffix}")
 
+    async def _get_format_constant_route(self):
+        hidden_route = "/integration/hidden-product"
+        return await self._request(url="{}{}".format(hidden_route, "/suffix"))
+
     async def _get_instance_attribute_route(self):
         return await self._request(url=f"{self._hidden_route}/suffix")
 
     async def _get_module_constant_interpolation_route(self):
         return await self._request(url=f"{HIDDEN_ROUTE_PREFIX}suffix")
+
+    async def _get_module_format_constant_route(self):
+        return await self._request(url="{}{}".format(HIDDEN_ROUTE_PREFIX, "suffix"))
 
     async def _get_attribute_route(self, path):
         return await self._request(url=self._hidden_integration_route + path)
@@ -1080,7 +1179,17 @@ class FakeCoreClient:
     ) in implemented
     assert (
         "lotus_core_private_helper_client.py",
+        "_get_format_constant_route",
+        "/integration/hidden-product/suffix",
+    ) in implemented
+    assert (
+        "lotus_core_private_helper_client.py",
         "_get_module_constant_interpolation_route",
+        "/integration/hidden-product/suffix",
+    ) in implemented
+    assert (
+        "lotus_core_private_helper_client.py",
+        "_get_module_format_constant_route",
         "/integration/hidden-product/suffix",
     ) in implemented
 
@@ -1191,12 +1300,45 @@ class FakeCoreClient:
     ) in implemented
 
 
-def test_named_transport_allowlist_rejects_rebound_parameter(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "binding_statement",
+    (
+        "path, marker = (build_internal_route(path), None)",
+        "path += build_internal_route(path)",
+        "for path in (build_internal_route(path),):\n            break",
+        "if (path := build_internal_route(path)):\n            pass",
+    ),
+)
+def test_named_transport_allowlist_rejects_rebound_parameter(
+    tmp_path: Path,
+    binding_statement: str,
+) -> None:
+    (tmp_path / "lotus_core_query_client.py").write_text(
+        f"""
+class FakeCoreClient:
+    async def _get_query_resource(self, path):
+        {binding_statement}
+        return await self._request(url=f"{{self._query_base_url}}{{path}}")
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    implemented = _implemented_core_domain_product_reads(tmp_path)
+
+    assert (
+        "lotus_core_query_client.py",
+        "_get_query_resource",
+        _UNRESOLVED_ROUTE_TEMPLATE,
+    ) in implemented
+
+
+def test_named_transport_allowlist_rejects_rebound_base_url(tmp_path: Path) -> None:
     (tmp_path / "lotus_core_query_client.py").write_text(
         """
 class FakeCoreClient:
     async def _get_query_resource(self, path):
-        path = build_internal_route(path)
+        self._query_base_url = build_internal_route()
         return await self._request(url=f"{self._query_base_url}{path}")
 """.strip()
         + "\n",
