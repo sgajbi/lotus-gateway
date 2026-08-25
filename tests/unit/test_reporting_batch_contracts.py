@@ -182,3 +182,24 @@ def test_batch_response_accepts_extracted_supportability_contracts() -> None:
     assert response.supportability is supportability
     assert response.render_supportability is render_supportability
     assert response.model_dump()["status"] == "materialized"
+
+
+def test_batch_item_contract_publishes_archive_posture_and_links() -> None:
+    item = BatchItemStatusResponse(
+        batch_item_id="rbci_1",
+        item_position=1,
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        status="succeeded",
+        report_job_id="rjob_1",
+        report_job_status="archived",
+        archive_document_id="doc_1",
+        archive_state="available",
+        archive_reason_code="archive_available",
+        archive_metadata_url="/api/v1/documents/doc_1",
+        archive_download_url="/api/v1/documents/doc_1/download",
+        created_at="2026-04-22T09:00:00Z",
+    )
+
+    assert item.archive_document_id == "doc_1"
+    assert item.archive_state == "available"
+    assert item.archive_metadata_url == "/api/v1/documents/doc_1"

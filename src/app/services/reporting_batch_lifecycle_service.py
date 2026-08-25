@@ -6,6 +6,7 @@ from app.contracts.reporting_batches import (
     BatchStatusResponse,
 )
 from app.contracts.reporting_errors import REPORT_BATCH_ERROR_EXAMPLES
+from app.services.reporting_batch_archive import project_report_batch_archive
 from app.services.reporting_batch_scope import (
     ReportingBatchScopeError,
     ReportingBatchScopeResolver,
@@ -88,7 +89,7 @@ class ReportingBatchLifecycleService:
         )
         raise_report_batch_error(status_code, payload)
         response_payload = await self._attach_operator_supportability(
-            payload,
+            project_report_batch_archive(payload),
             correlation_id=correlation_id,
             tenant_id=tenant_id,
         )

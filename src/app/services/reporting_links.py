@@ -10,6 +10,14 @@ def gateway_report_batch_status_url(batch_id: str) -> str:
     return f"/api/v1/report-batches/{quote(batch_id, safe='')}"
 
 
+def gateway_archive_document_metadata_url(document_id: str) -> str:
+    return f"/api/v1/documents/{quote(document_id, safe='')}"
+
+
+def gateway_archive_document_download_url(document_id: str) -> str:
+    return f"/api/v1/documents/{quote(document_id, safe='')}/download"
+
+
 def rewrite_report_batch_status_url(payload: dict[str, Any]) -> dict[str, Any]:
     batch_id = payload.get("batch_id")
     if isinstance(batch_id, str) and batch_id:

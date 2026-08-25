@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -20,6 +21,14 @@ __all__ = [
     "ReportBatchMaterializationRequest",
     "RenderSupportabilitySummary",
     "ReportingEvidenceSurfaceSupportability",
+]
+
+BatchArchiveState = Literal["available", "pending", "unavailable"]
+BatchArchiveReasonCode = Literal[
+    "archive_available",
+    "not_archived",
+    "archive_pending",
+    "archive_failed",
 ]
 
 
@@ -150,6 +159,42 @@ class BatchItemStatusResponse(BaseModel):
     report_job_id: str | None = Field(
         default=None,
         description="Linked report job identifier after dispatch.",
+    )
+    report_job_status: str | None = Field(
+        default=None,
+        description="Source-owned lotus-report job status for the directly linked job.",
+    )
+    archive_document_id: str | None = Field(
+        default=None,
+        description=(
+            "Source-owned lotus-archive document identifier for the directly linked report job. "
+            "Null until lotus-report confirms that job is archived."
+        ),
+    )
+    archive_state: BatchArchiveState = Field(
+        "unavailable",
+        description="Gateway projection of archive availability for this batch item.",
+    )
+    archive_reason_code: BatchArchiveReasonCode = Field(
+        "not_archived",
+        description=(
+            "Bounded reason for the archive state; Gateway never treats a missing document ID "
+            "as an archive-ready result."
+        ),
+    )
+    archive_metadata_url: str | None = Field(
+        default=None,
+        description=(
+            "Gateway-controlled archived-document metadata route, present only for an available "
+            "source document. Metadata access re-checks caller tenant and region."
+        ),
+    )
+    archive_download_url: str | None = Field(
+        default=None,
+        description=(
+            "Gateway-controlled archived-document download route, present only for an available "
+            "source document. Binary access re-checks archive entitlement."
+        ),
     )
     attempt_count: int = Field(0, ge=0, description="Number of recorded attempts.")
     retry_eligible: bool = Field(False, description="Whether bounded retry is currently allowed.")
