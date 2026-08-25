@@ -10,3 +10,10 @@ discovery generator. Gateway's unit lane protects the checked-in dependency sema
 ```powershell
 python -m pytest tests/unit/test_domain_data_product_consumer_contract.py -q
 ```
+
+The consumer gate checks declaration parity in both directions. It validates the route inventory
+against the declared products and statically discovers asynchronous `/integration/` path arguments
+in `src/app/clients/lotus_core*.py`. The three explicitly classified Core control-plane/snapshot
+operations (`capabilities`, `policy`, and `core-snapshot`) are outside RFC-0084 domain-product
+scope. Any new Core integration method outside that narrow boundary is treated as a domain-product
+read and must be added to `lotus-gateway-core-route-inventory.v1.json` before the gate passes.
