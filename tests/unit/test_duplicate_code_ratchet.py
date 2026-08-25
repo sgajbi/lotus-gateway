@@ -268,6 +268,54 @@ def test_duplicate_fingerprint_normalizes_path_separators_and_source_order(
     )
 
 
+def test_duplicate_fingerprint_uses_canonical_source_side_when_report_orientation_changes(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "source"
+    for name, result in (("a.py", 1), ("b.py", 2)):
+        path = source_root / "src" / "app" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"def shared():\n    return {result}\n", encoding="utf-8")
+
+    forward = load_report(
+        _write_report(
+            tmp_path / "forward",
+            [
+                _entry(
+                    "src/app/a.py",
+                    "src/app/b.py",
+                    fragment="def shared():\n    return 1\n",
+                    lines=2,
+                    first_start=1,
+                    second_start=1,
+                )
+            ],
+        ),
+        source_root=source_root,
+    )
+    reversed_report = load_report(
+        _write_report(
+            tmp_path / "reversed",
+            [
+                _entry(
+                    "src/app/b.py",
+                    "src/app/a.py",
+                    fragment="def shared():\n    return 2\n",
+                    lines=2,
+                    first_start=1,
+                    second_start=1,
+                )
+            ],
+        ),
+        source_root=source_root,
+    )
+
+    assert (
+        build_baseline(forward)["allowed_fingerprints"]
+        == build_baseline(reversed_report)["allowed_fingerprints"]
+    )
+
+
 def test_duplicate_fingerprint_distinguishes_multiple_clones_between_same_files(
     tmp_path: Path,
 ) -> None:

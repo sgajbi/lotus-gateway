@@ -113,6 +113,18 @@ def _normalise_location(value: dict[str, Any]) -> tuple[str, int]:
     return source, start
 
 
+def _source_fragment(source_root: Path, source: str, start: int, lines: int) -> str:
+    source_path = source_root.joinpath(*PurePosixPath(source).parts)
+    try:
+        source_lines = source_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    except OSError as exc:
+        raise ValueError(f"duplicate report source cannot be read: {source_path}") from exc
+    end = start - 1 + lines
+    if end > len(source_lines):
+        raise ValueError(f"duplicate report source range exceeds file: {source_path}")
+    return "".join(source_lines[start - 1 : end])
+
+
 def _context_digest(source_root: Path, source: str, start: int, lines: int) -> str:
     source_path = source_root.joinpath(*PurePosixPath(source).parts)
     try:
@@ -216,17 +228,22 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
-    normalised_fragment = _normalise_fragment(fragment)
-    if not normalised_fragment:
-        raise ValueError("duplicate report entry has an empty fragment")
     format_name = entry.get("format")
     if not isinstance(format_name, str) or not format_name:
         raise ValueError("duplicate report entry has an invalid format")
-    fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
     sorted_locations = sorted(((first_file, first_start), (second_file, second_start)))
     locations = (sorted_locations[0], sorted_locations[1])
     sorted_sources = sorted((first_file, second_file))
     sources = (sorted_sources[0], sorted_sources[1])
+    canonical_fragment = (
+        _source_fragment(source_root, locations[0][0], locations[0][1], lines)
+        if source_root is not None
+        else fragment
+    )
+    normalised_fragment = _normalise_fragment(canonical_fragment)
+    if not normalised_fragment:
+        raise ValueError("duplicate report entry has an empty fragment")
+    fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
     location_contexts = [
         (
             first_file,

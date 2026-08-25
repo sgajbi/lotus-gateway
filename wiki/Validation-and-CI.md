@@ -41,7 +41,9 @@ its extraction branches. They are retained as engineering history; current route
   migration smoke, integration tests, coverage, security audit, and the pinned duplicate-code
   ratchet over production Python sources
 - `make duplicate-code`
-  reproducible jscpd scan and stable-finding ratchet using `quality/package-lock.json`
+  pinned jscpd scan and stable-finding ratchet using `quality/package-lock.json`; the protected
+  baseline is generated/enforced on Ubuntu/Node 20, while cross-platform candidate-selection drift
+  remains a tracked follow-up and must not be hidden by a union baseline
 - `make ci-local`
   local feature-lane validation
 - `make ci-local-docker`
@@ -118,7 +120,8 @@ same actual revision may supersede one another.
 - duplicate fingerprints include Python-version-independent normalized AST scope context and
   occurrence ordering so line shifts, adjacent source edits, or non-local scope-body edits do not
   invalidate unrelated clones; cross-scope replacements remain visible, while same-scope
-  relocation is an explicit identity trade-off; quoted literal contents are preserved during
+  relocation is an explicit identity trade-off; the canonical source side is used when the
+  detector reports the same clone in reverse order; quoted literal contents are preserved during
   fragment normalization
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
