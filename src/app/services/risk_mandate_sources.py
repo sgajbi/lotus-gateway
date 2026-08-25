@@ -7,15 +7,33 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class ManageMandateConstraintsSource(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    cash_band_min_weight: float = Field(default=0.0, ge=0, le=1)
-    cash_band_max_weight: float = Field(default=1.0, ge=0, le=1)
-    single_position_max_weight: float | None = Field(default=None, ge=0, le=1)
-    issuer_max_weight: float | None = Field(default=None, ge=0, le=1)
-    sector_max_weight: float | None = Field(default=None, ge=0, le=1)
-    region_max_weight: float | None = Field(default=None, ge=0, le=1)
-    currency_max_weight: float | None = Field(default=None, ge=0, le=1)
-    turnover_budget: float | None = Field(default=None, ge=0, le=1)
-    max_tracking_error: float | None = Field(default=None, ge=0, le=1)
+    cash_band_min_weight: float = Field(  # monetary-float-allow
+        default=0.0, ge=0, le=1
+    )
+    cash_band_max_weight: float = Field(  # monetary-float-allow
+        default=1.0, ge=0, le=1
+    )
+    single_position_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    issuer_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    sector_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    region_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    currency_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    turnover_budget: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
+    max_tracking_error: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
+    )
 
     @model_validator(mode="after")
     def validate_cash_band(self) -> "ManageMandateConstraintsSource":
@@ -62,8 +80,8 @@ class ManageMandateHealthDimensionSource(BaseModel):
     dimension: str
     state: str
     reason_code: str
-    measured_value: float | str | int | None = None
-    threshold_value: float | str | int | None = None
+    measured_value: float | str | int | None = None  # monetary-float-allow
+    threshold_value: float | str | int | None = None  # monetary-float-allow
 
 
 class ManageMandateHealthSource(BaseModel):
@@ -85,7 +103,7 @@ class ManageMandateHealthSource(BaseModel):
 
 @dataclass(frozen=True)
 class WorkbenchCashMeasureSource:
-    value: float
+    value: float  # monetary-float-allow
     as_of_date: date
 
 

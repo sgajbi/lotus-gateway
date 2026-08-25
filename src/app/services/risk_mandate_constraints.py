@@ -140,7 +140,7 @@ def build_maximum_constraint(
     *,
     key: str,
     label: str,
-    limit_value: float | None,
+    limit_value: float | None,  # monetary-float-allow
     measure: WorkbenchMandateConstraintMeasure | None,
     measure_ready: bool,
     unavailable_reason: str,
@@ -241,5 +241,5 @@ def _cash_source_conflict(
     )
 
 
-def _rounded(value: float) -> float:
+def _rounded(value: float) -> float:  # monetary-float-allow
     return round(value, 10)
