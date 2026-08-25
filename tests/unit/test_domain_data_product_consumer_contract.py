@@ -21,9 +21,6 @@ ROUTE_INVENTORY_PATH = (
 _ROUTE_TEMPLATE_PLACEHOLDER_PATTERN = re.compile(r"\{[^{}]*\}")
 _UNRESOLVED_ROUTE_TEMPLATE = "<unresolved integration route>"
 _ROUTE_ARGUMENT_NAMES = frozenset({"path", "url"})
-_ROUTE_TEMPLATE_SAFE_INTERPOLATION_CALLS = {
-    "quote": "URL-encodes a caller-supplied path segment without choosing a route family",
-}
 _CORE_CLIENT_ROUTE_VISIBILITY_EXEMPTIONS = {
     "lotus_core_transaction_params.py": "parameter and DTO definitions only; no transport calls",
 }
@@ -147,6 +144,22 @@ def _resolve_route_templates(
     return set()
 
 
+def _resolves_to_empty_string(
+    expression: ast.AST,
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> bool:
+    if isinstance(expression, ast.Constant):
+        return expression.value == ""
+    if isinstance(expression, ast.Name):
+        if expression.id in resolving or expression.id not in assignments:
+            return False
+        return _resolves_to_empty_string(
+            assignments[expression.id], assignments, resolving | {expression.id}
+        )
+    return False
+
+
 def _route_interpolation_is_opaque(
     expression: ast.AST,
     own_parameters: frozenset[str],
@@ -154,15 +167,24 @@ def _route_interpolation_is_opaque(
     resolving: frozenset[str] = frozenset(),
 ) -> bool:
     if isinstance(expression, ast.Call):
-        if isinstance(expression.func, ast.Name) and expression.func.id in (
-            _ROUTE_TEMPLATE_SAFE_INTERPOLATION_CALLS
-        ):
+        if isinstance(expression.func, ast.Name) and expression.func.id == "quote":
+            safe_keyword = next(
+                (keyword for keyword in expression.keywords if keyword.arg == "safe"),
+                None,
+            )
+            if (
+                safe_keyword is None
+                or not _resolves_to_empty_string(safe_keyword.value, assignments)
+                or any(keyword.arg is None for keyword in expression.keywords)
+            ):
+                return True
+            arguments = [
+                *expression.args,
+                *(keyword.value for keyword in expression.keywords if keyword is not safe_keyword),
+            ]
             return any(
                 _route_interpolation_is_opaque(argument, own_parameters, assignments, resolving)
-                for argument in (
-                    *expression.args,
-                    *(keyword.value for keyword in expression.keywords),
-                )
+                for argument in arguments
             )
         return True
     if isinstance(expression, ast.Name):
@@ -649,6 +671,9 @@ class FakeCoreClient:
     async def _get_resolved_opaque_fstring_route(self, path):
         return await self._request(url=f"{build_route(path)}/suffix")
 
+    async def _get_default_quote_route(self, path):
+        return await self._request(url=f"{quote(path)}/suffix")
+
     async def _get_assigned_internal_route(self, path):
         route = build_route(path)
         return await self._request(url=route + path)
@@ -700,6 +725,7 @@ class FakeCoreClient:
             "lotus_core_private_helper_client.py",
             "_get_resolved_opaque_fstring_route",
         ),
+        ("lotus_core_private_helper_client.py", "_get_default_quote_route"),
         ("lotus_core_private_helper_client.py", "_get_assigned_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_reassigned_alias_route"),
         ("lotus_core_private_helper_client.py", "_get_attribute_route"),
