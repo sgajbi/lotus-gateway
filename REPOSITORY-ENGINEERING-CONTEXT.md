@@ -108,8 +108,8 @@ Current repository posture:
    including private helpers that happen to accept a caller-supplied path. The only exceptions
    are the small, named module/method allowlist for generic Core transport helpers, with a reason
    recorded beside each entry; new generic helpers must be added explicitly. Opaque f-string
-   interpolations are unresolved, while URL-encoding a caller-supplied segment remains a known
-   safe interpolation. Capabilities, effective policy, and core-snapshot
+   interpolations are unresolved, while `quote(..., safe="")` remains a known safe interpolation
+   for a caller-supplied segment. Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
