@@ -164,6 +164,39 @@ async def test_summary_marks_missing_source_rows_partial_without_zero_substituti
 
 
 @pytest.mark.asyncio
+async def test_summary_keeps_ambiguous_zero_source_rows_out_of_confident_coverage() -> None:
+    payload = _value_payload(["PB_001", "PB_002"], ["PB_001", "PB_002"])
+    portfolios = payload["portfolios"]
+    assert isinstance(portfolios, list)
+    portfolios[1]["aum_reporting_currency"] = "0"
+    portfolios[1]["position_count"] = 0
+    payload["totals"]["aum_reporting_currency"] = "0"
+    value_client = _ValueClient(payload=payload)
+    service = AdvisorBookSummaryService(
+        membership_service=AdvisorBookService(
+            membership_client=_MembershipClient(payload=_membership_payload("PB_001", "PB_002"))
+        ),
+        value_client=value_client,
+    )
+
+    response = await service.get_value_summary(
+        caller=_caller(),
+        as_of_date=date(2026, 4, 10),
+        reporting_currency="USD",
+        correlation_id="corr-ambiguous-zero-summary",
+    )
+
+    assert response.summary.state == "partial"
+    assert response.summary.covered_portfolio_count == 1
+    assert response.summary.total_value is None
+    assert response.items[0].state == "supported"
+    assert response.items[1].state == "unavailable"
+    assert response.items[1].total_value is None
+    assert response.items[1].position_count is None
+    assert response.items[1].reason_code == "advisor_book_value_coverage_ambiguous"
+
+
+@pytest.mark.asyncio
 async def test_summary_returns_empty_without_fabricating_a_value_read() -> None:
     value_client = _ValueClient()
     service = AdvisorBookSummaryService(

@@ -16,14 +16,18 @@ class AdvisorBookValueItem(BaseModel):
         default=None,
         description=(
             "Core-reported total portfolio value in the requested reporting currency. Null when "
-            "the source did not return a value for this entitled portfolio."
+            "the source did not return a value or its coverage is ambiguous for this entitled "
+            "portfolio."
         ),
         examples=[1250000.50],
     )
     position_count: int | None = Field(
         default=None,
         ge=0,
-        description="Core-reported non-zero position count when the value fact is supported.",
+        description=(
+            "Core-reported non-zero position count when the value fact has unambiguous source "
+            "coverage."
+        ),
         examples=[12],
     )
     state: Literal["supported", "unavailable"] = Field(
@@ -33,6 +37,7 @@ class AdvisorBookValueItem(BaseModel):
     reason_code: Literal[
         "advisor_book_value_ready",
         "advisor_book_value_not_covered",
+        "advisor_book_value_coverage_ambiguous",
     ] = Field(
         description="Bounded reason for the per-portfolio value state.",
         examples=["advisor_book_value_ready"],
