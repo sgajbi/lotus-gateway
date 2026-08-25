@@ -1,5 +1,8 @@
+import ast
 import json
 from pathlib import Path
+
+import pytest
 
 CONTRACT_PATH = (
     Path(__file__).resolve().parents[2]
@@ -22,6 +25,66 @@ def _consumer_contract() -> dict:
 
 def _route_inventory() -> dict:
     return json.loads(ROUTE_INVENTORY_PATH.read_text(encoding="utf-8"))
+
+
+# These are Core integration calls, but they are control-plane/snapshot operations rather
+# than RFC-0084 domain-product reads. The explicit boundary is intentionally small: a new
+# Core integration method not classified here is treated as a domain-product read and must be
+# added to the route inventory before the contract gate can pass.
+_NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS = {
+    "get_capabilities": ("/integration/capabilities",),
+    "get_effective_policy": ("/integration/policy/effective",),
+    "get_core_snapshot": ("core-snapshot",),
+}
+
+
+def _path_argument_literals(node: ast.AsyncFunctionDef) -> set[str]:
+    return {
+        constant.value
+        for call in ast.walk(node)
+        if isinstance(call, ast.Call)
+        for keyword in call.keywords
+        if keyword.arg == "path"
+        for constant in ast.walk(keyword.value)
+        if isinstance(constant, ast.Constant) and isinstance(constant.value, str)
+    }
+
+
+def _implemented_core_domain_product_reads(
+    client_root: Path = CLIENT_ROOT,
+) -> set[tuple[str, str]]:
+    implemented: set[tuple[str, str]] = set()
+    for client_path in sorted(client_root.glob("lotus_core*.py")):
+        tree = ast.parse(client_path.read_text(encoding="utf-8"), filename=str(client_path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.AsyncFunctionDef):
+                continue
+            path_literals = _path_argument_literals(node)
+            if not any("/integration/" in literal for literal in path_literals):
+                continue
+            non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
+                node.name, ()
+            )
+            if any(marker in literal for marker in non_domain_markers for literal in path_literals):
+                continue
+            implemented.add((client_path.name, node.name))
+    return implemented
+
+
+def _assert_implemented_core_reads_are_declared(client_root: Path = CLIENT_ROOT) -> None:
+    declared = {
+        (Path(route["client_module"]).name, route["client_method"])
+        for route in _route_inventory()["routes"]
+    }
+    undeclared = _implemented_core_domain_product_reads(client_root) - declared
+    if undeclared:
+        details = ", ".join(
+            f"{client_module}:{client_method}"
+            for client_module, client_method in sorted(undeclared)
+        )
+        raise AssertionError(
+            "Core integration reads missing from the RFC-0084 route inventory: " + details
+        )
 
 
 def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
@@ -232,3 +295,28 @@ def test_gateway_declarations_match_implemented_core_route_inventory() -> None:
                     f"{product_name} route fragment {route_fragment!r} is missing from "
                     f"{route_definition['client_module']}"
                 )
+
+    _assert_implemented_core_reads_are_declared()
+
+
+def test_undeclared_core_integration_read_fails_closed(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_query_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def get_undeclared_product_read(self, portfolio_id: str):
+        return await self._post_control_plane_resource(
+            path=f"/integration/portfolios/{portfolio_id}/undeclared-product",
+        )
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        AssertionError,
+        match=(
+            "Core integration reads missing from the RFC-0084 route inventory: "
+            "lotus_core_query_client.py:get_undeclared_product_read"
+        ),
+    ):
+        _assert_implemented_core_reads_are_declared(tmp_path)

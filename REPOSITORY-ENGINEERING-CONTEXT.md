@@ -101,6 +101,9 @@ Current repository posture:
    for OMS supportability. The source-backed route inventory is maintained in
    `contracts/domain-data-products/lotus-gateway-core-route-inventory.v1.json`; the AUM route
    remains an RFC-0082 operational-read dependency rather than a new domain-product declaration,
+   and the RFC-0084 unit gate statically checks asynchronous Core integration reads in
+   `lotus_core*.py` against that inventory in both directions. Capabilities, effective policy,
+   and core-snapshot remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,

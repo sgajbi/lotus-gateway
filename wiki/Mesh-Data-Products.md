@@ -27,6 +27,13 @@ Performance composition preserves the Core benchmark-assignment boundary: a vali
 portfolio remains distinct from an assignment lookup failure, which is surfaced as the sanitized
 `BENCHMARK_ASSIGNMENT_UNAVAILABLE` warning and Core partial-failure evidence.
 
+The RFC-0084 contract gate checks completeness in both directions: the five declared Core
+domain-product routes must exist in the client source, and asynchronous `/integration/` reads in
+`lotus_core*.py` must be represented in the route inventory. Core capabilities, effective policy,
+and core-snapshot calls are explicitly classified as non-domain-product control-plane operations;
+an unclassified new Core integration method fails the gate rather than silently escaping the mesh
+declaration.
+
 ## Operating rule
 
 Gateway must preserve platform product IDs, producer repositories, approved consumers, dependency edges, artifact provenance, and degraded trust states exactly. If platform evidence is unavailable or invalid, Gateway returns bounded product-safe reason text such as `live_trust_certification_unavailable` or a generic artifact-unavailable detail; configured filesystem paths remain operator diagnostics, not product-facing API payloads.
