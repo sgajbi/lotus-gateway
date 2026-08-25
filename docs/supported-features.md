@@ -37,6 +37,30 @@ work tracked by `lotus-workbench#814`. Composed performance workspace consumers 
 typed `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable
 Workbench date is available.
 
+## Portfolio Allocation Contributor Lineage
+
+Status: implementation-backed for
+`GET /api/v1/portfolio/portfolios/{portfolio_id}/allocations`.
+
+The allocation route publishes Core-owned contributor detail for each supported allocation bucket.
+Gateway preserves direct booked positions and source-owned look-through components, including
+booked/component security identity, Core snapshot and component-record lineage, reporting-currency
+contribution, source weights, deterministic bounded ordering, truncation, and omitted-value
+reconciliation. Core remains the authority for calculation, classification, look-through
+eligibility, and contributor completeness; Gateway does not derive contributors from the separate
+positions response or calculate targets, benchmark drift, suitability, recommendations, orders, or
+execution outcomes.
+
+The request uses the canonical `direct_only` and `prefer_look_through` modes. A per-bucket
+contributor limit is bounded to 1–250 and defaults to 50. When look-through is unsupported or only
+partially applied, the response retains the source effective mode, supportability, decomposed
+position count, and limitation reason. A truncated source list remains explicit through typed
+residual fields. Successful Core payloads missing the governed contributor contract fail closed with
+`PORTFOLIO_ALLOCATION_CONTRACT_INVALID`; the stale `full` alias is rejected with `422` rather than
+silently changing source semantics. Workbench uses Gateway as the only client-facing allocation
+source. Existing Workbench allocation consumption remains compatible; further contributor
+rendering is a separate consumer concern and is not fabricated by this Gateway slice.
+
 ## Portfolio Transaction Temporal Contract
 
 Status: implementation-backed for the transaction ledger, income-summary, and activity-summary
