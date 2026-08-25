@@ -46,13 +46,19 @@ routes.
 and ordering. `settlement_date` is the separate, optional Core-owned settlement timestamp; Gateway
 does not introduce a `booking_date` or reinterpret either field as a browser-local date. Both
 fields are returned as UTC-normalized ISO-8601 date-times with an explicit timezone offset. The
-summary routes apply inclusive calendar-day windows in UTC, matching the source ledger's date
-query boundary. A missing required transaction timestamp, date-only value, naive timestamp,
-malformed timestamp, or invalid calendar value is a source-contract failure: Gateway returns a
-sanitized `502` with code `portfolio_transaction_source_contract_invalid` rather than emitting a
-partial row or silently excluding it. This is a boundary-contract tightening for malformed legacy
-payloads; valid timezone-aware source timestamps remain supported. Workbench consumer migration and
-display semantics remain tracked by parent issue #569.
+summary routes apply inclusive UTC calendar-day windows as a Gateway-owned reporting convention.
+Core's current published transaction contract defines the event/trade meaning and inclusive date
+filter shape, but does not establish UTC or a booking-centre-local timezone convention, so Gateway
+does not claim that its UTC windows reproduce a Core source-local business date. For example,
+`2026-03-01T00:30:00+02:00` is reported in the Gateway UTC period for `2026-02-28`, while
+`2026-02-28T23:30:00-05:00` is reported in the Gateway UTC period for `2026-03-01`.
+Consumers migrating period reports must account for this boundary shift. A missing required
+transaction timestamp, date-only value, naive timestamp, malformed timestamp, or invalid calendar
+value is a source-contract failure: Gateway returns a sanitized `502` with code
+`portfolio_transaction_source_contract_invalid` rather than emitting a partial row or silently
+excluding it. This is a boundary-contract tightening for malformed legacy payloads; valid
+timezone-aware source timestamps remain supported. Workbench consumer migration and source-policy
+follow-up remain tracked by parent issue #569 and child issue #642.
 
 Performance-summary cold calculations use a governed 30-second elapsed deadline across source
 submission and polling. The remaining budget governs each complete HTTP operation as well as its

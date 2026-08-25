@@ -1,8 +1,32 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-25
+Last updated: 2026-08-26
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
+
+### Batch 2W — correct transaction-period source-timezone claims (#642, parent #569)
+
+- Objective: resolve the post-#640 review finding that Gateway documentation claimed UTC summary
+  windows matched Core's source-ledger boundary without source-backed timezone evidence.
+- Change: state consistently that Gateway normalizes explicit transaction instants to UTC and owns
+  inclusive UTC calendar-day summary windows, while Core's current published contract establishes
+  event/trade semantics and date-filter shape but does not establish UTC or a booking-centre-local
+  timezone convention. Document concrete positive/negative offset examples that can cross a UTC
+  reporting-period boundary. No runtime normalization, route, response, or source-policy behavior
+  changes.
+- Regression proof: temporal unit tests cover `+02:00`, `+09:00`, and `-05:00` period shifts and
+  enforce the shared documentation wording across repository context, supported-features docs,
+  and wiki source. The fitness test rejects the former Core-alignment claims.
+- Compatibility: documentation and regression coverage only. Existing #640 behavior remains
+  unchanged; no migration, booking-date alias, Core change, Workbench implementation, or
+  OpenAPI schema change is included. Valid timezone-aware source timestamps remain supported.
+- Source evidence: Core `origin/main` at `606a0e88` uses timezone-aware persistence but publishes no
+  UTC/local boundary convention in its temporal vocabulary or query date helpers; Core #440 fixes
+  event-versus-booking wording only.
+- Documentation decision: repository context, supported-features docs, API-surface wiki,
+  supported-features wiki, and this ledger change. No central platform context or migration is
+  required. Wiki publication and strict parity are required after merge. Parent #569 remains open
+  for source-policy and downstream Workbench migration evidence.
 
 ### Batch 2V — lock report-batch preflight permission redaction (#637)
 
