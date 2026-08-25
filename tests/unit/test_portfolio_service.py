@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -177,6 +178,13 @@ class _StubLotusCoreQueryClient:
 
     async def query_asset_allocation(self, **kwargs):
         return 200, {
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
             "views": [
                 {
                     "dimension": "asset_class",
@@ -186,10 +194,30 @@ class _StubLotusCoreQueryClient:
                             "market_value_reporting_currency": 700.0,
                             "weight": 0.7,
                             "position_count": 1,
+                            "contributor_count": 1,
+                            "contributors": [
+                                {
+                                    "contributor_type": "direct_position",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "EQ_1",
+                                    "booked_security_id": "EQ_1",
+                                    "source_snapshot_id": 101,
+                                    "component_record_id": None,
+                                    "component_weight": None,
+                                    "component_effective_from": None,
+                                    "component_effective_to": None,
+                                    "component_source_system": None,
+                                    "component_source_record_id": None,
+                                    "market_value_reporting_currency": 700.0,
+                                    "bucket_weight": 1.0,
+                                }
+                            ],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": 0.0,
                         }
                     ],
                 }
-            ]
+            ],
         }
 
     async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
@@ -1280,7 +1308,28 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
                         "bucket": "Equity",
                         "position_count": 1,
                         "market_value_base": 700.0,
+                        "market_value_reporting_currency": Decimal("700.0"),
                         "weight_pct": 70.0,
+                        "contributor_count": 1,
+                        "contributors": [
+                            {
+                                "contributor_type": "direct_position",
+                                "portfolio_id": "PF_1001",
+                                "security_id": "EQ_1",
+                                "booked_security_id": "EQ_1",
+                                "source_snapshot_id": 101,
+                                "component_record_id": None,
+                                "component_weight": None,
+                                "component_effective_from": None,
+                                "component_effective_to": None,
+                                "component_source_system": None,
+                                "component_source_record_id": None,
+                                "market_value_reporting_currency": Decimal("700.00"),
+                                "bucket_weight": Decimal("1.000000"),
+                            }
+                        ],
+                        "contributors_truncated": False,
+                        "omitted_market_value_reporting_currency": Decimal("0.00"),
                     }
                 ],
             }
@@ -1653,16 +1702,20 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
         def __init__(self):
             self.last_reporting_currency: str | None = None
             self.last_look_through_mode: str | None = None
+            self.last_contributor_limit_per_bucket: int | None = None
 
         async def query_asset_allocation(self, **kwargs):
             self.last_reporting_currency = kwargs.get("reporting_currency")
             self.last_look_through_mode = kwargs.get("look_through_mode")
+            self.last_contributor_limit_per_bucket = kwargs.get("contributor_limit_per_bucket")
             return 200, {
                 "reporting_currency": "SGD",
                 "look_through": {
-                    "requested_mode": "full",
-                    "effective_mode": "direct_only",
-                    "applied": False,
+                    "requested_mode": "prefer_look_through",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": "Look-through components were not available.",
                 },
                 "views": [
                     {
@@ -1673,6 +1726,26 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                                 "market_value_reporting_currency": 700.0,
                                 "weight": 0.7,
                                 "position_count": 1,
+                                "contributor_count": 1,
+                                "contributors": [
+                                    {
+                                        "contributor_type": "direct_position",
+                                        "portfolio_id": "PF_1001",
+                                        "security_id": "EQ_1",
+                                        "booked_security_id": "EQ_1",
+                                        "source_snapshot_id": 101,
+                                        "component_record_id": None,
+                                        "component_weight": None,
+                                        "component_effective_from": None,
+                                        "component_effective_to": None,
+                                        "component_source_system": None,
+                                        "component_source_record_id": None,
+                                        "market_value_reporting_currency": 700.0,
+                                        "bucket_weight": 1.0,
+                                    }
+                                ],
+                                "contributors_truncated": False,
+                                "omitted_market_value_reporting_currency": 0.0,
                             }
                         ],
                     }
@@ -1686,11 +1759,12 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
         correlation_id="corr-3c-lookthrough",
         as_of_date="2026-03-27",
         reporting_currency="SGD",
-        look_through_mode="full",
+        look_through_mode="prefer_look_through",
     )
 
     assert client.last_reporting_currency == "SGD"
-    assert client.last_look_through_mode == "full"
+    assert client.last_look_through_mode == "prefer_look_through"
+    assert client.last_contributor_limit_per_bucket == 50
     assert response.model_dump() == {
         "correlation_id": "corr-3c-lookthrough",
         "contract_version": "v1",
@@ -1698,9 +1772,12 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
         "as_of_date": "2026-03-27",
         "reporting_currency": "SGD",
         "look_through": {
-            "requested_mode": "full",
+            "requested_mode": "prefer_look_through",
             "effective_mode": "direct_only",
             "applied": False,
+            "supported": False,
+            "decomposed_position_count": 0,
+            "limitation_reason": "Look-through components were not available.",
         },
         "summary": {
             "assets_under_management_base": 1000.0,
@@ -1718,11 +1795,53 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                         "bucket": "Asia",
                         "position_count": 1,
                         "market_value_base": 700.0,
+                        "market_value_reporting_currency": Decimal("700.0"),
                         "weight_pct": 70.0,
+                        "contributor_count": 1,
+                        "contributors": [
+                            {
+                                "contributor_type": "direct_position",
+                                "portfolio_id": "PF_1001",
+                                "security_id": "EQ_1",
+                                "booked_security_id": "EQ_1",
+                                "source_snapshot_id": 101,
+                                "component_record_id": None,
+                                "component_weight": None,
+                                "component_effective_from": None,
+                                "component_effective_to": None,
+                                "component_source_system": None,
+                                "component_source_record_id": None,
+                                "market_value_reporting_currency": Decimal("700.00"),
+                                "bucket_weight": Decimal("1.000000"),
+                            }
+                        ],
+                        "contributors_truncated": False,
+                        "omitted_market_value_reporting_currency": Decimal("0.00"),
                     }
                 ],
             }
         ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_portfolio_allocations_fail_closed_on_missing_source_look_through_contract():
+    class _InvalidAllocationClient(_StubLotusCoreQueryClient):
+        async def query_asset_allocation(self, **kwargs):
+            return 200, {"views": [{"dimension": "region", "buckets": []}]}
+
+    with pytest.raises(HTTPException) as raised:
+        await PortfolioService(_InvalidAllocationClient()).get_portfolio_allocations(
+            portfolio_id="PF_1001",
+            correlation_id="corr-invalid-allocation",
+            as_of_date="2026-03-27",
+        )
+
+    assert raised.value.status_code == 502
+    assert raised.value.detail == {
+        "source_service": "lotus-core",
+        "error_code": "PORTFOLIO_ALLOCATION_CONTRACT_INVALID",
+        "detail": "lotus-core allocation payload did not match the governed contract.",
     }
 
 

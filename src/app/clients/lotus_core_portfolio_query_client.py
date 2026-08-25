@@ -250,6 +250,7 @@ class LotusCorePortfolioQueryClientMixin:
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
         look_through_mode: str | None = None,
+        contributor_limit_per_bucket: int | None = None,
     ) -> tuple[int, dict[str, Any]]:
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
@@ -265,6 +266,8 @@ class LotusCorePortfolioQueryClientMixin:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
+        if contributor_limit_per_bucket is not None:
+            payload["contributor_limit_per_bucket"] = contributor_limit_per_bucket
         return await self._post_query_resource(
             operation="core.reporting.asset-allocation.query",
             path="/reporting/asset-allocation/query",

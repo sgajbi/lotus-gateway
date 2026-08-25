@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.contracts.portfolio_holdings import PortfolioAllocationResponse
+from app.contracts.portfolio_holdings import PortfolioAllocationResponse, PortfolioLookThroughMode
 from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 
@@ -12,7 +12,8 @@ async def _get_portfolio_allocations(
     portfolio_id: str,
     as_of_date: str | None,
     reporting_currency: str | None,
-    look_through_mode: str,
+    look_through_mode: PortfolioLookThroughMode,
+    contributor_limit_per_bucket: int,
 ) -> PortfolioAllocationResponse:
     return await portfolio_service().get_portfolio_allocations(
         portfolio_id=portfolio_id,
@@ -20,6 +21,7 @@ async def _get_portfolio_allocations(
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         look_through_mode=look_through_mode,
+        contributor_limit_per_bucket=contributor_limit_per_bucket,
     )
 
 
@@ -53,14 +55,24 @@ async def get_portfolio_allocations(
         ),
         examples=["USD"],
     ),
-    look_through_mode: str = Query(
+    look_through_mode: PortfolioLookThroughMode = Query(
         default="direct_only",
         description=(
             "Requested allocation look-through mode for structured or fund exposures. "
-            "Use direct_only for booked exposures or full when downstream needs expanded "
-            "look-through buckets."
+            "Use direct_only for booked exposures or prefer_look_through when downstream needs "
+            "source-owned expanded exposure buckets."
         ),
-        examples=["direct_only", "full"],
+        examples=["direct_only", "prefer_look_through"],
+    ),
+    contributor_limit_per_bucket: int = Query(
+        default=50,
+        ge=1,
+        le=250,
+        description=(
+            "Maximum number of Core-ordered contributor rows returned per allocation bucket. "
+            "The bounded residual remains explicit when source contributors are truncated."
+        ),
+        examples=[50],
     ),
 ) -> PortfolioAllocationResponse:
     return await _get_portfolio_allocations(
@@ -68,4 +80,5 @@ async def get_portfolio_allocations(
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         look_through_mode=look_through_mode,
+        contributor_limit_per_bucket=contributor_limit_per_bucket,
     )
