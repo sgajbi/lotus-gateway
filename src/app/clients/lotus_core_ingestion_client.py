@@ -95,7 +95,6 @@ class LotusCoreIngestionClient:
         extra_data: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}{path}"
         headers = build_upstream_headers(correlation_id)
         form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
@@ -109,7 +108,7 @@ class LotusCoreIngestionClient:
             service="lotus-core",
             operation=operation,
             method="POST",
-            url=url,
+            url=f"{self._base_url}{path}",
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,

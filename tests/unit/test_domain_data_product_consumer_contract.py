@@ -54,6 +54,27 @@ _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTIONS = {
         "_request",
     ): "generic HTTP transport receives its URL from the caller-supplied helper route",
 }
+_UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTION_SHAPES = {
+    ("lotus_core_ingestion_client.py", "_upload"): ("base_url_plus_path", "_base_url"),
+    ("lotus_core_lookup_client.py", "_get_lookup"): ("caller_path", None),
+    ("lotus_core_query_client.py", "_get_query_resource"): (
+        "base_url_plus_path",
+        "_query_base_url",
+    ),
+    ("lotus_core_query_client.py", "_post_query_resource"): (
+        "base_url_plus_path",
+        "_query_base_url",
+    ),
+    ("lotus_core_query_client.py", "_get_control_plane_resource"): (
+        "base_url_plus_path",
+        "_control_plane_base_url",
+    ),
+    ("lotus_core_query_client.py", "_post_control_plane_resource"): (
+        "base_url_plus_path",
+        "_control_plane_base_url",
+    ),
+    ("lotus_core_query_client.py", "_request"): ("caller_url", None),
+}
 
 
 def _consumer_contract() -> dict:
@@ -156,6 +177,20 @@ def _resolve_route_templates(
         and isinstance(expression.func, ast.Attribute)
         and expression.func.attr == "format"
     ):
+        replacements = [
+            *expression.args,
+            *(keyword.value for keyword in expression.keywords),
+        ]
+        if any(
+            _route_interpolation_is_opaque(
+                replacement,
+                own_parameters,
+                assignments,
+                quote_provenance_is_safe=quote_provenance_is_safe,
+            )
+            for replacement in replacements
+        ):
+            return set()
         return _resolve_route_templates(
             expression.func.value,
             assignments,
@@ -234,10 +269,11 @@ def _route_interpolation_is_opaque(
     resolving: frozenset[str] = frozenset(),
     *,
     quote_provenance_is_safe: bool = False,
+    allow_unencoded_path: bool = True,
 ) -> bool:
     if isinstance(expression, ast.Call):
         if isinstance(expression.func, ast.Name) and expression.func.id == "quote":
-            if not quote_provenance_is_safe:
+            if "quote" in own_parameters or not quote_provenance_is_safe:
                 return True
             safe_keyword = next(
                 (keyword for keyword in expression.keywords if keyword.arg == "safe"),
@@ -260,13 +296,14 @@ def _route_interpolation_is_opaque(
                     assignments,
                     resolving,
                     quote_provenance_is_safe=quote_provenance_is_safe,
+                    allow_unencoded_path=False,
                 )
                 for argument in arguments
             )
         return True
     if isinstance(expression, ast.Name):
         if expression.id in own_parameters:
-            return False
+            return allow_unencoded_path and expression.id in {"path", "url"}
         if expression.id in resolving or expression.id not in assignments:
             return True
         return _route_interpolation_is_opaque(
@@ -275,6 +312,7 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving | {expression.id},
             quote_provenance_is_safe=quote_provenance_is_safe,
+            allow_unencoded_path=allow_unencoded_path,
         )
     if isinstance(expression, ast.Constant):
         return False
@@ -287,12 +325,14 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
+            allow_unencoded_path=allow_unencoded_path,
         ) or _route_interpolation_is_opaque(
             expression.slice,
             own_parameters,
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
+            allow_unencoded_path=allow_unencoded_path,
         )
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
         return _route_interpolation_is_opaque(
@@ -301,12 +341,14 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
+            allow_unencoded_path=allow_unencoded_path,
         ) or _route_interpolation_is_opaque(
             expression.right,
             own_parameters,
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
+            allow_unencoded_path=allow_unencoded_path,
         )
     return True
 
@@ -315,8 +357,8 @@ def _route_argument_templates(
     node: ast.AsyncFunctionDef | ast.FunctionDef,
     assignments: dict[str, ast.AST],
     quote_provenance_is_safe: bool = False,
-) -> list[tuple[set[str], bool]]:
-    routes: list[tuple[set[str], bool]] = []
+) -> list[tuple[ast.AST, set[str], bool]]:
+    routes: list[tuple[ast.AST, set[str], bool]] = []
     own_parameters = _function_parameter_names(node)
     for call in ast.walk(node):
         if not isinstance(call, ast.Call):
@@ -333,7 +375,7 @@ def _route_argument_templates(
             unresolved = not resolved or not any(
                 _has_concrete_route_segment(route_template) for route_template in resolved
             )
-            routes.append((resolved, unresolved))
+            routes.append((keyword.value, resolved, unresolved))
     return routes
 
 
@@ -371,6 +413,44 @@ def _function_parameter_names(node: ast.AsyncFunctionDef | ast.FunctionDef) -> f
     return frozenset(parameter_names)
 
 
+def _route_expression_matches_allowlist_shape(
+    client_module: str,
+    client_method: str,
+    expression: ast.AST,
+    own_parameters: frozenset[str],
+) -> bool:
+    shape = _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTION_SHAPES.get((client_module, client_method))
+    if shape is None:
+        return False
+    shape_name, base_url_attribute = shape
+    if shape_name == "caller_path":
+        return (
+            isinstance(expression, ast.Name)
+            and expression.id == "path"
+            and "path" in own_parameters
+        )
+    if shape_name == "caller_url":
+        return (
+            isinstance(expression, ast.Name) and expression.id == "url" and "url" in own_parameters
+        )
+    if shape_name == "base_url_plus_path":
+        if not isinstance(expression, ast.JoinedStr) or len(expression.values) != 2:
+            return False
+        base_value, path_value = expression.values
+        return (
+            isinstance(base_value, ast.FormattedValue)
+            and isinstance(base_value.value, ast.Attribute)
+            and isinstance(base_value.value.value, ast.Name)
+            and base_value.value.value.id == "self"
+            and base_value.value.attr == base_url_attribute
+            and isinstance(path_value, ast.FormattedValue)
+            and isinstance(path_value.value, ast.Name)
+            and path_value.value.id == "path"
+            and "path" in own_parameters
+        )
+    return False
+
+
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
     routes: set[str] = set()
     module_assignments = _assignment_values(tree)
@@ -379,7 +459,7 @@ def _core_client_route_templates(tree: ast.Module) -> set[str]:
         if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
             continue
         assignments = module_assignments | _assignment_values(node)
-        for route_templates, _ in _route_argument_templates(
+        for _, route_templates, _ in _route_argument_templates(
             node,
             assignments,
             quote_provenance_is_safe=quote_provenance_is_safe,
@@ -422,7 +502,7 @@ def _implemented_core_domain_product_reads(
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            for route_templates, unresolved_route in _route_argument_templates(
+            for route_expression, route_templates, unresolved_route in _route_argument_templates(
                 node,
                 assignments,
                 quote_provenance_is_safe=quote_provenance_is_safe,
@@ -435,7 +515,15 @@ def _implemented_core_domain_product_reads(
                 if not integration_routes and not unresolved_route:
                     continue
                 if unresolved_route:
-                    if (client_path.name, node.name) in _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTIONS:
+                    if (
+                        (client_path.name, node.name) in _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTIONS
+                        and _route_expression_matches_allowlist_shape(
+                            client_path.name,
+                            node.name,
+                            route_expression,
+                            _function_parameter_names(node),
+                        )
+                    ):
                         continue
                     implemented.add((client_path.name, node.name, _UNRESOLVED_ROUTE_TEMPLATE))
                     continue
@@ -782,10 +870,19 @@ class FakeCoreClient:
     async def _get_resolved_opaque_fstring_route(self, path):
         return await self._request(url=f"{build_route(path)}/suffix")
 
+    async def _get_bare_path_route(self, path):
+        return await self._request(url=f"{path}/suffix")
+
+    async def _get_format_internal_route(self, path):
+        return await self._request(url="{}/suffix".format(build_route(path)))
+
     async def _get_default_quote_route(self, path):
         return await self._request(url=f"{quote(path)}/suffix")
 
     async def _get_safe_quote_route(self, path):
+        return await self._request(url=f"{quote(path, safe='')}/suffix")
+
+    async def _get_shadowed_quote_route(self, path, quote):
         return await self._request(url=f"{quote(path, safe='')}/suffix")
 
     async def _get_assigned_internal_route(self, path):
@@ -835,11 +932,14 @@ class FakeCoreClient:
         ("lotus_core_private_helper_client.py", "_get_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_fstring_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_bare_path_route"),
+        ("lotus_core_private_helper_client.py", "_get_format_internal_route"),
         (
             "lotus_core_private_helper_client.py",
             "_get_resolved_opaque_fstring_route",
         ),
         ("lotus_core_private_helper_client.py", "_get_default_quote_route"),
+        ("lotus_core_private_helper_client.py", "_get_shadowed_quote_route"),
         ("lotus_core_private_helper_client.py", "_get_assigned_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_reassigned_alias_route"),
         ("lotus_core_private_helper_client.py", "_get_attribute_route"),
@@ -942,9 +1042,11 @@ def test_quote_route_interpolation_requires_trusted_provenance(
 def test_unresolved_routes_require_named_generic_transport_allowlist(tmp_path: Path) -> None:
     (tmp_path / "lotus_core_query_client.py").write_text(
         """
+from urllib.parse import quote
+
 class FakeCoreClient:
     async def _get_query_resource(self, path):
-        return await self._request(url=path)
+        return await self._request(url=f"{self._query_base_url}{path}")
 
     async def _unlisted_transport(self, path):
         return await self._request(url=path)
@@ -963,6 +1065,26 @@ class FakeCoreClient:
     assert (
         "lotus_core_query_client.py",
         "_unlisted_transport",
+        _UNRESOLVED_ROUTE_TEMPLATE,
+    ) in implemented
+
+
+def test_named_transport_allowlist_rejects_internal_route_expression(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_query_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def _get_query_resource(self, path):
+        return await self._request(url=build_internal_route(path))
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    implemented = _implemented_core_domain_product_reads(tmp_path)
+
+    assert (
+        "lotus_core_query_client.py",
+        "_get_query_resource",
         _UNRESOLVED_ROUTE_TEMPLATE,
     ) in implemented
 
