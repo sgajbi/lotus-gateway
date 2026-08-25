@@ -3320,6 +3320,34 @@ async def test_dpm_client_rfc38_command_center_routes(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("method_name", "identifier_name", "identifier_value"),
+    [
+        ("get_mandate_by_portfolio", "portfolio_id", "PB_SG_GLOBAL_BAL_001"),
+        ("get_mandate_health", "mandate_id", "MANDATE_PB_SG_GLOBAL_BAL_001"),
+    ],
+)
+async def test_dpm_mandate_reads_forward_optional_business_date(
+    method_name: str,
+    identifier_name: str,
+    identifier_value: str,
+) -> None:
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    await method(
+        **{
+            identifier_name: identifier_value,
+            "correlation_id": "corr-mandate-as-of",
+            "as_of_date": "2026-04-10",
+        }
+    )
+
+    assert _FakeAsyncClient.calls[0]["params"] == {"as_of_date": "2026-04-10"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("method_name", "kwargs", "expected_url"),
     [
         (
