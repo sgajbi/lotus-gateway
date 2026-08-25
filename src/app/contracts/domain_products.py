@@ -2,6 +2,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.contracts.domain_product_failure_posture import (
+    DomainProductFailurePostureCondition,
+)
 from app.contracts.domain_product_graph import (
     DomainProductGraphData as DomainProductGraphData,
 )
@@ -167,6 +170,14 @@ class DomainProductDependency(BaseModel):
         alias="failurePosture",
         description="Consumer failure posture when the product is unavailable or untrusted.",
         examples=["fail_closed"],
+    )
+    failure_posture_conditions: list[DomainProductFailurePostureCondition] = Field(
+        default_factory=list,
+        alias="failurePostureConditions",
+        description=(
+            "Conditional failure-posture overrides that make the effective behavior "
+            "discoverable for specific request situations."
+        ),
     )
 
     model_config = {"populate_by_name": True}

@@ -1,5 +1,9 @@
 from pydantic import BaseModel, Field
 
+from app.contracts.domain_product_failure_posture import (
+    DomainProductFailurePostureCondition,
+)
+
 
 class DomainProductGraphNode(BaseModel):
     node_id: str = Field(alias="nodeId", description="Stable graph node identity.")
@@ -32,6 +36,11 @@ class DomainProductGraphEdge(BaseModel):
         default=None,
         alias="failurePosture",
         description="Failure posture for dependency edges.",
+    )
+    failure_posture_conditions: list[DomainProductFailurePostureCondition] = Field(
+        default_factory=list,
+        alias="failurePostureConditions",
+        description="Conditional failure-posture overrides for dependency edges.",
     )
     validation_lanes: list[str] = Field(
         default_factory=list,
