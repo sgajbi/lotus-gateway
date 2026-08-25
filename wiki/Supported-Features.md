@@ -175,7 +175,11 @@ Authority and boundary:
    the Core aggregate only when every entitled portfolio is covered. Core's current AUM contract
    does not expose per-portfolio snapshot freshness, so this route does not certify every value
    fact as current on the requested date; Gateway does not value holdings, sum partial rows, or
-   substitute zero.
+   substitute zero. When Core returns the exact pair `aum_reporting_currency == 0` and
+   `position_count == 0`, Gateway fails closed for that item, excludes it from covered count and
+   aggregate calculation, and publishes the named ambiguous-coverage reason rather than claiming
+   an empty snapshot. The source-owned contract gap is tracked by `lotus-core#1034`; Gateway's
+   bounded interim handling is tracked by `#632` under parent issue `#616`.
 
 ## Portfolio Position Tax-Lot Drill-Down
 
