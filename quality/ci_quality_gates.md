@@ -90,7 +90,9 @@ Duplicate-code enforcement is intentionally no-new-regression rather than an imm
 campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
-different new clone between the same files. A stable, Python-version-independent AST scope digest
+different new clone between the same files. When source-root mode is enabled, the fragment is
+selected from the canonical source side so reverse report orientation cannot change its identity.
+A stable, Python-version-independent AST scope digest
 distinguishes replacements in different class/function scopes without hashing mutable scope bodies.
 The identity deliberately does not hash adjacent source lines: blank, comment, or unrelated
 statements beside an unchanged clone must not invalidate its fingerprint. Same-scope relocation is
