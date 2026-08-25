@@ -49,10 +49,17 @@
           "condition": "reference unavailable for a request that does not require inception metadata",
           "posture": "degrade_to_partial",
           "reason_codes": [
-            "PERFORMANCE_REFERENCE_UNAVAILABLE",
-            "PERFORMANCE_REFERENCE_MISSING_END_DATE"
+            "PERFORMANCE_REFERENCE_UNAVAILABLE"
           ],
           "behavior": "Preserve the bounded partial response and record the typed source failure."
+        },
+        {
+          "condition": "Core reference lacks performance_end_date",
+          "posture": "degrade_to_partial",
+          "reason_codes": [
+            "PERFORMANCE_REFERENCE_MISSING_END_DATE"
+          ],
+          "behavior": "Use the configured fallback reporting end date and expose the PERFORMANCE_REFERENCE_MISSING_END_DATE warning; do not claim a typed partial failure."
         },
         {
           "condition": "period=SI without explicit start and Core portfolio_open_date is unavailable, invalid, or after the requested end date",

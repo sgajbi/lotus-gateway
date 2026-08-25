@@ -77,12 +77,19 @@ def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
                         "metadata"
                     ),
                     "posture": "degrade_to_partial",
-                    "reason_codes": [
-                        "PERFORMANCE_REFERENCE_UNAVAILABLE",
-                        "PERFORMANCE_REFERENCE_MISSING_END_DATE",
-                    ],
+                    "reason_codes": ["PERFORMANCE_REFERENCE_UNAVAILABLE"],
                     "behavior": (
                         "Preserve the bounded partial response and record the typed source failure."
+                    ),
+                },
+                {
+                    "condition": "Core reference lacks performance_end_date",
+                    "posture": "degrade_to_partial",
+                    "reason_codes": ["PERFORMANCE_REFERENCE_MISSING_END_DATE"],
+                    "behavior": (
+                        "Use the configured fallback reporting end date and expose the "
+                        "PERFORMANCE_REFERENCE_MISSING_END_DATE warning; do not claim a "
+                        "typed partial failure."
                     ),
                 },
                 {
