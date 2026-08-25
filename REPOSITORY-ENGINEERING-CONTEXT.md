@@ -159,7 +159,12 @@ Current repository posture:
    trusted caller context, resolves membership through Core `PortfolioManagerBookMembership:v1`,
    and constructs Report candidate tenant, region, active-state, and source provenance server-side;
    browser-supplied candidate authority is rejected. Lifecycle, scheduler configuration, and
-   execution truth remain in `lotus-report`,
+   execution truth remain in `lotus-report`. Batch status now preserves the directly linked
+   source report-job state and archive document identity; Gateway projects explicit available,
+   pending, and unavailable archive posture and emits metadata/download links only for a confirmed
+   archived source document. Those links remain behind the existing tenant/region archive
+   preflight, and Gateway never exposes raw storage locations or substitutes a newer correction
+   document,
 7. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,

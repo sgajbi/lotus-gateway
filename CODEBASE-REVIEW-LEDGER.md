@@ -4,6 +4,28 @@ Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2T — publish source-owned report-batch archive identity (#543)
+
+- Objective: make completed report-batch outputs safely openable through Gateway without inventing
+  archive truth or exposing storage locations.
+- Change: batch status items preserve Report's directly linked `report_job_status` and
+  `archive_document_id`; Gateway maps them to explicit `available`, `pending`, or
+  `unavailable` posture with bounded reasons. Metadata/download links are emitted only when the
+  linked job is confirmed `archived` and carries a non-empty source identity; opaque IDs are
+  quoted at the Gateway boundary. Inconsistent source identity fails closed and never relabels a
+  document.
+- Regression proof: unit tests cover archived, pending, failed, not-yet-dispatched, inconsistent,
+  and opaque-ID cases; contract tests pin the additive fields/enums and integration tests prove the
+  batch status route emits Gateway-controlled links.
+- Compatibility: additive nullable item fields only. Existing batch lifecycle, mutation,
+  idempotency, tenant/region checks, status values, and Report-owned lineage remain unchanged. No
+  migration, configuration, retry-policy, dependency, or archive data-store change is included.
+  Archive metadata/download routes remain the only access boundary and re-check caller scope.
+- Documentation decision: repository context, API-surface wiki, supported-features docs/wiki, and
+  this ledger change because batch status now exposes an implementation-backed archive boundary.
+  No central platform context or runbook change is required. Wiki publication and strict parity
+  are required after merge.
+
 ### Batch 2S — fail closed on ambiguous advisor-book zero coverage (#632, parent #616)
 
 - Objective: prevent Gateway from presenting an unproven Core zero/zero AUM response as a

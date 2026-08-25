@@ -193,7 +193,11 @@ posture, and only implemented submission paths. `lotus-report` remains the catal
 lifecycle authority. Gateway applies trusted caller role and explicit portfolio, client, or advisor
 book scope without expanding membership. Client- and book-scoped batch choices remain partial until
 an authoritative portfolio list is supplied. Ordering eligibility does not grant client
-distribution, prove PDF generation, or claim archive completion.
+distribution, prove PDF generation, or claim archive completion. Batch status preserves the
+directly linked Report job and archive identity, and publishes an available/pending/unavailable
+archive posture with bounded reasons. Gateway-controlled metadata/download links appear only for a
+confirmed archived source document; the existing archive routes re-check caller scope and no raw
+storage location is exposed.
 
 ## Data Products
 

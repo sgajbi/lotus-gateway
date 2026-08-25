@@ -332,7 +332,11 @@ Authority and boundary:
    remains partial until authoritative portfolio identifiers are supplied,
 4. ordering eligibility does not authorize client distribution, prove render completion, prove
    archive completion, or make a report client-ready,
-5. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
+5. report-batch status preserves the directly linked Report job and archive identity. Gateway
+   publishes archive availability and bounded reason codes, with metadata/download links only for
+   a confirmed archived source document; the existing archive routes re-check tenant and region
+   before access and no raw storage location is exposed,
+6. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
    details fail closed behind a product-safe Gateway error.
 
 ## Idea Opportunity BFF
