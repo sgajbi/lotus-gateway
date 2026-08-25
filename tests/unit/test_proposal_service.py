@@ -1003,6 +1003,13 @@ class _FakeAdviseErrorClient(_FakeAdviseClient):
         }
 
 
+class _FakeAdviseInvalidMemoContractClient(_FakeAdviseClient):
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        payload = _memo_response_payload(proposal_id, version_no)
+        payload.pop("memo_hash")
+        return 200, payload
+
+
 @pytest.mark.asyncio
 async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
     client = _FakeAdviseClient()
@@ -1369,6 +1376,26 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     ]
     assert client.calls[-5][1]["idempotency_key"] == "idem-memo-review-1"
     assert client.calls[-4][1]["body"]["client_ready_document_requested"] is False
+
+
+@pytest.mark.asyncio
+async def test_malformed_proposal_memo_success_maps_to_product_safe_502() -> None:
+    service = ProposalService(advise_client=_FakeAdviseInvalidMemoContractClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_memo(
+            proposal_id="pp_1",
+            version_no=2,
+            correlation_id="corr_memo_invalid",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 200,
+        "error_code": "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID",
+        "detail": "lotus-advise proposal memo evidence did not match the governed contract.",
+    }
 
 
 @pytest.mark.asyncio

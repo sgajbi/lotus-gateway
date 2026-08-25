@@ -39,6 +39,12 @@ generated OpenAPI.
 - Gateway validates each successful upstream payload against its typed source projection. A
   missing required source field fails the response construction rather than publishing an
   incomplete success object that Workbench could mistake for authoritative evidence.
+- If Advise returns HTTP 2xx with a malformed memo payload, Gateway returns a product-safe `502`
+  with `error_code=ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`, identifies `lotus-advise` as the
+  source, and does not publish the invalid payload as a `200` response.
+- Memo lineage requires `memos`, requires `memo_count` to equal the returned item count, requires
+  `latest_memo_id` to identify the final source-ordered item, and rejects descending proposal
+  version order. This prevents contradictory completeness evidence from reaching Workbench.
 - Upstream error mapping, source hashes, idempotency behavior, and client-ready blocking posture
   remain owned by the existing Gateway/Advise boundary.
 
@@ -46,5 +52,6 @@ generated OpenAPI.
 
 `tests/contract/test_proposals_contract.py` proves source-faithful payloads, rejects stale
 illustrative nesting, and asserts that every memo-family envelope points to a typed OpenAPI
-component. `tests/unit/test_proposal_service.py` proves typed validation at the forwarding seam;
+component. It also rejects missing or contradictory lineage evidence. `tests/unit/test_proposal_service.py`
+proves malformed successful upstream memo payloads map to the product-safe source-contract error;
 the integration route test proves the report-package event route returns its typed event envelope.

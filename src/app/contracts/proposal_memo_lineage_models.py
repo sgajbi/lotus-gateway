@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.contracts.proposal_memo_models import ProposalMemoAuditEvent, ProposalMemoProposalSummary
 
@@ -45,7 +45,11 @@ class ProposalMemoLineageResponse(BaseModel):
     proposal: ProposalMemoProposalSummary = Field(
         description="Proposal summary used as lineage root."
     )
-    memo_count: int = Field(description="Number of persisted memos returned.", examples=[1])
+    memo_count: int = Field(
+        ge=0,
+        description="Number of persisted memos returned.",
+        examples=[1],
+    )
     latest_memo_id: str | None = Field(
         default=None,
         description="Latest memo identifier by proposal version and creation order.",
@@ -56,13 +60,26 @@ class ProposalMemoLineageResponse(BaseModel):
         examples=[True],
     )
     memos: list[ProposalMemoLineageItem] = Field(
-        default_factory=list,
         description="Persisted memo lineage ordered by proposal version.",
     )
     lineage_posture: dict[str, Any] = Field(
         default_factory=dict,
         description="Supportability posture for memo lineage and promotion boundaries.",
     )
+
+    @model_validator(mode="after")
+    def validate_lineage_consistency(self) -> "ProposalMemoLineageResponse":
+        if self.memo_count != len(self.memos):
+            raise ValueError("memo_count must equal the number of returned memos")
+        expected_latest_memo_id = self.memos[-1].memo_id if self.memos else None
+        if self.latest_memo_id != expected_latest_memo_id:
+            raise ValueError("latest_memo_id must identify the last ordered memo")
+        if any(
+            left.proposal_version_no > right.proposal_version_no
+            for left, right in zip(self.memos, self.memos[1:])
+        ):
+            raise ValueError("memos must be ordered by proposal version")
+        return self
 
 
 class ProposalMemoReplayEvidenceResponse(BaseModel):

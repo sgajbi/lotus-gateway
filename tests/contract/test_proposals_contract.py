@@ -573,6 +573,48 @@ def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:
         )
 
 
+def test_proposal_memo_lineage_rejects_incomplete_or_inconsistent_evidence() -> None:
+    base_data = {
+        "proposal": _memo_proposal_summary(),
+        "memo_count": 1,
+        "latest_memo_id": "memo_001",
+        "lineage_complete": True,
+        "lineage_posture": {},
+    }
+
+    with pytest.raises(ValidationError):
+        ProposalMemoLineageEnvelopeResponse(
+            correlation_id="corr_missing_memos",
+            contract_version="v1",
+            data=base_data,
+        )
+
+    with pytest.raises(ValidationError):
+        ProposalMemoLineageEnvelopeResponse(
+            correlation_id="corr_wrong_memo_count",
+            contract_version="v1",
+            data={**base_data, "memos": [], "latest_memo_id": None},
+        )
+
+    lineage_item = {
+        "memo_id": "memo_001",
+        "proposal_version_no": 2,
+        "proposal_version_id": "ppv_2",
+        "memo_status": "BLOCKED",
+        "lifecycle_status": "DRAFT",
+        "memo_hash": "sha256:memo-001",
+        "source_input_hash": "sha256:source-001",
+        "created_at": "2026-05-23T12:00:00+00:00",
+        "event_count": 1,
+    }
+    with pytest.raises(ValidationError):
+        ProposalMemoLineageEnvelopeResponse(
+            correlation_id="corr_wrong_latest_memo",
+            contract_version="v1",
+            data={**base_data, "memos": [lineage_item], "latest_memo_id": "memo_999"},
+        )
+
+
 def test_proposal_submit_request_contract_shape() -> None:
     payload = ProposalSubmitRequest(actor_id="advisor_1")
     assert payload.review_type == "RISK"

@@ -155,7 +155,9 @@ scorecard/context guidance synchronized for future agent development. It install
 - OpenAPI governance through Spectral and `.spectral.yaml`
 - proposal-memo OpenAPI fitness through source-faithful typed response references and stale-shape
   rejection in `tests/contract/test_proposals_contract.py`; memo-family `data` payloads may not
-  regress to an unconstrained `dict[str, Any]`
+  regress to an unconstrained `dict[str, Any]`; the same contract gate rejects incomplete or
+  contradictory lineage evidence, while service tests require malformed successful Advise memo
+  payloads to map to `ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID` rather than a generic 500
 - Gateway demo certification through `make demo-certification`, currently report-only, writing
   `output/demo-certification/gateway-demo-certification.json` and
   `output/quality-baseline/demo-certification.txt`

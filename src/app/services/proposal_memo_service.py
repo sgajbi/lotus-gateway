@@ -1,4 +1,6 @@
-from typing import Any
+from typing import Any, TypeVar
+
+from pydantic import BaseModel, ValidationError
 
 from app.contracts.proposal_memo_action_models import (
     ProposalMemoAiCommentaryResponse,
@@ -22,7 +24,29 @@ from app.contracts.proposals import (
     ProposalMemoReviewEnvelopeResponse,
 )
 from app.services.proposal_client_protocols import ProposalClient
+from app.services.proposal_memo_errors import raise_proposal_memo_contract_invalid
 from app.services.upstream_envelope import build_typed_gateway_envelope
+
+EnvelopeT = TypeVar("EnvelopeT", bound=BaseModel)
+PayloadT = TypeVar("PayloadT", bound=BaseModel)
+
+
+def _build_typed_memo_envelope(
+    response_model: type[EnvelopeT],
+    payload_model: type[PayloadT],
+    *,
+    correlation_id: str,
+    upstream_payload: dict[str, Any],
+) -> EnvelopeT:
+    try:
+        return build_typed_gateway_envelope(
+            response_model,
+            payload_model,
+            correlation_id=correlation_id,
+            upstream_payload=upstream_payload,
+        )
+    except ValidationError as exc:
+        raise_proposal_memo_contract_invalid(exc)
 
 
 class ProposalMemoServiceMixin:
@@ -51,7 +75,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoEnvelopeResponse,
             ProposalMemoResponse,
             correlation_id=correlation_id,
@@ -70,7 +94,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoEnvelopeResponse,
             ProposalMemoResponse,
             correlation_id=correlation_id,
@@ -91,7 +115,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoProjectionEnvelopeResponse,
             ProposalMemoProjectionResponse,
             correlation_id=correlation_id,
@@ -114,7 +138,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoReviewEnvelopeResponse,
             ProposalMemoReviewResponse,
             correlation_id=correlation_id,
@@ -140,7 +164,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoReportPackageEventEnvelopeResponse,
             ProposalMemoReportPackageEventResponse,
             correlation_id=correlation_id,
@@ -166,7 +190,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoReportPackageEnvelopeResponse,
             ProposalMemoReportPackageResponse,
             correlation_id=correlation_id,
@@ -192,7 +216,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoAiCommentaryEnvelopeResponse,
             ProposalMemoAiCommentaryResponse,
             correlation_id=correlation_id,
@@ -209,7 +233,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoLineageEnvelopeResponse,
             ProposalMemoLineageResponse,
             correlation_id=correlation_id,
@@ -231,7 +255,7 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
+        return _build_typed_memo_envelope(
             ProposalMemoReplayEvidenceEnvelopeResponse,
             ProposalMemoReplayEvidenceResponse,
             correlation_id=correlation_id,
