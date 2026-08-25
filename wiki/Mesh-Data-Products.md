@@ -36,9 +36,11 @@ inventoried method cannot hide an additional endpoint; unresolved route construc
 closed, including private helpers that accept a caller-supplied path. The only exceptions are the
 small, named module/method allowlist for generic Core transport helpers, with a reason recorded for
 each entry; new generic helpers must be added explicitly. Opaque f-string interpolations are
-unresolved, while only a non-rebound direct `from urllib.parse import quote` binding with
-`quote(..., safe="")` is known safe for a caller-supplied segment. Aliases, other imports, local
-definitions, and rebindings fail closed. Every Core client module must expose a statically
+unresolved, while bare `path`/`url` interpolation and opaque `.format()` replacements also fail
+closed. The seven generic transport exemptions apply only to their documented caller-path,
+caller-URL, or base-URL-plus-path AST shape. Only a non-rebound direct `from urllib.parse import
+quote` binding with `quote(..., safe="")` is known safe for a caller-supplied segment. Aliases,
+other imports, local definitions, and rebindings fail closed. Every Core client module must expose a statically
 resolvable transport route; the
 explicit `lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no
 transport surface. Core capabilities, effective policy, and core-snapshot calls are explicitly

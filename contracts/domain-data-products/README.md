@@ -20,8 +20,10 @@ client method, so an already-inventoried method cannot hide an additional endpoi
 route construction remains fail-closed, including private helpers that accept a caller-supplied
 path. The only exceptions are the small, named module/method allowlist for generic Core transport
 helpers; each entry carries a reason in the gate, and new generic helpers must be added explicitly.
-Opaque f-string interpolations are unresolved, while only a non-rebound direct
-`from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
+Opaque f-string interpolations are unresolved, while bare `path`/`url` interpolation and opaque
+`.format()` replacements also fail closed. The seven generic transport exemptions apply only to
+their documented caller-path, caller-URL, or base-URL-plus-path AST shape. Only a non-rebound
+direct `from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
 caller-supplied segment. Aliases, other imports, local definitions, and rebindings fail closed.
 Every Core client module must also expose at least
 one statically resolvable transport route; the explicit
