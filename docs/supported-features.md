@@ -37,6 +37,23 @@ work tracked by `lotus-workbench#814`. Composed performance workspace consumers 
 typed `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable
 Workbench date is available.
 
+## Portfolio Transaction Temporal Contract
+
+Status: implementation-backed for the transaction ledger, income-summary, and activity-summary
+routes.
+
+`transaction_date` is the Core-owned transaction event timestamp used for trade/event filtering
+and ordering. `settlement_date` is the separate, optional Core-owned settlement timestamp; Gateway
+does not introduce a `booking_date` or reinterpret either field as a browser-local date. Both
+fields are returned as UTC-normalized ISO-8601 date-times with an explicit timezone offset. The
+summary routes apply inclusive calendar-day windows in UTC, matching the source ledger's date
+query boundary. A missing required transaction timestamp, date-only value, naive timestamp,
+malformed timestamp, or invalid calendar value is a source-contract failure: Gateway returns a
+sanitized `502` with code `portfolio_transaction_source_contract_invalid` rather than emitting a
+partial row or silently excluding it. This is a boundary-contract tightening for malformed legacy
+payloads; valid timezone-aware source timestamps remain supported. Workbench consumer migration and
+display semantics remain tracked by parent issue #569.
+
 Performance-summary cold calculations use a governed 30-second elapsed deadline across source
 submission and polling. The remaining budget governs each complete HTTP operation as well as its
 per-operation transport timeout, including slow multi-phase or response-trickle behavior. Gateway

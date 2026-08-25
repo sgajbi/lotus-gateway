@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.middleware.correlation import correlation_id_var
@@ -203,6 +203,11 @@ async def _get_portfolio_transactions(
         "ledger. The default ordering is latest-first by transaction date unless explicit "
         "sorting is requested."
     ),
+    responses={
+        status.HTTP_502_BAD_GATEWAY: {
+            "description": "lotus-core returned unavailable or invalid transaction-ledger data.",
+        },
+    },
 )
 async def get_portfolio_transactions(
     portfolio_id: str,

@@ -712,6 +712,24 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert transaction_view_schema["properties"]["transaction_id"]["description"]
     assert transaction_view_schema["properties"]["transaction_date"]["description"]
     assert transaction_view_schema["properties"]["settlement_date"]["description"]
+    assert transaction_view_schema["properties"]["transaction_date"]["format"] == "date-time"
+    assert transaction_view_schema["properties"]["settlement_date"]["anyOf"][0]["format"] == (
+        "date-time"
+    )
+    assert transaction_view_schema["properties"]["transaction_date"]["examples"] == [
+        "2026-03-27T09:30:00Z"
+    ]
+    assert transaction_view_schema["properties"]["settlement_date"]["examples"] == [
+        "2026-03-29T00:00:00Z"
+    ]
+    assert (
+        "normalized to UTC"
+        in transaction_view_schema["properties"]["transaction_date"]["description"]
+    )
+    assert (
+        "normalized to UTC"
+        in transaction_view_schema["properties"]["settlement_date"]["description"]
+    )
     assert transaction_view_schema["properties"]["transaction_type"]["description"]
     assert transaction_view_schema["properties"]["component_type"]["description"] == (
         "Optional source-owned component role for linked or multi-row economic events. "
@@ -903,12 +921,15 @@ def test_portfolio_openapi_contract_registered() -> None:
         "description"
     ]
     assert transactions_path["description"]
+    assert transactions_path["responses"]["502"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"][
         "description"
     ]
+    assert income_path["responses"]["502"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/activity-summary"]["get"][
         "description"
     ]
+    assert activity_path["responses"]["502"]["description"]
     assert book_schema["properties"]["positions"]["description"]
     assert book_schema["properties"]["allocation_views"]["description"]
     assert (

@@ -454,6 +454,17 @@ source-owned lifecycle state. Keep both meanings explicit in Gateway OpenAPI, pr
 `null` serialization for rows without a reported applicable lifecycle, and leave business presentation to Workbench without
 reclassifying arbitrary source codes in the BFF.
 
+Transaction temporal semantics are also source-owned and explicit at the Gateway boundary:
+`transaction_date` is Core's transaction event timestamp for event-date filtering and ordering;
+`settlement_date` is the separate optional settlement timestamp. Gateway normalizes both to UTC
+and requires an ISO-8601 timezone-aware date-time, does not invent `booking_date`, and applies
+inclusive UTC calendar-day windows to summary routes. Missing, date-only, naive, malformed, or
+impossible source timestamps fail closed with `502` code
+`portfolio_transaction_source_contract_invalid`; Gateway does not emit partial malformed rows or
+silently discard them. Valid timezone-aware source timestamps remain compatible. Workbench display
+and consumer migration remain under parent issue #569. No database migration is required because
+this slice changes only the read-boundary contract and validation.
+
 Performance attribution level totals are also source-owned. Gateway preserves explicit numeric
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
 `lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.

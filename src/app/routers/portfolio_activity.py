@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.contracts.portfolio_activity_income import PortfolioActivitySummaryResponse
 from app.middleware.correlation import correlation_id_var
@@ -38,6 +38,11 @@ async def _get_portfolio_activity_summary(
         "and year-to-date bucket totals aligned to one reporting currency. When `end_date` is "
         "omitted, gateway uses `as_of_date` when provided or the current business date fallback."
     ),
+    responses={
+        status.HTTP_502_BAD_GATEWAY: {
+            "description": "lotus-core returned unavailable or invalid transaction-ledger data.",
+        },
+    },
 )
 async def get_portfolio_activity_summary(
     portfolio_id: str,

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 
 class PortfolioTransactionView(BaseModel):
@@ -6,14 +6,20 @@ class PortfolioTransactionView(BaseModel):
         description="Identifier of the transaction row.",
         examples=["TX_1"],
     )
-    transaction_date: str = Field(
-        description="Booked transaction date or timestamp for the ledger row.",
+    transaction_date: AwareDatetime = Field(
+        description=(
+            "Core-owned transaction event timestamp for the ledger row. The value is normalized "
+            "to UTC and always includes an ISO-8601 timezone offset."
+        ),
         examples=["2026-03-27T09:30:00Z"],
     )
-    settlement_date: str | None = Field(
+    settlement_date: AwareDatetime | None = Field(
         default=None,
-        description="Optional settlement date for the transaction row.",
-        examples=["2026-03-29"],
+        description=(
+            "Optional Core-owned settlement timestamp for the transaction row. When present, "
+            "the value is normalized to UTC and always includes an ISO-8601 timezone offset."
+        ),
+        examples=["2026-03-29T00:00:00Z"],
     )
     transaction_type: str = Field(
         description="Canonical transaction type returned by the source ledger.",
@@ -166,7 +172,7 @@ class PortfolioTransactionLedgerResponse(BaseModel):
                 {
                     "transaction_id": "TX_1",
                     "transaction_date": "2026-03-27T00:00:00Z",
-                    "settlement_date": "2026-03-31",
+                    "settlement_date": "2026-03-31T00:00:00Z",
                     "transaction_type": "BUY",
                     "component_type": "FX_CONTRACT_OPEN",
                     "security_id": "EQ_1",

@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.services.portfolio_service import PortfolioService
+from app.services.portfolio_transaction_temporal import transaction_date_value
 
 
 class _StubLotusCoreQueryClient:
@@ -317,9 +318,13 @@ class _StubLotusCoreQueryClient:
 
         filtered = transactions
         if start_date is not None:
-            filtered = [item for item in filtered if item["transaction_date"][:10] >= start_date]
+            filtered = [
+                item for item in filtered if transaction_date_value(item).isoformat() >= start_date
+            ]
         if end_date is not None:
-            filtered = [item for item in filtered if item["transaction_date"][:10] <= end_date]
+            filtered = [
+                item for item in filtered if transaction_date_value(item).isoformat() <= end_date
+            ]
         if security_id is not None:
             filtered = [item for item in filtered if item["security_id"] == security_id]
         if instrument_id is not None:
@@ -1872,6 +1877,45 @@ async def test_transaction_ledger_preserves_paging_metadata():
     assert response.skip == 20
     assert response.limit == 25
     assert response.transactions == []
+
+
+@pytest.mark.asyncio
+async def test_transaction_ledger_maps_invalid_timestamp_contract_to_safe_502():
+    class _InvalidTimestampClient(_StubLotusCoreQueryClient):
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            return 200, {
+                "total": 1,
+                "transactions": [
+                    {
+                        "transaction_id": "TX_INVALID",
+                        "transaction_date": "2026-03-27",
+                        "transaction_type": "BUY",
+                        "security_id": "EQ_1",
+                        "instrument_id": "INST_EQ_1",
+                        "quantity": 1,
+                    }
+                ],
+            }
+
+    with pytest.raises(HTTPException) as exc_info:
+        await PortfolioService(_InvalidTimestampClient()).get_transaction_ledger(
+            portfolio_id="PF_1001",
+            correlation_id="corr-invalid-timestamp",
+            as_of_date="2026-03-27",
+            include_projected=False,
+            skip=0,
+            limit=50,
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == {
+        "code": "portfolio_transaction_source_contract_invalid",
+        "message": (
+            "lotus-core transaction ledger returned an invalid transaction timestamp contract"
+        ),
+    }
 
 
 @pytest.mark.asyncio
