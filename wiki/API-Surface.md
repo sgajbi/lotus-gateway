@@ -652,6 +652,17 @@ curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?period=YT
   -H "X-Role: advisor"
 ```
 
+The risk summary response includes typed `mandate_comparison` evidence for cash, tracking error,
+turnover, other mandate limits, and review cadence. The concentration route exposes a compact
+comparison for the largest position and issuer. Each comparison identifies the Manage mandate
+version and source lineage, the Risk/Core measure and business date, signed headroom, and whether
+the constraint is within mandate, breached, not defined, or unavailable. Gateway never classifies
+without a source limit and never blends different business dates or missing valuation bases.
+
+Until `lotus-manage#639` delivers historical mandate and health reads, a historical risk request
+may truthfully report `date_alignment_state: mismatch` when Manage can supply only its latest
+snapshot. Consumers must present that posture as unavailable evidence, not a breach or all-clear.
+
 Advisor brief:
 
 ```bash

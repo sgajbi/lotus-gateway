@@ -18,6 +18,7 @@ from app.contracts.risk_workspace_concentration import (
     WorkbenchTopIssuerDriver,
     WorkbenchTopPositionDriver,
 )
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_mandate_comparison import (
     compose_concentration_mandate_comparison,
     compose_summary_mandate_comparison,
@@ -238,6 +239,33 @@ def test_summary_reports_manage_unavailability_without_hiding_risk_measures() ->
     assert response.mandate_comparison.constraints == []
 
 
+def test_summary_uses_risk_dependency_reason_for_unavailable_measure() -> None:
+    unavailable = _summary().model_copy(
+        update={
+            "state": "unavailable",
+            "payload": None,
+            "partial_failures": [
+                WorkbenchPartialFailure(
+                    source_service="lotus-risk",
+                    error_code="HTTP_424",
+                    detail="risk_source_dependency_unavailable",
+                )
+            ],
+        }
+    )
+
+    response = compose_summary_mandate_comparison(
+        response=unavailable,
+        sources=_sources(mandate=_mandate(max_tracking_error=0.05)),
+    )
+
+    assert response.mandate_comparison is not None
+    tracking_error = response.mandate_comparison.constraints[1]
+    assert tracking_error.state == "measure_unavailable"
+    assert tracking_error.reason == "risk_source_dependency_unavailable"
+    assert "endpoint unavailable" not in tracking_error.reason.lower()
+
+
 def _concentration() -> WorkbenchRiskConcentrationResponse:
     return WorkbenchRiskConcentrationResponse(
         correlation_id="corr-1",
@@ -309,3 +337,21 @@ def test_concentration_compares_position_and_issuer_on_the_source_weight_basis()
     assert position.measure.basis == "total_market_value_base"
     assert issuer.state == "breach"
     assert issuer.headroom == -0.0107
+
+
+def test_concentration_refuses_classification_without_source_weight_basis() -> None:
+    concentration = _concentration()
+    assert concentration.payload is not None
+    concentration.payload.valuation_context = None
+
+    response = compose_concentration_mandate_comparison(
+        response=concentration,
+        sources=_sources(mandate=_mandate(single_position_max_weight=0.20, issuer_max_weight=0.20)),
+    )
+
+    assert response.mandate_comparison is not None
+    assert {item.state for item in response.mandate_comparison.constraints} == {
+        "measure_unavailable"
+    }
+    assert all(item.headroom is None for item in response.mandate_comparison.constraints)
+    assert all("weight basis" in item.reason for item in response.mandate_comparison.constraints)

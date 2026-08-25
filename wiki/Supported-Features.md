@@ -55,6 +55,43 @@ emitted or silently discarded. This boundary tightening preserves valid timezone
 and leaves consumer display migration and source-policy follow-up to parent issue #569 and child
 issue #642.
 
+## Risk Mandate Comparison
+
+Status: implementation-backed for Gateway contract and composition; historical Manage reads are
+tracked by `lotus-manage#639`.
+
+Business outcome:
+
+1. advisors and portfolio managers can see whether a source-defined risk constraint is inside or
+   outside the approved client mandate and how much headroom remains,
+2. the same response carries the mandate version, risk profile, review due date, source lineage,
+   measure date, valuation basis, and explicit supportability needed to explain the decision,
+3. an absent limit, missing measure, cross-date snapshot, invalid basis, source failure, or
+   contradictory verdict cannot become a false breach or false all-clear.
+
+Supported routes:
+
+1. `GET /api/v1/workbench/{portfolio_id}/risk/summary`
+2. `GET /api/v1/workbench/{portfolio_id}/risk/concentration`
+
+Authority and composition:
+
+1. `lotus-manage` owns mandate identity, constraints, cash-health verdict, review policy, and
+   mandate lineage,
+2. `lotus-risk` owns tracking-error and concentration measures and their calculation context,
+3. `lotus-core`, consumed through the existing Workbench snapshot composition, owns the cash
+   measure and effective business date,
+4. Gateway normalizes percentage points to mandate ratios and calculates signed presentation
+   headroom only from aligned source facts; it does not calculate mandate health or invent limits,
+5. the compact concentration comparison requires Risk's `weight_basis`; null limits remain
+   `not_defined`, and turnover remains `measure_unavailable` until a source measure exists.
+
+Historical limitation:
+
+Manage currently publishes latest-only mandate and health reads. Gateway forwards the requested
+review date, preserves returned source dates, and reports mismatch rather than blending future
+evidence into a historical review. `lotus-manage#639` owns the missing historical read contract.
+
 ## Performance Summary Completion
 
 Status: implementation-backed for deterministic cold and warm workspace-summary orchestration.
