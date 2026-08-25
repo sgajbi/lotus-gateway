@@ -130,6 +130,17 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "Demo Certification Baseline" in workflow
     assert "make demo-certification" in workflow
     assert "output/quality-baseline/demo-certification.txt" in workflow
+    assert "Install Duplicate-Code Quality Tooling" in workflow
+    assert "npm ci --ignore-scripts" in workflow
+    assert "Duplicate Code Baseline" in workflow
+    assert "--min-lines 15" in workflow
+    assert "--min-tokens 50" in workflow
+    assert "--pattern 'src/app/**/*.py'" in workflow
+    assert "output/quality-baseline/duplicate-code.txt" in workflow
+    assert "Enforce Duplicate Code Ratchet" in workflow
+    assert "scripts/check_duplicate_code_ratchet.py" in workflow
+    assert "quality/duplicate_code_baseline.json" in workflow
+    assert "output/quality-baseline/duplicate-code-ratchet.txt" in workflow
     assert "output/quality-baseline/quality-ratchet.txt" in workflow
     assert "Quality Baseline / Ratcheted Trend Gate" in workflow
     assert "set -o pipefail" in workflow
@@ -176,6 +187,16 @@ def test_quality_baseline_workflow_has_one_authoritative_automated_event() -> No
     )
     assert "cancel-in-progress: true" in workflow
     assert "name: Quality Baseline / Ratcheted Trend Gate" in workflow
+
+
+def test_duplicate_detector_is_pinned_and_uses_the_repo_quality_package() -> None:
+    package = json.loads((REPO_ROOT / "quality" / "package.json").read_text(encoding="utf-8"))
+    lock = json.loads((REPO_ROOT / "quality" / "package-lock.json").read_text(encoding="utf-8"))
+
+    assert package["private"] is True
+    assert package["devDependencies"]["jscpd"] == "4.2.2"
+    assert lock["packages"][""].get("devDependencies", {}).get("jscpd") == "4.2.2"
+    assert lock["packages"]["node_modules/jscpd"]["version"] == "4.2.2"
 
 
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:

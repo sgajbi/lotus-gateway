@@ -33,6 +33,10 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install Duplicate-Code Quality Tooling
+        working-directory: quality
+        run: npm ci --ignore-scripts
+
       - name: Install Python Quality Tooling
         run: |
           python -m pip install --upgrade pip
@@ -121,6 +125,41 @@ jobs:
           } 2>&1 | tee output/quality-baseline/complexity.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/complexity.txt
+          exit "${status}"
+
+      - name: Duplicate Code Baseline
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+          mkdir -p output/quality-baseline/duplicate-code
+          quality/node_modules/.bin/jscpd \
+            --min-lines 15 \
+            --min-tokens 50 \
+            --max-lines 10000 \
+            --max-size 1mb \
+            --format python \
+            --reporters json \
+            --output output/quality-baseline/duplicate-code \
+            --pattern 'src/app/**/*.py' \
+            . \
+            --noTips 2>&1 | tee output/quality-baseline/duplicate-code.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code.txt
+          exit "${status}"
+
+      - name: Enforce Duplicate Code Ratchet
+        if: always()
+        run: |
+          set +e
+          set -o pipefail
+          python scripts/check_duplicate_code_ratchet.py \
+            --report output/quality-baseline/duplicate-code/jscpd-report.json \
+            --artifact-log output/quality-baseline/duplicate-code.txt \
+            --baseline quality/duplicate_code_baseline.json \
+            2>&1 | tee output/quality-baseline/duplicate-code-ratchet.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code-ratchet.txt
           exit "${status}"
 
       - name: Dead Code Baseline
