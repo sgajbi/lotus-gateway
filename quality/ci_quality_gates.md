@@ -97,10 +97,11 @@ distinguishes replacements in different class/function scopes without hashing mu
 The identity deliberately does not hash adjacent source lines: blank, comment, or unrelated
 statements beside an unchanged clone must not invalidate its fingerprint. Same-scope relocation is
 a documented identity trade-off because position-sensitive anchors would make ordinary edits
-fragile. Fragment normalization collapses layout whitespace using a deterministic scanner while
-preserving quoted literal contents. Occurrence ordinals are assigned by measured location order
-but are not themselves part of the absolute source coordinates, so unrelated line shifts or
-non-local body edits do not invalidate every fingerprint. A removed clone also creates a
+fragile. Fragment normalization uses Python tokenization to preserve actual string-token contents,
+with an explicit comment-safe lexical fallback for incomplete detector fragments. Occurrence
+ordinals are assigned by measured location order but are not themselves part of the absolute source
+coordinates, so unrelated line shifts or non-local body edits do not invalidate every fingerprint.
+A removed clone also creates a
 stale-fingerprint failure until a reviewed `--update-baseline` banks the
 improvement; this prevents the removed duplication from being silently reintroduced later.
 

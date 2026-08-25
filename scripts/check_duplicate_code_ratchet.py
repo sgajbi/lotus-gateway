@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import io
 import json
 import re
+import tokenize
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
@@ -66,6 +68,7 @@ class RatchetResult:
     baseline_clone_count: int
     baseline_duplicated_lines: int
     baseline_duplicated_percentage: Decimal
+    baseline_fingerprint_count: int
     unexpected_fingerprints: tuple[str, ...]
     stale_fingerprints: tuple[str, ...]
     status: int
@@ -91,6 +94,15 @@ class RatchetResult:
     @property
     def passed(self) -> bool:
         return self.metrics_passed and not self.stale_fingerprints
+
+    @property
+    def all_fingerprints_changed(self) -> bool:
+        current_fingerprint_count = len({finding.fingerprint for finding in self.report.findings})
+        return (
+            bool(self.unexpected_fingerprints)
+            and len(self.unexpected_fingerprints) == current_fingerprint_count
+            and len(self.stale_fingerprints) == self.baseline_fingerprint_count
+        )
 
 
 def _normalise_source(value: Any) -> str:
@@ -174,18 +186,65 @@ def _scope_context(tree: ast.Module, start: int, end: int) -> str:
 
 
 def _normalise_fragment(fragment: str) -> str:
-    """Normalize Python layout while preserving quoted literal contents."""
+    """Normalize Python layout while preserving actual string-token contents."""
     text = fragment.replace("\r\n", "\n").replace("\r", "\n")
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+        pieces = []
+        for token in tokens:
+            if token.type in {
+                tokenize.ENCODING,
+                tokenize.ENDMARKER,
+                tokenize.INDENT,
+                tokenize.DEDENT,
+                tokenize.NEWLINE,
+                tokenize.NL,
+            }:
+                continue
+            value = token.string
+            if token.type == tokenize.COMMENT:
+                value = FRAGMENT_WHITESPACE.sub(" ", value).strip()
+            pieces.append(value)
+        return " ".join(pieces).strip()
+    except (IndentationError, SyntaxError, tokenize.TokenError):
+        return _normalise_fragment_lexically(text)
+
+
+def _normalise_fragment_lexically(text: str) -> str:
+    """Normalize an incomplete fragment without treating comment quotes as strings."""
     pieces: list[str] = []
     pending_space = False
+    in_comment = False
     index = 0
     while index < len(text):
         character = text[index]
+        if in_comment:
+            if character == "\n":
+                in_comment = False
+            else:
+                if character.isspace():
+                    pending_space = True
+                    index += 1
+                    continue
+                if pending_space and pieces:
+                    pieces.append(" ")
+                pieces.append(character)
+                pending_space = False
+                index += 1
+                continue
         if character.isspace():
             pending_space = True
             index += 1
             continue
         literal_end = _string_literal_end(text, index)
+        if character == "#" and literal_end is None:
+            if pending_space and pieces:
+                pieces.append(" ")
+            pieces.append(character)
+            pending_space = False
+            in_comment = True
+            index += 1
+            continue
         piece = text[index:literal_end] if literal_end is not None else character
         if pending_space and pieces:
             pieces.append(" ")
@@ -383,6 +442,7 @@ def evaluate(report: DuplicateReport, baseline: dict[str, Any], status: int) -> 
         baseline_clone_count=_integer_metric(metrics, "clone_count"),
         baseline_duplicated_lines=_integer_metric(metrics, "duplicated_lines"),
         baseline_duplicated_percentage=_decimal_metric(metrics, "duplicated_percentage"),
+        baseline_fingerprint_count=len(allowed_set),
         unexpected_fingerprints=tuple(sorted(current_set - allowed_set)),
         stale_fingerprints=tuple(sorted(allowed_set - current_set)),
         status=status,
@@ -455,7 +515,7 @@ def _print_result(result: RatchetResult) -> None:
         and result.report.duplicated_lines == result.baseline_duplicated_lines
         and result.report.duplicated_percentage == result.baseline_duplicated_percentage
     )
-    if result.unexpected_fingerprints and result.stale_fingerprints and metrics_unchanged:
+    if result.all_fingerprints_changed and metrics_unchanged:
         print(
             "  all fingerprints changed while duplicate metrics held steady; this indicates "
             "an identity-algorithm or generating-environment change, not new duplication"
