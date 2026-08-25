@@ -153,7 +153,8 @@ scorecard/context guidance synchronized for future agent development. It install
 
 - complexity and maintainability through `radon` and `xenon`
 - high-confidence dead-code candidates through `vulture`
-- dependency hygiene through `deptry`
+- dependency hygiene through `deptry`, with the local `app` and `tests` namespaces classified as
+  first-party so shared test fixtures do not create false missing-dependency regressions
 - security findings through `bandit` and `pip-audit`
 - import-boundary contracts through `import-linter`
 - docstring baseline through `interrogate`
