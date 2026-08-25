@@ -46,6 +46,7 @@ class RatchetResult:
     baseline_duplicated_lines: int
     baseline_duplicated_percentage: Decimal
     unexpected_fingerprints: tuple[str, ...]
+    stale_fingerprints: tuple[str, ...]
     status: int
 
     @property
@@ -53,7 +54,7 @@ class RatchetResult:
         return len(self.report.findings)
 
     @property
-    def passed(self) -> bool:
+    def metrics_passed(self) -> bool:
         return (
             self.status == 0
             and self.clone_count <= self.baseline_clone_count
@@ -61,6 +62,14 @@ class RatchetResult:
             and self.report.duplicated_percentage <= self.baseline_duplicated_percentage
             and not self.unexpected_fingerprints
         )
+
+    @property
+    def can_update_baseline(self) -> bool:
+        return self.metrics_passed
+
+    @property
+    def passed(self) -> bool:
+        return self.metrics_passed and not self.stale_fingerprints
 
 
 def _normalise_source(value: Any) -> str:
@@ -170,6 +179,7 @@ def evaluate(report: DuplicateReport, baseline: dict[str, Any], status: int) -> 
         baseline_duplicated_lines=_integer_metric(metrics, "duplicated_lines"),
         baseline_duplicated_percentage=_decimal_metric(metrics, "duplicated_percentage"),
         unexpected_fingerprints=tuple(sorted(current_set - allowed_set)),
+        stale_fingerprints=tuple(sorted(allowed_set - current_set)),
         status=status,
     )
 
@@ -234,6 +244,7 @@ def _print_result(result: RatchetResult) -> None:
         f"{result.report.duplicated_percentage}/{result.baseline_duplicated_percentage}"
     )
     print(f"Unexpected stable duplicate findings: {len(result.unexpected_fingerprints)}")
+    print(f"Stale baseline duplicate findings: {len(result.stale_fingerprints)}")
     if result.status != 0:
         print(f"Duplicate detector failed with QUALITY_COMMAND_STATUS={result.status}.")
     for finding in sorted(
@@ -247,6 +258,11 @@ def _print_result(result: RatchetResult) -> None:
         print(
             "  unexpected source pair: "
             f"{finding.first_file} <-> {finding.second_file} ({finding.lines} lines)"
+        )
+    if result.stale_fingerprints:
+        print(
+            "  stale baseline fingerprints require a reviewed --update-baseline to bank "
+            "the improvement"
         )
     if not result.passed:
         print(
@@ -279,8 +295,11 @@ def main() -> int:
         result = evaluate(report, baseline, status)
         _print_result(result)
         if args.update_baseline:
-            if not result.passed:
-                print("Refusing to update duplicate-code baseline while the ratchet fails.")
+            if not result.can_update_baseline:
+                print(
+                    "Refusing to update duplicate-code baseline while new duplicates, "
+                    "metric regressions, or detector failures remain."
+                )
                 return 2
             _write_json(args.baseline, build_baseline(report))
             print(f"Updated duplicate-code baseline: {args.baseline}")

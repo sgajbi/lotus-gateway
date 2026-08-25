@@ -112,7 +112,8 @@ same actual revision may supersede one another.
 - main release evidence retention for coverage, workflow governance, agent quality, security,
   OpenAPI, and demo-certification artifacts
 - duplicate-code clone count, duplicated-line percentage, and stable source-pair fingerprints
-  must not regress beyond the reviewed production baseline
+  must not regress beyond the reviewed production baseline; removed pairs must be banked through a
+  reviewed baseline update before they can be reintroduced
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
   release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
   provenance attestation

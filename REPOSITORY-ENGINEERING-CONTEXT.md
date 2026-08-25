@@ -427,7 +427,8 @@ Important validation expectations:
    improvement; a later run above 21 must fail the quality gate.
    The pinned `quality/package-lock.json` jscpd scan also ratchets production duplicate-code
    clone count, duplicated lines, duplicated percentage, and stable source-pair fingerprints;
-   a new clone or detector failure is a protected quality failure.
+   a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
+   reviewed baseline updates must bank removals before the improvement can be spent again.
    Every report-producing quality log must also carry exactly one numeric
    `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate
    markers are measurement failures, while non-zero status with reviewed baseline findings remains
