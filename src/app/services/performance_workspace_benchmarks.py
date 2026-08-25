@@ -180,7 +180,7 @@ def _resolve_benchmark_context_results(
             warnings=warnings,
             partial_failures=partial_failures,
             error_code="UPSTREAM_EXCEPTION",
-            detail=str(resolved_benchmark_code_result),
+            detail="benchmark assignment unavailable",
         )
         return benchmark_code, benchmark_catalog_result_value
     return benchmark_code or cast(str | None, resolved_benchmark_code_result), (
