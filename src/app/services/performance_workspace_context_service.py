@@ -35,6 +35,16 @@ UpstreamPayload = dict[str, Any]
 UpstreamResult = tuple[int, UpstreamPayload]
 
 
+def _resolve_reporting_currency(
+    request_parameters: WorkspaceRequestParameters,
+    overview_state: WorkspaceOverviewState,
+) -> str:
+    return (
+        request_parameters.requested_reporting_currency
+        or overview_state.overview.portfolio.base_currency
+    )
+
+
 def _resolve_workbench_reference_as_of_date(
     *,
     overview: WorkbenchOverviewResponse,
@@ -96,10 +106,7 @@ class PerformanceWorkspaceContextServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        reporting_currency = (
-            request_parameters.requested_reporting_currency
-            or overview_state.overview.portfolio.base_currency
-        )
+        reporting_currency = _resolve_reporting_currency(request_parameters, overview_state)
         report_window = await self._build_workspace_report_window(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -123,8 +130,7 @@ class PerformanceWorkspaceContextServiceMixin:
             reporting_currency=reporting_currency,
             benchmark_code=request_parameters.benchmark_code,
             include_benchmark_catalog=request_parameters.include_benchmark_catalog,
-            warnings=overview_state.warnings,
-            partial_failures=overview_state.partial_failures,
+            overview_state=overview_state,
         )
         return assemble_workspace_request_context(
             overview_state=overview_state,
@@ -210,8 +216,7 @@ class PerformanceWorkspaceContextServiceMixin:
         reporting_currency: str,
         benchmark_code: str | None,
         include_benchmark_catalog: bool,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
+        overview_state: WorkspaceOverviewState,
     ) -> WorkspaceBenchmarkContext:
         async with server_timing_span("perf-benchmark"):
             resolved_benchmark_code, benchmark_catalog_result = await fetch_benchmark_context(
@@ -223,8 +228,8 @@ class PerformanceWorkspaceContextServiceMixin:
                 reporting_currency=reporting_currency,
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=include_benchmark_catalog,
-                warnings=warnings,
-                partial_failures=partial_failures,
+                warnings=overview_state.warnings,
+                partial_failures=overview_state.partial_failures,
             )
         return WorkspaceBenchmarkContext(
             benchmark_code=resolved_benchmark_code,
