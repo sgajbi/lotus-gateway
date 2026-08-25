@@ -177,6 +177,36 @@ Authority and boundary:
    fact as current on the requested date; Gateway does not value holdings, sum partial rows, or
    substitute zero.
 
+## Portfolio Position Tax-Lot Drill-Down
+
+Status: implementation-backed for a current source-backed BUY-lot read for one exact
+portfolio/security pair.
+
+Business outcome:
+
+1. a client can inspect source lot identity, acquisition date, original/open quantity, local and
+   base cost, accrued interest, and available transaction/event lineage through one typed Gateway
+   response,
+2. malformed or cross-portfolio/security source evidence fails closed with a product-safe error,
+3. clients receive a closed OpenAPI schema and do not need to parse an unbounded Core object.
+
+Supported route:
+
+1. `GET /api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`
+
+Authority and boundary:
+
+1. `lotus-core` owns the lot records and all tax-lot, valuation, disposal, and lineage semantics;
+   Gateway performs one bounded source read, validates the requested identity, and publishes only
+   fields present in the current Core contract,
+2. the route is source-backed but not as-of aware: it does not derive holding period, unrealized
+   P&L, current lot valuation, disposal lineage, or reporting-currency values,
+3. monetary decimals preserve the existing Gateway JSON string representation, and additive future
+   Core fields are not leaked into the closed Gateway contract,
+4. source-owned valuation and disposal evidence remain deferred to `lotus-core#1033`, `#788`, and
+   `#481`; Gateway delivery and follow-up closure are tracked by `lotus-gateway#630` and parent
+   issue `#586`.
+
 ## Proposal Risk And Impact Evidence
 
 Status: implementation-backed in Gateway for one selected proposal. The Workbench decision

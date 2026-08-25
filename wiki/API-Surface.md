@@ -10,6 +10,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 
 - `GET /api/v1/portfolio/portfolios`
 - `GET /api/v1/portfolio/portfolios/{portfolio_id}/workspace`
+- `GET /api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`
 - `GET /api/v1/platform/capabilities`
 - `GET /api/v1/domain-products/catalog`
 - `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
@@ -126,6 +127,14 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   cash, attention, mandate, suitability, or recommendation truth. Core's current AUM contract does
   not expose per-portfolio snapshot freshness, so the response does not certify every value fact
   as current on the requested date.
+- portfolio position tax-lot drill-down returns a typed, closed envelope of the current Core BUY
+  lots for one exact portfolio/security pair. It preserves source lot identity, acquisition date,
+  original/open quantity, local/base cost, accrued interest, and optional source lineage fields;
+  monetary decimals use the repository's existing string-preserving JSON representation. Gateway
+  validates source identity and maps malformed or cross-identity payloads to a product-safe `502`.
+  The route does not calculate holding periods, current lot valuation, unrealized P&L, disposal
+  lineage, as-of semantics, or reporting-currency restatement. Core-owned evidence for those
+  semantics remains tracked by `lotus-core#1033`, `#788`, and `#481`.
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as

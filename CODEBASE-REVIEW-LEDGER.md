@@ -4,6 +4,25 @@ Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2R — publish bounded source-backed tax-lot drill-down (#630, parent #586)
+
+- Objective: expose useful current Core lot evidence through a typed Gateway boundary without
+  inventing tax, valuation, disposal, as-of, or reporting-currency domain truth.
+- Change: added `GET /api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`,
+  a typed closed response envelope, one quoted Core query path, source identity validation, and
+  product-safe `502` handling for malformed or cross-identity source payloads. Future additive
+  source fields are projected out rather than widening the public contract accidentally.
+- Regression proof: focused unit, integration, client-path, and OpenAPI tests cover source-field
+  preservation, decimal serialization, exact path quoting, identity mismatch failure, closed nested
+  schemas, response examples, and explicit deferred-semantics wording.
+- Compatibility: additive route and schemas only; existing routes are unchanged. No migration,
+  configuration, dependency, or retry-policy change. Core remains authority for lot records,
+  valuation, disposal, and tax semantics; Core follow-up is tracked by #1033, #788, and #481.
+- Documentation decision: repository context, API-surface wiki, supported-features wiki, and this
+  ledger change because the supported route and source boundary are now implementation-backed. No
+  migration, central platform context, or runbook change is required. Wiki publication and strict
+  parity are required after merge.
+
 ### Batch 2Q — harden recursive proposal-memo OpenAPI fitness enforcement (#628, follow-up to #626)
 
 - Objective: turn the #626 review follow-up into a deterministic CI rule so a future nested memo
