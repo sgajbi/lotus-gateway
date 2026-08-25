@@ -4,6 +4,35 @@ Last updated: 2026-08-26
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2X — publish the Advisor Cockpit action read contract (#644)
+
+- Objective: replace the opaque `dict[str, Any]` response boundary on the action list and
+  single-action reads with a source-faithful contract that gives Workbench one stable, machine-
+  checkable shape.
+- Change: add typed Gateway envelopes and bounded nested models for Advise-owned action status,
+  priority, owner, reason, evidence, readiness, lineage, acknowledgement, and unsupported
+  capability fields. The models are closed (`additionalProperties: false`) and the page is capped
+  at 64 items; Gateway validates shape only and does not calculate action or SLA semantics.
+- Failure behavior: a successful but malformed or invented Advise action payload maps to
+  `502 ADVISE_COCKPIT_ACTION_CONTRACT_INVALID` with a product-safe detail and no raw source data.
+  Upstream HTTP errors and all other Cockpit response families retain their existing behavior.
+- Regression proof: focused contract, unit, and integration tests cover typed list/detail
+  projection, OpenAPI references, nested unknown-field rejection, bounded pages, correlation
+  preservation, and malformed-success redaction (22 tests passed locally at the initial slice
+  checkpoint).
+- Same-pattern scan: both active action read routes were inspected; no additional Gateway action
+  route uses this exact response boundary. Preparation, snapshot, supportability, acknowledgement,
+  and house-view payloads are explicitly residual and need separate source-backed issues rather
+  than an opportunistic generic-to-typed rewrite.
+- Compatibility: the two existing action URLs, query parameters, authorization boundary, Advise
+  call, correlation propagation, and source-owned semantics remain unchanged. The intentional
+  contract tightening rejects shapes that were previously accepted as arbitrary maps; this is
+  documented and tested. No migration, dependency, retry, runtime, or central-platform-context
+  change is required.
+- Documentation decision: router OpenAPI descriptions, supported-features docs, repository
+  context, API-surface and supported-features wiki, and this ledger change. Wiki publication and
+  strict parity are required after merge. No central context or skill-routing change is needed.
+
 ### Batch 2W — correct transaction-period source-timezone claims (#642, parent #569)
 
 - Objective: resolve the post-#640 review finding that Gateway documentation claimed UTC summary

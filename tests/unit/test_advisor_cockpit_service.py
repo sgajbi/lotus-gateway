@@ -2,6 +2,10 @@ import pytest
 from fastapi import HTTPException
 
 from app.services.advisor_cockpit_service import AdvisorCockpitService
+from tests.support.advisor_cockpit_fixtures import (
+    advisor_action_item_payload,
+    advisor_action_page_payload,
+)
 
 CALLER_HEADERS = {
     "X-Actor-Id": "advisor_sg_001",
@@ -13,22 +17,7 @@ class _FakeAdviseClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, object]]] = []
         self.status = 200
-        self.payload: dict[str, object] = {
-            "items": [
-                {
-                    "action_item_id": "cockpit_action_001",
-                    "status": "PENDING_REVIEW",
-                    "priority": "HIGH",
-                    "owner_role": "ADVISOR",
-                    "unsupported_capabilities": ["CLIENT_READY_PUBLICATION"],
-                }
-            ],
-            "supportability": {
-                "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
-                "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
-                "client_ready_publication": "BLOCKED",
-            },
-        }
+        self.payload: dict[str, object] = advisor_action_page_payload()
 
     async def list_advisor_cockpit_actions(
         self,
@@ -186,8 +175,10 @@ async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -
     )
 
     assert response.correlation_id == "corr-cockpit-list"
-    assert response.data == advise_client.payload
-    assert response.data["supportability"]["client_ready_publication"] == "BLOCKED"
+    assert response.data.items[0].action_item_id == "cockpit_action_001"
+    assert response.data.items[0].owner_role == "COMPLIANCE_REVIEWER"
+    assert response.data.items[0].unsupported_capabilities == ["CLIENT_READY_PUBLICATION"]
+    assert response.data.page_size == 25
     assert advise_client.calls == [
         (
             "list_advisor_cockpit_actions",
@@ -202,6 +193,49 @@ async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -
             },
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_cockpit_service_projects_action_detail_without_recomputing_posture() -> None:
+    advise_client = _FakeAdviseClient()
+    advise_client.payload = advisor_action_item_payload()
+    service = AdvisorCockpitService(advise_client=advise_client)
+
+    response = await service.get_action(
+        action_item_id="cockpit_action_001",
+        params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
+        caller_headers=CALLER_HEADERS,
+        correlation_id="corr-cockpit-detail",
+    )
+
+    assert response.correlation_id == "corr-cockpit-detail"
+    assert response.data.action_item_id == "cockpit_action_001"
+    assert response.data.status == "PENDING_REVIEW"
+    assert response.data.next_required_action.startswith("Review policy evaluation")
+    assert advise_client.calls[0][0] == "get_advisor_cockpit_action"
+
+
+@pytest.mark.asyncio
+async def test_advisor_cockpit_service_fails_closed_on_malformed_success_payload() -> None:
+    advise_client = _FakeAdviseClient()
+    advise_client.payload = {"items": [{"action_item_id": "unsafe-source-detail"}]}
+    service = AdvisorCockpitService(advise_client=advise_client)
+
+    with pytest.raises(HTTPException) as exc:
+        await service.list_actions(
+            params={},
+            caller_headers=CALLER_HEADERS,
+            correlation_id="corr-cockpit-invalid",
+        )
+
+    assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 200,
+        "error_code": "ADVISE_COCKPIT_ACTION_CONTRACT_INVALID",
+        "detail": "lotus-advise advisor cockpit action data did not match the governed contract.",
+    }
+    assert "unsafe-source-detail" not in str(exc.value.detail)
 
 
 @pytest.mark.asyncio

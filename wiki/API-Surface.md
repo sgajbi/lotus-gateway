@@ -474,6 +474,11 @@ consumer migration remain tracked by parent issue #569.
   Advise-owned action status, priority, owner role, reason codes, SLA, source refs, evidence refs,
   lineage refs, unsupported capabilities, supportability, preparation-packet posture,
   tactical house-view cohort membership, and acknowledgement state.
+  The action list and single-action read responses are typed, closed source contracts in OpenAPI,
+  including bounded nested evidence/readiness/lineage/acknowledgement references. A successful
+  Advise response with missing or unknown action fields fails closed with the product-safe
+  `ADVISE_COCKPIT_ACTION_CONTRACT_INVALID` error; Gateway does not derive action posture or turn
+  the other Cockpit families into this contract.
   Gateway does not reconstruct advisory policy, memo blockers, cockpit action or preparation semantics, tactical house-view membership,
   client-ready publication, external client communication, OMS/order/fill/settlement posture, or
   demo-readiness claims.

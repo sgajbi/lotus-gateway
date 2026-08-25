@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Query
 
-from app.contracts.advisor_cockpit import AdvisorCockpitEnvelopeResponse
+from app.contracts.advisor_cockpit_action_envelopes import (
+    AdvisorCockpitActionPageEnvelopeResponse,
+)
 from app.middleware.correlation import correlation_id_var
 from app.routers.advisor_cockpit_common import (
     ADVISOR_COCKPIT_READ_RESPONSES,
@@ -22,7 +24,7 @@ async def _list_advisor_cockpit_actions(
     portfolio_id: str | None,
     limit: int,
     cursor: str | None,
-) -> AdvisorCockpitEnvelopeResponse:
+) -> AdvisorCockpitActionPageEnvelopeResponse:
     entitled_portfolio_id = authorize_advisor_cockpit_request(
         caller,
         capability=ADVISOR_COCKPIT_READ_CAPABILITY,
@@ -41,12 +43,14 @@ async def _list_advisor_cockpit_actions(
 
 @router.get(
     "/actions",
-    response_model=AdvisorCockpitEnvelopeResponse,
+    response_model=AdvisorCockpitActionPageEnvelopeResponse,
     summary="List Advisor Cockpit Actions",
     description=(
         "Lists source-owned advisor cockpit action items from lotus-advise. Gateway preserves "
         "Advise-owned action status, priority, owner role, reason codes, evidence refs, lineage "
         "refs, and unsupported-capability posture without reconstructing advisory semantics. "
+        "The successful response is a typed, closed source contract; missing or unknown action "
+        "fields fail closed as a product-safe 502 rather than becoming an opaque payload. "
         "Advisor identity and role are derived from trusted caller context."
     ),
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
@@ -70,7 +74,7 @@ async def list_advisor_cockpit_actions(
         description="Opaque action cursor returned by lotus-advise.",
         examples=["cockpit_action_001"],
     ),
-) -> AdvisorCockpitEnvelopeResponse:
+) -> AdvisorCockpitActionPageEnvelopeResponse:
     return await _list_advisor_cockpit_actions(
         caller=caller,
         portfolio_id=portfolio_id,

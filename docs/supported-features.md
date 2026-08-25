@@ -148,6 +148,13 @@ calculation methodology or make Gateway the owner of portfolio/performance sourc
    Core `POST /reporting/assets-under-management/query` scope read with an explicit business date
    and reporting currency.
 
+The Advisor Cockpit action list and detail reads expose a typed, closed source contract in
+OpenAPI. Gateway validates the bounded Advise-owned fields and nested evidence, readiness,
+lineage, and acknowledgement shapes without recomputing their semantics. A successful but
+malformed action payload fails closed as `ADVISE_COCKPIT_ACTION_CONTRACT_INVALID`; preparation,
+snapshot, supportability, acknowledgement, and house-view payloads remain outside this focused
+action-contract slice.
+
 Selected proposal Risk and Impact evidence validates decision-status, top-level-status,
 recommended-action, workflow-gate, and blocking-evidence relationships at the Gateway boundary.
 Contradictory source evidence fails closed; degraded decision evidence cannot publish an executable

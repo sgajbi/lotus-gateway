@@ -1,6 +1,15 @@
 from typing import Any
 
+from app.config import settings
 from app.contracts.advisor_cockpit import AdvisorCockpitEnvelopeResponse
+from app.contracts.advisor_cockpit_action_envelopes import (
+    AdvisorCockpitActionEnvelopeResponse,
+    AdvisorCockpitActionPageEnvelopeResponse,
+)
+from app.services.advisor_cockpit_action_projection import (
+    project_advisor_cockpit_action,
+    project_advisor_cockpit_action_page,
+)
 from app.services.advisor_cockpit_client_protocols import AdvisorCockpitClient
 from app.services.upstream_envelope import (
     ProductSafeServiceErrorConfig,
@@ -25,14 +34,14 @@ class AdvisorCockpitService:
         params: dict[str, Any],
         caller_headers: dict[str, str],
         correlation_id: str,
-    ) -> AdvisorCockpitEnvelopeResponse:
+    ) -> AdvisorCockpitActionPageEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.list_advisor_cockpit_actions(
             params=params,
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._envelope(correlation_id, upstream_payload)
+        return self._action_page_envelope(correlation_id, upstream_payload)
 
     async def list_preparation_packets(
         self,
@@ -59,7 +68,7 @@ class AdvisorCockpitService:
         params: dict[str, Any],
         caller_headers: dict[str, str],
         correlation_id: str,
-    ) -> AdvisorCockpitEnvelopeResponse:
+    ) -> AdvisorCockpitActionEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_advisor_cockpit_action(
             action_item_id=action_item_id,
             params=params,
@@ -67,7 +76,7 @@ class AdvisorCockpitService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return self._envelope(correlation_id, upstream_payload)
+        return self._action_envelope(correlation_id, upstream_payload)
 
     async def get_snapshot(
         self,
@@ -151,6 +160,28 @@ class AdvisorCockpitService:
             AdvisorCockpitEnvelopeResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
+        )
+
+    def _action_page_envelope(
+        self,
+        correlation_id: str,
+        upstream_payload: dict[str, Any],
+    ) -> AdvisorCockpitActionPageEnvelopeResponse:
+        return AdvisorCockpitActionPageEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=project_advisor_cockpit_action_page(upstream_payload),
+        )
+
+    def _action_envelope(
+        self,
+        correlation_id: str,
+        upstream_payload: dict[str, Any],
+    ) -> AdvisorCockpitActionEnvelopeResponse:
+        return AdvisorCockpitActionEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=project_advisor_cockpit_action(upstream_payload),
         )
 
     def _raise_for_upstream_error(
