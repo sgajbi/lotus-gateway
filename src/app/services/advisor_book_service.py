@@ -142,13 +142,14 @@ class AdvisorBookService:
         caller: AdvisorBookCallerContext,
         as_of_date: date,
         correlation_id: str,
+        include_inactive: bool = False,
     ) -> SourceAdvisorBookResponse | None:
-        """Load the validated active own-book source for sibling read compositions."""
+        """Load the validated own-book source for sibling read compositions."""
 
         return await self._load_source(
             caller=caller,
             as_of_date=as_of_date,
-            include_inactive=False,
+            include_inactive=include_inactive,
             correlation_id=correlation_id,
         )
 

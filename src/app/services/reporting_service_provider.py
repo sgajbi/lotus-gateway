@@ -13,6 +13,11 @@ from app.services.reporting_batch_lifecycle_service_factory import (
     build_reporting_batch_lifecycle_service,
     reporting_batch_lifecycle_service_signature,
 )
+from app.services.reporting_batch_preflight_service import ReportingBatchPreflightService
+from app.services.reporting_batch_preflight_service_factory import (
+    build_reporting_batch_preflight_service,
+    reporting_batch_preflight_service_signature,
+)
 from app.services.reporting_batch_scheduler_service import ReportingBatchSchedulerService
 from app.services.reporting_batch_scheduler_service_factory import (
     build_reporting_batch_scheduler_service,
@@ -45,6 +50,8 @@ _REPORTING_BATCH_CONTROL_SERVICE: ReportingBatchControlService | None = None
 _REPORTING_BATCH_CONTROL_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _REPORTING_BATCH_LIFECYCLE_SERVICE: ReportingBatchLifecycleService | None = None
 _REPORTING_BATCH_LIFECYCLE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_REPORTING_BATCH_PREFLIGHT_SERVICE: ReportingBatchPreflightService | None = None
+_REPORTING_BATCH_PREFLIGHT_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _REPORTING_BATCH_SCHEDULER_SERVICE: ReportingBatchSchedulerService | None = None
 _REPORTING_BATCH_SCHEDULER_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _REPORT_ORDERING_SERVICE: ReportOrderingService | None = None
@@ -126,6 +133,19 @@ def reporting_batch_lifecycle_service() -> ReportingBatchLifecycleService:
     )
     _REPORTING_BATCH_LIFECYCLE_SERVICE = service
     _REPORTING_BATCH_LIFECYCLE_SERVICE_SIGNATURE = signature
+    return service
+
+
+def reporting_batch_preflight_service() -> ReportingBatchPreflightService:
+    global _REPORTING_BATCH_PREFLIGHT_SERVICE, _REPORTING_BATCH_PREFLIGHT_SERVICE_SIGNATURE
+    service, signature = resolve_cached_service(
+        _REPORTING_BATCH_PREFLIGHT_SERVICE,
+        _REPORTING_BATCH_PREFLIGHT_SERVICE_SIGNATURE,
+        reporting_batch_preflight_service_signature(),
+        build_reporting_batch_preflight_service,
+    )
+    _REPORTING_BATCH_PREFLIGHT_SERVICE = service
+    _REPORTING_BATCH_PREFLIGHT_SERVICE_SIGNATURE = signature
     return service
 
 
