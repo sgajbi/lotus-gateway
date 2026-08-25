@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 PortfolioLookThroughMode = Literal["direct_only", "prefer_look_through"]
 
@@ -13,7 +13,11 @@ __all__ = [
 ]
 
 
-class PortfolioAllocationContributor(BaseModel):
+class _StrictPortfolioAllocationModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PortfolioAllocationContributor(_StrictPortfolioAllocationModel):
     contributor_type: Literal["direct_position", "look_through_component"] = Field(
         description=(
             "Source-owned contributor posture: direct_position for a booked holding or "
@@ -81,7 +85,7 @@ class PortfolioAllocationContributor(BaseModel):
     )
 
 
-class PortfolioAllocationLookThroughCapability(BaseModel):
+class PortfolioAllocationLookThroughCapability(_StrictPortfolioAllocationModel):
     requested_mode: PortfolioLookThroughMode = Field(
         description="Look-through mode requested by the consumer for the allocation query.",
         examples=["prefer_look_through"],
