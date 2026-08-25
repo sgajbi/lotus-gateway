@@ -191,6 +191,7 @@ class WorkbenchMandateComparison(BaseModel):
     )
     constraints: list[WorkbenchMandateConstraintComparison] = Field(
         default_factory=list,
+        max_length=16,
         description="Mandate constraints and source-owned measures relevant to this risk view.",
     )
     review_policy: WorkbenchMandateReviewPolicy | None = Field(
@@ -199,6 +200,7 @@ class WorkbenchMandateComparison(BaseModel):
     )
     source_lineage: list[WorkbenchMandateSourceLineage] = Field(
         default_factory=list,
+        max_length=32,
         description="Bounded source lineage for the mandate evidence.",
     )
     supportability: WorkbenchMandateComparisonSupportability = Field(

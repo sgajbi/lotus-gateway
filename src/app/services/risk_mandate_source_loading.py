@@ -61,6 +61,7 @@ async def load_risk_mandate_sources(
         await _load_health(
             manage_client=manage_client,
             mandate_id=mandate_result.mandate.mandate_id,
+            portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
         )
@@ -116,6 +117,7 @@ async def _load_health(
     *,
     manage_client: RiskMandateManageClient,
     mandate_id: str,
+    portfolio_id: str,
     correlation_id: str,
     as_of_date: str,
 ) -> _HealthLoadResult:
@@ -136,10 +138,12 @@ async def _load_health(
             health=None,
             failure_reason="Lotus Manage returned incomplete mandate-health evidence.",
         )
-    if health.mandate_id != mandate_id:
+    if health.mandate_id != mandate_id or health.portfolio_id != portfolio_id:
         return _HealthLoadResult(
             health=None,
-            failure_reason="Lotus Manage returned health evidence for a different mandate.",
+            failure_reason=(
+                "Lotus Manage returned health evidence for a different mandate or portfolio."
+            ),
         )
     return _HealthLoadResult(health=health)
 
