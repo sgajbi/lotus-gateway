@@ -396,17 +396,70 @@ def _memo_response_payload() -> dict:
         "created_at": "2026-05-23T12:00:00+00:00",
         "source_input_hash": "sha256:source-001",
         "memo_hash": "sha256:memo-001",
-        "memo": {"memo_id": "memo_001", "status": "BLOCKED"},
-        "projection": {"advisor_publication": "AVAILABLE", "client_ready_publication": "BLOCKED"},
-        "review_posture": {"latest_review_action": "APPROVE_FOR_ADVISOR_USE"},
-        "report_package_posture": {"latest_report_package_status": "RECORDED"},
-        "ai_commentary_posture": {"ai_status": "REVIEW_REQUIRED"},
-        "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-001"},
+        "memo": {
+            "memo_id": "memo_001",
+            "memo_version": "advisory-proposal-memo-evidence-pack.v1",
+            "proposal_id": "pp_1",
+            "proposal_version_no": 2,
+            "proposal_version_id": "ppv_2",
+            "artifact_id": "pa_001",
+            "status": "BLOCKED",
+            "projection_policy": {
+                "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                "client_ready_publication": "BLOCKED",
+                "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+            },
+            "source_authority_manifest": {
+                "contract_version": "rfc0024.memo-source-readiness.v1",
+                "overall_posture": "BLOCKED",
+                "source_authority": {},
+                "section_statuses": {},
+            },
+            "sections": [],
+            "source_input_hash": "sha256:source-001",
+            "memo_hash": "sha256:memo-001",
+            "supportability": {
+                "capability_posture": "ADVISE_MEMO_EVIDENCE_PACK_SUPPORTED_INTERNAL",
+                "persistence": "SUPPORTED_BY_RFC0024_SLICE6",
+                "api": "SUPPORTED_BY_RFC0024_SLICE7",
+                "policy_fee_conflict_enrichment": "SUPPORTED_BY_RFC0024_SLICE8",
+                "memo_generation": "DETERMINISTIC_SOURCE_EVIDENCE_PROJECTION",
+                "report_render_archive": "NOT_IMPLEMENTED",
+                "client_ready_publication": "BLOCKED",
+            },
+        },
+        "projection": {
+            "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+            "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+            "client_ready_publication": "BLOCKED",
+            "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+        },
+        "review_posture": {
+            "status": "RECORDED",
+            "review_action": "APPROVE_FOR_ADVISOR_USE",
+            "client_ready_publication": "BLOCKED",
+        },
+        "report_package_posture": {"status": "RECORDED", "client_ready_publication": "BLOCKED"},
+        "ai_commentary_posture": {"status": "RECORDED", "ai_status": "REVIEW_REQUIRED"},
+        "replay_metadata": {
+            "proposal_artifact_hash": "sha256:artifact-001",
+            "replay_policy": "EXACT_SOURCE_HASH_MATCH",
+        },
         "audit_events": [_memo_audit_event()],
         "event_count": 1,
         "replay_evidence_path": "/advisory/proposals/pp_1/versions/2/memo/replay-evidence",
         "lineage_path": "/advisory/proposals/pp_1/memos/lineage",
-        "read_posture": {"source": "PERSISTED_MEMO_RECORD", "client_ready_publication": "BLOCKED"},
+        "read_posture": {
+            "source": "PERSISTED_MEMO_RECORD",
+            "memo_api_supported": True,
+            "report_package_generation_supported": True,
+            "report_render_archive_supported": True,
+            "ai_commentary_supported": True,
+            "gateway_supported": False,
+            "workbench_supported": False,
+            "client_ready_publication": "BLOCKED",
+        },
     }
 
 
@@ -440,9 +493,20 @@ def test_proposal_memo_contract_shapes() -> None:
             "memo_id": "memo_001",
             "memo_hash": "sha256:memo-001",
             "audience": "COMPLIANCE",
-            "projection": {"client_ready_publication": "BLOCKED"},
+            "projection": {
+                "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                "client_ready_publication": "BLOCKED",
+                "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+            },
             "sections": [],
-            "projection_posture": {"mutation_performed": False},
+            "projection_posture": {
+                "source": "PERSISTED_MEMO_RECORD",
+                "mutation_performed": False,
+                "client_ready_publication": "BLOCKED",
+                "gateway_supported": False,
+                "workbench_supported": False,
+            },
         },
     )
     review_payload = ProposalMemoReviewEnvelopeResponse(
@@ -512,12 +576,21 @@ def test_proposal_memo_contract_shapes() -> None:
                     "source_input_hash": "sha256:source-001",
                     "created_at": "2026-05-23T12:00:00+00:00",
                     "event_count": 1,
-                    "report_package_posture": {"archive_refs": ["archive://memo/report/1"]},
+                    "report_package_posture": {
+                        "status": "RECORDED",
+                        "archive": {"uri": "archive://memo/report/1"},
+                    },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
                     "ai_commentary_posture": {"status": "AVAILABLE"},
                 }
             ],
-            "lineage_posture": {"gateway_supported": False, "workbench_supported": False},
+            "lineage_posture": {
+                "source": "PERSISTED_MEMO_RECORDS",
+                "memo_api_supported": True,
+                "gateway_supported": False,
+                "workbench_supported": False,
+                "client_ready_publication": "BLOCKED",
+            },
         },
     )
     replay_payload = ProposalMemoReplayEvidenceEnvelopeResponse(
@@ -531,8 +604,27 @@ def test_proposal_memo_contract_shapes() -> None:
             },
             "replay_metadata": {"replay_policy": "EXACT_SOURCE_HASH_MATCH"},
             "audit_events": [_memo_audit_event()],
-            "evidence": {"memo_status": "BLOCKED", "client_ready_publication": "BLOCKED"},
-            "explanation": {"source": "PERSISTED_MEMO_RECORD", "mutation_performed": False},
+            "evidence": {
+                "memo_status": "BLOCKED",
+                "lifecycle_status": "DRAFT",
+                "projection": {
+                    "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                    "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                    "client_ready_publication": "BLOCKED",
+                    "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+                },
+                "review_posture": {"status": "NOT_RECORDED"},
+                "report_package_posture": {"status": "NOT_RECORDED"},
+                "ai_commentary_posture": {"status": "NOT_RECORDED"},
+            },
+            "explanation": {
+                "source": "PERSISTED_MEMO_RECORD",
+                "replay_policy": "EXACT_SOURCE_HASH_MATCH",
+                "mutation_performed": False,
+                "client_ready_publication": "BLOCKED",
+                "gateway_supported": False,
+                "workbench_supported": False,
+            },
         },
     )
 
@@ -545,9 +637,9 @@ def test_proposal_memo_contract_shapes() -> None:
     assert review_payload.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
     assert report_event_payload.data.replayed is False
     assert report_payload.data.report.report_reference_id == "report_001"
-    assert ai_payload.data.commentary["authority"] == "NON_AUTHORITATIVE"
+    assert ai_payload.data.commentary.authority == "NON_AUTHORITATIVE"
     assert lineage_payload.data.memos[0].memo_hash == "sha256:memo-001"
-    assert replay_payload.data.hashes["memo_hash"] == "sha256:memo-001"
+    assert replay_payload.data.hashes.memo_hash == "sha256:memo-001"
 
 
 def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:
@@ -570,6 +662,26 @@ def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:
             correlation_id="corr_stale_replay",
             contract_version="v1",
             data={"hashes": {"memo_hash": "sha256:memo-001"}},
+        )
+
+
+def test_proposal_memo_rejects_missing_or_inconsistent_audit_evidence() -> None:
+    missing_events = _memo_response_payload()
+    del missing_events["audit_events"]
+    with pytest.raises(ValidationError):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_missing_audit_events",
+            contract_version="v1",
+            data=missing_events,
+        )
+
+    mismatched_count = _memo_response_payload()
+    mismatched_count["event_count"] = 2
+    with pytest.raises(ValidationError, match="event_count"):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_mismatched_audit_count",
+            contract_version="v1",
+            data=mismatched_count,
         )
 
 
@@ -1170,7 +1282,7 @@ def test_proposals_openapi_write_contract() -> None:
     assert transition_data_schema["properties"]["approval"]["description"]
 
 
-def test_proposal_memo_openapi_data_schemas_are_typed() -> None:
+def test_proposal_memo_openapi_data_schemas_are_closed_and_typed() -> None:
     client = TestClient(app)
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     expected_data_refs = {
@@ -1183,8 +1295,100 @@ def test_proposal_memo_openapi_data_schemas_are_typed() -> None:
         "ProposalMemoLineageEnvelopeResponse": "ProposalMemoLineageResponse",
         "ProposalMemoReplayEvidenceEnvelopeResponse": "ProposalMemoReplayEvidenceResponse",
     }
+    expected_properties = {
+        "ProposalMemoResponse": {
+            "proposal",
+            "proposal_version_no",
+            "proposal_version_id",
+            "memo_id",
+            "artifact_id",
+            "memo_version",
+            "memo_status",
+            "lifecycle_status",
+            "created_by",
+            "created_at",
+            "source_input_hash",
+            "memo_hash",
+            "memo",
+            "projection",
+            "review_posture",
+            "report_package_posture",
+            "ai_commentary_posture",
+            "replay_metadata",
+            "audit_events",
+            "event_count",
+            "replay_evidence_path",
+            "lineage_path",
+            "read_posture",
+        },
+        "ProposalMemoProjectionResponse": {
+            "proposal",
+            "proposal_version_no",
+            "memo_id",
+            "memo_hash",
+            "audience",
+            "projection",
+            "sections",
+            "projection_posture",
+        },
+        "ProposalMemoReviewResponse": {"memo", "review_event", "replayed"},
+        "ProposalMemoReportPackageEventResponse": {
+            "memo",
+            "report_package_event",
+            "replayed",
+        },
+        "ProposalMemoReportPackageResponse": {
+            "memo",
+            "report_package_event",
+            "report",
+            "replayed",
+        },
+        "ProposalMemoAiCommentaryResponse": {"memo", "ai_event", "commentary", "replayed"},
+        "ProposalMemoLineageResponse": {
+            "proposal",
+            "memo_count",
+            "latest_memo_id",
+            "lineage_complete",
+            "memos",
+            "lineage_posture",
+        },
+        "ProposalMemoReplayEvidenceResponse": {
+            "subject",
+            "hashes",
+            "replay_metadata",
+            "audit_events",
+            "evidence",
+            "explanation",
+        },
+    }
+    visited: set[str] = set()
+
+    def assert_closed_memo_schema(schema_name: str) -> None:
+        if schema_name in visited:
+            return
+        visited.add(schema_name)
+        schema = schemas[schema_name]
+        assert schema["additionalProperties"] is False
+        assert schema.get("properties"), schema_name
+
+        def visit_fragment(fragment: object) -> None:
+            if not isinstance(fragment, dict):
+                return
+            ref = fragment.get("$ref")
+            if isinstance(ref, str) and ref.startswith("#/components/schemas/ProposalMemo"):
+                assert_closed_memo_schema(ref.rsplit("/", 1)[-1])
+            for key in ("anyOf", "allOf", "oneOf"):
+                for child in fragment.get(key, []):
+                    visit_fragment(child)
+            visit_fragment(fragment.get("items"))
+            visit_fragment(fragment.get("additionalProperties"))
+
+        for property_schema in schema["properties"].values():
+            visit_fragment(property_schema)
 
     for envelope_name, data_name in expected_data_refs.items():
         data_schema = schemas[envelope_name]["properties"]["data"]
         assert data_schema["$ref"].endswith(f"/{data_name}")
-        assert schemas[data_name].get("additionalProperties") is not True
+        assert schemas[data_name]["additionalProperties"] is False
+        assert expected_properties[data_name].issubset(schemas[data_name]["properties"])
+        assert_closed_memo_schema(data_name)

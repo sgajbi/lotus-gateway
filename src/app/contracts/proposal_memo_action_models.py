@@ -1,15 +1,14 @@
-from typing import Any
-
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.contracts.proposal_memo_models import (
     ProposalMemoAuditEvent,
     ProposalMemoReportResponse,
     ProposalMemoResponse,
 )
+from app.contracts.proposal_memo_nested_models import ProposalMemoCommentary, _ClosedMemoModel
 
 
-class ProposalMemoReviewResponse(BaseModel):
+class ProposalMemoReviewResponse(_ClosedMemoModel):
     memo: ProposalMemoResponse = Field(description="Memo response after review event recording.")
     review_event: ProposalMemoAuditEvent = Field(description="Created or replayed review event.")
     replayed: bool = Field(
@@ -18,7 +17,7 @@ class ProposalMemoReviewResponse(BaseModel):
     )
 
 
-class ProposalMemoReportPackageEventResponse(BaseModel):
+class ProposalMemoReportPackageEventResponse(_ClosedMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after report-package event recording."
     )
@@ -31,7 +30,7 @@ class ProposalMemoReportPackageEventResponse(BaseModel):
     )
 
 
-class ProposalMemoReportPackageResponse(BaseModel):
+class ProposalMemoReportPackageResponse(_ClosedMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after report/render/archive package materialization."
     )
@@ -47,15 +46,14 @@ class ProposalMemoReportPackageResponse(BaseModel):
     )
 
 
-class ProposalMemoAiCommentaryResponse(BaseModel):
+class ProposalMemoAiCommentaryResponse(_ClosedMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after AI commentary lineage recording."
     )
     ai_event: ProposalMemoAuditEvent = Field(
         description="Created or replayed memo AI reference event."
     )
-    commentary: dict[str, Any] = Field(
-        default_factory=dict,
+    commentary: ProposalMemoCommentary = Field(
         description=(
             "Review-gated AI commentary or unavailable posture. It is non-authoritative and "
             "cannot change memo evidence or approval posture."

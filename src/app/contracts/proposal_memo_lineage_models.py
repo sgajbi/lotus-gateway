@@ -1,11 +1,21 @@
-from typing import Any
-
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
 from app.contracts.proposal_memo_models import ProposalMemoAuditEvent, ProposalMemoProposalSummary
+from app.contracts.proposal_memo_nested_models import (
+    ProposalMemoAiCommentaryPosture,
+    ProposalMemoArchivePosture,
+    ProposalMemoLineagePosture,
+    ProposalMemoReplayEvidence,
+    ProposalMemoReplayExplanation,
+    ProposalMemoReplayHashes,
+    ProposalMemoReplayMetadata,
+    ProposalMemoReplaySubject,
+    ProposalMemoReportPackagePosture,
+    _ClosedMemoModel,
+)
 
 
-class ProposalMemoLineageItem(BaseModel):
+class ProposalMemoLineageItem(_ClosedMemoModel):
     memo_id: str = Field(description="Persisted memo identifier.", examples=["memo_001"])
     proposal_version_no: int = Field(description="Owning proposal version number.", examples=[1])
     proposal_version_id: str | None = Field(
@@ -27,21 +37,18 @@ class ProposalMemoLineageItem(BaseModel):
         examples=["2026-05-23T12:00:00+00:00"],
     )
     event_count: int = Field(description="Number of memo audit events.", examples=[1])
-    report_package_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    report_package_posture: ProposalMemoReportPackagePosture = Field(
         description="Latest report/render/archive posture recorded for this memo.",
     )
-    archive_refs: list[dict[str, Any]] = Field(
-        default_factory=list,
+    archive_refs: list[ProposalMemoArchivePosture] = Field(
         description="Support-safe archive references from memo report-package events.",
     )
-    ai_commentary_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    ai_commentary_posture: ProposalMemoAiCommentaryPosture = Field(
         description="Latest review-gated AI commentary posture recorded for this memo.",
     )
 
 
-class ProposalMemoLineageResponse(BaseModel):
+class ProposalMemoLineageResponse(_ClosedMemoModel):
     proposal: ProposalMemoProposalSummary = Field(
         description="Proposal summary used as lineage root."
     )
@@ -62,8 +69,7 @@ class ProposalMemoLineageResponse(BaseModel):
     memos: list[ProposalMemoLineageItem] = Field(
         description="Persisted memo lineage ordered by proposal version.",
     )
-    lineage_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    lineage_posture: ProposalMemoLineagePosture = Field(
         description="Supportability posture for memo lineage and promotion boundaries.",
     )
 
@@ -82,25 +88,21 @@ class ProposalMemoLineageResponse(BaseModel):
         return self
 
 
-class ProposalMemoReplayEvidenceResponse(BaseModel):
-    subject: dict[str, Any] = Field(description="Memo replay subject identifiers.")
-    hashes: dict[str, Any] = Field(
+class ProposalMemoReplayEvidenceResponse(_ClosedMemoModel):
+    subject: ProposalMemoReplaySubject = Field(description="Memo replay subject identifiers.")
+    hashes: ProposalMemoReplayHashes = Field(
         description="Canonical proposal and memo hashes proving replay source identity."
     )
-    replay_metadata: dict[str, Any] = Field(
-        default_factory=dict,
+    replay_metadata: ProposalMemoReplayMetadata = Field(
         description="Persisted memo replay metadata from the memo record.",
     )
     audit_events: list[ProposalMemoAuditEvent] = Field(
-        default_factory=list,
         description="Append-only memo audit events included in replay evidence.",
     )
-    evidence: dict[str, Any] = Field(
-        default_factory=dict,
+    evidence: ProposalMemoReplayEvidence = Field(
         description="Memo source, projection, review, and report-package evidence.",
     )
-    explanation: dict[str, Any] = Field(
-        default_factory=dict,
+    explanation: ProposalMemoReplayExplanation = Field(
         description="Replay explanation and unsupported product-surface boundaries.",
     )
 

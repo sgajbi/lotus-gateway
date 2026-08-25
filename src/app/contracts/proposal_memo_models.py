@@ -1,9 +1,22 @@
-from typing import Any
+from pydantic import Field, model_validator
 
-from pydantic import BaseModel, Field
+from app.contracts.proposal_memo_nested_models import (
+    MemoReason,
+    ProposalMemoAiCommentaryPosture,
+    ProposalMemoEvidencePack,
+    ProposalMemoProjectionPolicy,
+    ProposalMemoProjectionPosture,
+    ProposalMemoReadPosture,
+    ProposalMemoReplayMetadata,
+    ProposalMemoReportExplanation,
+    ProposalMemoReportPackagePosture,
+    ProposalMemoReviewPosture,
+    ProposalMemoSection,
+    _ClosedMemoModel,
+)
 
 
-class ProposalMemoProposalSummary(BaseModel):
+class ProposalMemoProposalSummary(_ClosedMemoModel):
     """Source-owned proposal identity carried by every memo response."""
 
     proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
@@ -50,7 +63,37 @@ class ProposalMemoProposalSummary(BaseModel):
     )
 
 
-class ProposalMemoAuditEvent(BaseModel):
+class ProposalMemoAuditReason(_ClosedMemoModel):
+    """Structured source-owned reason evidence carried by memo audit events."""
+
+    memo_hash: str | None = None
+    source_input_hash: str | None = None
+    proposal_request_hash: str | None = None
+    proposal_artifact_hash: str | None = None
+    proposal_simulation_hash: str | None = None
+    memo_source_input_hash: str | None = None
+    memo_request_hash: str | None = None
+    idempotency_key: str | None = None
+    idempotency_request_hash: str | None = None
+    creation_reason: MemoReason = Field(default_factory=dict)
+    review_action: str | None = None
+    review_reason: str | None = None
+    source_memo_hash: str | None = None
+    client_ready_release_requested: bool | None = None
+    client_ready_publication: str | None = None
+    report_package_id: str | None = None
+    report_package_status: str | None = None
+    reason: MemoReason = Field(default_factory=dict)
+    ai_status: str | None = None
+    sections: list[str] = Field(default_factory=list)
+    lineage: MemoReason = Field(default_factory=dict)
+    review_guidance: list[str] = Field(default_factory=list)
+    review_required: bool | None = None
+    authoritative_for_memo_status: bool | None = None
+    archive_ref: str | None = None
+
+
+class ProposalMemoAuditEvent(_ClosedMemoModel):
     """Append-only memo event evidence owned by lotus-advise."""
 
     event_id: str = Field(description="Memo audit event identifier.", examples=["pme_001"])
@@ -62,14 +105,13 @@ class ProposalMemoAuditEvent(BaseModel):
         description="UTC ISO8601 timestamp when the memo event occurred.",
         examples=["2026-05-23T12:00:00+00:00"],
     )
-    reason: dict[str, Any] = Field(
-        default_factory=dict,
+    reason: ProposalMemoAuditReason = Field(
+        default_factory=ProposalMemoAuditReason,
         description="Structured memo event reason and source evidence.",
-        examples=[{"memo_hash": "sha256:memo", "source_input_hash": "sha256:source"}],
     )
 
 
-class ProposalMemoReportResponse(BaseModel):
+class ProposalMemoReportResponse(_ClosedMemoModel):
     """Typed report handle returned by the Advise-to-Report boundary."""
 
     proposal: ProposalMemoProposalSummary = Field(
@@ -101,14 +143,12 @@ class ProposalMemoReportResponse(BaseModel):
         description="Optional lotus-report artifact URL.",
         examples=["https://lotus-report.local/artifacts/lotus_report_artifact_001"],
     )
-    explanation: dict[str, Any] = Field(
-        default_factory=dict,
+    explanation: ProposalMemoReportExplanation = Field(
         description="Structured report assembly and ownership evidence.",
-        examples=[{"ownership": "REPORTING_OWNED_BY_LOTUS_REPORT"}],
     )
 
 
-class ProposalMemoResponse(BaseModel):
+class ProposalMemoResponse(_ClosedMemoModel):
     """Persisted proposal memo evidence returned by lotus-advise."""
 
     proposal: ProposalMemoProposalSummary = Field(
@@ -151,34 +191,30 @@ class ProposalMemoResponse(BaseModel):
     memo_hash: str = Field(
         description="Canonical hash of the memo evidence pack.", examples=["sha256:memo"]
     )
-    memo: dict[str, Any] = Field(
+    memo: ProposalMemoEvidencePack = Field(
         description="Persisted source-owned advisory proposal memo evidence pack."
     )
-    projection: dict[str, Any] = Field(
-        default_factory=dict,
+    projection: ProposalMemoProjectionPolicy = Field(
         description="Projection and publication policy for supported memo audiences.",
     )
-    review_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    review_posture: ProposalMemoReviewPosture = Field(
         description="Latest memo review posture derived from append-only events.",
     )
-    report_package_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    report_package_posture: ProposalMemoReportPackagePosture = Field(
         description="Latest report-package posture derived from memo events.",
     )
-    ai_commentary_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    ai_commentary_posture: ProposalMemoAiCommentaryPosture = Field(
         description="Latest review-gated AI commentary posture.",
     )
-    replay_metadata: dict[str, Any] = Field(
-        default_factory=dict,
+    replay_metadata: ProposalMemoReplayMetadata = Field(
         description="Replay metadata proving source and memo request hashes.",
     )
     audit_events: list[ProposalMemoAuditEvent] = Field(
-        default_factory=list,
         description="Append-only memo audit events ordered by occurrence.",
     )
-    event_count: int = Field(description="Number of memo audit events returned.", examples=[1])
+    event_count: int = Field(
+        ge=0, description="Number of memo audit events returned.", examples=[1]
+    )
     replay_evidence_path: str = Field(
         description="Canonical memo replay-evidence route.",
         examples=["/advisory/proposals/pp_001/versions/1/memo/replay-evidence"],
@@ -187,13 +223,18 @@ class ProposalMemoResponse(BaseModel):
         description="Canonical proposal memo lineage route.",
         examples=["/advisory/proposals/pp_001/memos/lineage"],
     )
-    read_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    read_posture: ProposalMemoReadPosture = Field(
         description="Supportability posture proving the response is not client-ready publication.",
     )
 
+    @model_validator(mode="after")
+    def validate_audit_event_count(self) -> "ProposalMemoResponse":
+        if self.event_count != len(self.audit_events):
+            raise ValueError("event_count must equal the number of returned audit events")
+        return self
 
-class ProposalMemoProjectionResponse(BaseModel):
+
+class ProposalMemoProjectionResponse(_ClosedMemoModel):
     """Audience projection returned by lotus-advise without Gateway reconstruction."""
 
     proposal: ProposalMemoProposalSummary = Field(
@@ -208,16 +249,13 @@ class ProposalMemoProjectionResponse(BaseModel):
         description="Optional audience filter supplied by the caller.",
         examples=["ADVISOR"],
     )
-    projection: dict[str, Any] = Field(
-        default_factory=dict,
+    projection: ProposalMemoProjectionPolicy = Field(
         description="Projection policy for memo audiences and publication states.",
     )
-    sections: list[dict[str, Any]] = Field(
-        default_factory=list,
+    sections: list[ProposalMemoSection] = Field(
         description="Projected source-owned memo sections visible to the audience.",
     )
-    projection_posture: dict[str, Any] = Field(
-        default_factory=dict,
+    projection_posture: ProposalMemoProjectionPosture = Field(
         description="Projection supportability and blocked client-ready status.",
     )
 
