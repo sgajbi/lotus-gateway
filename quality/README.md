@@ -19,7 +19,10 @@ rules, and scorecards used to ratchet maintainability without hiding known gaps.
 Run `make lint` for refactor thresholds, workflow runtime governance, agent quality evidence, and
 folder-guide validation. Run quality-baseline workflow evidence checks before relying on reports.
 Run `make duplicate-code` for the pinned production-source duplicate-code detector and ratchet.
-The heavier Quality Baseline lane runs the same detector from `quality/package-lock.json`.
+The command supports Node 20 through Node 24; the heavier Quality Baseline lane pins Node 20 for
+reproducible measurements and runs the same detector from `quality/package-lock.json`. Node 25+
+is rejected by the strict engine policy until the detector is revalidated and the supported range
+is deliberately extended.
 
 ## Update Triggers
 

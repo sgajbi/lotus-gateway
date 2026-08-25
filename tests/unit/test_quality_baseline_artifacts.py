@@ -204,11 +204,13 @@ def test_duplicate_detector_is_pinned_and_uses_the_repo_quality_package() -> Non
 
     assert package["private"] is True
     assert package["devDependencies"]["jscpd"] == "4.2.2"
+    assert package["engines"]["node"] == ">=20 <25"
     assert (REPO_ROOT / "quality" / ".npmrc").read_text(
         encoding="utf-8"
     ).strip() == "engine-strict=true"
     assert lock["packages"][""].get("devDependencies", {}).get("jscpd") == "4.2.2"
     assert lock["packages"]["node_modules/jscpd"]["version"] == "4.2.2"
+    assert lock["packages"][""]["engines"]["node"] == ">=20 <25"
 
 
 def test_make_duplicate_detector_captures_status_without_bash_extensions() -> None:
