@@ -8,11 +8,10 @@ import json
 import re
 from dataclasses import dataclass
 from decimal import Decimal
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 STATUS_PATTERN = re.compile(r"^QUALITY_COMMAND_STATUS=(\d+)$", re.MULTILINE)
-SOURCE_PREFIX = "src/app/"
 DETECTOR_POLICY = {
     "name": "jscpd",
     "version": "4.2.2",
@@ -70,9 +69,10 @@ def _normalise_source(value: Any) -> str:
     source = value.replace("\\", "/")
     if source.startswith("./"):
         source = source[2:]
-    if not source.startswith(SOURCE_PREFIX):
+    path = PurePosixPath(source)
+    if len(path.parts) < 3 or path.parts[:2] != ("src", "app") or ".." in path.parts:
         raise ValueError(f"duplicate report contains an out-of-scope source: {value!r}")
-    return source
+    return path.as_posix()
 
 
 def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
@@ -95,18 +95,30 @@ def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
 
 def load_report(path: Path) -> DuplicateReport:
     document = json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
+    if not isinstance(document, dict):
+        raise ValueError("duplicate report must contain a JSON object")
     duplicates = document.get("duplicates")
-    total = document.get("statistics", {}).get("total")
-    if not isinstance(duplicates, list) or not isinstance(total, dict):
+    statistics = document.get("statistics")
+    if not isinstance(duplicates, list) or not isinstance(statistics, dict):
         raise ValueError("duplicate report is missing duplicates or total statistics")
+    total = statistics.get("total")
+    if not isinstance(total, dict) or not all(isinstance(entry, dict) for entry in duplicates):
+        raise ValueError("duplicate report has invalid duplicate entries or total statistics")
     findings = tuple(_fingerprint(entry) for entry in duplicates)
-    if total.get("clones") != len(findings):
+    clones = total.get("clones")
+    if isinstance(clones, bool) or not isinstance(clones, int) or clones < 0:
+        raise ValueError("duplicate report has an invalid clone count")
+    if clones != len(findings):
         raise ValueError("duplicate report clone count does not match its entries")
     duplicated_lines = total.get("duplicatedLines")
     percentage = total.get("percentage")
-    if isinstance(duplicated_lines, bool) or not isinstance(duplicated_lines, int):
+    if (
+        isinstance(duplicated_lines, bool)
+        or not isinstance(duplicated_lines, int)
+        or duplicated_lines < 0
+    ):
         raise ValueError("duplicate report has an invalid duplicated-line count")
-    if isinstance(percentage, bool) or not isinstance(percentage, (int, Decimal)):
+    if isinstance(percentage, bool) or not isinstance(percentage, (int, Decimal)) or percentage < 0:
         raise ValueError("duplicate report has an invalid duplicated percentage")
     return DuplicateReport(findings, duplicated_lines, Decimal(str(percentage)))
 
@@ -121,8 +133,11 @@ def load_status(path: Path) -> int:
 
 
 def _decimal_metric(metrics: dict[str, Any], name: str) -> Decimal:
-    value = metrics[name]["threshold"]
-    if isinstance(value, bool) or not isinstance(value, (int, Decimal)):
+    metric = metrics.get(name)
+    if not isinstance(metric, dict):
+        raise ValueError(f"missing duplicate baseline metric {name}")
+    value = metric.get("threshold")
+    if isinstance(value, bool) or not isinstance(value, (int, Decimal)) or value < 0:
         raise ValueError(f"invalid duplicate baseline threshold for {name}")
     return Decimal(str(value))
 
@@ -254,6 +269,9 @@ def main() -> int:
         report = load_report(args.report)
         status = load_status(args.artifact_log)
         if args.initialize_baseline:
+            if status != 0:
+                print("Refusing to initialize duplicate-code baseline after detector failure.")
+                return 2
             _write_json(args.baseline, build_baseline(report))
             print(f"Initialized duplicate-code baseline: {args.baseline}")
             return 0
@@ -268,7 +286,7 @@ def main() -> int:
             print(f"Updated duplicate-code baseline: {args.baseline}")
             return 0
         return 0 if result.passed else 1
-    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (AttributeError, OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(f"Duplicate-code ratchet input error: {exc}")
         return 2
 

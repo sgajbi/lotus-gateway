@@ -119,6 +119,21 @@ def test_duplicate_report_rejects_out_of_scope_source(tmp_path: Path) -> None:
         load_report(report_path)
 
 
+def test_duplicate_report_rejects_path_traversal_source(tmp_path: Path) -> None:
+    report_path = _write_report(tmp_path, [_entry("src/app/../tests.py", "src/app/b.py")])
+
+    with pytest.raises(ValueError, match="out-of-scope source"):
+        load_report(report_path)
+
+
+def test_duplicate_report_rejects_non_object_json(tmp_path: Path) -> None:
+    path = tmp_path / "jscpd-report.json"
+    path.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="JSON object"):
+        load_report(path)
+
+
 def test_duplicate_report_rejects_inconsistent_clone_statistics(tmp_path: Path) -> None:
     report_path = _write_report(tmp_path, [_entry("src/app/a.py", "src/app/b.py")])
     document = json.loads(report_path.read_text(encoding="utf-8"))
