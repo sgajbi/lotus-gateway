@@ -108,6 +108,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         portfolio_id: str,
         correlation_id: str,
+        as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_mandate(
@@ -120,6 +121,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         mandate_id: str,
         correlation_id: str,
+        as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_mandate_diff(

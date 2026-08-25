@@ -107,10 +107,11 @@ class DpmCommandCenterClientMixin:
         self,
         portfolio_id: str,
         correlation_id: str,
+        as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/mandates/by-portfolio/{portfolio_id}",
-            params={},
+            params={"as_of_date": as_of_date} if as_of_date is not None else {},
             headers=self._headers(correlation_id),
             operation="manage.mandates.by_portfolio.get",
         )
@@ -131,10 +132,11 @@ class DpmCommandCenterClientMixin:
         self,
         mandate_id: str,
         correlation_id: str,
+        as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/mandates/{mandate_id}/health",
-            params={},
+            params={"as_of_date": as_of_date} if as_of_date is not None else {},
             headers=self._headers(correlation_id),
             operation="manage.mandates.health.get",
         )
