@@ -54,6 +54,10 @@ its extraction branches. They are retained as engineering history; current route
 - `make proposal-decision-vocabulary-snapshot-check`
   explicitly validates packaged snapshot integrity for offline diagnosis; it is not producer-drift
   evidence and is never used by protected CI
+- Memo contract fitness tests require every memo-family data schema to be explicitly closed
+  (`additionalProperties: false`), expose named top-level properties, recursively close nested
+  memo-owned models, and reject contradictory audit-event counts. This keeps OpenAPI contract
+  drift and envelope-only typing out of the PR gate rather than relying on review discovery.
 - `make clean`
   removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or

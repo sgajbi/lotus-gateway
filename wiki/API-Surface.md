@@ -992,12 +992,15 @@ curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/memos/lineage" \
 The memo family publishes typed, source-faithful response envelopes for memo detail, audience
 projection, review, report-package event/request, AI commentary, lineage, and replay evidence.
 The response data preserves Advise-owned memo identity, hashes, append-only events, replay posture,
-report handles, archive references, and blocked client-ready publication. Gateway does not infer
+report handles, archive references, and blocked client-ready publication. Nested evidence packs,
+projection policies, sections, postures, commentary, replay evidence, and report explanations are
+closed typed OpenAPI structures with named properties; bounded scalar metadata maps remain
+source-owned evidence. Gateway does not infer
 memo readiness, generate commentary, render or archive reports, or turn advisor-use evidence into
 client-ready output. A malformed successful Advise memo payload returns a product-safe `502`
 (`ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`) instead of an incomplete success. Lineage also rejects
 missing items, count mismatches, contradictory latest identity, and descending proposal-version
-order. See the
+order; memo detail rejects a missing or contradictory `audit_events`/`event_count` pair. See the
 [proposal memo response contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-memo-response-v1.md).
 
 Proposal delivery posture:

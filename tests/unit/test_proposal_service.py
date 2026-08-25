@@ -50,11 +50,48 @@ def _memo_response_payload(
         "created_at": "2026-05-23T12:00:00+00:00",
         "source_input_hash": "sha256:source-1",
         "memo_hash": memo_hash,
-        "memo": {"memo_id": "memo_1", "status": "PENDING_REVIEW"},
-        "projection": {"client_ready_publication": "BLOCKED"},
-        "review_posture": {"latest_review_action": "PENDING_REVIEW"},
+        "memo": {
+            "memo_id": "memo_1",
+            "memo_version": "advisory-proposal-memo-evidence-pack.v1",
+            "proposal_id": proposal_id,
+            "proposal_version_no": version_no,
+            "proposal_version_id": f"ppv_{version_no}",
+            "artifact_id": "artifact_1",
+            "status": "PENDING_REVIEW",
+            "projection_policy": {
+                "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                "client_ready_publication": "BLOCKED",
+                "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+            },
+            "source_authority_manifest": {
+                "contract_version": "rfc0024.memo-source-readiness.v1",
+                "overall_posture": "PENDING_REVIEW",
+                "source_authority": {},
+                "section_statuses": {},
+            },
+            "sections": [],
+            "source_input_hash": "sha256:source-1",
+            "memo_hash": memo_hash,
+            "supportability": {
+                "capability_posture": "ADVISE_MEMO_EVIDENCE_PACK_SUPPORTED_INTERNAL",
+                "persistence": "SUPPORTED_BY_RFC0024_SLICE6",
+                "api": "SUPPORTED_BY_RFC0024_SLICE7",
+                "policy_fee_conflict_enrichment": "SUPPORTED_BY_RFC0024_SLICE8",
+                "memo_generation": "DETERMINISTIC_SOURCE_EVIDENCE_PROJECTION",
+                "report_render_archive": "NOT_IMPLEMENTED",
+                "client_ready_publication": "BLOCKED",
+            },
+        },
+        "projection": {
+            "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+            "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+            "client_ready_publication": "BLOCKED",
+            "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+        },
+        "review_posture": {"status": "NOT_RECORDED"},
         "report_package_posture": {"status": "NOT_REQUESTED"},
-        "ai_commentary_posture": {"ai_status": "NOT_REQUESTED"},
+        "ai_commentary_posture": {"status": "NOT_RECORDED", "ai_status": "NOT_REQUESTED"},
         "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
         "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED", memo_hash)],
         "event_count": 1,
@@ -62,7 +99,17 @@ def _memo_response_payload(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
         ),
         "lineage_path": f"/advisory/proposals/{proposal_id}/memos/lineage",
-        "read_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
+        "read_posture": {
+            "source": "PERSISTED_MEMO_RECORD",
+            "memo_api_supported": True,
+            "report_package_generation_supported": True,
+            "report_render_archive_supported": True,
+            "ai_commentary_supported": True,
+            "gateway_supported": False,
+            "workbench_supported": False,
+            "client_ready_publication": "BLOCKED",
+            "supportability": "SUPPORTED_ADVISOR_USE",
+        },
     }
 
 
@@ -776,7 +823,17 @@ class _FakeAdviseClient:
         )
         payload = _memo_response_payload(proposal_id, version_no, lifecycle_status="APPROVED")
         payload["memo_status"] = "APPROVED_FOR_ADVISOR_USE"
-        payload["read_posture"] = {"supportability": "SUPPORTED_ADVISOR_USE"}
+        payload["read_posture"] = {
+            "source": "PERSISTED_MEMO_RECORD",
+            "memo_api_supported": True,
+            "report_package_generation_supported": True,
+            "report_render_archive_supported": True,
+            "ai_commentary_supported": True,
+            "gateway_supported": False,
+            "workbench_supported": False,
+            "client_ready_publication": "BLOCKED",
+            "supportability": "SUPPORTED_ADVISOR_USE",
+        }
         return 200, payload
 
     async def get_proposal_memo_projection(
@@ -803,9 +860,21 @@ class _FakeAdviseClient:
             "memo_id": "memo_1",
             "memo_hash": "sha256:memo-1",
             "audience": audience,
-            "projection": {"client_ready_publication": "BLOCKED"},
-            "sections": [{"section_id": "DISCLOSURES", "supportability": "SOURCE_BACKED"}],
-            "projection_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
+            "projection": {
+                "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                "client_ready_publication": "BLOCKED",
+                "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+            },
+            "sections": [],
+            "projection_posture": {
+                "source": "PERSISTED_MEMO_RECORD",
+                "mutation_performed": False,
+                "client_ready_publication": "BLOCKED",
+                "gateway_supported": False,
+                "workbench_supported": False,
+                "supportability": "SUPPORTED_ADVISOR_USE",
+            },
         }
 
     async def review_proposal_memo(
@@ -951,12 +1020,21 @@ class _FakeAdviseClient:
                     "source_input_hash": "sha256:source-1",
                     "created_at": "2026-05-23T12:00:00+00:00",
                     "event_count": 1,
-                    "report_package_posture": {"archive_refs": ["archive://memo/report/1"]},
+                    "report_package_posture": {
+                        "status": "RECORDED",
+                        "archive": {"uri": "archive://memo/report/1"},
+                    },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
                     "ai_commentary_posture": {"status": "AVAILABLE"},
                 }
             ],
-            "lineage_posture": {"gateway_supported": False},
+            "lineage_posture": {
+                "source": "PERSISTED_MEMO_RECORDS",
+                "memo_api_supported": True,
+                "gateway_supported": False,
+                "workbench_supported": False,
+                "client_ready_publication": "BLOCKED",
+            },
         }
 
     async def get_proposal_memo_replay_evidence(
@@ -981,11 +1059,33 @@ class _FakeAdviseClient:
                 "proposal_version_no": version_no,
                 "memo_id": "memo_1",
             },
-            "hashes": {"memo_hash": "sha256:memo-1", "artifact_hash": "sha256:artifact-1"},
+            "hashes": {
+                "memo_hash": "sha256:memo-1",
+                "proposal_artifact_hash": "sha256:artifact-1",
+            },
             "replay_metadata": {"replay_policy": "EXACT_SOURCE_HASH_MATCH"},
             "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED")],
-            "evidence": {"memo_status": "BLOCKED", "client_ready_publication": "BLOCKED"},
-            "explanation": {"source": "PERSISTED_MEMO_RECORD", "mutation_performed": False},
+            "evidence": {
+                "memo_status": "BLOCKED",
+                "lifecycle_status": "DRAFT",
+                "projection": {
+                    "advisor_projection": "SUPPORTED_BY_PURE_BUILDER",
+                    "client_draft_projection": "BLOCKED_UNTIL_POLICY_REDACTION_AND_REVIEW",
+                    "client_ready_publication": "BLOCKED",
+                    "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
+                },
+                "review_posture": {"status": "NOT_RECORDED"},
+                "report_package_posture": {"status": "NOT_RECORDED"},
+                "ai_commentary_posture": {"status": "NOT_RECORDED"},
+            },
+            "explanation": {
+                "source": "PERSISTED_MEMO_RECORD",
+                "replay_policy": "EXACT_SOURCE_HASH_MATCH",
+                "mutation_performed": False,
+                "client_ready_publication": "BLOCKED",
+                "gateway_supported": False,
+                "workbench_supported": False,
+            },
         }
 
 
@@ -1357,13 +1457,13 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     )
 
     assert created.data.memo_hash == "sha256:memo-1"
-    assert memo.data.read_posture["supportability"] == "SUPPORTED_ADVISOR_USE"
+    assert memo.data.read_posture.supportability == "SUPPORTED_ADVISOR_USE"
     assert projection.data.audience == "COMPLIANCE"
     assert review.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
     assert report_package.data.report.report_reference_id == "report_1"
-    assert ai_commentary.data.commentary["authority"] == "NON_AUTHORITATIVE"
-    assert lineage.data.memos[0].ai_commentary_posture["status"] == "AVAILABLE"
-    assert replay.data.hashes["artifact_hash"] == "sha256:artifact-1"
+    assert ai_commentary.data.commentary.authority == "NON_AUTHORITATIVE"
+    assert lineage.data.memos[0].ai_commentary_posture.status == "AVAILABLE"
+    assert replay.data.hashes.proposal_artifact_hash == "sha256:artifact-1"
     assert [name for name, _ in client.calls[-8:]] == [
         "create_proposal_memo",
         "get_proposal_memo",

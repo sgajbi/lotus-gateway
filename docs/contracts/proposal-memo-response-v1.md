@@ -23,10 +23,11 @@ unconstrained `dict[str, Any]` at the API boundary.
 | memo lineage | `ProposalMemoLineageResponse` | latest memo identity/order, typed lineage items, archive references, lineage posture |
 | replay evidence | `ProposalMemoReplayEvidenceResponse` | subject, hashes, replay metadata, audit events, evidence, explanation |
 
-`memo`, projection sections, posture details, commentary, replay evidence, and explanations remain
-structured source-owned JSON where Advise intentionally owns the internal vocabulary. Their
-containing response, identity, event, hash, replay, and report fields are typed and visible in
-generated OpenAPI.
+The memo evidence pack, projection policy and sections, review/report/AI/read postures, replay
+evidence, commentary, and report explanation use closed typed models with named OpenAPI
+properties. Advise still owns the values and vocabulary; Gateway does not reinterpret them. A
+small set of source-owned metadata fields remains a bounded scalar-keyed map so Gateway can
+preserve evidence without inventing domain semantics.
 
 ## Compatibility and failure behavior
 
@@ -42,6 +43,8 @@ generated OpenAPI.
 - If Advise returns HTTP 2xx with a malformed memo payload, Gateway returns a product-safe `502`
   with `error_code=ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`, identifies `lotus-advise` as the
   source, and does not publish the invalid payload as a `200` response.
+- Memo detail requires `audit_events` and rejects any response where `event_count` differs from
+  the number of returned events; Gateway never fabricates an empty event list for a claimed count.
 - Memo lineage requires `memos`, requires `memo_count` to equal the returned item count, requires
   `latest_memo_id` to identify the final source-ordered item, and rejects descending proposal
   version order. This prevents contradictory completeness evidence from reaching Workbench.
@@ -51,7 +54,8 @@ generated OpenAPI.
 ## Fitness coverage
 
 `tests/contract/test_proposals_contract.py` proves source-faithful payloads, rejects stale
-illustrative nesting, and asserts that every memo-family envelope points to a typed OpenAPI
-component. It also rejects missing or contradictory lineage evidence. `tests/unit/test_proposal_service.py`
+illustrative nesting, and asserts that every memo-family envelope points to a closed OpenAPI
+component with named properties; nested memo refs are checked recursively. It also rejects
+missing or contradictory lineage and audit-count evidence. `tests/unit/test_proposal_service.py`
 proves malformed successful upstream memo payloads map to the product-safe source-contract error;
 the integration route test proves the report-package event route returns its typed event envelope.
