@@ -47,7 +47,7 @@ class ReportingBatchScopeResolver:
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> ReportBatchMaterializationRequest:
-        caller = _require_caller(caller_headers)
+        caller = require_reporting_batch_caller(caller_headers)
         try:
             selection = await self._portfolio_resolver.resolve_portfolios(
                 caller=caller,
@@ -81,7 +81,7 @@ class ReportingBatchScopeResolver:
         return ReportBatchMaterializationRequest.model_validate(payload)
 
 
-def _require_caller(caller_headers: dict[str, str]) -> AdvisorBookCallerContext:
+def require_reporting_batch_caller(caller_headers: dict[str, str]) -> AdvisorBookCallerContext:
     try:
         return require_advisor_book_caller_context(
             actor_id=caller_headers.get("X-Actor-Id"),
