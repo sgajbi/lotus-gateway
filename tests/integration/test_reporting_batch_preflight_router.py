@@ -109,3 +109,6 @@ def test_report_batch_preflight_openapi_is_typed_and_non_authoritative() -> None
         "permission_blocked",
         "unavailable",
     ]
+    assert (
+        "omitted for permission_blocked" in schema["properties"]["source_evidence"]["description"]
+    )

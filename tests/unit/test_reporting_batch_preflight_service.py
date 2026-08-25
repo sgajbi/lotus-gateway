@@ -190,28 +190,40 @@ async def test_preflight_maps_ordered_membership_postures_without_browser_author
     )
 
     response = await service.preflight(
-        request=_request("PB_READY", "PB_MISSING", "PB_INACTIVE"),
+        request=_request(
+            "PB_READY",
+            "PB_OTHER_ADVISOR",
+            "PB_FABRICATED",
+            "PB_INACTIVE",
+        ),
         caller_headers=_headers(),
         correlation_id="corr-preflight",
     )
 
     assert [item.portfolio_id for item in response.candidates] == [
         "PB_READY",
-        "PB_MISSING",
+        "PB_OTHER_ADVISOR",
+        "PB_FABRICATED",
         "PB_INACTIVE",
     ]
     assert [item.state for item in response.candidates] == [
         "ready",
         "permission_blocked",
+        "permission_blocked",
         "stale",
     ]
     assert response.state == "partial"
     assert response.ready_count == 1
-    assert response.permission_blocked_count == 1
+    assert response.permission_blocked_count == 2
     assert response.stale_count == 1
     assert response.partial_count == 0
     assert response.unavailable_count == 0
     assert response.candidates[0].source_evidence.membership_reference == "membership:PB_READY"
+    unauthorized_candidates = response.candidates[1:3]
+    assert all(candidate.source_evidence is None for candidate in unauthorized_candidates)
+    assert unauthorized_candidates[0].model_dump(exclude={"portfolio_id"}) == (
+        unauthorized_candidates[1].model_dump(exclude={"portfolio_id"})
+    )
     assert membership.calls[0]["include_inactive"] is True
     assert len(membership.calls) == 1
     assert catalogue.calls == ["corr-preflight"]
