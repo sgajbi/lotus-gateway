@@ -133,7 +133,9 @@ under parent issue #586.
    `direct_only` and `prefer_look_through` modes and bounds contributor detail to 1–250 rows per
    bucket, default 50; malformed successful Core payloads fail closed with
    `PORTFOLIO_ALLOCATION_CONTRACT_INVALID`. This is the bounded Gateway delivery for #496; Core
-   source-contract history remains tracked by lotus-core#801 and is not closed by Gateway.
+   source-contract history remains tracked by lotus-core#801 and is not closed by Gateway. The
+   Gateway-owned `PortfolioAllocation*` response graph is closed in OpenAPI and recursively
+   fitness-checked; Core source-reader models remain tolerant of additive fields.
    repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
    trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
    fail-closed for entitlement, `PortfolioAnalyticsReference:v1` is fail-closed by default with

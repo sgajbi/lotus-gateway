@@ -61,6 +61,11 @@ silently changing source semantics. Workbench uses Gateway as the only client-fa
 source. Existing Workbench allocation consumption remains compatible; further contributor
 rendering is a separate consumer concern and is not fabricated by this Gateway slice.
 
+The Gateway-owned `PortfolioAllocation*` response schemas are closed in OpenAPI
+(`additionalProperties: false`) and the contract fitness test traverses the allocation-owned
+nested graph. Core source-reader models remain tolerant of additive upstream fields; this
+strictness applies only to the published Gateway response shape.
+
 ## Portfolio Transaction Temporal Contract
 
 Status: implementation-backed for the transaction ledger, income-summary, and activity-summary

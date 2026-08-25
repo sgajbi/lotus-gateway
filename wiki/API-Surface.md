@@ -610,6 +610,11 @@ Malformed successful Core allocation payloads fail closed with a typed `502` con
 `prefer_look_through` vocabulary. Workbench consumes the Gateway route and does not call Core or
 reconstruct look-through contributors from booked positions.
 
+The published Gateway-owned `PortfolioAllocation*` schemas are closed objects in OpenAPI
+(`additionalProperties: false`). Contract fitness traverses the allocation-owned nested graph so
+new free-form response objects cannot silently reach Workbench; the Core source reader remains
+tolerant of additive upstream fields.
+
 Performance summary:
 
 ```bash
