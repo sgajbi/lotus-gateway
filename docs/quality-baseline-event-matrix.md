@@ -21,9 +21,9 @@ No quality step, threshold, artifact, or ratchet is removed by this event policy
 The protected Quality Baseline also runs the pinned duplicate-code detector over
 `src/app/**/*.py`. Its report is checked against `quality/duplicate_code_baseline.json` for clone
 count, duplicated lines, duplicated percentage, and stable source-pair/normalised-fragment
-occurrence fingerprints, with Python-version-independent AST context evidence and line-shift-safe
-occurrence ordering. Empty runtime-only AST fields do not change a fingerprint across supported
-Python interpreters; non-empty type-parameter semantics remain represented.
+occurrence fingerprints, with Python-version-independent AST scope evidence and line-shift-safe
+occurrence ordering. The scope digest identifies enclosing class/function names without hashing
+mutable scope bodies, so unrelated body edits do not change an existing fingerprint.
 Detector
 failure, malformed evidence, or a stale fingerprint after a cleanup fails the quality result;
 cleanup improvements must be banked through a reviewed baseline update before the clone can return.

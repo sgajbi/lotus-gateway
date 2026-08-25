@@ -124,46 +124,41 @@ def _context_digest(source_root: Path, source: str, start: int, lines: int) -> s
     except SyntaxError as exc:
         raise ValueError(f"duplicate report source is not valid Python: {source_path}") from exc
     end = start + lines - 1
-    candidates: list[tuple[int, int, ast.AST]] = []
-    for node in ast.walk(tree):
+    context = _scope_context(tree, start, end)
+    return hashlib.sha256(context.encode("utf-8")).hexdigest()
+
+
+def _scope_context(tree: ast.Module, start: int, end: int) -> str:
+    """Return the stable class/function scope containing a duplicate occurrence.
+
+    The enclosing scope name is structural evidence for replacement detection,
+    while its body is deliberately excluded: an unrelated statement in the
+    same function must not invalidate every duplicate fingerprint in it.
+    """
+    best: tuple[str, ...] = ()
+
+    def visit(node: ast.AST, scopes: tuple[str, ...]) -> None:
+        nonlocal best
         node_start = getattr(node, "lineno", None)
         node_end = getattr(node, "end_lineno", None)
-        if (
+        contains_occurrence = node is tree or (
             isinstance(node_start, int)
             and isinstance(node_end, int)
             and node_start <= start
             and node_end >= end
-            and isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-        ):
-            candidates.append((node_start, node_end, node))
-    context_node: ast.AST = (
-        min(candidates, key=lambda item: (item[1] - item[0], item[0]))[2] if candidates else tree
-    )
-    context = _stable_ast_dump(context_node)
-    return hashlib.sha256(context.encode("utf-8")).hexdigest()
+        )
+        if not contains_occurrence:
+            return
+        next_scopes = scopes
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            next_scopes = scopes + (f"{type(node).__name__}:{node.name}",)
+        if len(next_scopes) > len(best):
+            best = next_scopes
+        for child in ast.iter_child_nodes(node):
+            visit(child, next_scopes)
 
-
-def _stable_ast_dump(value: Any) -> str:
-    """Serialize AST structure without Python-version-only empty fields.
-
-    Python 3.12 added ``type_params`` to function and class AST nodes.  The
-    field is an empty list for ordinary code, but including it in a digest
-    makes an otherwise unchanged duplicate report differ between the Python
-    3.11 CI lane and newer local interpreters.  Non-empty type parameters are
-    retained because they are real source semantics.
-    """
-    if isinstance(value, ast.AST):
-        fields = []
-        for field_name, field_value in ast.iter_fields(value):
-            if field_name == "type_params" and field_value == []:
-                continue
-            fields.append(f"{field_name}={_stable_ast_dump(field_value)}")
-        return f"{type(value).__name__}({','.join(fields)})"
-    if isinstance(value, list):
-        return f"[{','.join(_stable_ast_dump(item) for item in value)}]"
-    if isinstance(value, tuple):
-        return f"({','.join(_stable_ast_dump(item) for item in value)})"
-    return repr(value)
+    visit(tree, ())
+    return "/".join(best) or "module"
 
 
 def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdentity:
