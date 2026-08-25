@@ -190,7 +190,8 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    helpers are not exempt merely because they accept caller parameters; only the small, named
    module/method allowlist for generic Core transport helpers is exempt, with a reason recorded for
    each entry and explicit additions required for new helpers. Opaque f-string interpolations are
-   unresolved, while URL-encoding a caller-supplied segment is a known safe interpolation.
+   unresolved, while `quote(..., safe="")` is the only known safe interpolation for a
+   caller-supplied segment.
    Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations. This batch records the Core
    analytics-reference, benchmark, and external OMS supportability dependencies without
