@@ -345,7 +345,43 @@ def test_proposal_narrative_execution_and_memo_support_routes_forward_to_advise(
             "idempotency_key": idempotency_key,
             "correlation_id": correlation_id,
         }
-        return 200, {"event_id": "memo_report_event_001", "event_type": "ARCHIVED"}
+        return 200, {
+            "memo": {
+                "proposal": {
+                    "proposal_id": proposal_id,
+                    "portfolio_id": "PF_1001",
+                    "created_by": "advisor_1",
+                    "created_at": "2026-05-23T12:00:00+00:00",
+                    "last_event_at": "2026-05-23T12:05:00+00:00",
+                    "current_state": "DRAFT",
+                    "current_version_no": version_no,
+                    "lifecycle_origin": "WORKSPACE_HANDOFF",
+                },
+                "proposal_version_no": version_no,
+                "memo_id": "memo_001",
+                "memo_version": "advisory-proposal-memo-evidence-pack.v1",
+                "memo_status": "BLOCKED",
+                "lifecycle_status": "DRAFT",
+                "created_by": "advisor_1",
+                "created_at": "2026-05-23T12:00:00+00:00",
+                "source_input_hash": "sha256:source-001",
+                "memo_hash": "sha256:memo-001",
+                "memo": {"memo_id": "memo_001", "status": "BLOCKED"},
+                "event_count": 1,
+                "replay_evidence_path": (
+                    "/advisory/proposals/pp_001/versions/2/memo/replay-evidence"
+                ),
+                "lineage_path": "/advisory/proposals/pp_001/memos/lineage",
+            },
+            "report_package_event": {
+                "event_id": "memo_report_event_001",
+                "event_type": "ARCHIVED",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-05-23T12:05:00+00:00",
+                "reason": {"archive_ref": "archive_001"},
+            },
+            "replayed": False,
+        }
 
     monkeypatch.setattr(
         "app.clients.advise_client.AdviseClient.regenerate_proposal_narrative",
@@ -442,7 +478,7 @@ def test_proposal_narrative_execution_and_memo_support_routes_forward_to_advise(
     assert execution_status.json()["data"]["lineage"]["gateway_correlation_id"] == (
         "corr-exec-status"
     )
-    assert memo_event.json()["data"]["event_type"] == "ARCHIVED"
+    assert memo_event.json()["data"]["report_package_event"]["event_type"] == "ARCHIVED"
 
 
 def test_proposal_list_success(monkeypatch):

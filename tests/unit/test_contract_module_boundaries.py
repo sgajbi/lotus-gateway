@@ -23,8 +23,11 @@ def _assigned_names(path: Path) -> set[str]:
 def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
     memo_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_memos.py")
+    memo_response_classes = _class_names(_CONTRACT_ROOT / "proposal_memo_models.py")
+    memo_action_classes = _class_names(_CONTRACT_ROOT / "proposal_memo_action_models.py")
+    memo_lineage_classes = _class_names(_CONTRACT_ROOT / "proposal_memo_lineage_models.py")
 
-    expected_memo_contracts = {
+    expected_memo_facade_contracts = {
         "ProposalMemoAiCommentaryEnvelopeResponse",
         "ProposalMemoAiCommentaryRequest",
         "ProposalMemoCreateRequest",
@@ -37,9 +40,35 @@ def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
         "ProposalMemoReviewEnvelopeResponse",
         "ProposalMemoReviewRequest",
     }
+    expected_memo_response_classes = {
+        "ProposalMemoAuditEvent",
+        "ProposalMemoProjectionResponse",
+        "ProposalMemoProposalSummary",
+        "ProposalMemoReportResponse",
+        "ProposalMemoResponse",
+    }
+    expected_memo_action_classes = {
+        "ProposalMemoAiCommentaryResponse",
+        "ProposalMemoReportPackageEventResponse",
+        "ProposalMemoReportPackageResponse",
+        "ProposalMemoReviewResponse",
+    }
+    expected_memo_lineage_classes = {
+        "ProposalMemoLineageItem",
+        "ProposalMemoLineageResponse",
+        "ProposalMemoReplayEvidenceResponse",
+    }
 
-    assert expected_memo_contracts <= memo_contract_classes
-    assert proposal_facade_classes.isdisjoint(expected_memo_contracts)
+    assert expected_memo_facade_contracts <= memo_contract_classes
+    assert expected_memo_response_classes <= memo_response_classes
+    assert expected_memo_action_classes <= memo_action_classes
+    assert expected_memo_lineage_classes <= memo_lineage_classes
+    assert proposal_facade_classes.isdisjoint(
+        expected_memo_facade_contracts
+        | expected_memo_response_classes
+        | expected_memo_action_classes
+        | expected_memo_lineage_classes
+    )
 
 
 def test_proposal_generation_contracts_live_outside_proposal_facade() -> None:

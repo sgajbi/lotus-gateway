@@ -4,6 +4,68 @@ from fastapi import HTTPException
 from app.services.proposal_service import ProposalService
 
 
+def _memo_proposal_summary(proposal_id: str, version_no: int) -> dict:
+    return {
+        "proposal_id": proposal_id,
+        "portfolio_id": "PF_1001",
+        "mandate_id": "mandate_growth_01",
+        "jurisdiction": "SG",
+        "created_by": "advisor_1",
+        "created_at": "2026-05-23T12:00:00+00:00",
+        "last_event_at": "2026-05-23T12:05:00+00:00",
+        "current_state": "DRAFT",
+        "current_version_no": version_no,
+        "title": "Income tilt rebalance",
+        "lifecycle_origin": "WORKSPACE_HANDOFF",
+        "source_workspace_id": "aws_001",
+    }
+
+
+def _memo_audit_event(event_type: str, memo_hash: str = "sha256:memo-1") -> dict:
+    return {
+        "event_id": "pme_1",
+        "event_type": event_type,
+        "actor_id": "advisor_1",
+        "occurred_at": "2026-05-23T12:00:00+00:00",
+        "reason": {"memo_hash": memo_hash, "source_input_hash": "sha256:source-1"},
+    }
+
+
+def _memo_response_payload(
+    proposal_id: str,
+    version_no: int,
+    memo_hash: str = "sha256:memo-1",
+    lifecycle_status: str = "DRAFT",
+) -> dict:
+    return {
+        "proposal": _memo_proposal_summary(proposal_id, version_no),
+        "proposal_version_no": version_no,
+        "proposal_version_id": f"ppv_{version_no}",
+        "memo_id": "memo_1",
+        "artifact_id": "artifact_1",
+        "memo_version": "advisory-proposal-memo-evidence-pack.v1",
+        "memo_status": "PENDING_REVIEW",
+        "lifecycle_status": lifecycle_status,
+        "created_by": "advisor_1",
+        "created_at": "2026-05-23T12:00:00+00:00",
+        "source_input_hash": "sha256:source-1",
+        "memo_hash": memo_hash,
+        "memo": {"memo_id": "memo_1", "status": "PENDING_REVIEW"},
+        "projection": {"client_ready_publication": "BLOCKED"},
+        "review_posture": {"latest_review_action": "PENDING_REVIEW"},
+        "report_package_posture": {"status": "NOT_REQUESTED"},
+        "ai_commentary_posture": {"ai_status": "NOT_REQUESTED"},
+        "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
+        "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED", memo_hash)],
+        "event_count": 1,
+        "replay_evidence_path": (
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
+        ),
+        "lineage_path": f"/advisory/proposals/{proposal_id}/memos/lineage",
+        "read_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
+    }
+
+
 class _FakeAdviseClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict]] = []
@@ -695,16 +757,11 @@ class _FakeAdviseClient:
                 },
             )
         )
-        return 200, {
-            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
-            "memo_id": "memo_1",
-            "memo_status": "PENDING_REVIEW",
-            "lifecycle_status": body["lifecycle_status"],
-            "memo_hash": "sha256:memo-1",
-            "projection": {"client_ready_publication": "BLOCKED"},
-            "review_posture": {"advisor_use": "PENDING_REVIEW"},
-            "report_package_posture": {"status": "NOT_REQUESTED"},
-        }
+        return 200, _memo_response_payload(
+            proposal_id,
+            version_no,
+            lifecycle_status=body["lifecycle_status"],
+        )
 
     async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
         self.calls.append(
@@ -717,13 +774,10 @@ class _FakeAdviseClient:
                 },
             )
         )
-        return 200, {
-            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
-            "memo_id": "memo_1",
-            "memo_status": "APPROVED_FOR_ADVISOR_USE",
-            "memo_hash": "sha256:memo-1",
-            "read_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
-        }
+        payload = _memo_response_payload(proposal_id, version_no, lifecycle_status="APPROVED")
+        payload["memo_status"] = "APPROVED_FOR_ADVISOR_USE"
+        payload["read_posture"] = {"supportability": "SUPPORTED_ADVISOR_USE"}
+        return 200, payload
 
     async def get_proposal_memo_projection(
         self,
@@ -744,8 +798,12 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
-            "projection": {"audience": audience, "client_ready_publication": "BLOCKED"},
+            "proposal": _memo_proposal_summary(proposal_id, version_no),
+            "proposal_version_no": version_no,
+            "memo_id": "memo_1",
+            "memo_hash": "sha256:memo-1",
+            "audience": audience,
+            "projection": {"client_ready_publication": "BLOCKED"},
             "sections": [{"section_id": "DISCLOSURES", "supportability": "SOURCE_BACKED"}],
             "projection_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
         }
@@ -771,9 +829,9 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "memo": {"memo_hash": body["source_memo_hash"]},
-            "review_event": {"action": body["action"], "reviewed_by": body["reviewed_by"]},
-            "review_posture": {"advisor_use": "APPROVED_FOR_ADVISOR_USE"},
+            "memo": _memo_response_payload(proposal_id, version_no, body["source_memo_hash"]),
+            "review_event": _memo_audit_event("MEMO_REVIEW_RECORDED", body["source_memo_hash"]),
+            "replayed": False,
         }
 
     async def record_proposal_memo_report_package_event(
@@ -796,7 +854,13 @@ class _FakeAdviseClient:
                 },
             )
         )
-        return 200, {"proposal_id": proposal_id, "report_package_event": body}
+        return 200, {
+            "memo": _memo_response_payload(proposal_id, version_no, body["source_memo_hash"]),
+            "report_package_event": _memo_audit_event(
+                "MEMO_REPORT_PACKAGE_EVENT_RECORDED", body["source_memo_hash"]
+            ),
+            "replayed": False,
+        }
 
     async def request_proposal_memo_report_package(
         self,
@@ -819,9 +883,22 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "memo": {"memo_hash": body["source_memo_hash"]},
-            "report_package_event": {"client_ready_document_requested": False},
-            "report": {"render_status": "READY", "archive_refs": ["archive://memo/report/1"]},
+            "memo": _memo_response_payload(proposal_id, version_no, body["source_memo_hash"]),
+            "report_package_event": _memo_audit_event(
+                "MEMO_REPORT_PACKAGE_REQUESTED", body["source_memo_hash"]
+            ),
+            "report": {
+                "proposal": _memo_proposal_summary(proposal_id, version_no),
+                "report_request_id": "report_request_1",
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "report_service": "lotus-report",
+                "status": "READY",
+                "generated_at": "2026-05-23T12:10:00+00:00",
+                "report_reference_id": "report_1",
+                "artifact_url": "https://lotus-report.local/artifacts/report_1",
+                "explanation": {"ownership": "REPORTING_OWNED_BY_LOTUS_REPORT"},
+            },
+            "replayed": False,
         }
 
     async def request_proposal_memo_ai_commentary(
@@ -845,9 +922,10 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "memo": {"memo_hash": body["source_memo_hash"]},
-            "ai_event": {"requested_sections": body["requested_sections"]},
+            "memo": _memo_response_payload(proposal_id, version_no, body["source_memo_hash"]),
+            "ai_event": _memo_audit_event("MEMO_AI_COMMENTARY_REQUESTED", body["source_memo_hash"]),
             "commentary": {"status": "AVAILABLE", "authority": "NON_AUTHORITATIVE"},
+            "replayed": False,
         }
 
     async def get_proposal_memo_lineage(self, proposal_id: str, correlation_id: str):
@@ -858,15 +936,27 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "proposal": {"proposal_id": proposal_id},
+            "proposal": _memo_proposal_summary(proposal_id, 2),
+            "memo_count": 1,
+            "latest_memo_id": "memo_1",
+            "lineage_complete": True,
             "memos": [
                 {
                     "memo_id": "memo_1",
+                    "proposal_version_no": 2,
+                    "proposal_version_id": "ppv_2",
+                    "memo_status": "BLOCKED",
+                    "lifecycle_status": "DRAFT",
                     "memo_hash": "sha256:memo-1",
+                    "source_input_hash": "sha256:source-1",
+                    "created_at": "2026-05-23T12:00:00+00:00",
+                    "event_count": 1,
                     "report_package_posture": {"archive_refs": ["archive://memo/report/1"]},
+                    "archive_refs": [{"uri": "archive://memo/report/1"}],
                     "ai_commentary_posture": {"status": "AVAILABLE"},
                 }
             ],
+            "lineage_posture": {"gateway_supported": False},
         }
 
     async def get_proposal_memo_replay_evidence(
@@ -886,10 +976,16 @@ class _FakeAdviseClient:
             )
         )
         return 200, {
-            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
+            "subject": {
+                "proposal_id": proposal_id,
+                "proposal_version_no": version_no,
+                "memo_id": "memo_1",
+            },
             "hashes": {"memo_hash": "sha256:memo-1", "artifact_hash": "sha256:artifact-1"},
-            "audit_events": [{"event_type": "MEMO_CREATED"}],
-            "supportability": {"client_ready_publication": "BLOCKED"},
+            "replay_metadata": {"replay_policy": "EXACT_SOURCE_HASH_MATCH"},
+            "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED")],
+            "evidence": {"memo_status": "BLOCKED", "client_ready_publication": "BLOCKED"},
+            "explanation": {"source": "PERSISTED_MEMO_RECORD", "mutation_performed": False},
         }
 
 
@@ -1253,14 +1349,14 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
         correlation_id="corr_memo_replay",
     )
 
-    assert created.data["memo_hash"] == "sha256:memo-1"
-    assert memo.data["read_posture"]["supportability"] == "SUPPORTED_ADVISOR_USE"
-    assert projection.data["projection"]["audience"] == "COMPLIANCE"
-    assert review.data["review_event"]["action"] == "APPROVE_FOR_ADVISOR_USE"
-    assert report_package.data["report"]["archive_refs"] == ["archive://memo/report/1"]
-    assert ai_commentary.data["commentary"]["authority"] == "NON_AUTHORITATIVE"
-    assert lineage.data["memos"][0]["ai_commentary_posture"]["status"] == "AVAILABLE"
-    assert replay.data["hashes"]["artifact_hash"] == "sha256:artifact-1"
+    assert created.data.memo_hash == "sha256:memo-1"
+    assert memo.data.read_posture["supportability"] == "SUPPORTED_ADVISOR_USE"
+    assert projection.data.audience == "COMPLIANCE"
+    assert review.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
+    assert report_package.data.report.report_reference_id == "report_1"
+    assert ai_commentary.data.commentary["authority"] == "NON_AUTHORITATIVE"
+    assert lineage.data.memos[0].ai_commentary_posture["status"] == "AVAILABLE"
+    assert replay.data.hashes["artifact_hash"] == "sha256:artifact-1"
     assert [name for name, _ in client.calls[-8:]] == [
         "create_proposal_memo",
         "get_proposal_memo",
