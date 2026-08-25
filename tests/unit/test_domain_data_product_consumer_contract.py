@@ -97,7 +97,7 @@ _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS = {
 
 
 def _assignment_values(tree: ast.AST) -> dict[str, ast.AST]:
-    assignments: dict[str, ast.AST] = {}
+    assignment_values: dict[str, list[ast.AST]] = {}
     nodes = tree.body if isinstance(tree, ast.Module) else ast.walk(tree)
     for node in nodes:
         if isinstance(node, ast.Assign):
@@ -108,8 +108,11 @@ def _assignment_values(tree: ast.AST) -> dict[str, ast.AST]:
             continue
         for target in targets:
             if isinstance(target, ast.Name):
-                assignments[target.id] = node.value
-    return assignments
+                assignment_values.setdefault(target.id, []).append(node.value)
+    return {
+        name: values[0] if len(values) == 1 else ast.Name(id=name, ctx=ast.Load())
+        for name, values in assignment_values.items()
+    }
 
 
 def _resolve_route_templates(
@@ -142,6 +145,7 @@ def _resolve_route_templates(
                     own_parameters,
                     assignments,
                     quote_provenance_is_safe=quote_provenance_is_safe,
+                    allow_unencoded_parameter=not _has_concrete_route_segment(template),
                 ) or (
                     value.format_spec is not None
                     and _route_interpolation_is_opaque(
@@ -149,10 +153,17 @@ def _resolve_route_templates(
                         own_parameters,
                         assignments,
                         quote_provenance_is_safe=quote_provenance_is_safe,
+                        allow_unencoded_parameter=not _has_concrete_route_segment(template),
                     )
                 ):
                     return set()
-                template += "{}"
+                resolved_interpolation = _resolved_route_interpolation(
+                    value.value,
+                    assignments,
+                    own_parameters,
+                    quote_provenance_is_safe,
+                )
+                template += resolved_interpolation or "{}"
             else:
                 return set()
         return {template}
@@ -177,6 +188,16 @@ def _resolve_route_templates(
         and isinstance(expression.func, ast.Attribute)
         and expression.func.attr == "format"
     ):
+        format_templates = _resolve_route_templates(
+            expression.func.value,
+            assignments,
+            resolving,
+            own_parameters,
+            quote_provenance_is_safe,
+        )
+        has_concrete_prefix = any(
+            _has_concrete_route_segment(template) for template in format_templates
+        )
         replacements = [
             *expression.args,
             *(keyword.value for keyword in expression.keywords),
@@ -187,6 +208,7 @@ def _resolve_route_templates(
                 own_parameters,
                 assignments,
                 quote_provenance_is_safe=quote_provenance_is_safe,
+                allow_unencoded_parameter=not has_concrete_prefix,
             )
             for replacement in replacements
         ):
@@ -199,6 +221,24 @@ def _resolve_route_templates(
             quote_provenance_is_safe,
         )
     return set()
+
+
+def _resolved_route_interpolation(
+    expression: ast.AST,
+    assignments: dict[str, ast.AST],
+    own_parameters: frozenset[str],
+    quote_provenance_is_safe: bool,
+) -> str | None:
+    resolved = _resolve_route_templates(
+        expression,
+        assignments,
+        own_parameters=own_parameters,
+        quote_provenance_is_safe=quote_provenance_is_safe,
+    )
+    if len(resolved) != 1:
+        return None
+    route_template = next(iter(resolved))
+    return route_template if "{}" not in route_template else None
 
 
 def _resolves_to_empty_string(
@@ -269,7 +309,7 @@ def _route_interpolation_is_opaque(
     resolving: frozenset[str] = frozenset(),
     *,
     quote_provenance_is_safe: bool = False,
-    allow_unencoded_path: bool = True,
+    allow_unencoded_parameter: bool = True,
 ) -> bool:
     if isinstance(expression, ast.Call):
         if isinstance(expression.func, ast.Name) and expression.func.id == "quote":
@@ -296,14 +336,14 @@ def _route_interpolation_is_opaque(
                     assignments,
                     resolving,
                     quote_provenance_is_safe=quote_provenance_is_safe,
-                    allow_unencoded_path=False,
+                    allow_unencoded_parameter=False,
                 )
                 for argument in arguments
             )
         return True
     if isinstance(expression, ast.Name):
         if expression.id in own_parameters:
-            return allow_unencoded_path and expression.id in {"path", "url"}
+            return allow_unencoded_parameter
         if expression.id in resolving or expression.id not in assignments:
             return True
         return _route_interpolation_is_opaque(
@@ -312,7 +352,7 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving | {expression.id},
             quote_provenance_is_safe=quote_provenance_is_safe,
-            allow_unencoded_path=allow_unencoded_path,
+            allow_unencoded_parameter=allow_unencoded_parameter,
         )
     if isinstance(expression, ast.Constant):
         return False
@@ -325,14 +365,14 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
-            allow_unencoded_path=allow_unencoded_path,
+            allow_unencoded_parameter=allow_unencoded_parameter,
         ) or _route_interpolation_is_opaque(
             expression.slice,
             own_parameters,
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
-            allow_unencoded_path=allow_unencoded_path,
+            allow_unencoded_parameter=allow_unencoded_parameter,
         )
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
         return _route_interpolation_is_opaque(
@@ -341,14 +381,14 @@ def _route_interpolation_is_opaque(
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
-            allow_unencoded_path=allow_unencoded_path,
+            allow_unencoded_parameter=allow_unencoded_parameter,
         ) or _route_interpolation_is_opaque(
             expression.right,
             own_parameters,
             assignments,
             resolving,
             quote_provenance_is_safe=quote_provenance_is_safe,
-            allow_unencoded_path=allow_unencoded_path,
+            allow_unencoded_parameter=allow_unencoded_parameter,
         )
     return True
 
@@ -873,6 +913,9 @@ class FakeCoreClient:
     async def _get_bare_path_route(self, path):
         return await self._request(url=f"{path}/suffix")
 
+    async def _get_bare_route_parameter(self, route):
+        return await self._request(url=f"{route}/suffix")
+
     async def _get_format_internal_route(self, path):
         return await self._request(url="{}/suffix".format(build_route(path)))
 
@@ -894,6 +937,19 @@ class FakeCoreClient:
         await self._request(url=route)
         route = build_route(path)
         return await self._request(url=route)
+
+    async def _get_alias_reassigned_after_use_route(self, path):
+        route = build_route(path)
+        await self._request(url=f"{route}/suffix")
+        route = "/health"
+        return await self._request(url=route)
+
+    async def _get_constant_interpolation_route(self, suffix):
+        hidden_route = "/integration/hidden-product"
+        return await self._request(url=f"{hidden_route}/{suffix}")
+
+    async def _get_module_constant_interpolation_route(self):
+        return await self._request(url=f"{HIDDEN_ROUTE_PREFIX}suffix")
 
     async def _get_attribute_route(self, path):
         return await self._request(url=self._hidden_integration_route + path)
@@ -933,6 +989,7 @@ class FakeCoreClient:
         ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_fstring_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_bare_path_route"),
+        ("lotus_core_private_helper_client.py", "_get_bare_route_parameter"),
         ("lotus_core_private_helper_client.py", "_get_format_internal_route"),
         (
             "lotus_core_private_helper_client.py",
@@ -942,6 +999,10 @@ class FakeCoreClient:
         ("lotus_core_private_helper_client.py", "_get_shadowed_quote_route"),
         ("lotus_core_private_helper_client.py", "_get_assigned_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_reassigned_alias_route"),
+        (
+            "lotus_core_private_helper_client.py",
+            "_get_alias_reassigned_after_use_route",
+        ),
         ("lotus_core_private_helper_client.py", "_get_attribute_route"),
         ("lotus_core_private_helper_client.py", "_get_namespace_attribute_route"),
         ("lotus_core_private_helper_client.py", "_get_literal_route"),
@@ -981,6 +1042,17 @@ class FakeCoreClient:
         "_get_parameter_varargs",
     ):
         assert caller_parameter_helper in message
+
+    assert (
+        "lotus_core_private_helper_client.py",
+        "_get_constant_interpolation_route",
+        "/integration/hidden-product/{}",
+    ) in implemented
+    assert (
+        "lotus_core_private_helper_client.py",
+        "_get_module_constant_interpolation_route",
+        "/integration/hidden-product/suffix",
+    ) in implemented
 
 
 @pytest.mark.parametrize(
