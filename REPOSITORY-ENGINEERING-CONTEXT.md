@@ -108,9 +108,12 @@ Current repository posture:
    including private helpers that happen to accept a caller-supplied path. The only exceptions
    are the small, named module/method allowlist for generic Core transport helpers, with a reason
    recorded beside each entry; new generic helpers must be added explicitly. Opaque f-string
-   interpolations are unresolved, while only a non-rebound direct `from urllib.parse import quote`
-   binding with `quote(..., safe="")` is known safe for a caller-supplied segment; aliases, other
-   imports, local definitions, and rebindings fail closed. Capabilities, effective policy, and core-snapshot
+   interpolations are unresolved, while bare `path`/`url` interpolation and opaque `.format()`
+   replacements also fail closed. The seven generic transport exemptions apply only to their
+   documented caller-path, caller-URL, or base-URL-plus-path AST shape. Only a non-rebound direct
+   `from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
+   caller-supplied segment; aliases, other imports, local definitions, and rebindings fail closed.
+   Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
