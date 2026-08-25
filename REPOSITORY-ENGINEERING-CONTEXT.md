@@ -91,9 +91,14 @@ Current repository posture:
    not certify per-portfolio freshness because Core's current AUM response does not expose it.
    Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
    household, performance, risk, attention, suitability, communication, or execution truth. Its
-   repo-native RFC-0084 consumer declaration records the direct membership dependency, required
-   trust metadata, protected lanes, and fail-closed posture; the AUM route remains an RFC-0082
-   operational-read dependency rather than a new domain-product declaration,
+   repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
+   trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
+   fail-closed for entitlement, `PortfolioAnalyticsReference:v1`, `BenchmarkAssignment:v1`, and
+   `BenchmarkDefinition:v1` degrade to partial composition except for the explicit since-inception
+   window requirement, and `ExternalOrderExecutionAcknowledgement:v1` is fail-closed for OMS
+   supportability. The source-backed route inventory is maintained in
+   `contracts/domain-data-products/lotus-gateway-core-route-inventory.v1.json`; the AUM route
+   remains an RFC-0082 operational-read dependency rather than a new domain-product declaration,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
