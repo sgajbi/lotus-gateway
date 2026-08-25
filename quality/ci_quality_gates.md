@@ -90,11 +90,12 @@ Duplicate-code enforcement is intentionally no-new-regression rather than an imm
 campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
-different new clone between the same files. A stable AST context digest distinguishes replacements
-in different structural locations; occurrence ordinals are assigned by measured location order but
-are not themselves part of the absolute source coordinates, so unrelated line shifts do not
-invalidate every fingerprint. A removed clone also creates a stale-fingerprint failure until a
-reviewed `--update-baseline` banks the
+different new clone between the same files. A stable, Python-version-independent AST context digest
+distinguishes replacements in different structural locations; empty runtime-only AST fields are
+excluded while non-empty type-parameter semantics remain represented. Occurrence ordinals are
+assigned by measured location order but are not themselves part of the absolute source
+coordinates, so unrelated line shifts do not invalidate every fingerprint. A removed clone also
+creates a stale-fingerprint failure until a reviewed `--update-baseline` banks the
 improvement; this prevents the removed duplication from being silently reintroduced later.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
