@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from scripts.check_duplicate_code_ratchet import (
+    _normalise_fragment,
     build_baseline,
     evaluate,
     load_report,
@@ -92,6 +93,27 @@ def test_duplicate_ratchet_rejects_new_identity_at_same_count(tmp_path: Path) ->
     assert not result.passed
     assert len(result.unexpected_fingerprints) == 1
     assert result.clone_count == result.baseline_clone_count
+    assert not result.all_fingerprints_changed
+
+
+def test_duplicate_ratchet_identifies_a_complete_identity_change(tmp_path: Path) -> None:
+    baseline, _ = _baseline_and_report(
+        tmp_path / "baseline",
+        [_entry("src/app/a.py", "src/app/b.py"), _entry("src/app/c.py", "src/app/d.py")],
+    )
+    current = load_report(
+        _write_report(
+            tmp_path / "current",
+            [
+                _entry("src/app/e.py", "src/app/f.py"),
+                _entry("src/app/g.py", "src/app/h.py"),
+            ],
+        )
+    )
+
+    result = evaluate(current, baseline, status=0)
+
+    assert result.all_fingerprints_changed
 
 
 def test_duplicate_ratchet_rejects_stale_baseline_fingerprint(tmp_path: Path) -> None:
@@ -643,6 +665,16 @@ def test_duplicate_fingerprint_preserves_python_literal_whitespace(tmp_path: Pat
     assert not result.passed
     assert len(result.unexpected_fingerprints) == 1
     assert len(result.stale_fingerprints) == 1
+
+
+def test_duplicate_fingerprint_normalizes_comment_quotes_and_layout() -> None:
+    assert _normalise_fragment("value = foo( a ) # don't duplicate\n") == _normalise_fragment(
+        "value  =  foo(  a  ) # don't duplicate\n"
+    )
+
+
+def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
+    assert _normalise_fragment("value = call(\n") == "value = call("
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
