@@ -38,16 +38,64 @@ _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS = {
 }
 
 
-def _path_argument_literals(node: ast.AsyncFunctionDef) -> set[str]:
-    return {
-        constant.value
-        for call in ast.walk(node)
-        if isinstance(call, ast.Call)
-        for keyword in call.keywords
-        if keyword.arg == "path"
-        for constant in ast.walk(keyword.value)
-        if isinstance(constant, ast.Constant) and isinstance(constant.value, str)
-    }
+def _assignment_values(tree: ast.AST) -> dict[str, ast.AST]:
+    assignments: dict[str, ast.AST] = {}
+    nodes = tree.body if isinstance(tree, ast.Module) else ast.walk(tree)
+    for node in nodes:
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = (node.target,)
+        else:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name):
+                assignments[target.id] = node.value
+    return assignments
+
+
+def _resolve_string_literals(
+    expression: ast.AST,
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> set[str]:
+    if isinstance(expression, ast.Name):
+        if expression.id in resolving or expression.id not in assignments:
+            return set()
+        return _resolve_string_literals(
+            assignments[expression.id], assignments, resolving | {expression.id}
+        )
+    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
+        return {expression.value}
+    if isinstance(expression, ast.JoinedStr):
+        return {
+            value.value
+            for value in expression.values
+            if isinstance(value, ast.Constant) and isinstance(value.value, str)
+        }
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
+        return _resolve_string_literals(
+            expression.left, assignments, resolving
+        ) | _resolve_string_literals(expression.right, assignments, resolving)
+    return set()
+
+
+def _path_argument_literals(
+    node: ast.AsyncFunctionDef,
+    assignments: dict[str, ast.AST],
+) -> tuple[set[str], bool]:
+    literals: set[str] = set()
+    unresolved_path = False
+    for call in ast.walk(node):
+        if not isinstance(call, ast.Call):
+            continue
+        for keyword in call.keywords:
+            if keyword.arg != "path":
+                continue
+            resolved = _resolve_string_literals(keyword.value, assignments)
+            literals.update(resolved)
+            unresolved_path |= not resolved
+    return literals, unresolved_path
 
 
 def _implemented_core_domain_product_reads(
@@ -55,12 +103,17 @@ def _implemented_core_domain_product_reads(
 ) -> set[tuple[str, str]]:
     implemented: set[tuple[str, str]] = set()
     for client_path in sorted(client_root.glob("lotus_core*.py")):
-        tree = ast.parse(client_path.read_text(encoding="utf-8"), filename=str(client_path))
+        source = client_path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(client_path))
+        module_assignments = _assignment_values(tree)
         for node in ast.walk(tree):
             if not isinstance(node, ast.AsyncFunctionDef):
                 continue
-            path_literals = _path_argument_literals(node)
-            if not any("/integration/" in literal for literal in path_literals):
+            assignments = module_assignments | _assignment_values(node)
+            path_literals, unresolved_path = _path_argument_literals(node, assignments)
+            if not any("/integration/" in literal for literal in path_literals) and not (
+                unresolved_path and not node.name.startswith("_")
+            ):
                 continue
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
@@ -302,21 +355,27 @@ def test_gateway_declarations_match_implemented_core_route_inventory() -> None:
 def test_undeclared_core_integration_read_fails_closed(tmp_path: Path) -> None:
     (tmp_path / "lotus_core_query_client.py").write_text(
         """
+UNDECLARED_MODULE_ROUTE = "/integration/benchmarks/undeclared-product"
+
 class FakeCoreClient:
-    async def get_undeclared_product_read(self, portfolio_id: str):
+    async def get_undeclared_local_product_read(self, portfolio_id: str):
+        route = f"/integration/portfolios/{portfolio_id}/undeclared-product"
         return await self._post_control_plane_resource(
-            path=f"/integration/portfolios/{portfolio_id}/undeclared-product",
+            path=route,
+        )
+
+    async def get_undeclared_module_product_read(self):
+        return await self._post_control_plane_resource(
+            path=UNDECLARED_MODULE_ROUTE,
         )
 """.strip()
         + "\n",
         encoding="utf-8",
     )
 
-    with pytest.raises(
-        AssertionError,
-        match=(
-            "Core integration reads missing from the RFC-0084 route inventory: "
-            "lotus_core_query_client.py:get_undeclared_product_read"
-        ),
-    ):
+    with pytest.raises(AssertionError) as exc_info:
         _assert_implemented_core_reads_are_declared(tmp_path)
+
+    message = str(exc_info.value)
+    assert "lotus_core_query_client.py:get_undeclared_local_product_read" in message
+    assert "lotus_core_query_client.py:get_undeclared_module_product_read" in message
