@@ -1191,6 +1191,33 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
             archive_document_id="doc_batch_1",
         )
 
+    async def _mock_archive_preflight(
+        self,
+        *,
+        document_ids,
+        caller_headers,
+        correlation_id,
+    ):
+        calls.append(("archive-preflight", ",".join(document_ids), caller_headers))
+        assert document_ids == ["doc_batch_1"]
+        assert caller_headers["X-Actor-Id"] == "operator-123"
+        assert caller_headers["X-Tenant-Id"] == "tenant-sg"
+        assert caller_headers["X-Region"] == "APAC"
+        assert correlation_id == "corr-gateway-batch"
+        return 200, {
+            "result_state": "complete",
+            "requested_count": 1,
+            "returned_count": 1,
+            "items": [
+                {
+                    "document_id": "doc_batch_1",
+                    "state": "allowed",
+                    "reason_code": "access_allowed",
+                }
+            ],
+            "preflight_only": True,
+        }
+
     async def _mock_get_capabilities(self, *, consumer_system, tenant_id, correlation_id):
         calls.append(("capabilities", tenant_id, {"consumer_system": consumer_system}))
         assert correlation_id == "corr-gateway-batch"
@@ -1297,6 +1324,10 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         _mock_get_batch,
     )
     monkeypatch.setattr(
+        "app.clients.archive_client.ArchiveClient.preflight_document_access",
+        _mock_archive_preflight,
+    )
+    monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.control_report_batch",
         _mock_control_batch,
     )
@@ -1388,7 +1419,8 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     assert batch_calls[0][2]["X-Caller-Application"] == "lotus-gateway"
     assert batch_calls[0][2]["X-Actor-Id"] == "operator-123"
     assert batch_calls[1][0:2] == ("get", "rbch_1")
-    assert [call[0] for call in batch_calls[2:]] == [
+    assert batch_calls[2][0:2] == ("archive-preflight", "doc_batch_1")
+    assert [call[0] for call in batch_calls[3:]] == [
         "pause",
         "resume",
         "cancel",

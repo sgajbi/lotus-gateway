@@ -318,6 +318,14 @@ def test_reporting_openapi_contract_registered() -> None:
         "archive_failed",
     ]
     assert (
+        "only after caller-scoped Archive access preflight"
+        in batch_item_schema["properties"]["archive_state"]["description"]
+    )
+    assert (
+        "do not mirror Archive reason codes"
+        in batch_item_schema["properties"]["archive_reason_code"]["description"]
+    )
+    assert (
         "Gateway-controlled"
         in batch_item_schema["properties"]["archive_download_url"]["description"]
     )

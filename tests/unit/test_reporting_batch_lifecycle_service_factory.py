@@ -7,6 +7,10 @@ def test_reporting_batch_lifecycle_service_factory_wires_reporting_and_render_cl
     monkeypatch,
 ) -> None:
     monkeypatch.setattr(
+        "app.services.archive_client_factory.settings.archive_service_base_url",
+        "http://archive:8000/",
+    )
+    monkeypatch.setattr(
         "app.services.reporting_client_factory.settings.reporting_aggregation_base_url",
         "http://report:8000/",
     )
@@ -33,6 +37,10 @@ def test_reporting_batch_lifecycle_service_factory_wires_reporting_and_render_cl
     assert service._reporting_client._timeout == 7.5
     assert service._reporting_client._max_retries == 5
     assert service._reporting_client._retry_backoff_seconds == 0.65
+    assert service._archive_access_client._base_url == "http://archive:8000"
+    assert service._archive_access_client._timeout == 7.5
+    assert service._archive_access_client._max_retries == 5
+    assert service._archive_access_client._retry_backoff_seconds == 0.65
     assert service._render_client._base_url == "http://render:8000"
     assert service._render_client._timeout == 7.5
     assert service._render_client._max_retries == 5

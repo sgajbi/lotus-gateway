@@ -7,6 +7,10 @@ def test_archive_client_factory_builds_configured_archive_client(monkeypatch) ->
         "http://archive:8000/",
     )
     monkeypatch.setattr(
+        "app.services.archive_client_factory.settings.archive_service_base_url",
+        "http://archive:8000/",
+    )
+    monkeypatch.setattr(
         "app.services.archive_client_factory.settings.upstream_timeout_seconds",
         6.5,
     )

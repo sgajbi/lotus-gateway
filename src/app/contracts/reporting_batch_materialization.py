@@ -167,33 +167,41 @@ class BatchItemStatusResponse(BaseModel):
     archive_document_id: str | None = Field(
         default=None,
         description=(
-            "Source-owned lotus-archive document identifier for the directly linked report job. "
-            "Null until lotus-report confirms that job is archived."
+            "Source-owned lotus-archive document identifier for the directly linked report job, "
+            "returned only after caller-scoped Archive access preflight confirms allowed access. "
+            "Null until lotus-report confirms archival and Archive confirms the caller posture."
         ),
     )
     archive_state: BatchArchiveState = Field(
         "unavailable",
-        description="Gateway projection of archive availability for this batch item.",
+        description=(
+            "Gateway projection of archive availability for this batch item. Available is emitted "
+            "only after caller-scoped Archive access preflight confirms allowed access; Archive "
+            "denied, missing, unavailable, or malformed responses remain unavailable."
+        ),
     )
     archive_reason_code: BatchArchiveReasonCode = Field(
         "not_archived",
         description=(
-            "Bounded reason for the archive state; Gateway never treats a missing document ID "
-            "as an archive-ready result."
+            "Gateway-owned bounded reason for the archive state. These values do not mirror "
+            "Archive "
+            "reason codes or reveal document existence, ownership, purge, or tenant distinctions."
         ),
     )
     archive_metadata_url: str | None = Field(
         default=None,
         description=(
             "Gateway-controlled archived-document metadata route, present only for an available "
-            "source document. Metadata access re-checks caller tenant and region."
+            "source document after caller-scoped Archive preflight. Metadata access re-checks "
+            "caller tenant and region."
         ),
     )
     archive_download_url: str | None = Field(
         default=None,
         description=(
             "Gateway-controlled archived-document download route, present only for an available "
-            "source document. Binary access re-checks archive entitlement."
+            "source document after caller-scoped Archive preflight. Binary access re-checks "
+            "archive entitlement."
         ),
     )
     attempt_count: int = Field(0, ge=0, description="Number of recorded attempts.")
