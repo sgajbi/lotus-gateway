@@ -35,6 +35,7 @@ from app.services.portfolio_readiness_insight_sources import (
 from app.services.portfolio_readiness_response import (
     build_portfolio_readiness_response,
 )
+from app.services.portfolio_tax_lot_service import PortfolioTaxLotServiceMixin
 from app.services.portfolio_transaction_service import PortfolioTransactionServiceMixin
 from app.services.portfolio_upstream_access import PortfolioUpstreamAccessMixin
 from app.services.portfolio_upstream_payloads import (
@@ -66,6 +67,7 @@ UpstreamResult = tuple[int, dict[str, Any]]
 
 class PortfolioService(
     PortfolioHoldingsServiceMixin,
+    PortfolioTaxLotServiceMixin,
     PortfolioWorkflowServiceMixin,
     PortfolioTransactionServiceMixin,
     PortfolioUpstreamAccessMixin,
