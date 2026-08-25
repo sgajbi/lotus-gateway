@@ -98,7 +98,7 @@
       "failure_posture": "degrade_to_partial",
       "failure_posture_conditions": [
         {
-          "condition": "Core assignment lookup returns an HTTP error or invalid payload",
+          "condition": "Core assignment lookup returns an HTTP error, invalid payload, or unexpected transport exception",
           "posture": "degrade_to_partial",
           "reason_codes": [
             "BENCHMARK_ASSIGNMENT_UNAVAILABLE"

@@ -134,7 +134,8 @@ def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
             "failure_posture_conditions": [
                 {
                     "condition": (
-                        "Core assignment lookup returns an HTTP error or invalid payload"
+                        "Core assignment lookup returns an HTTP error, invalid payload, or "
+                        "unexpected transport exception"
                     ),
                     "posture": "degrade_to_partial",
                     "reason_codes": ["BENCHMARK_ASSIGNMENT_UNAVAILABLE"],
