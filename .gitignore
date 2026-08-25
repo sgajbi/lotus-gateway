@@ -10,6 +10,7 @@ venv/
 htmlcov/
 *.egg-info/
 output/
+quality/node_modules/
 .codex-logs/
 gateway-*.log
 /_ci_fail.log

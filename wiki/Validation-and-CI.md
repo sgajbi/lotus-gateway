@@ -27,7 +27,7 @@ its extraction branches. They are retained as engineering history; current route
 4. platform-facing validation for cross-app experience changes
 5. `Quality Baseline`
    blocking no-regression evidence for refactor thresholds, workflow governance, and artifact
-   integrity plus report-only evidence for progressive enterprise-readiness gates
+   integrity, duplicate-code fingerprints, and progressive enterprise-readiness gates
 6. `Upstream Contract Drift`
    scheduled and operator-dispatched reconciliation of the packaged proposal decision policy with
    the current Advise producer artifact
@@ -38,7 +38,10 @@ its extraction branches. They are retained as engineering history; current route
   lint, monetary-float governance, refactor thresholds, workflow action-runtime governance,
   agent quality evidence governance, typecheck, OpenAPI contract proof, unit tests
 - `make ci`
-  migration smoke, integration tests, coverage, security audit
+  migration smoke, integration tests, coverage, security audit, and the pinned duplicate-code
+  ratchet over production Python sources
+- `make duplicate-code`
+  reproducible jscpd scan and stable-finding ratchet using `quality/package-lock.json`
 - `make ci-local`
   local feature-lane validation
 - `make ci-local-docker`
@@ -108,6 +111,8 @@ same actual revision may supersede one another.
   `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
 - main release evidence retention for coverage, workflow governance, agent quality, security,
   OpenAPI, and demo-certification artifacts
+- duplicate-code clone count, duplicated-line percentage, and stable source-pair fingerprints
+  must not regress beyond the reviewed production baseline
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
   release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
   provenance attestation

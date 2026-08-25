@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check demo-certification openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check demo-certification duplicate-code openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -59,6 +59,12 @@ security-audit:
 	# available for this service yet. Remove this ignore when FastAPI supports it.
 	python -m pip_audit --ignore-vuln PYSEC-2026-161 -r requirements-audit.txt
 
+duplicate-code:
+	cd quality && npm ci --ignore-scripts
+	mkdir -p output/duplicate-code
+	set -o pipefail; quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code --pattern 'src/app/**/*.py' . --noTips 2>&1 | tee output/duplicate-code/detector.txt; status=$${PIPESTATUS[0]}; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/detector.txt; exit "$${status}"
+	python scripts/check_duplicate_code_ratchet.py --report output/duplicate-code/jscpd-report.json --artifact-log output/duplicate-code/detector.txt --baseline quality/duplicate_code_baseline.json
+
 test:
 	$(MAKE) test-unit
 
@@ -85,7 +91,7 @@ test-e2e-live:
 
 check: lint typecheck openapi-gate test
 
-ci: lint typecheck openapi-gate migration-smoke test-integration test-coverage security-audit
+ci: lint typecheck openapi-gate migration-smoke test-integration test-coverage security-audit duplicate-code
 
 ci-local: check test-integration
 

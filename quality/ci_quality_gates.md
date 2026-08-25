@@ -65,6 +65,10 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
 6. security severity counts must remain at Undefined 0, Low <=2, Medium <=1, and High 0,
 7. Interrogate documentation coverage must not fall below 1.6%, and
 8. Spectral OpenAPI problems must not exceed 4.
+9. duplicate-code clone count must not exceed 88, duplicated lines must not exceed 1,767, and
+   duplicated percentage must not exceed 2.03%; stable source-pair fingerprints must not gain a
+   new finding. The detector is pinned in `quality/package-lock.json` and scans production
+   `src/app/**/*.py` only.
 
 `scripts/check_quality_baseline_ratchet.py` publishes current value, baseline, delta, threshold,
 and remediation command for every metric. A baseline update requires an explicit reviewed change;
@@ -80,6 +84,11 @@ until individual findings are remediated and promoted to clean thresholds:
 7. documentation and observability scorecard gaps,
 8. Gateway demo certification until repeated Quality Baseline runs prove deterministic, low-noise
    behavior and a remediation/exception policy is approved.
+
+Duplicate-code enforcement is intentionally no-new-regression rather than an immediate cleanup
+campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
+out-of-scope paths and detector failures, reports both source locations, and compares stable
+source-pair fingerprints so removing one known clone cannot mask a different new clone.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
 workflow-governance, and agent quality evidence thresholds, plus the no-new-regression ratchet,

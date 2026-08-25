@@ -425,6 +425,9 @@ Important validation expectations:
    requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change.
    The current dependency-findings baseline is 21, banked from the measured post-#645 deptry
    improvement; a later run above 21 must fail the quality gate.
+   The pinned `quality/package-lock.json` jscpd scan also ratchets production duplicate-code
+   clone count, duplicated lines, duplicated percentage, and stable source-pair fingerprints;
+   a new clone or detector failure is a protected quality failure.
    Every report-producing quality log must also carry exactly one numeric
    `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate
    markers are measurement failures, while non-zero status with reviewed baseline findings remains

@@ -1,0 +1,11 @@
+{
+  "name": "lotus-gateway-quality-tools",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "devDependencies": {
+    "jscpd": "4.2.2"
+  }
+}
