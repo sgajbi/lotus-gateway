@@ -14,10 +14,12 @@
 ## Platform relationship
 
 Gateway reads platform-generated catalog, dependency graph, and live trust certification artifacts.
-It owns only its repo-native consumer declarations, including the direct Core
-`PortfolioManagerBookMembership:v1` advisor-book dependency. It does not own producer
-declarations, trust telemetry, access policy, SLO policy, evidence policy, maturity matrix, or
-operating reports.
+It owns only its repo-native consumer declarations, including direct Core dependencies for
+`PortfolioManagerBookMembership:v1`, `PortfolioAnalyticsReference:v1`, `BenchmarkAssignment:v1`,
+`BenchmarkDefinition:v1`, and `ExternalOrderExecutionAcknowledgement:v1`. These declarations cover
+implemented Gateway reads and preserve Core ownership of portfolio state, benchmark definitions,
+and external OMS supportability. Gateway does not own producer declarations, trust telemetry,
+access policy, SLO policy, evidence policy, maturity matrix, or operating reports.
 
 Catalog responses preserve platform provenance fields including `governedByRfcs`, `sourceManifestPath`, and `sourceDeclarationDirectory`. Dependency-graph responses preserve `governedByRfcs` and the source catalog reference. These fields are sourced from the generated platform artifacts; Gateway does not derive replacement provenance locally.
 
