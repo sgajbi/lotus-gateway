@@ -27,7 +27,12 @@ def _memo_audit_event(event_type: str, memo_hash: str = "sha256:memo-1") -> dict
         "event_type": event_type,
         "actor_id": "advisor_1",
         "occurred_at": "2026-05-23T12:00:00+00:00",
-        "reason": {"memo_hash": memo_hash, "source_input_hash": "sha256:source-1"},
+        "reason": {
+            "lifecycle_status": "DRAFT",
+            "memo_status": "PENDING_REVIEW",
+            "memo_hash": memo_hash,
+            "source_input_hash": "sha256:source-1",
+        },
     }
 
 
@@ -89,7 +94,16 @@ def _memo_response_payload(
             "client_ready_publication": "BLOCKED",
             "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
         },
-        "review_posture": {"status": "NOT_RECORDED"},
+        "review_posture": {
+            "status": "RECORDED",
+            "idempotency_key": "ui-memo-review-2-pp_1-001",
+            "idempotency_request_hash": "sha256:review-request-1",
+            "memo_hash": memo_hash,
+            "source_input_hash": "sha256:source-1",
+            "review_action": "APPROVE_FOR_ADVISOR_USE",
+            "source_memo_hash": memo_hash,
+            "client_ready_publication": "BLOCKED",
+        },
         "report_package_posture": {"status": "NOT_REQUESTED"},
         "ai_commentary_posture": {"status": "NOT_RECORDED", "ai_status": "NOT_REQUESTED"},
         "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
@@ -1074,7 +1088,16 @@ class _FakeAdviseClient:
                     "client_ready_publication": "BLOCKED",
                     "report_render_archive": "BLOCKED_UNTIL_LATER_RFC0024_SLICES",
                 },
-                "review_posture": {"status": "NOT_RECORDED"},
+                "review_posture": {
+                    "status": "RECORDED",
+                    "idempotency_key": "ui-memo-review-2-pp_1-001",
+                    "idempotency_request_hash": "sha256:review-request-1",
+                    "memo_hash": "sha256:memo-1",
+                    "source_input_hash": "sha256:source-1",
+                    "review_action": "APPROVE_FOR_ADVISOR_USE",
+                    "source_memo_hash": "sha256:memo-1",
+                    "client_ready_publication": "BLOCKED",
+                },
                 "report_package_posture": {"status": "NOT_RECORDED"},
                 "ai_commentary_posture": {"status": "NOT_RECORDED"},
             },
@@ -1457,6 +1480,8 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     )
 
     assert created.data.memo_hash == "sha256:memo-1"
+    assert created.data.review_posture.idempotency_key == "ui-memo-review-2-pp_1-001"
+    assert created.data.audit_events[0].reason.lifecycle_status == "DRAFT"
     assert memo.data.read_posture.supportability == "SUPPORTED_ADVISOR_USE"
     assert projection.data.audience == "COMPLIANCE"
     assert review.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
@@ -1464,6 +1489,7 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     assert ai_commentary.data.commentary.authority == "NON_AUTHORITATIVE"
     assert lineage.data.memos[0].ai_commentary_posture.status == "AVAILABLE"
     assert replay.data.hashes.proposal_artifact_hash == "sha256:artifact-1"
+    assert replay.data.evidence.review_posture.memo_hash == "sha256:memo-1"
     assert [name for name, _ in client.calls[-8:]] == [
         "create_proposal_memo",
         "get_proposal_memo",

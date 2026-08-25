@@ -66,6 +66,14 @@ class ProposalMemoProposalSummary(_ClosedMemoModel):
 class ProposalMemoAuditReason(_ClosedMemoModel):
     """Structured source-owned reason evidence carried by memo audit events."""
 
+    lifecycle_status: str | None = Field(
+        default=None,
+        description="Memo lifecycle state recorded by the source audit event.",
+    )
+    memo_status: str | None = Field(
+        default=None,
+        description="Memo evidence readiness recorded by the source audit event.",
+    )
     memo_hash: str | None = None
     source_input_hash: str | None = None
     proposal_request_hash: str | None = None

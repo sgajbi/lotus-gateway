@@ -4,6 +4,27 @@ Last updated: 2026-08-26
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2Z — proposal memo source-contract alignment (#652)
+
+- Objective: restore canonical Workbench memo review by keeping Gateway's closed typed consumer
+  contract synchronized with bounded review and audit evidence now published by Advise.
+- Finding: Advise returned successful memo detail/create and replay-evidence payloads containing
+  review idempotency/hash fields plus audit-event memo/lifecycle status. Gateway's closed models
+  omitted those named fields, so both routes failed safely with
+  `ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID` and Workbench correctly withheld action success.
+- Change: add the exact optional fields to `ProposalMemoReviewPosture` and
+  `ProposalMemoAuditReason`; retain `extra="forbid"`; exercise the current source shape in
+  contract and service tests; and synchronize the public contract and wiki API truth.
+- Same-pattern result: memo detail/create, nested action responses, and replay evidence all reuse
+  the two corrected closed models. Live Advise memo and replay payloads now validate without an
+  opaque pass-through or Gateway-owned lifecycle inference.
+- Validation: focused contract/service tests, direct live source model validation, repository
+  gates, targeted Gateway refresh, canonical ingress probes, and Workbench canonical validation
+  are recorded on issue #652 and its PR.
+- Guidance decision: no skill or central-context change is required. Existing backend contract
+  governance already requires closed source-faithful models and live counterpart proof; this gap
+  is now executable in repo-native tests and contract documentation.
+
 ### Batch 2Y — bank the measured dependency-quality improvement (#646)
 
 - Objective: make the Quality Baseline capture the real deptry improvement delivered by #645,

@@ -87,6 +87,22 @@ class ProposalMemoReviewPosture(_ClosedMemoModel):
     event_id: str | None = None
     actor_id: str | None = None
     occurred_at: str | None = None
+    idempotency_key: str | None = Field(
+        default=None,
+        description="Source-owned idempotency key for the recorded memo review.",
+    )
+    idempotency_request_hash: str | None = Field(
+        default=None,
+        description="Source-owned hash of the idempotent memo-review request.",
+    )
+    memo_hash: str | None = Field(
+        default=None,
+        description="Memo hash recorded by the review event.",
+    )
+    source_input_hash: str | None = Field(
+        default=None,
+        description="Source-input hash recorded by the review event.",
+    )
     review_action: str | None = None
     review_reason: str | None = None
     source_memo_hash: str | None = None
