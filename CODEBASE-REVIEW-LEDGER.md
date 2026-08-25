@@ -1405,3 +1405,25 @@ Reference branch: `origin/main`
   the new source-backed contract. No database schema, migration, central platform context, skill,
   supported-feature owner, or CI gate change is needed; existing repository-native quality gates
   remain mandatory.
+
+## Strict Allocation OpenAPI Contract (#649)
+
+- Scope: close only the Gateway-owned `PortfolioAllocation*` response graph published by the
+  allocation route; shared `PortfolioSummary` and Core source-reader contracts remain outside this
+  bounded hardening slice.
+- Finding: the new contributor and look-through models inherited permissive Pydantic defaults, so
+  OpenAPI did not assert `additionalProperties: false`; a consumer could generate against an
+  unintentionally free-form nested response shape.
+- Change: add one strict allocation contract base and apply it consistently to the allocation
+  bucket, view, response, contributor, and look-through models. Keep `extra="ignore"` on the
+  anti-corruption source models so additive Core fields remain forward-readable.
+- Measured signal: recursive OpenAPI fitness visits the allocation-owned schema graph and fails if
+  any reachable allocation object is missing closure or reintroduces `additionalProperties: true`.
+  The regression also proves the fitness function catches a deliberately permissive nested schema.
+- Compatibility: no response field, route, source calculation, migration, authentication, or
+  runtime change; this is a published-schema tightening with no current Workbench consumer
+  migration required. Shared summary schema behavior is unchanged.
+- Documentation decision: supported-features, API-surface wiki, repository context, and this ledger
+  record the closed public graph. No central platform context, RFC, migration, or new CI workflow
+  change is needed; the existing contract test runs in the native PR/main lanes. Wiki publication
+  and strict parity remain required after merge.
