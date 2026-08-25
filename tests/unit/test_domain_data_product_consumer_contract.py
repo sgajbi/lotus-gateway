@@ -96,6 +96,7 @@ def _resolve_route_templates(
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
     own_parameters: frozenset[str] = frozenset(),
+    quote_provenance_is_safe: bool = False,
 ) -> set[str]:
     if isinstance(expression, ast.Name):
         if expression.id in resolving or expression.id not in assignments:
@@ -105,6 +106,7 @@ def _resolve_route_templates(
             assignments,
             resolving | {expression.id},
             own_parameters,
+            quote_provenance_is_safe,
         )
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return {expression.value}
@@ -114,10 +116,18 @@ def _resolve_route_templates(
             if isinstance(value, ast.Constant) and isinstance(value.value, str):
                 template += value.value
             elif isinstance(value, ast.FormattedValue):
-                if _route_interpolation_is_opaque(value.value, own_parameters, assignments) or (
+                if _route_interpolation_is_opaque(
+                    value.value,
+                    own_parameters,
+                    assignments,
+                    quote_provenance_is_safe=quote_provenance_is_safe,
+                ) or (
                     value.format_spec is not None
                     and _route_interpolation_is_opaque(
-                        value.format_spec, own_parameters, assignments
+                        value.format_spec,
+                        own_parameters,
+                        assignments,
+                        quote_provenance_is_safe=quote_provenance_is_safe,
                     )
                 ):
                     return set()
@@ -127,10 +137,18 @@ def _resolve_route_templates(
         return {template}
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
         left_templates = _resolve_route_templates(
-            expression.left, assignments, resolving, own_parameters
+            expression.left,
+            assignments,
+            resolving,
+            own_parameters,
+            quote_provenance_is_safe,
         )
         right_templates = _resolve_route_templates(
-            expression.right, assignments, resolving, own_parameters
+            expression.right,
+            assignments,
+            resolving,
+            own_parameters,
+            quote_provenance_is_safe,
         )
         return {left + right for left in left_templates for right in right_templates}
     if (
@@ -139,7 +157,11 @@ def _resolve_route_templates(
         and expression.func.attr == "format"
     ):
         return _resolve_route_templates(
-            expression.func.value, assignments, resolving, own_parameters
+            expression.func.value,
+            assignments,
+            resolving,
+            own_parameters,
+            quote_provenance_is_safe,
         )
     return set()
 
@@ -160,14 +182,63 @@ def _resolves_to_empty_string(
     return False
 
 
+def _target_binds_name(target: ast.AST, name: str) -> bool:
+    return any(isinstance(node, ast.Name) and node.id == name for node in ast.walk(target))
+
+
+def _quote_provenance_is_safe(tree: ast.Module) -> bool:
+    trusted_import = False
+    rebound = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            for imported in node.names:
+                bound_name = imported.asname or imported.name.split(".", maxsplit=1)[0]
+                if (
+                    node.module == "urllib.parse"
+                    and imported.name == "quote"
+                    and bound_name == "quote"
+                ):
+                    trusted_import = True
+                elif bound_name == "quote":
+                    rebound = True
+        elif isinstance(node, ast.Import):
+            for imported in node.names:
+                bound_name = imported.asname or imported.name.split(".", maxsplit=1)[0]
+                if bound_name == "quote":
+                    rebound = True
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            rebound |= node.name == "quote"
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            rebound |= any(_target_binds_name(target, "quote") for target in targets)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            rebound |= _target_binds_name(node.target, "quote")
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            rebound |= any(
+                item.optional_vars is not None and _target_binds_name(item.optional_vars, "quote")
+                for item in node.items
+            )
+        elif isinstance(node, ast.ExceptHandler):
+            rebound |= node.name == "quote"
+        elif isinstance(node, ast.comprehension):
+            rebound |= _target_binds_name(node.target, "quote")
+        elif isinstance(node, ast.MatchAs):
+            rebound |= node.name == "quote"
+    return trusted_import and not rebound
+
+
 def _route_interpolation_is_opaque(
     expression: ast.AST,
     own_parameters: frozenset[str],
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
+    *,
+    quote_provenance_is_safe: bool = False,
 ) -> bool:
     if isinstance(expression, ast.Call):
         if isinstance(expression.func, ast.Name) and expression.func.id == "quote":
+            if not quote_provenance_is_safe:
+                return True
             safe_keyword = next(
                 (keyword for keyword in expression.keywords if keyword.arg == "safe"),
                 None,
@@ -183,7 +254,13 @@ def _route_interpolation_is_opaque(
                 *(keyword.value for keyword in expression.keywords if keyword is not safe_keyword),
             ]
             return any(
-                _route_interpolation_is_opaque(argument, own_parameters, assignments, resolving)
+                _route_interpolation_is_opaque(
+                    argument,
+                    own_parameters,
+                    assignments,
+                    resolving,
+                    quote_provenance_is_safe=quote_provenance_is_safe,
+                )
                 for argument in arguments
             )
         return True
@@ -193,7 +270,11 @@ def _route_interpolation_is_opaque(
         if expression.id in resolving or expression.id not in assignments:
             return True
         return _route_interpolation_is_opaque(
-            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
+            assignments[expression.id],
+            own_parameters,
+            assignments,
+            resolving | {expression.id},
+            quote_provenance_is_safe=quote_provenance_is_safe,
         )
     if isinstance(expression, ast.Constant):
         return False
@@ -201,15 +282,31 @@ def _route_interpolation_is_opaque(
         return not (isinstance(expression.value, ast.Name) and expression.value.id == "self")
     if isinstance(expression, ast.Subscript):
         return _route_interpolation_is_opaque(
-            expression.value, own_parameters, assignments, resolving
+            expression.value,
+            own_parameters,
+            assignments,
+            resolving,
+            quote_provenance_is_safe=quote_provenance_is_safe,
         ) or _route_interpolation_is_opaque(
-            expression.slice, own_parameters, assignments, resolving
+            expression.slice,
+            own_parameters,
+            assignments,
+            resolving,
+            quote_provenance_is_safe=quote_provenance_is_safe,
         )
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
         return _route_interpolation_is_opaque(
-            expression.left, own_parameters, assignments, resolving
+            expression.left,
+            own_parameters,
+            assignments,
+            resolving,
+            quote_provenance_is_safe=quote_provenance_is_safe,
         ) or _route_interpolation_is_opaque(
-            expression.right, own_parameters, assignments, resolving
+            expression.right,
+            own_parameters,
+            assignments,
+            resolving,
+            quote_provenance_is_safe=quote_provenance_is_safe,
         )
     return True
 
@@ -217,6 +314,7 @@ def _route_interpolation_is_opaque(
 def _route_argument_templates(
     node: ast.AsyncFunctionDef | ast.FunctionDef,
     assignments: dict[str, ast.AST],
+    quote_provenance_is_safe: bool = False,
 ) -> list[tuple[set[str], bool]]:
     routes: list[tuple[set[str], bool]] = []
     own_parameters = _function_parameter_names(node)
@@ -230,6 +328,7 @@ def _route_argument_templates(
                 keyword.value,
                 assignments,
                 own_parameters=own_parameters,
+                quote_provenance_is_safe=quote_provenance_is_safe,
             )
             unresolved = not resolved or not any(
                 _has_concrete_route_segment(route_template) for route_template in resolved
@@ -275,11 +374,16 @@ def _function_parameter_names(node: ast.AsyncFunctionDef | ast.FunctionDef) -> f
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
     routes: set[str] = set()
     module_assignments = _assignment_values(tree)
+    quote_provenance_is_safe = _quote_provenance_is_safe(tree)
     for node in ast.walk(tree):
         if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
             continue
         assignments = module_assignments | _assignment_values(node)
-        for route_templates, _ in _route_argument_templates(node, assignments):
+        for route_templates, _ in _route_argument_templates(
+            node,
+            assignments,
+            quote_provenance_is_safe=quote_provenance_is_safe,
+        ):
             routes.update(route for route in route_templates if _has_concrete_route_segment(route))
     return routes
 
@@ -310,6 +414,7 @@ def _implemented_core_domain_product_reads(
         source = client_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(client_path))
         module_assignments = _assignment_values(tree)
+        quote_provenance_is_safe = _quote_provenance_is_safe(tree)
         for node in ast.walk(tree):
             if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
                 continue
@@ -317,7 +422,11 @@ def _implemented_core_domain_product_reads(
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            for route_templates, unresolved_route in _route_argument_templates(node, assignments):
+            for route_templates, unresolved_route in _route_argument_templates(
+                node,
+                assignments,
+                quote_provenance_is_safe=quote_provenance_is_safe,
+            ):
                 integration_routes = {
                     route
                     for template in route_templates
@@ -635,6 +744,8 @@ def test_private_helper_route_exemption_requires_caller_supplied_expression(
 ) -> None:
     (tmp_path / "lotus_core_private_helper_client.py").write_text(
         """
+from urllib.parse import quote
+
 HIDDEN_ROUTE_PREFIX = "/integration/hidden-product/"
 
 class FakeCoreClient:
@@ -673,6 +784,9 @@ class FakeCoreClient:
 
     async def _get_default_quote_route(self, path):
         return await self._request(url=f"{quote(path)}/suffix")
+
+    async def _get_safe_quote_route(self, path):
+        return await self._request(url=f"{quote(path, safe='')}/suffix")
 
     async def _get_assigned_internal_route(self, path):
         route = build_route(path)
@@ -746,6 +860,11 @@ class FakeCoreClient:
         "_get_literal_fstring_route",
         "/integration/hidden-product/{}",
     ) in implemented
+    assert (
+        "lotus_core_private_helper_client.py",
+        "_get_safe_quote_route",
+        _UNRESOLVED_ROUTE_TEMPLATE,
+    ) not in implemented
 
     with pytest.raises(AssertionError) as exc_info:
         _assert_implemented_core_reads_are_declared(tmp_path)
@@ -762,6 +881,62 @@ class FakeCoreClient:
         "_get_parameter_varargs",
     ):
         assert caller_parameter_helper in message
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        """
+def quote(value, safe=""):
+    return value
+
+class FakeCoreClient:
+    async def _get_local_quote_route(self, path):
+        return await self._request(url=f"{quote(path, safe='')}/suffix")
+""",
+        """
+from local_helpers import quote
+
+class FakeCoreClient:
+    async def _get_external_quote_route(self, path):
+        return await self._request(url=f"{quote(path, safe='')}/suffix")
+""",
+        """
+from urllib.parse import quote
+
+def passthrough(value, safe=""):
+    return value
+
+quote = passthrough
+
+class FakeCoreClient:
+    async def _get_rebound_quote_route(self, path):
+        return await self._request(url=f"{quote(path, safe='')}/suffix")
+""",
+        """
+from urllib.parse import quote as q
+
+class FakeCoreClient:
+    async def _get_aliased_quote_route(self, path):
+        return await self._request(url=f"{q(path, safe='')}/suffix")
+""",
+    ),
+)
+def test_quote_route_interpolation_requires_trusted_provenance(
+    tmp_path: Path,
+    source: str,
+) -> None:
+    client_path = tmp_path / "lotus_core_quote_provenance_client.py"
+    client_path.write_text(source.strip() + "\n", encoding="utf-8")
+
+    implemented = _implemented_core_domain_product_reads(tmp_path)
+
+    assert any(
+        module == client_path.name
+        and method.startswith("_get_")
+        and route == _UNRESOLVED_ROUTE_TEMPLATE
+        for module, method, route in implemented
+    )
 
 
 def test_unresolved_routes_require_named_generic_transport_allowlist(tmp_path: Path) -> None:
