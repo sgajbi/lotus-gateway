@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from datetime import date
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendResponse
 from app.contracts.performance_currency import ReportingCurrencyState
-from app.contracts.workbench import WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_attribution import parse_attribution_trend_results
 from app.services.performance_workspace_attribution_trend import (
@@ -15,7 +14,6 @@ from app.services.performance_workspace_attribution_trend import (
 )
 from app.services.performance_workspace_context import (
     AttributionTrendRequestContext,
-    WorkspaceBenchmarkContext,
     WorkspaceOverviewState,
     WorkspaceReportWindow,
     assemble_attribution_trend_request_context,
@@ -25,9 +23,14 @@ from app.services.performance_workspace_controls import build_attribution_trend_
 from app.services.performance_workspace_response import GatheredResult
 from app.services.workspace_client_protocols import PerformanceWorkspaceAnalyticsClient
 
+if TYPE_CHECKING:
+    from app.services.performance_workspace_context import WorkspaceBenchmarkContext
+
 
 class PerformanceWorkspaceAttributionTrendServiceMixin:
     _analytics_client: PerformanceWorkspaceAnalyticsClient
+    if TYPE_CHECKING:
+        _build_workspace_benchmark_context: Callable[..., Awaitable[WorkspaceBenchmarkContext]]
 
     async def get_performance_attribution_trend(
         self,
@@ -190,8 +193,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             reporting_currency=reporting_currency,
             benchmark_code=benchmark_code,
             include_benchmark_catalog=False,
-            warnings=overview_state.warnings,
-            partial_failures=overview_state.partial_failures,
+            overview_state=overview_state,
         )
         return assemble_attribution_trend_request_context(
             overview_state=overview_state,
@@ -303,18 +305,4 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
         explicit_start_date: str | None,
         explicit_end_date: str | None,
     ) -> WorkspaceReportWindow:
-        raise NotImplementedError
-
-    async def _build_workspace_benchmark_context(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        report_end_date: str,
-        reporting_currency: str,
-        benchmark_code: str | None,
-        include_benchmark_catalog: bool,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> WorkspaceBenchmarkContext:
         raise NotImplementedError
