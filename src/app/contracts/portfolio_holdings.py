@@ -1,5 +1,12 @@
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
 
+from app.contracts.portfolio_allocation import (
+    PortfolioAllocationContributor,
+    PortfolioAllocationLookThroughCapability,
+    PortfolioLookThroughMode,
+)
 from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 from app.contracts.portfolio_position_book import (
     PortfolioPositionBookResponse,
@@ -9,7 +16,9 @@ from app.contracts.portfolio_position_book import (
 
 __all__ = [
     "PortfolioAllocationBucket",
+    "PortfolioAllocationContributor",
     "PortfolioAllocationLookThroughCapability",
+    "PortfolioLookThroughMode",
     "PortfolioAllocationResponse",
     "PortfolioAllocationView",
     "PortfolioBookResponse",
@@ -64,10 +73,43 @@ class PortfolioAllocationBucket(BaseModel):
         description="Bucket market value expressed in portfolio base currency.",
         examples=[700.0],
     )
+    market_value_reporting_currency: Decimal = Field(
+        default=Decimal("0.00"),
+        description=(
+            "Exact source bucket value in the effective reporting currency. This field is the "
+            "reconciliation denominator for contributor values and omitted residuals."
+        ),
+        examples=["700.123"],
+    )
     weight_pct: float | None = Field(
         default=None,
         description="Bucket weight as a percentage of portfolio assets under management.",
         examples=[70.0],
+    )
+    contributor_count: int = Field(
+        default=0,
+        description="Total source contributor rows included in this allocation bucket.",
+        examples=[2],
+    )
+    contributors: list[PortfolioAllocationContributor] = Field(
+        default_factory=list,
+        description=(
+            "Bounded source-owned contributor lineage ordered by Core. Direct positions and "
+            "look-through components are preserved without Gateway recalculation."
+        ),
+    )
+    contributors_truncated: bool = Field(
+        default=False,
+        description="Whether Core omitted contributors beyond the requested per-bucket limit.",
+        examples=[False],
+    )
+    omitted_market_value_reporting_currency: Decimal = Field(
+        default=Decimal("0.00"),
+        description=(
+            "Exact source-owned signed value omitted from the bounded contributor list. "
+            "Contributor values plus this residual reconcile to market_value_reporting_currency."
+        ),
+        examples=["0.00"],
     )
 
 
@@ -89,21 +131,6 @@ class PortfolioAllocationView(BaseModel):
                 }
             ]
         ],
-    )
-
-
-class PortfolioAllocationLookThroughCapability(BaseModel):
-    requested_mode: str = Field(
-        description="Look-through mode requested by the consumer for the allocation query.",
-        examples=["full"],
-    )
-    effective_mode: str = Field(
-        description="Look-through mode actually applied by the upstream allocation service.",
-        examples=["direct_only"],
-    )
-    applied: bool = Field(
-        description="Whether the requested look-through expansion was applied in the response.",
-        examples=[False],
     )
 
 
@@ -140,9 +167,12 @@ class PortfolioAllocationResponse(BaseModel):
         ),
         examples=[
             {
-                "requested_mode": "full",
+                "requested_mode": "prefer_look_through",
                 "effective_mode": "direct_only",
                 "applied": False,
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": "Look-through components were not available.",
             }
         ],
     )
