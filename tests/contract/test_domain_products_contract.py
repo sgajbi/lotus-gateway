@@ -79,12 +79,19 @@ def test_domain_product_discovery_response_schemas_are_documented() -> None:
     assert dependency["properties"]["requiredTrustMetadata"]["description"]
     assert dependency["properties"]["validationLanes"]["description"]
     assert dependency["properties"]["failurePosture"]["examples"] == ["fail_closed"]
+    assert dependency["properties"]["failurePostureConditions"]["description"]
+    condition = schemas["DomainProductFailurePostureCondition"]
+    assert condition["properties"]["condition"]["description"]
+    assert condition["properties"]["posture"]["description"]
+    assert condition["properties"]["reasonCodes"]["description"]
+    assert condition["properties"]["behavior"]["description"]
 
     assert graph_data["properties"]["nodes"]["description"]
     assert graph_data["properties"]["governedByRfcs"]["description"]
     assert graph_data["properties"]["edges"]["description"]
     assert graph_edge["properties"]["edgeType"]["description"]
     assert graph_edge["properties"]["failurePosture"]["description"]
+    assert graph_edge["properties"]["failurePostureConditions"]["description"]
 
     assert trust_data["properties"]["trustAvailable"]["description"]
     assert trust_data["properties"]["trustPosture"]["examples"] == [

@@ -88,6 +88,14 @@ def _catalog_payload() -> dict[str, Any]:
                         "business_purpose": "Source risk analytics input state.",
                         "validation_lanes": ["feature", "pr-merge"],
                         "failure_posture": "fail_closed",
+                        "failure_posture_conditions": [
+                            {
+                                "condition": "portfolio state is unavailable",
+                                "posture": "fail_closed",
+                                "reason_codes": ["PORTFOLIO_STATE_UNAVAILABLE"],
+                                "behavior": "Do not calculate risk metrics.",
+                            }
+                        ],
                     }
                 ],
             }
@@ -128,6 +136,14 @@ def _graph_payload() -> dict[str, Any]:
                 "to": "product:lotus-core:PortfolioStateSnapshot:v1",
                 "consumption_mode": "api_read",
                 "failure_posture": "fail_closed",
+                "failure_posture_conditions": [
+                    {
+                        "condition": "portfolio state is unavailable",
+                        "posture": "fail_closed",
+                        "reason_codes": ["PORTFOLIO_STATE_UNAVAILABLE"],
+                        "behavior": "Do not calculate risk metrics.",
+                    }
+                ],
                 "validation_lanes": ["feature", "pr-merge"],
             }
         ],
@@ -211,6 +227,9 @@ async def test_service_preserves_catalog_trust_and_dependency_context(tmp_path: 
         "data_quality_status",
     ]
     assert data.consumers[0].dependencies[0].failure_posture == "fail_closed"
+    condition = data.consumers[0].dependencies[0].failure_posture_conditions[0]
+    assert condition.condition == "portfolio state is unavailable"
+    assert condition.reason_codes == ["PORTFOLIO_STATE_UNAVAILABLE"]
     assert data.consumers[0].dependencies[0].validation_lanes == ["feature", "pr-merge"]
 
 
@@ -246,6 +265,7 @@ async def test_service_get_dependency_graph_preserves_consumption_posture(tmp_pa
     assert response.data.edges[0].edge_type == "consumes"
     assert response.data.edges[0].from_node == "repo:lotus-risk"
     assert response.data.edges[0].failure_posture == "fail_closed"
+    assert response.data.edges[0].failure_posture_conditions[0].posture == "fail_closed"
 
 
 @pytest.mark.asyncio
