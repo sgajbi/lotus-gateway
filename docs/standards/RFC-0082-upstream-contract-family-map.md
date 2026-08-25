@@ -186,10 +186,12 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    domain-product reads. The RFC-0084 unit gate now checks both the declared route inventory and
    Core client route arguments in async or sync methods, including `path=`/`url=` transport shapes,
    normalized route identity for every discovered integration path, module-level route visibility
-   with an explicit DTO-only exemption, and caller-parameter tracing for unresolved private helper
-   routes. Private helpers are exempt only for supported parameter-derived expressions that contain
-   no opaque component and contribute no `/integration/`-bearing literal of their own; arbitrary
-   internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
+   with an explicit DTO-only exemption, and fail-closed handling for unresolved routes. Private
+   helpers are not exempt merely because they accept caller parameters; only the small, named
+   module/method allowlist for generic Core transport helpers is exempt, with a reason recorded for
+   each entry and explicit additions required for new helpers. Opaque f-string interpolations are
+   unresolved, while URL-encoding a caller-supplied segment is a known safe interpolation.
+   Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations. This batch records the Core
    analytics-reference, benchmark, and external OMS supportability dependencies without
    transferring their domain ownership to Gateway.

@@ -104,11 +104,12 @@ Current repository posture:
    and the RFC-0084 unit gate statically checks Core client route arguments in async or sync methods
    under `lotus_core*.py` against that inventory in both directions, including `path=`/`url=` shapes,
    normalized route identity for every discovered integration path, and module-level route
-   visibility with an explicit DTO-only exemption. Unresolved private helper routes are exempt
-   only when a conservative AST trace reaches that helper's own caller-supplied parameters
-   through supported aliases, f-string/concatenation, or attribute/subscript forms, contains no
-   opaque component, and contributes no `/integration/`-bearing literal of its own; arbitrary
-   internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
+   visibility with an explicit DTO-only exemption. Unresolved routes fail closed by default,
+   including private helpers that happen to accept a caller-supplied path. The only exceptions
+   are the small, named module/method allowlist for generic Core transport helpers, with a reason
+   recorded beside each entry; new generic helpers must be added explicitly. Opaque f-string
+   interpolations are unresolved, while URL-encoding a caller-supplied segment remains a known
+   safe interpolation. Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations,
 5. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
