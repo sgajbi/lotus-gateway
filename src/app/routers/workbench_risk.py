@@ -91,7 +91,9 @@ async def _get_workbench_risk_summary(
         "concentration, drawdown, rolling, or attribution. This endpoint uses the RFC-0022 "
         "Risk BFF contract and does not expose stateless risk execution to the UI. Sharpe "
         "supportability follows lotus-risk risk-free dependency status; gateway does not "
-        "assume a zero risk-free fallback."
+        "assume a zero risk-free fallback. The response also composes the approved Manage "
+        "mandate, review cadence, and date-aligned cash and tracking-error evidence so advisors "
+        "can distinguish mandate headroom from an undefined or unavailable limit."
     ),
 )
 async def get_workbench_risk_summary(

@@ -80,7 +80,9 @@ async def _get_risk_concentration(
         "position, issuer, and coverage concentration review. Use this route when the user "
         "needs issuer mapping coverage, top-position concentration, or concentration posture "
         "beyond the headline risk summary. Simulation concentration remains gated to a future "
-        "sandbox-aware slice."
+        "sandbox-aware slice. When Manage supplies approved position or issuer limits, the "
+        "response includes signed headroom on the same Risk-owned valuation basis and never "
+        "classifies an exposure without a source limit."
     ),
 )
 async def get_workbench_risk_concentration(
