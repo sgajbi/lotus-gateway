@@ -21,8 +21,41 @@ ROUTE_INVENTORY_PATH = (
 _ROUTE_TEMPLATE_PLACEHOLDER_PATTERN = re.compile(r"\{[^{}]*\}")
 _UNRESOLVED_ROUTE_TEMPLATE = "<unresolved integration route>"
 _ROUTE_ARGUMENT_NAMES = frozenset({"path", "url"})
+_ROUTE_TEMPLATE_SAFE_INTERPOLATION_CALLS = {
+    "quote": "URL-encodes a caller-supplied path segment without choosing a route family",
+}
 _CORE_CLIENT_ROUTE_VISIBILITY_EXEMPTIONS = {
     "lotus_core_transaction_params.py": "parameter and DTO definitions only; no transport calls",
+}
+_UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTIONS = {
+    (
+        "lotus_core_ingestion_client.py",
+        "_upload",
+    ): "generic upload transport composes the base URL with a caller-supplied path",
+    (
+        "lotus_core_lookup_client.py",
+        "_get_lookup",
+    ): "generic lookup transport forwards a caller-supplied path to the query helper",
+    (
+        "lotus_core_query_client.py",
+        "_get_query_resource",
+    ): "generic query transport composes the query base URL with a caller-supplied path",
+    (
+        "lotus_core_query_client.py",
+        "_post_query_resource",
+    ): "generic query transport composes the query base URL with a caller-supplied path",
+    (
+        "lotus_core_query_client.py",
+        "_get_control_plane_resource",
+    ): "generic control-plane transport composes its base URL with a caller-supplied path",
+    (
+        "lotus_core_query_client.py",
+        "_post_control_plane_resource",
+    ): "generic control-plane transport composes its base URL with a caller-supplied path",
+    (
+        "lotus_core_query_client.py",
+        "_request",
+    ): "generic HTTP transport receives its URL from the caller-supplied helper route",
 }
 
 
@@ -65,12 +98,16 @@ def _resolve_route_templates(
     expression: ast.AST,
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
+    own_parameters: frozenset[str] = frozenset(),
 ) -> set[str]:
     if isinstance(expression, ast.Name):
         if expression.id in resolving or expression.id not in assignments:
             return set()
         return _resolve_route_templates(
-            assignments[expression.id], assignments, resolving | {expression.id}
+            assignments[expression.id],
+            assignments,
+            resolving | {expression.id},
+            own_parameters,
         )
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return {expression.value}
@@ -80,39 +117,102 @@ def _resolve_route_templates(
             if isinstance(value, ast.Constant) and isinstance(value.value, str):
                 template += value.value
             elif isinstance(value, ast.FormattedValue):
+                if _route_interpolation_is_opaque(value.value, own_parameters, assignments) or (
+                    value.format_spec is not None
+                    and _route_interpolation_is_opaque(
+                        value.format_spec, own_parameters, assignments
+                    )
+                ):
+                    return set()
                 template += "{}"
             else:
                 return set()
         return {template}
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        left_templates = _resolve_route_templates(expression.left, assignments, resolving)
-        right_templates = _resolve_route_templates(expression.right, assignments, resolving)
+        left_templates = _resolve_route_templates(
+            expression.left, assignments, resolving, own_parameters
+        )
+        right_templates = _resolve_route_templates(
+            expression.right, assignments, resolving, own_parameters
+        )
         return {left + right for left in left_templates for right in right_templates}
     if (
         isinstance(expression, ast.Call)
         and isinstance(expression.func, ast.Attribute)
         and expression.func.attr == "format"
     ):
-        return _resolve_route_templates(expression.func.value, assignments, resolving)
+        return _resolve_route_templates(
+            expression.func.value, assignments, resolving, own_parameters
+        )
     return set()
+
+
+def _route_interpolation_is_opaque(
+    expression: ast.AST,
+    own_parameters: frozenset[str],
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> bool:
+    if isinstance(expression, ast.Call):
+        if isinstance(expression.func, ast.Name) and expression.func.id in (
+            _ROUTE_TEMPLATE_SAFE_INTERPOLATION_CALLS
+        ):
+            return any(
+                _route_interpolation_is_opaque(argument, own_parameters, assignments, resolving)
+                for argument in (
+                    *expression.args,
+                    *(keyword.value for keyword in expression.keywords),
+                )
+            )
+        return True
+    if isinstance(expression, ast.Name):
+        if expression.id in own_parameters:
+            return False
+        if expression.id in resolving or expression.id not in assignments:
+            return True
+        return _route_interpolation_is_opaque(
+            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
+        )
+    if isinstance(expression, ast.Constant):
+        return False
+    if isinstance(expression, ast.Attribute):
+        return not (isinstance(expression.value, ast.Name) and expression.value.id == "self")
+    if isinstance(expression, ast.Subscript):
+        return _route_interpolation_is_opaque(
+            expression.value, own_parameters, assignments, resolving
+        ) or _route_interpolation_is_opaque(
+            expression.slice, own_parameters, assignments, resolving
+        )
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
+        return _route_interpolation_is_opaque(
+            expression.left, own_parameters, assignments, resolving
+        ) or _route_interpolation_is_opaque(
+            expression.right, own_parameters, assignments, resolving
+        )
+    return True
 
 
 def _route_argument_templates(
     node: ast.AsyncFunctionDef | ast.FunctionDef,
     assignments: dict[str, ast.AST],
-) -> list[tuple[ast.AST, set[str], bool]]:
-    routes: list[tuple[ast.AST, set[str], bool]] = []
+) -> list[tuple[set[str], bool]]:
+    routes: list[tuple[set[str], bool]] = []
+    own_parameters = _function_parameter_names(node)
     for call in ast.walk(node):
         if not isinstance(call, ast.Call):
             continue
         for keyword in call.keywords:
             if keyword.arg not in _ROUTE_ARGUMENT_NAMES:
                 continue
-            resolved = _resolve_route_templates(keyword.value, assignments)
+            resolved = _resolve_route_templates(
+                keyword.value,
+                assignments,
+                own_parameters=own_parameters,
+            )
             unresolved = not resolved or not any(
                 _has_concrete_route_segment(route_template) for route_template in resolved
             )
-            routes.append((keyword.value, resolved, unresolved))
+            routes.append((resolved, unresolved))
     return routes
 
 
@@ -150,148 +250,6 @@ def _function_parameter_names(node: ast.AsyncFunctionDef | ast.FunctionDef) -> f
     return frozenset(parameter_names)
 
 
-def _expression_references_own_parameter(
-    expression: ast.AST,
-    own_parameters: frozenset[str],
-    assignments: dict[str, ast.AST],
-    resolving: frozenset[str] = frozenset(),
-) -> bool:
-    if isinstance(expression, ast.Name):
-        if expression.id in own_parameters:
-            return True
-        if expression.id in resolving or expression.id not in assignments:
-            return False
-        return _expression_references_own_parameter(
-            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
-        )
-    if isinstance(expression, ast.JoinedStr):
-        return any(
-            _expression_references_own_parameter(
-                value.value, own_parameters, assignments, resolving
-            )
-            for value in expression.values
-            if isinstance(value, ast.FormattedValue)
-        )
-    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        return _expression_references_own_parameter(
-            expression.left, own_parameters, assignments, resolving
-        ) or _expression_references_own_parameter(
-            expression.right, own_parameters, assignments, resolving
-        )
-    if isinstance(expression, ast.Attribute):
-        return _expression_references_own_parameter(
-            expression.value, own_parameters, assignments, resolving
-        )
-    if isinstance(expression, ast.Subscript):
-        return _expression_references_own_parameter(
-            expression.value, own_parameters, assignments, resolving
-        )
-    return False
-
-
-def _expression_contains_opaque_component(
-    expression: ast.AST,
-    own_parameters: frozenset[str],
-    assignments: dict[str, ast.AST],
-    resolving: frozenset[str] = frozenset(),
-) -> bool:
-    if isinstance(expression, ast.Call):
-        return True
-    if isinstance(expression, ast.Name):
-        if expression.id in own_parameters:
-            return False
-        if expression.id in resolving or expression.id not in assignments:
-            return True
-        return _expression_contains_opaque_component(
-            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
-        )
-    if isinstance(expression, ast.Constant):
-        return False
-    if isinstance(expression, ast.JoinedStr):
-        for value in expression.values:
-            if not isinstance(value, ast.FormattedValue):
-                continue
-            if _expression_contains_opaque_component(
-                value.value, own_parameters, assignments, resolving
-            ):
-                return True
-            if value.format_spec is not None and _expression_contains_opaque_component(
-                value.format_spec, own_parameters, assignments, resolving
-            ):
-                return True
-        return False
-    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        return _expression_contains_opaque_component(
-            expression.left, own_parameters, assignments, resolving
-        ) or _expression_contains_opaque_component(
-            expression.right, own_parameters, assignments, resolving
-        )
-    if isinstance(expression, ast.Attribute):
-        if isinstance(expression.value, ast.Call):
-            return True
-        if isinstance(expression.value, (ast.Name, ast.Attribute)):
-            return False
-        return _expression_contains_opaque_component(
-            expression.value, own_parameters, assignments, resolving
-        )
-    if isinstance(expression, ast.Subscript):
-        return _expression_contains_opaque_component(
-            expression.value, own_parameters, assignments, resolving
-        ) or _expression_contains_opaque_component(
-            expression.slice, own_parameters, assignments, resolving
-        )
-    return True
-
-
-def _expression_contains_integration_literal(
-    expression: ast.AST,
-    assignments: dict[str, ast.AST],
-    resolving: frozenset[str] = frozenset(),
-) -> bool:
-    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
-        return "/integration/" in expression.value
-    if isinstance(expression, ast.Name):
-        if expression.id in resolving or expression.id not in assignments:
-            return False
-        return _expression_contains_integration_literal(
-            assignments[expression.id], assignments, resolving | {expression.id}
-        )
-    if isinstance(expression, ast.JoinedStr):
-        return any(
-            (
-                isinstance(value, ast.Constant)
-                and isinstance(value.value, str)
-                and "/integration/" in value.value
-            )
-            or (
-                isinstance(value, ast.FormattedValue)
-                and _expression_contains_integration_literal(value.value, assignments, resolving)
-            )
-            for value in expression.values
-        )
-    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        return _expression_contains_integration_literal(
-            expression.left, assignments, resolving
-        ) or _expression_contains_integration_literal(expression.right, assignments, resolving)
-    if isinstance(expression, ast.Subscript):
-        return _expression_contains_integration_literal(
-            expression.value, assignments, resolving
-        ) or _expression_contains_integration_literal(expression.slice, assignments, resolving)
-    return False
-
-
-def _caller_supplied_route_expression(
-    expression: ast.AST,
-    own_parameters: frozenset[str],
-    assignments: dict[str, ast.AST],
-) -> bool:
-    return (
-        _expression_references_own_parameter(expression, own_parameters, assignments)
-        and not _expression_contains_opaque_component(expression, own_parameters, assignments)
-        and not _expression_contains_integration_literal(expression, assignments)
-    )
-
-
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
     routes: set[str] = set()
     module_assignments = _assignment_values(tree)
@@ -299,7 +257,7 @@ def _core_client_route_templates(tree: ast.Module) -> set[str]:
         if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
             continue
         assignments = module_assignments | _assignment_values(node)
-        for _, route_templates, _ in _route_argument_templates(node, assignments):
+        for route_templates, _ in _route_argument_templates(node, assignments):
             routes.update(route for route in route_templates if _has_concrete_route_segment(route))
     return routes
 
@@ -334,15 +292,10 @@ def _implemented_core_domain_product_reads(
             if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
                 continue
             assignments = module_assignments | _assignment_values(node)
-            own_parameters = _function_parameter_names(node)
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            for (
-                route_expression,
-                route_templates,
-                unresolved_route,
-            ) in _route_argument_templates(node, assignments):
+            for route_templates, unresolved_route in _route_argument_templates(node, assignments):
                 integration_routes = {
                     route
                     for template in route_templates
@@ -351,9 +304,7 @@ def _implemented_core_domain_product_reads(
                 if not integration_routes and not unresolved_route:
                     continue
                 if unresolved_route:
-                    if node.name.startswith("_") and _caller_supplied_route_expression(
-                        route_expression, own_parameters, assignments
-                    ):
+                    if (client_path.name, node.name) in _UNRESOLVED_CORE_CLIENT_ROUTE_EXEMPTIONS:
                         continue
                     implemented.add((client_path.name, node.name, _UNRESOLVED_ROUTE_TEMPLATE))
                     continue
@@ -695,12 +646,33 @@ class FakeCoreClient:
     async def _get_fstring_internal_route(self, path):
         return await self._request(url=f"{build_route(path)}{path}")
 
+    async def _get_resolved_opaque_fstring_route(self, path):
+        return await self._request(url=f"{build_route(path)}/suffix")
+
     async def _get_assigned_internal_route(self, path):
         route = build_route(path)
         return await self._request(url=route + path)
 
+    async def _get_reassigned_alias_route(self, path):
+        route = path
+        await self._request(url=route)
+        route = build_route(path)
+        return await self._request(url=route)
+
+    async def _get_attribute_route(self, path):
+        return await self._request(url=self._hidden_integration_route + path)
+
+    async def _get_namespace_attribute_route(self, path):
+        return await self._request(url=ROUTES.hidden + path)
+
     async def _get_literal_route(self, suffix):
         return await self._request(url=HIDDEN_ROUTE_PREFIX + suffix)
+
+    async def _get_split_literal_route(self, suffix):
+        return await self._request(url="/integ" + "ration/hidden/" + suffix)
+
+    async def _get_namespace_boundary_route(self, suffix):
+        return await self._request(url="/integration" + suffix)
 
     async def _get_literal_fstring_route(self, suffix):
         return await self._request(url=f"/integration/hidden-product/{suffix}")
@@ -724,8 +696,17 @@ class FakeCoreClient:
         ("lotus_core_private_helper_client.py", "_get_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_fstring_internal_route"),
+        (
+            "lotus_core_private_helper_client.py",
+            "_get_resolved_opaque_fstring_route",
+        ),
         ("lotus_core_private_helper_client.py", "_get_assigned_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_reassigned_alias_route"),
+        ("lotus_core_private_helper_client.py", "_get_attribute_route"),
+        ("lotus_core_private_helper_client.py", "_get_namespace_attribute_route"),
         ("lotus_core_private_helper_client.py", "_get_literal_route"),
+        ("lotus_core_private_helper_client.py", "_get_split_literal_route"),
+        ("lotus_core_private_helper_client.py", "_get_namespace_boundary_route"),
         ("lotus_core_private_only_client.py", "_get_internal_route"),
     )
     for client_module, client_method in expected_internal_routes:
@@ -747,14 +728,42 @@ class FakeCoreClient:
     assert (
         f"lotus_core_private_helper_client.py:_get_internal_route [{_UNRESOLVED_ROUTE_TEMPLATE}]"
     ) in message
-    for parameter_helper in (
+    for caller_parameter_helper in (
         "_get_parameter_route",
         "_get_parameter_alias",
         "_get_parameter_concat",
         "_get_parameter_fstring",
         "_get_parameter_varargs",
     ):
-        assert parameter_helper not in message
+        assert caller_parameter_helper in message
+
+
+def test_unresolved_routes_require_named_generic_transport_allowlist(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_query_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def _get_query_resource(self, path):
+        return await self._request(url=path)
+
+    async def _unlisted_transport(self, path):
+        return await self._request(url=path)
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    implemented = _implemented_core_domain_product_reads(tmp_path)
+
+    assert (
+        "lotus_core_query_client.py",
+        "_get_query_resource",
+        _UNRESOLVED_ROUTE_TEMPLATE,
+    ) not in implemented
+    assert (
+        "lotus_core_query_client.py",
+        "_unlisted_transport",
+        _UNRESOLVED_ROUTE_TEMPLATE,
+    ) in implemented
 
 
 def test_uncovered_core_client_module_fails_closed(tmp_path: Path) -> None:
