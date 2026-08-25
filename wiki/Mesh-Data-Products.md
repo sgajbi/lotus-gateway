@@ -28,8 +28,9 @@ portfolio remains distinct from an assignment lookup failure, which is surfaced 
 `BENCHMARK_ASSIGNMENT_UNAVAILABLE` warning and Core partial-failure evidence.
 
 The RFC-0084 contract gate checks completeness in both directions: the five declared Core
-domain-product routes must exist in the client source, and asynchronous `/integration/` reads in
-`lotus_core*.py` must be represented in the route inventory. Core capabilities, effective policy,
+domain-product routes must exist in the client source, and asynchronous `/integration/` path
+arguments in `lotus_core*.py` (including local and module-level route assignments) must be
+represented in the route inventory. Core capabilities, effective policy,
 and core-snapshot calls are explicitly classified as non-domain-product control-plane operations;
 an unclassified new Core integration method fails the gate rather than silently escaping the mesh
 declaration.
