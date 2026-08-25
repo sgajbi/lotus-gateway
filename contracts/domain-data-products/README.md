@@ -20,8 +20,9 @@ client method, so an already-inventoried method cannot hide an additional endpoi
 public route construction remains fail-closed. Private helper routes are exempt only when a
 conservative AST trace shows that the route expression is caller-supplied through that helper's
 own parameters, local aliases, supported f-string/concatenation forms, or parameter-derived
-attribute/subscript access; arbitrary route-builder calls remain fail-closed. Every Core client
-module must also expose at least one statically resolvable transport route; the explicit
+attribute/subscript access, and contributes no `/integration/`-bearing string literal of its own;
+arbitrary route-builder calls remain fail-closed. Every Core client module must also expose at least
+one statically resolvable transport route; the explicit
 `lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no transport
 surface. The three explicitly classified Core control-plane/snapshot operations (`capabilities`,
 `policy`, and `core-snapshot`) are outside RFC-0084 domain-product scope. Any new Core integration

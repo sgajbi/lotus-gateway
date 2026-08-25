@@ -35,8 +35,9 @@ route inventory. The comparison includes route identity as well as client method
 inventoried method cannot hide an additional endpoint; unresolved public route construction fails
 closed. Unresolved private routes are exempt only when a conservative AST trace reaches that
 helper's own caller-supplied parameters through local aliases, supported f-string/concatenation
-forms, or parameter-derived attribute/subscript access; arbitrary internal route builders remain
-fail-closed. Every Core client module must expose a statically resolvable transport route; the
+forms, or parameter-derived attribute/subscript access, and contributes no `/integration/`-bearing
+string literal of its own; arbitrary internal route builders remain fail-closed. Every Core client
+module must expose a statically resolvable transport route; the
 explicit `lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no
 transport surface. Core capabilities, effective policy, and core-snapshot calls are explicitly
 classified as non-domain-product control-plane operations. An unclassified new Core integration

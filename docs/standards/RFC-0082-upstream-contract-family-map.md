@@ -187,7 +187,8 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    Core client route arguments in async or sync methods, including `path=`/`url=` transport shapes,
    normalized route identity for every discovered integration path, module-level route visibility
    with an explicit DTO-only exemption, and caller-parameter tracing for unresolved private helper
-   routes. Private helpers are exempt only for supported parameter-derived expressions; arbitrary
+   routes. Private helpers are exempt only for supported parameter-derived expressions that contain
+   no opaque component and contribute no `/integration/`-bearing literal of their own; arbitrary
    internal route builders remain fail-closed. Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations. This batch records the Core
    analytics-reference, benchmark, and external OMS supportability dependencies without
