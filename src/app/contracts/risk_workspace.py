@@ -2,6 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.contracts.risk_mandate_comparison import WorkbenchMandateComparison
 from app.contracts.risk_workspace_attribution import (
     WorkbenchRiskAttributionContributor,
     WorkbenchRiskAttributionControls,
@@ -81,6 +82,7 @@ __all__ = [
     "WorkbenchRiskDrawdownSummary",
     "WorkbenchRiskMetadata",
     "WorkbenchRiskMetric",
+    "WorkbenchMandateComparison",
     "WorkbenchRiskModuleEnvelope",
     "WorkbenchRiskPeriodResult",
     "WorkbenchRiskRelativeDrawdownContext",
@@ -286,12 +288,25 @@ class WorkbenchRiskSummaryResponse(WorkbenchRiskModuleEnvelope):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_SUMMARY_RESPONSE_EXAMPLE})
 
     payload: WorkbenchRiskSummaryPayload | None = None
+    mandate_comparison: WorkbenchMandateComparison | None = Field(
+        default=None,
+        description=(
+            "Manage-owned mandate limits and review policy composed with source-owned risk "
+            "measures for advisor decision support."
+        ),
+    )
 
 
 class WorkbenchRiskConcentrationResponse(WorkbenchRiskModuleEnvelope):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_CONCENTRATION_RESPONSE_EXAMPLE})
 
     payload: WorkbenchRiskConcentrationPayload | None = None
+    mandate_comparison: WorkbenchMandateComparison | None = Field(
+        default=None,
+        description=(
+            "Compact mandate comparison for concentration limits and source-owned measures."
+        ),
+    )
 
 
 class WorkbenchRiskDrawdownResponse(WorkbenchRiskModuleEnvelope):
