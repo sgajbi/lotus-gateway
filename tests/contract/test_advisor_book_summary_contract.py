@@ -25,4 +25,7 @@ def test_advisor_book_summary_openapi_exposes_source_and_coverage_fields() -> No
     assert "total_value" in summary_schema["properties"]
     assert "covered_portfolio_count" in summary_schema["properties"]
     assert item_schema["properties"]["state"]["enum"] == ["supported", "unavailable"]
+    assert (
+        "advisor_book_value_coverage_ambiguous" in item_schema["properties"]["reason_code"]["enum"]
+    )
     assert operation["responses"]["200"]["content"]["application/json"]["example"]

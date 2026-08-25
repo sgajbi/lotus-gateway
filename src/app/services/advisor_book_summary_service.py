@@ -161,7 +161,7 @@ def _response_from_sources(
 ) -> AdvisorBookSummaryResponse:
     value_by_id = {portfolio.portfolio_id: portfolio for portfolio in value_source.portfolios}
     items = _value_items(membership_source=membership_source, value_by_id=value_by_id)
-    covered_count = len(value_by_id)
+    covered_count = sum(item.state == "supported" for item in items)
     all_covered = covered_count == len(membership_source.members)
     return AdvisorBookSummaryResponse(
         correlation_id=correlation_id,
@@ -204,6 +204,14 @@ def _value_items(
                     reason_code="advisor_book_value_not_covered",
                 )
             )
+        elif _is_ambiguous_zero(value):
+            items.append(
+                AdvisorBookValueItem(
+                    portfolio_id=value.portfolio_id,
+                    state="unavailable",
+                    reason_code="advisor_book_value_coverage_ambiguous",
+                )
+            )
         else:
             items.append(
                 AdvisorBookValueItem(
@@ -215,6 +223,12 @@ def _value_items(
                 )
             )
     return items
+
+
+def _is_ambiguous_zero(value: SourceAdvisorBookValuePortfolio) -> bool:
+    """Keep Core's indistinguishable no-snapshot zero out of confident coverage."""
+
+    return value.aum_reporting_currency == 0 and value.position_count == 0
 
 
 def _empty_response(
