@@ -29,11 +29,13 @@ portfolio remains distinct from an assignment lookup failure, which is surfaced 
 
 The RFC-0084 contract gate checks completeness in both directions: the five declared Core
 domain-product routes must exist in the client source, and asynchronous `/integration/` path
-arguments in `lotus_core*.py` (including local and module-level route assignments) must be
-represented in the route inventory. Core capabilities, effective policy,
-and core-snapshot calls are explicitly classified as non-domain-product control-plane operations;
-an unclassified new Core integration method fails the gate rather than silently escaping the mesh
-declaration.
+arguments in `lotus_core*.py` (including local and module-level route assignments, normalized
+f-string and `.format(...)` templates) must be represented in the route inventory. The comparison
+includes route identity as well as client method, so an existing inventoried method cannot hide an
+additional endpoint; unresolved public route construction fails closed. Core capabilities,
+effective policy, and core-snapshot calls are explicitly classified as non-domain-product
+control-plane operations. An unclassified new Core integration route fails the gate rather than
+silently escaping the mesh declaration.
 
 ## Operating rule
 

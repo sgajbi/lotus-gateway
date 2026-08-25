@@ -1,5 +1,6 @@
 import ast
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,8 @@ ROUTE_INVENTORY_PATH = (
     / "domain-data-products"
     / "lotus-gateway-core-route-inventory.v1.json"
 )
+_ROUTE_TEMPLATE_PLACEHOLDER_PATTERN = re.compile(r"\{[^{}]*\}")
+_UNRESOLVED_ROUTE_TEMPLATE = "<unresolved integration route>"
 
 
 def _consumer_contract() -> dict:
@@ -54,7 +57,7 @@ def _assignment_values(tree: ast.AST) -> dict[str, ast.AST]:
     return assignments
 
 
-def _resolve_string_literals(
+def _resolve_route_templates(
     expression: ast.AST,
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
@@ -62,46 +65,58 @@ def _resolve_string_literals(
     if isinstance(expression, ast.Name):
         if expression.id in resolving or expression.id not in assignments:
             return set()
-        return _resolve_string_literals(
+        return _resolve_route_templates(
             assignments[expression.id], assignments, resolving | {expression.id}
         )
     if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
         return {expression.value}
     if isinstance(expression, ast.JoinedStr):
-        return {
-            value.value
-            for value in expression.values
-            if isinstance(value, ast.Constant) and isinstance(value.value, str)
-        }
+        template = ""
+        for value in expression.values:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                template += value.value
+            elif isinstance(value, ast.FormattedValue):
+                template += "{}"
+            else:
+                return set()
+        return {template}
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        return _resolve_string_literals(
-            expression.left, assignments, resolving
-        ) | _resolve_string_literals(expression.right, assignments, resolving)
+        left_templates = _resolve_route_templates(expression.left, assignments, resolving)
+        right_templates = _resolve_route_templates(expression.right, assignments, resolving)
+        return {left + right for left in left_templates for right in right_templates}
+    if (
+        isinstance(expression, ast.Call)
+        and isinstance(expression.func, ast.Attribute)
+        and expression.func.attr == "format"
+    ):
+        return _resolve_route_templates(expression.func.value, assignments, resolving)
     return set()
 
 
-def _path_argument_literals(
+def _path_argument_templates(
     node: ast.AsyncFunctionDef,
     assignments: dict[str, ast.AST],
-) -> tuple[set[str], bool]:
-    literals: set[str] = set()
-    unresolved_path = False
+) -> list[tuple[set[str], bool]]:
+    routes: list[tuple[set[str], bool]] = []
     for call in ast.walk(node):
         if not isinstance(call, ast.Call):
             continue
         for keyword in call.keywords:
             if keyword.arg != "path":
                 continue
-            resolved = _resolve_string_literals(keyword.value, assignments)
-            literals.update(resolved)
-            unresolved_path |= not resolved
-    return literals, unresolved_path
+            resolved = _resolve_route_templates(keyword.value, assignments)
+            routes.append((resolved, not resolved))
+    return routes
+
+
+def _normalize_route_template(route_template: str) -> str:
+    return _ROUTE_TEMPLATE_PLACEHOLDER_PATTERN.sub("{}", route_template)
 
 
 def _implemented_core_domain_product_reads(
     client_root: Path = CLIENT_ROOT,
-) -> set[tuple[str, str]]:
-    implemented: set[tuple[str, str]] = set()
+) -> set[tuple[str, str, str]]:
+    implemented: set[tuple[str, str, str]] = set()
     for client_path in sorted(client_root.glob("lotus_core*.py")):
         source = client_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(client_path))
@@ -110,30 +125,40 @@ def _implemented_core_domain_product_reads(
             if not isinstance(node, ast.AsyncFunctionDef):
                 continue
             assignments = module_assignments | _assignment_values(node)
-            path_literals, unresolved_path = _path_argument_literals(node, assignments)
-            if not any("/integration/" in literal for literal in path_literals) and not (
-                unresolved_path and not node.name.startswith("_")
-            ):
-                continue
             non_domain_markers = _NON_DOMAIN_PRODUCT_CORE_INTEGRATION_ROUTE_MARKERS.get(
                 node.name, ()
             )
-            if any(marker in literal for marker in non_domain_markers for literal in path_literals):
-                continue
-            implemented.add((client_path.name, node.name))
+            for path_templates, unresolved_path in _path_argument_templates(node, assignments):
+                if not any("/integration/" in template for template in path_templates) and not (
+                    unresolved_path and not node.name.startswith("_")
+                ):
+                    continue
+                if unresolved_path:
+                    implemented.add((client_path.name, node.name, _UNRESOLVED_ROUTE_TEMPLATE))
+                    continue
+                for path_template in path_templates:
+                    if any(marker in path_template for marker in non_domain_markers):
+                        continue
+                    implemented.add(
+                        (client_path.name, node.name, _normalize_route_template(path_template))
+                    )
     return implemented
 
 
 def _assert_implemented_core_reads_are_declared(client_root: Path = CLIENT_ROOT) -> None:
     declared = {
-        (Path(route["client_module"]).name, route["client_method"])
+        (
+            Path(route["client_module"]).name,
+            route["client_method"],
+            _normalize_route_template(route["route_template"]),
+        )
         for route in _route_inventory()["routes"]
     }
     undeclared = _implemented_core_domain_product_reads(client_root) - declared
     if undeclared:
         details = ", ".join(
-            f"{client_module}:{client_method}"
-            for client_module, client_method in sorted(undeclared)
+            f"{client_module}:{client_method} [{route_template}]"
+            for client_module, client_method, route_template in sorted(undeclared)
         )
         raise AssertionError(
             "Core integration reads missing from the RFC-0084 route inventory: " + details
@@ -356,6 +381,7 @@ def test_undeclared_core_integration_read_fails_closed(tmp_path: Path) -> None:
     (tmp_path / "lotus_core_query_client.py").write_text(
         """
 UNDECLARED_MODULE_ROUTE = "/integration/benchmarks/undeclared-product"
+UNDECLARED_FORMAT_ROUTE = "/integration/portfolios/{portfolio_id}/undeclared-formatted"
 
 class FakeCoreClient:
     async def get_undeclared_local_product_read(self, portfolio_id: str):
@@ -368,6 +394,11 @@ class FakeCoreClient:
         return await self._post_control_plane_resource(
             path=UNDECLARED_MODULE_ROUTE,
         )
+
+    async def get_undeclared_format_product_read(self, portfolio_id: str):
+        return await self._post_control_plane_resource(
+            path=UNDECLARED_FORMAT_ROUTE.format(portfolio_id=portfolio_id),
+        )
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -379,3 +410,30 @@ class FakeCoreClient:
     message = str(exc_info.value)
     assert "lotus_core_query_client.py:get_undeclared_local_product_read" in message
     assert "lotus_core_query_client.py:get_undeclared_module_product_read" in message
+    assert "lotus_core_query_client.py:get_undeclared_format_product_read" in message
+
+
+def test_declared_core_method_with_extra_integration_read_fails_closed(tmp_path: Path) -> None:
+    (tmp_path / "lotus_core_query_client.py").write_text(
+        """
+class FakeCoreClient:
+    async def get_benchmark_catalog(self):
+        await self._post_control_plane_resource(
+            path="/integration/benchmarks/catalog",
+        )
+        return await self._post_control_plane_resource(
+            path="/integration/benchmarks/undeclared-alias",
+        )
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_implemented_core_reads_are_declared(tmp_path)
+
+    message = str(exc_info.value)
+    assert (
+        "lotus_core_query_client.py:get_benchmark_catalog "
+        "[/integration/benchmarks/undeclared-alias]"
+    ) in message
