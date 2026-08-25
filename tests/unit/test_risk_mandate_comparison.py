@@ -190,6 +190,23 @@ def test_summary_refuses_to_blend_mismatched_health_and_cash_dates() -> None:
     assert "not aligned" in comparison.constraints[0].reason
 
 
+def test_summary_refuses_a_manage_cash_verdict_that_conflicts_with_aligned_numbers() -> None:
+    response = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=_sources(
+            health=_health(state="READY", reason="CASH_LIQUIDITY_READY"),
+            cash_value=0.1066,
+        ),
+    )
+
+    assert response.mandate_comparison is not None
+    cash = response.mandate_comparison.constraints[0]
+    assert cash.state == "measure_unavailable"
+    assert cash.headroom is None
+    assert "conflicts" in cash.reason
+    assert cash.source_state == "READY"
+
+
 def test_summary_never_classifies_a_risk_measure_without_a_source_limit() -> None:
     response = compose_summary_mandate_comparison(
         response=_summary(tracking_error=0.20),
