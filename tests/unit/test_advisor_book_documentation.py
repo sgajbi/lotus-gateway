@@ -30,6 +30,8 @@ def test_rfc_0082_map_classifies_advisor_book_as_core_operational_read() -> None
     assert "get_portfolio_manager_book_memberships" in family_map
     assert "Operational Read" in family_map
     assert "never widen through the global portfolio catalogue" in family_map
+    assert "`required_trust_metadata` names fields the producer contract must supply" in family_map
+    assert "does not claim that Gateway independently revalidates every listed field" in family_map
 
 
 def test_operator_example_requires_complete_trusted_caller_context() -> None:

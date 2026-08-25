@@ -173,7 +173,11 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    truth.
    `contracts/domain-data-products/lotus-gateway-consumers.v1.json` is the repo-native RFC-0084
    consumer declaration for this direct dependency and records `api_read`, fail-closed behavior,
-   required trust metadata, and feature/PR/platform end-to-end validation ownership. Gateway #509
+   required trust metadata, and feature/PR/platform end-to-end validation ownership. In this
+   declaration, `required_trust_metadata` names fields the producer contract must supply for safe
+   consumption; it does not claim that Gateway independently revalidates every listed field.
+   Gateway applies strict source-identity validation to entitlement reads and bounded partial
+   handling to enrichment reads according to each dependency's failure posture. Gateway #509
    owns the systematic inventory and declaration parity for the remaining implemented direct
    domain-product reads; this batch records the Core analytics-reference, benchmark, and external
    OMS supportability dependencies without transferring their domain ownership to Gateway.
