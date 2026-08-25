@@ -19,7 +19,10 @@ Reference branch: `origin/main`
 - Regression proof: focused contract, unit, and integration tests cover typed list/detail
   projection, OpenAPI references, nested unknown-field rejection, bounded pages, correlation
   preservation, and malformed-success redaction (22 tests passed locally at the initial slice
-  checkpoint).
+  checkpoint). The first hosted quality run also exposed three new `deptry DEP001` findings from
+  the shared test fixture imports; `pyproject.toml` now truthfully classifies the repository's
+  local `tests` namespace as first-party, reducing the measured dependency findings to 21 rather
+  than adding a baseline allowance.
 - Same-pattern scan: both active action read routes were inspected; no additional Gateway action
   route uses this exact response boundary. Preparation, snapshot, supportability, acknowledgement,
   and house-view payloads are explicitly residual and need separate source-backed issues rather
@@ -27,11 +30,13 @@ Reference branch: `origin/main`
 - Compatibility: the two existing action URLs, query parameters, authorization boundary, Advise
   call, correlation propagation, and source-owned semantics remain unchanged. The intentional
   contract tightening rejects shapes that were previously accepted as arbitrary maps; this is
-  documented and tested. No migration, dependency, retry, runtime, or central-platform-context
-  change is required.
+  documented and tested. No runtime dependency, migration, retry, or central-platform-context
+  change is required; only deptry's local first-party classification was corrected for test
+  support imports.
 - Documentation decision: router OpenAPI descriptions, supported-features docs, repository
-  context, API-surface and supported-features wiki, and this ledger change. Wiki publication and
-  strict parity are required after merge. No central context or skill-routing change is needed.
+  context, API-surface and supported-features wiki, this ledger, and the dependency-gate
+  classification in `pyproject.toml` change. Wiki publication and strict parity are required
+  after merge. No central context or skill-routing change is needed.
 
 ### Batch 2W — correct transaction-period source-timezone claims (#642, parent #569)
 

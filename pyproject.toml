@@ -85,6 +85,6 @@ fail-under = 45
 exclude = ["tests", "output", ".venv", ".venv-codex"]
 
 [tool.deptry]
-known_first_party = ["app"]
+known_first_party = ["app", "tests"]
 exclude = [".venv", ".venv-codex", "output"]
 
