@@ -458,12 +458,17 @@ Transaction temporal semantics are also source-owned and explicit at the Gateway
 `transaction_date` is Core's transaction event timestamp for event-date filtering and ordering;
 `settlement_date` is the separate optional settlement timestamp. Gateway normalizes both to UTC
 and requires an ISO-8601 timezone-aware date-time, does not invent `booking_date`, and applies
-inclusive UTC calendar-day windows to summary routes. Missing, date-only, naive, malformed, or
-impossible source timestamps fail closed with `502` code
+inclusive UTC calendar-day windows as a Gateway-owned reporting convention. Core's current published
+transaction contract defines the event/trade meaning and inclusive date-filter shape, but does not
+establish UTC or a booking-centre-local timezone convention. Gateway therefore does not claim that
+its UTC windows reproduce a Core source-local business date; valid non-UTC offsets can shift a row
+across a Gateway reporting-period boundary. Missing, date-only, naive, malformed, or impossible
+source timestamps fail closed with `502` code
 `portfolio_transaction_source_contract_invalid`; Gateway does not emit partial malformed rows or
-silently discard them. Valid timezone-aware source timestamps remain compatible. Workbench display
-and consumer migration remain under parent issue #569. No database migration is required because
-this slice changes only the read-boundary contract and validation.
+silently discard them. Valid timezone-aware source timestamps remain compatible. Workbench display,
+consumer migration, and source-policy follow-up remain under parent issue #569 and child issue
+#642. No database migration is required because this slice changes documentation and regression
+coverage only.
 
 Performance attribution level totals are also source-owned. Gateway preserves explicit numeric
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when

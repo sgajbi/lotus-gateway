@@ -43,11 +43,17 @@ routes.
 ordering. `settlement_date` is a separate optional Core-owned settlement timestamp. Gateway
 publishes both as UTC-normalized ISO-8601 date-times with an explicit timezone offset and does not
 invent a `booking_date` or apply browser-local timezone conversion. Inclusive summary windows use
-UTC calendar-day boundaries aligned with Core. Missing required, date-only, naive, malformed, or
-impossible source timestamps fail closed with a sanitized `502` carrying
-`portfolio_transaction_source_contract_invalid`; no malformed row is emitted or silently
-discarded. This boundary tightening preserves valid timezone-aware timestamps and leaves consumer
-display migration to Workbench under parent issue #569.
+UTC calendar-day boundaries as a Gateway-owned reporting convention. Core's current published
+transaction contract defines the event/trade meaning and inclusive date-filter shape, but does not
+establish UTC or a booking-centre-local timezone convention; Gateway therefore does not claim that
+its UTC windows reproduce a Core source-local business date. A valid non-UTC offset can move an
+event across a reporting-period boundary: `2026-03-01T00:30:00+02:00` maps to `2026-02-28` in
+Gateway UTC, while `2026-02-28T23:30:00-05:00` maps to `2026-03-01`.
+Missing required, date-only, naive, malformed, or impossible source timestamps fail closed with a
+sanitized `502` carrying `portfolio_transaction_source_contract_invalid`; no malformed row is
+emitted or silently discarded. This boundary tightening preserves valid timezone-aware timestamps
+and leaves consumer display migration and source-policy follow-up to parent issue #569 and child
+issue #642.
 
 ## Performance Summary Completion
 

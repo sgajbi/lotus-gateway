@@ -73,8 +73,13 @@ business semantics at the Gateway boundary:
   ordering; `settlement_date` is a separate optional Core settlement timestamp.
 - Both fields are returned as UTC-normalized ISO-8601 date-times with an explicit timezone offset.
   Gateway does not invent a booking date or convert timestamps using browser locale.
-- Summary date windows are inclusive UTC calendar-day windows, aligned with the Core transaction
-  query boundary.
+- Summary date windows are inclusive UTC calendar-day windows as a Gateway-owned reporting
+  convention. Core's current published transaction contract defines the event/trade meaning and
+  inclusive date-filter shape, but does not establish UTC or a booking-centre-local timezone
+  convention. Gateway therefore does not claim that its UTC windows reproduce a Core source-local
+  business date. A valid non-UTC offset can move an event across a Gateway reporting-period
+  boundary; for example, `2026-03-01T00:30:00+02:00` belongs to the Gateway UTC period for
+  `2026-02-28`.
 - Missing, date-only, naive, malformed, or impossible source timestamps fail closed with `502`
   and `portfolio_transaction_source_contract_invalid`; Gateway never emits a partial malformed row
   or silently drops it.
