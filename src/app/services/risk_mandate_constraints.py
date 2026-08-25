@@ -46,6 +46,7 @@ def build_cash_constraint(
             measure=None,
             reason=unavailable_reason or "Cash allocation is unavailable for this review date.",
         )
+    assert measure is not None
     if health is None or health_dimension is None:
         return _measure_unavailable(
             key="cash_band",
@@ -70,6 +71,17 @@ def build_cash_constraint(
         )
 
     if health_dimension.state == "READY":
+        if not (
+            mandate.constraints.cash_band_min_weight
+            <= cash.value
+            <= mandate.constraints.cash_band_max_weight
+        ):
+            return _cash_source_conflict(
+                limit=limit,
+                measure=measure,
+                source_state=health_dimension.state,
+                source_reason_code=health_dimension.reason_code,
+            )
         return WorkbenchMandateConstraintComparison(
             key="cash_band",
             label="Cash allocation",
@@ -82,8 +94,22 @@ def build_cash_constraint(
             source_reason_code=health_dimension.reason_code,
         )
     if health_dimension.reason_code == "CASH_ABOVE_BAND":
+        if cash.value <= mandate.constraints.cash_band_max_weight:
+            return _cash_source_conflict(
+                limit=limit,
+                measure=measure,
+                source_state=health_dimension.state,
+                source_reason_code=health_dimension.reason_code,
+            )
         headroom = mandate.constraints.cash_band_max_weight - cash.value
     elif health_dimension.reason_code == "CASH_BELOW_BAND":
+        if cash.value >= mandate.constraints.cash_band_min_weight:
+            return _cash_source_conflict(
+                limit=limit,
+                measure=measure,
+                source_state=health_dimension.state,
+                source_reason_code=health_dimension.reason_code,
+            )
         headroom = cash.value - mandate.constraints.cash_band_min_weight
     else:
         return _measure_unavailable(
@@ -189,6 +215,27 @@ def _measure_unavailable(
         headroom=None,
         state="measure_unavailable",
         reason=reason,
+        source_state=source_state,
+        source_reason_code=source_reason_code,
+    )
+
+
+def _cash_source_conflict(
+    *,
+    limit: WorkbenchMandateConstraintLimit,
+    measure: WorkbenchMandateConstraintMeasure,
+    source_state: str,
+    source_reason_code: str,
+) -> WorkbenchMandateConstraintComparison:
+    return _measure_unavailable(
+        key="cash_band",
+        label="Cash allocation",
+        limit=limit,
+        measure=measure,
+        reason=(
+            "Manage mandate-health evidence conflicts with the date-aligned cash measure and "
+            "approved band; no mandate verdict is published."
+        ),
         source_state=source_state,
         source_reason_code=source_reason_code,
     )
