@@ -71,6 +71,13 @@ Current repository posture:
    recomputing advisory delivery truth, generating copilot
    recommendations, or turning support output into
    client-ready advice;
+   proposal memo detail, audience projection, review, report-package event/request, AI commentary,
+   lineage, and replay-evidence routes publish typed source-faithful response envelopes. The typed
+   boundary preserves Advise memo identity, immutable version, hashes, append-only events,
+   replay posture, report handles, archive refs, and non-authoritative commentary without moving
+   memo lifecycle or publication rules into Gateway. Stale illustrative response nesting fails
+   contract tests and generated OpenAPI exposes nested response references rather than an opaque
+   memo-family `data` object;
    `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack

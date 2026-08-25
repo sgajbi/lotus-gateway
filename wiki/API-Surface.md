@@ -976,6 +976,27 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/report-requests" \
   -d "{\"report_type\":\"PORTFOLIO_REVIEW\",\"requested_by\":\"advisor_1\",\"related_version_no\":2,\"include_reviewed_narrative\":true}"
 ```
 
+Proposal memo evidence and action family:
+
+```bash
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/memo" \
+  -H "X-Correlation-Id: corr-proposal-memo-read"
+
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/memo/projection?audience=ADVISOR" \
+  -H "X-Correlation-Id: corr-proposal-memo-projection"
+
+curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/memos/lineage" \
+  -H "X-Correlation-Id: corr-proposal-memo-lineage"
+```
+
+The memo family publishes typed, source-faithful response envelopes for memo detail, audience
+projection, review, report-package event/request, AI commentary, lineage, and replay evidence.
+The response data preserves Advise-owned memo identity, hashes, append-only events, replay posture,
+report handles, archive references, and blocked client-ready publication. Gateway does not infer
+memo readiness, generate commentary, render or archive reports, or turn advisor-use evidence into
+client-ready output. See the
+[proposal memo response contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-memo-response-v1.md).
+
 Proposal delivery posture:
 
 ```bash
