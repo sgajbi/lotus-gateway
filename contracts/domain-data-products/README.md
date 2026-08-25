@@ -20,8 +20,10 @@ client method, so an already-inventoried method cannot hide an additional endpoi
 route construction remains fail-closed, including private helpers that accept a caller-supplied
 path. The only exceptions are the small, named module/method allowlist for generic Core transport
 helpers; each entry carries a reason in the gate, and new generic helpers must be added explicitly.
-Opaque f-string interpolations are unresolved, while `quote(..., safe="")` is the only known safe
-interpolation for a caller-supplied segment. Every Core client module must also expose at least
+Opaque f-string interpolations are unresolved, while only a non-rebound direct
+`from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
+caller-supplied segment. Aliases, other imports, local definitions, and rebindings fail closed.
+Every Core client module must also expose at least
 one statically resolvable transport route; the explicit
 `lotus_core_transaction_params.py` exemption is a parameter/DTO-only module with no transport
 surface. The three explicitly classified Core control-plane/snapshot operations (`capabilities`,

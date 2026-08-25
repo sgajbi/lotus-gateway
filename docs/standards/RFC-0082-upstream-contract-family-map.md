@@ -190,8 +190,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    helpers are not exempt merely because they accept caller parameters; only the small, named
    module/method allowlist for generic Core transport helpers is exempt, with a reason recorded for
    each entry and explicit additions required for new helpers. Opaque f-string interpolations are
-   unresolved, while `quote(..., safe="")` is the only known safe interpolation for a
-   caller-supplied segment.
+   unresolved, while only a non-rebound direct `from urllib.parse import quote` binding with
+   `quote(..., safe="")` is known safe for a caller-supplied segment. Aliases, other imports,
+   local definitions, and rebindings fail closed.
    Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations. This batch records the Core
    analytics-reference, benchmark, and external OMS supportability dependencies without
