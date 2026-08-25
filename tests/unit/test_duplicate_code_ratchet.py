@@ -1,11 +1,15 @@
 import json
 import sys
+import tokenize
 from pathlib import Path
 
 import pytest
 
 from scripts.check_duplicate_code_ratchet import (
+    FSTRING_END_TOKEN,
+    FSTRING_START_TOKEN,
     _normalise_fragment,
+    _normalise_token_stream,
     build_baseline,
     evaluate,
     load_report,
@@ -671,6 +675,40 @@ def test_duplicate_fingerprint_normalizes_comment_quotes_and_layout() -> None:
     assert _normalise_fragment("value = foo( a ) # don't duplicate\n") == _normalise_fragment(
         "value  =  foo(  a  ) # don't duplicate\n"
     )
+
+
+def test_duplicate_fingerprint_normalizes_fstrings_across_tokenizer_shapes() -> None:
+    text = 'message = f"client  {name}"\n'
+    legacy_tokens = [
+        tokenize.TokenInfo(tokenize.NAME, "message", (1, 0), (1, 7), text),
+        tokenize.TokenInfo(tokenize.OP, "=", (1, 8), (1, 9), text),
+        tokenize.TokenInfo(
+            tokenize.STRING,
+            'f"client  {name}"',
+            (1, 10),
+            (1, len(text) - 1),
+            text,
+        ),
+        tokenize.TokenInfo(tokenize.NEWLINE, "\n", (1, len(text) - 1), (2, 0), text),
+        tokenize.TokenInfo(tokenize.ENDMARKER, "", (2, 0), (2, 0), ""),
+    ]
+    modern_tokens = [
+        tokenize.TokenInfo(tokenize.NAME, "message", (1, 0), (1, 7), text),
+        tokenize.TokenInfo(tokenize.OP, "=", (1, 8), (1, 9), text),
+        tokenize.TokenInfo(FSTRING_START_TOKEN, 'f"', (1, 10), (1, 12), text),
+        tokenize.TokenInfo(tokenize.NAME, "client  ", (1, 12), (1, 20), text),
+        tokenize.TokenInfo(tokenize.OP, "{", (1, 20), (1, 21), text),
+        tokenize.TokenInfo(tokenize.NAME, "name", (1, 21), (1, 25), text),
+        tokenize.TokenInfo(tokenize.OP, "}", (1, 25), (1, 26), text),
+        tokenize.TokenInfo(FSTRING_END_TOKEN, '"', (1, 26), (1, 27), text),
+        tokenize.TokenInfo(tokenize.NEWLINE, "\n", (1, 27), (2, 0), text),
+        tokenize.TokenInfo(tokenize.ENDMARKER, "", (2, 0), (2, 0), ""),
+    ]
+
+    assert _normalise_token_stream(text, legacy_tokens) == _normalise_token_stream(
+        text, modern_tokens
+    )
+    assert _normalise_fragment(text) == _normalise_token_stream(text, legacy_tokens)
 
 
 def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:

@@ -122,7 +122,8 @@ same actual revision may supersede one another.
   invalidate unrelated clones; cross-scope replacements remain visible, while same-scope
   relocation is an explicit identity trade-off; the canonical source side is used when the
   detector reports the same clone in reverse order; quoted literal contents are preserved during
-  fragment normalization
+  fragment normalization, including stable reconstruction of Python 3.11 versus 3.12+ f-string
+  token spans
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
