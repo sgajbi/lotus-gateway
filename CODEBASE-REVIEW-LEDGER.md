@@ -4,6 +4,21 @@ Last updated: 2026-08-26
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2Y — bank the measured dependency-quality improvement (#646)
+
+- Objective: make the Quality Baseline capture the real deptry improvement delivered by #645,
+  so future dependency slop cannot consume recovered headroom while remaining green.
+- Change: lower `dependency_findings` baseline and threshold in `quality/quality_ratchet.json`
+  from 48 to the measured 21; the comparison remains `not_above` and the ratchet implementation
+  is unchanged.
+- Regression proof: the quality-ratchet unit suite reads the repository policy and proves 21
+  findings pass while 22 findings fail.
+- Compatibility: no runtime, API, data, migration, dependency declaration, or client behavior
+  changes; this is a stricter CI-only quality gate.
+- Documentation decision: quality-gate guidance, repository context, review ledger, and wiki
+  validation guidance now state the executable 21-finding ceiling. No central context or
+  skill-routing change is needed.
+
 ### Batch 2X — publish the Advisor Cockpit action read contract (#644)
 
 - Objective: replace the opaque `dict[str, Any]` response boundary on the action list and

@@ -6,6 +6,8 @@ import pytest
 
 from scripts.check_quality_baseline_ratchet import evaluate_metrics, main
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _baseline() -> dict:
     return {
@@ -62,6 +64,28 @@ def test_ratchet_rejects_new_finding_and_coverage_drop(tmp_path: Path) -> None:
     assert [result.name for result in results if not result.passed] == ["findings", "coverage"]
     assert results[0].delta == 1
     assert results[1].delta == Decimal("-0.01")
+
+
+def test_dependency_ratchet_banks_the_measured_improvement(tmp_path: Path) -> None:
+    baseline = json.loads(
+        (REPO_ROOT / "quality" / "quality_ratchet.json").read_text(encoding="utf-8")
+    )
+    dependency_metric = next(
+        metric for metric in baseline["metrics"] if metric["name"] == "dependency_findings"
+    )
+
+    for finding_count, expected_pass in ((21, True), (22, False)):
+        artifact_dir = tmp_path / str(finding_count)
+        artifact_dir.mkdir()
+        (artifact_dir / "deptry.txt").write_text(
+            f"Found {finding_count} dependency issues.\n",
+            encoding="utf-8",
+        )
+
+        result = evaluate_metrics({"metrics": [dependency_metric]}, artifact_dir)[0]
+
+        assert result.current == Decimal(finding_count)
+        assert result.passed is expected_pass
 
 
 def test_number_metric_accepts_explicit_zero_success_output(tmp_path: Path) -> None:
