@@ -1,3 +1,4 @@
+import ast
 import json
 import sys
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from scripts.check_duplicate_code_ratchet import (
+    _stable_ast_dump,
     build_baseline,
     evaluate,
     load_report,
@@ -434,6 +436,16 @@ def test_duplicate_fingerprint_context_survives_unrelated_line_shift(tmp_path: P
         build_baseline(baseline)["allowed_fingerprints"]
         == build_baseline(moved)["allowed_fingerprints"]
     )
+
+
+def test_duplicate_context_digest_ignores_empty_version_specific_ast_fields() -> None:
+    function = ast.parse("def shared():\n    return 1\n").body[0]
+    assert isinstance(function, ast.FunctionDef)
+    if hasattr(function, "type_params"):
+        function.type_params = []
+
+    stable = _stable_ast_dump(function)
+    assert "type_params" not in stable
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:

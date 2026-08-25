@@ -139,8 +139,31 @@ def _context_digest(source_root: Path, source: str, start: int, lines: int) -> s
     context_node: ast.AST = (
         min(candidates, key=lambda item: (item[1] - item[0], item[0]))[2] if candidates else tree
     )
-    context = ast.dump(context_node, annotate_fields=True, include_attributes=False)
+    context = _stable_ast_dump(context_node)
     return hashlib.sha256(context.encode("utf-8")).hexdigest()
+
+
+def _stable_ast_dump(value: Any) -> str:
+    """Serialize AST structure without Python-version-only empty fields.
+
+    Python 3.12 added ``type_params`` to function and class AST nodes.  The
+    field is an empty list for ordinary code, but including it in a digest
+    makes an otherwise unchanged duplicate report differ between the Python
+    3.11 CI lane and newer local interpreters.  Non-empty type parameters are
+    retained because they are real source semantics.
+    """
+    if isinstance(value, ast.AST):
+        fields = []
+        for field_name, field_value in ast.iter_fields(value):
+            if field_name == "type_params" and field_value == []:
+                continue
+            fields.append(f"{field_name}={_stable_ast_dump(field_value)}")
+        return f"{type(value).__name__}({','.join(fields)})"
+    if isinstance(value, list):
+        return f"[{','.join(_stable_ast_dump(item) for item in value)}]"
+    if isinstance(value, tuple):
+        return f"({','.join(_stable_ast_dump(item) for item in value)})"
+    return repr(value)
 
 
 def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdentity:
