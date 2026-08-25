@@ -51,7 +51,10 @@ Current repository posture:
    match `X-Authorized-Portfolio-Id`, acknowledgement actors are bound to `X-Actor-Id`, and Gateway
    translates the result to the exact Advise principal headers. The tactical house-view cohort
    command remains a separate source-product route and does not receive an invented Cockpit
-   capability. Advisory-copilot evidence-packet, action-run, review, supportability,
+   capability. Action list and single-action reads are exposed through typed, closed Gateway
+   contracts that validate source shape and fail closed on successful payload drift; Gateway does
+   not derive action posture or apply this contract to the other Cockpit response families.
+   Advisory-copilot evidence-packet, action-run, review, supportability,
    and proposal-version run-lineage routes are routed to `lotus-advise`
    `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`; bank-demo proof
    scenario-contract, supported-claim register, and

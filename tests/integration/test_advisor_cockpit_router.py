@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.support.advisor_cockpit_fixtures import (
+    advisor_action_item_payload,
+    advisor_action_page_payload,
+)
 
 
 def _caller_headers(
@@ -50,17 +54,7 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
-        return 200, {
-            "items": [
-                {
-                    "action_item_id": "cockpit_action_001",
-                    "status": "PENDING_REVIEW",
-                    "priority": "HIGH",
-                    "owner_role": "ADVISOR",
-                }
-            ],
-            "total_count": 1,
-        }
+        return 200, advisor_action_page_payload()
 
     async def _fake_snapshot(self, params, caller_headers, correlation_id):  # noqa: ANN001
         _ = self
@@ -92,12 +86,7 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
-        return 200, {
-            "action_item_id": action_item_id,
-            "status": "PENDING_REVIEW",
-            "priority": "HIGH",
-            "owner_role": "ADVISOR",
-        }
+        return 200, advisor_action_item_payload(action_item_id=action_item_id)
 
     async def _fake_preparation_packets(
         self,
@@ -278,7 +267,9 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
     assert acknowledgement_response.status_code == 200
     assert house_view_response.status_code == 200
     assert list_response.json()["data"]["items"][0]["status"] == "PENDING_REVIEW"
+    assert list_response.json()["data"]["items"][0]["owner_role"] == "COMPLIANCE_REVIEWER"
     assert action_response.json()["data"]["action_item_id"] == "cockpit_action_001"
+    assert action_response.json()["data"]["action_family"] == "POLICY_REVIEW_REQUIRED"
     assert snapshot_response.json()["data"]["supportability"]["client_ready_publication"] == (
         "BLOCKED"
     )
@@ -374,6 +365,44 @@ def test_advisor_cockpit_openapi_documents_boundary_and_idempotency() -> None:
     acknowledge_schema = schema["components"]["schemas"]["AdvisorCockpitAcknowledgeRequest"]
     assert "acknowledged_by" not in acknowledge_schema["properties"]
     assert acknowledge_schema["additionalProperties"] is False
+    assert (
+        action_operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/AdvisorCockpitActionPageEnvelopeResponse"
+    )
+    assert (
+        schema["paths"]["/api/v1/advisor-cockpit/actions/{action_item_id}"]["get"]["responses"][
+            "200"
+        ]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/AdvisorCockpitActionEnvelopeResponse"
+    )
+
+
+def test_advisor_cockpit_action_route_fails_closed_on_malformed_success_payload(
+    monkeypatch,
+) -> None:
+    async def _malformed_action(self, action_item_id, params, caller_headers, correlation_id):  # noqa: ANN001
+        _ = self, action_item_id, params, caller_headers, correlation_id
+        return 200, {"action_item_id": "malformed-source-action"}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_advisor_cockpit_action",
+        _malformed_action,
+    )
+
+    response = TestClient(app).get(
+        "/api/v1/advisor-cockpit/actions/cockpit_action_001",
+        params={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+        headers={**_caller_headers(), "X-Correlation-Id": "corr-malformed-action"},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == {
+        "source_service": "lotus-advise",
+        "upstream_status": 200,
+        "error_code": "ADVISE_COCKPIT_ACTION_CONTRACT_INVALID",
+        "detail": "lotus-advise advisor cockpit action data did not match the governed contract.",
+    }
+    assert "malformed-source-action" not in response.text
 
 
 def test_advisor_cockpit_rejects_browser_selected_authority() -> None:

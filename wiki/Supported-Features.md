@@ -568,7 +568,10 @@ Authority and integrations:
 3. Gateway preserves Advise-owned action status, priority, owner role, reason codes, SLA, source
    refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
    tactical house-view cohort membership,
-   supportability posture, and acknowledgement state.
+   supportability posture, and acknowledgement state. Action list/detail responses use closed,
+   typed OpenAPI schemas with bounded nested evidence, readiness, lineage, and acknowledgement
+   fields; malformed successful source data fails closed as
+   `ADVISE_COCKPIT_ACTION_CONTRACT_INVALID` instead of reaching Workbench as a free-form map.
 4. Gateway does not reconstruct advisory policy results, proposal memo blockers, action
    prioritization, meeting preparation, SLA posture, supportability, client-ready publication,
    external client communication, OMS/order/fill/settlement posture, or demo-readiness claims.
@@ -592,6 +595,9 @@ Operational behavior:
    authorization does not depend on a prior list filter,
 4. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.
+5. only the action list/detail reads use the typed action contract in this slice; preparation,
+   snapshot, supportability, acknowledgement, and house-view response families retain their
+   existing source envelopes until their own source-backed contracts are separately governed.
 
 ## Advisory Copilot Evidence And Action Runs
 

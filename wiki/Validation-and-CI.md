@@ -165,6 +165,10 @@ scorecard/context guidance synchronized for future agent development. It install
   contract gate rejects incomplete or contradictory lineage evidence, while service tests require
   malformed successful Advise memo payloads to map to `ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`
   rather than a generic 500
+- Advisor Cockpit action contract fitness through typed list/detail response references, closed
+  nested action schemas, bounded page collections, rejection of invented free-form fields, and
+  integration proof that malformed successful Advise action data maps to
+  `ADVISE_COCKPIT_ACTION_CONTRACT_INVALID`
 - Gateway demo certification through `make demo-certification`, currently report-only, writing
   `output/demo-certification/gateway-demo-certification.json` and
   `output/quality-baseline/demo-certification.txt`
