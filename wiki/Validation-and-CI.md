@@ -115,9 +115,10 @@ same actual revision may supersede one another.
   fragment occurrence fingerprints must not regress beyond the reviewed production baseline;
   removed pairs must be banked through a
   reviewed baseline update before they can be reintroduced
-- duplicate fingerprints include Python-version-independent normalized AST scope context and stable
-  occurrence ordering so line shifts or unrelated scope-body edits do not invalidate unrelated
-  clones, while replacements across class/function scopes remain visible
+- duplicate fingerprints include Python-version-independent normalized AST scope context, stable
+  adjacent local anchors, and occurrence ordering so line shifts or non-local scope-body edits do
+  not invalidate unrelated clones; same-scope and cross-scope replacements remain visible, and
+  quoted literal contents are preserved during fragment normalization
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,

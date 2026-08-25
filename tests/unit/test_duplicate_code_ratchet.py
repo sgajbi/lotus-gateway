@@ -441,8 +441,8 @@ def test_duplicate_fingerprint_context_survives_unrelated_scope_body_edit(
 ) -> None:
     baseline_root = tmp_path / "baseline-source"
     moved_root = tmp_path / "moved-source"
-    baseline_source = "def shared():\n    return 1\n"
-    moved_source = "def shared():\n    unrelated = 2\n    return 1\n"
+    baseline_source = "def shared():\n    before = 0\n    return 1\n    after = 3\n"
+    moved_source = "def shared():\n    before = 0\n    return 1\n    after = 3\n    unrelated = 2\n"
     for root, source in ((baseline_root, baseline_source), (moved_root, moved_source)):
         for name in ("a.py", "b.py"):
             path = root / "src" / "app" / name
@@ -454,8 +454,8 @@ def test_duplicate_fingerprint_context_survives_unrelated_scope_body_edit(
         "src/app/b.py",
         fragment="return 1\n",
         lines=1,
-        first_start=2,
-        second_start=2,
+        first_start=3,
+        second_start=3,
     )
     baseline = load_report(
         _write_report(tmp_path / "baseline-report", [entry]), source_root=baseline_root
@@ -481,6 +481,70 @@ def test_duplicate_fingerprint_context_survives_unrelated_scope_body_edit(
         build_baseline(baseline)["allowed_fingerprints"]
         == build_baseline(moved)["allowed_fingerprints"]
     )
+
+
+def test_duplicate_fingerprint_rejects_same_scope_replacement(tmp_path: Path) -> None:
+    baseline_root = tmp_path / "baseline-source"
+    moved_root = tmp_path / "moved-source"
+    baseline_source = "def shared():\n    if enabled:\n        return 1\n    return 1\n"
+    moved_source = "def shared():\n    if enabled:\n        return 1\n    return 2\n    return 1\n"
+    for root, source in ((baseline_root, baseline_source), (moved_root, moved_source)):
+        for name in ("a.py", "b.py"):
+            path = root / "src" / "app" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source, encoding="utf-8")
+
+    baseline_entries = [
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=3,
+            second_start=4,
+        ),
+    ]
+    moved_entries = [
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=3,
+            second_start=5,
+        ),
+    ]
+    baseline = load_report(
+        _write_report(tmp_path / "baseline-report", baseline_entries), source_root=baseline_root
+    )
+    moved = load_report(
+        _write_report(tmp_path / "moved-report", moved_entries), source_root=moved_root
+    )
+
+    result = evaluate(moved, build_baseline(baseline), status=0)
+
+    assert not result.passed
+    assert len(result.unexpected_fingerprints) == 1
+    assert len(result.stale_fingerprints) == 1
+
+
+def test_duplicate_fingerprint_preserves_python_literal_whitespace(tmp_path: Path) -> None:
+    baseline, _ = _baseline_and_report(
+        tmp_path / "baseline",
+        [_entry("src/app/a.py", "src/app/b.py", fragment='message = "client ready"\n')],
+    )
+    current = load_report(
+        _write_report(
+            tmp_path / "current",
+            [_entry("src/app/a.py", "src/app/b.py", fragment='message = "client  ready"\n')],
+        )
+    )
+
+    result = evaluate(current, baseline, status=0)
+
+    assert not result.passed
+    assert len(result.unexpected_fingerprints) == 1
+    assert len(result.stale_fingerprints) == 1
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:

@@ -45,12 +45,25 @@ class DuplicateIdentity:
     sources: tuple[str, str]
     locations: tuple[tuple[str, int], tuple[str, int]]
     context_digests: tuple[str | None, str | None]
+    local_contexts: tuple[tuple[str, str] | None, tuple[str, str] | None]
 
     @property
     def grouping_key(
         self,
-    ) -> tuple[str, str, tuple[str, str], tuple[str | None, str | None]]:
-        return self.format, self.fragment_digest, self.sources, self.context_digests
+    ) -> tuple[
+        str,
+        str,
+        tuple[str, str],
+        tuple[str | None, str | None],
+        tuple[tuple[str, str] | None, tuple[str, str] | None],
+    ]:
+        return (
+            self.format,
+            self.fragment_digest,
+            self.sources,
+            self.context_digests,
+            self.local_contexts,
+        )
 
 
 @dataclass(frozen=True)
@@ -161,6 +174,62 @@ def _scope_context(tree: ast.Module, start: int, end: int) -> str:
     return "/".join(best) or "module"
 
 
+def _normalise_fragment(fragment: str) -> str:
+    """Normalize Python layout while preserving quoted literal contents."""
+    text = fragment.replace("\r\n", "\n").replace("\r", "\n")
+    pieces: list[str] = []
+    pending_space = False
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character.isspace():
+            pending_space = True
+            index += 1
+            continue
+        literal_end = _string_literal_end(text, index)
+        piece = text[index:literal_end] if literal_end is not None else character
+        if pending_space and pieces:
+            pieces.append(" ")
+        pieces.append(piece)
+        pending_space = False
+        index = literal_end if literal_end is not None else index + 1
+    return "".join(pieces).strip()
+
+
+def _string_literal_end(text: str, start: int) -> int | None:
+    """Return the exclusive end of a Python string token at ``start``."""
+    prefix_end = start
+    while prefix_end < len(text) and text[prefix_end] in "rRuUbBfF":
+        prefix_end += 1
+    if prefix_end == start or prefix_end - start > 3:
+        prefix_end = start
+    if prefix_end >= len(text) or text[prefix_end] not in "'\"":
+        return None
+    quote = text[prefix_end]
+    delimiter = quote * 3 if text.startswith(quote * 3, prefix_end) else quote
+    index = prefix_end + len(delimiter)
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+        elif text.startswith(delimiter, index):
+            return index + len(delimiter)
+        else:
+            index += 1
+    return len(text)
+
+
+def _local_context(source_text: str, start: int, lines: int) -> tuple[str, str]:
+    """Return adjacent normalized source lines without absolute coordinates."""
+    source_lines = source_text.splitlines()
+    start_index = start - 1
+    end_index = start_index + lines
+    before = _normalise_fragment(source_lines[start_index - 1]) if start_index > 0 else "<start>"
+    after = (
+        _normalise_fragment(source_lines[end_index]) if end_index < len(source_lines) else "<end>"
+    )
+    return before, after
+
+
 def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdentity:
     first = entry.get("firstFile")
     second = entry.get("secondFile")
@@ -172,7 +241,7 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
-    normalised_fragment = FRAGMENT_WHITESPACE.sub(" ", fragment).strip()
+    normalised_fragment = _normalise_fragment(fragment)
     if not normalised_fragment:
         raise ValueError("duplicate report entry has an empty fragment")
     format_name = entry.get("format")
@@ -190,11 +259,25 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
             _context_digest(source_root, first_file, first_start, lines)
             if source_root is not None
             else None,
+            _local_context(
+                (source_root / PurePosixPath(first_file)).read_text(encoding="utf-8"),
+                first_start,
+                lines,
+            )
+            if source_root is not None
+            else None,
         ),
         (
             second_file,
             second_start,
             _context_digest(source_root, second_file, second_start, lines)
+            if source_root is not None
+            else None,
+            _local_context(
+                (source_root / PurePosixPath(second_file)).read_text(encoding="utf-8"),
+                second_start,
+                lines,
+            )
             if source_root is not None
             else None,
         ),
@@ -205,6 +288,7 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
         (location_contexts[1][0], location_contexts[1][1]),
     )
     context_digests = (location_contexts[0][2], location_contexts[1][2])
+    local_contexts = (location_contexts[0][3], location_contexts[1][3])
     return DuplicateIdentity(
         format_name,
         fragment_digest,
@@ -214,6 +298,7 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
         sources,
         locations,
         context_digests,
+        local_contexts,
     )
 
 
@@ -224,6 +309,7 @@ def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> Duplicat
         "occurrence_index": occurrence_index,
         "sources": identity.sources,
         "context_digests": identity.context_digests,
+        "local_contexts": identity.local_contexts,
     }
     digest = hashlib.sha256(
         json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -244,7 +330,14 @@ def load_report(path: Path, *, source_root: Path | None = None) -> DuplicateRepo
         raise ValueError("duplicate report has invalid duplicate entries or total statistics")
     identities = tuple(_identity(entry, source_root) for entry in duplicates)
     grouped_indices: defaultdict[
-        tuple[str, str, tuple[str, str], tuple[str | None, str | None]], list[int]
+        tuple[
+            str,
+            str,
+            tuple[str, str],
+            tuple[str | None, str | None],
+            tuple[tuple[str, str] | None, tuple[str, str] | None],
+        ],
+        list[int],
     ] = defaultdict(list)
     for index, identity in enumerate(identities):
         grouped_indices[identity.grouping_key].append(index)

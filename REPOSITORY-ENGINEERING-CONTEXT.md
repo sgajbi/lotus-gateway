@@ -427,8 +427,8 @@ Important validation expectations:
    improvement; a later run above 21 must fail the quality gate.
    The pinned `quality/package-lock.json` jscpd scan also ratchets production duplicate-code
    clone count, duplicated lines, duplicated percentage, and stable source-pair/normalised-
-   fragment occurrence fingerprints with Python-version-independent AST scope context and stable
-   occurrence ordering;
+   fragment occurrence fingerprints with Python-version-independent AST scope context, stable
+   local anchors, literal-preserving normalization, and stable occurrence ordering;
    a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
    reviewed baseline updates must bank removals before the improvement can be spent again.
    Every report-producing quality log must also carry exactly one numeric
