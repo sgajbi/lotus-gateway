@@ -66,7 +66,7 @@ def risk_workspace_service() -> RiskWorkspaceService:
         _RISK_WORKSPACE_SERVICE,
         _RISK_WORKSPACE_SERVICE_SIGNATURE,
         workbench_service_signature(),
-        build_risk_workspace_service,
+        lambda: build_risk_workspace_service(workbench_service()),
     )
     _RISK_WORKSPACE_SERVICE = service
     _RISK_WORKSPACE_SERVICE_SIGNATURE = signature

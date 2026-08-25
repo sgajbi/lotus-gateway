@@ -89,7 +89,7 @@ def test_workbench_service_factory_wires_performance_advisor_and_risk_services(
     workbench_service = build_workbench_service()
     performance_service = build_performance_workspace_service(workbench_service)
     advisor_service = build_advisor_brief_service(performance_service)
-    risk_service = build_risk_workspace_service()
+    risk_service = build_risk_workspace_service(workbench_service)
 
     assert performance_service._workbench_service is workbench_service
     assert performance_service._analytics_client._base_url == "http://performance:8000"
@@ -99,6 +99,8 @@ def test_workbench_service_factory_wires_performance_advisor_and_risk_services(
     assert advisor_service._lotus_ai_client._timeout == 8.0
     assert advisor_service._advise_client._base_url == "http://advise:8000"
     assert risk_service._risk_client._base_url == "http://risk:8000"
+    assert risk_service._manage_client._base_url == "http://manage:8000"
+    assert risk_service._cash_source is workbench_service
     assert risk_service._cache._ttl_seconds == 41.0
 
 

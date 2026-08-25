@@ -66,8 +66,10 @@ def build_advisor_brief_service(
     )
 
 
-def build_risk_workspace_service() -> RiskWorkspaceService:
+def build_risk_workspace_service(workbench_service: WorkbenchService) -> RiskWorkspaceService:
     return RiskWorkspaceService(
         risk_client=build_risk_analytics_client(),
+        manage_client=build_manage_client(),
+        cash_source=workbench_service,
         cache_ttl_seconds=settings.risk_bff_cache_ttl_seconds,
     )
