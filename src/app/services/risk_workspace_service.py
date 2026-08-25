@@ -1,4 +1,3 @@
-import asyncio
 from typing import cast
 
 from app.config import settings
@@ -14,12 +13,6 @@ from app.services.risk_mandate_client_protocols import (
     RiskMandateCashSource,
     RiskMandateManageClient,
 )
-from app.services.risk_mandate_comparison import (
-    compose_concentration_mandate_comparison,
-    compose_summary_mandate_comparison,
-)
-from app.services.risk_mandate_source_loading import load_risk_mandate_sources
-from app.services.risk_mandate_sources import RiskMandateSources
 from app.services.risk_workspace_attribution_service import RiskWorkspaceAttributionServiceMixin
 from app.services.risk_workspace_cache import (
     RiskWorkspaceResponse,
@@ -29,6 +22,7 @@ from app.services.risk_workspace_cache import (
     summary_cache_key,
     with_cache_status,
 )
+from app.services.risk_workspace_mandate_service import RiskWorkspaceMandateServiceMixin
 from app.services.risk_workspace_requests import (
     build_concentration_request_context,
     build_drawdown_request_context,
@@ -36,14 +30,15 @@ from app.services.risk_workspace_requests import (
     build_summary_request_context,
 )
 from app.services.risk_workspace_response_loading import (
-    load_concentration_response,
     load_drawdown_response,
     load_rolling_response,
-    load_summary_response,
 )
 
 
-class RiskWorkspaceService(RiskWorkspaceAttributionServiceMixin):
+class RiskWorkspaceService(
+    RiskWorkspaceMandateServiceMixin,
+    RiskWorkspaceAttributionServiceMixin,
+):
     def __init__(
         self,
         risk_client: RiskWorkspaceClient,
@@ -87,26 +82,9 @@ class RiskWorkspaceService(RiskWorkspaceAttributionServiceMixin):
             reporting_currency=reporting_currency,
         )
 
-        async def _load() -> WorkbenchRiskSummaryResponse:
-            risk_response, mandate_sources = await asyncio.gather(
-                load_summary_response(
-                    risk_client=self._risk_client,
-                    context=context,
-                ),
-                self._load_mandate_sources(
-                    portfolio_id=context.portfolio_id,
-                    correlation_id=context.correlation_id,
-                    as_of_date=context.as_of_date,
-                ),
-            )
-            return compose_summary_mandate_comparison(
-                response=risk_response,
-                sources=mandate_sources,
-            )
-
         response, cache_hit = await self._cache.get_or_set_with_status(
             key=summary_cache_key(context),
-            factory=_load,
+            factory=lambda: self._load_summary_with_mandate(context),
         )
         return cast(
             WorkbenchRiskSummaryResponse,
@@ -140,26 +118,9 @@ class RiskWorkspaceService(RiskWorkspaceAttributionServiceMixin):
             reporting_currency=reporting_currency,
         )
 
-        async def _load() -> WorkbenchRiskConcentrationResponse:
-            risk_response, mandate_sources = await asyncio.gather(
-                load_concentration_response(
-                    risk_client=self._risk_client,
-                    context=context,
-                ),
-                self._load_mandate_sources(
-                    portfolio_id=context.portfolio_id,
-                    correlation_id=context.correlation_id,
-                    as_of_date=context.as_of_date,
-                ),
-            )
-            return compose_concentration_mandate_comparison(
-                response=risk_response,
-                sources=mandate_sources,
-            )
-
         response, cache_hit = await self._cache.get_or_set_with_status(
             key=concentration_cache_key(context),
-            factory=_load,
+            factory=lambda: self._load_concentration_with_mandate(context),
         )
         return cast(
             WorkbenchRiskConcentrationResponse,
@@ -214,30 +175,6 @@ class RiskWorkspaceService(RiskWorkspaceAttributionServiceMixin):
                 correlation_id=correlation_id,
                 cache_hit=cache_hit,
             ),
-        )
-
-    async def _load_mandate_sources(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str,
-    ) -> RiskMandateSources:
-        if self._manage_client is None or self._cash_source is None:
-            return RiskMandateSources(
-                mandate=None,
-                health=None,
-                cash=None,
-                mandate_failure_reason=(
-                    "Mandate comparison sources are not configured for this runtime."
-                ),
-            )
-        return await load_risk_mandate_sources(
-            manage_client=self._manage_client,
-            cash_source=self._cash_source,
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
         )
 
     async def get_rolling(

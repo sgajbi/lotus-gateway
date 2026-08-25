@@ -8,6 +8,7 @@ from app.contracts.risk_mandate_comparison import (
     WorkbenchMandateConstraintMeasure,
 )
 from app.services.risk_mandate_sources import (
+    ManageMandateHealthDimensionSource,
     ManageMandateHealthSource,
     ManageMandateSource,
     WorkbenchCashMeasureSource,
@@ -22,22 +23,7 @@ def build_cash_constraint(
     comparison_as_of: date,
     unavailable_reason: str | None,
 ) -> WorkbenchMandateConstraintComparison:
-    limit = WorkbenchMandateConstraintLimit(
-        minimum=mandate.constraints.cash_band_min_weight,
-        maximum=mandate.constraints.cash_band_max_weight,
-    )
-    measure = (
-        WorkbenchMandateConstraintMeasure(
-            value=cash.value,
-            as_of_date=cash.as_of_date.isoformat(),
-            source_service="lotus-core",
-            source_metric="cash_weight",
-        )
-        if cash is not None
-        else None
-    )
-    health_dimension = health.dimension("CASH_LIQUIDITY") if health is not None else None
-
+    limit = _cash_limit(mandate)
     if cash is None:
         return _measure_unavailable(
             key="cash_band",
@@ -46,8 +32,29 @@ def build_cash_constraint(
             measure=None,
             reason=unavailable_reason or "Cash allocation is unavailable for this review date.",
         )
-    assert measure is not None
-    if health is None or health_dimension is None:
+    return _cash_with_measure(
+        mandate=mandate,
+        health=health,
+        cash=cash,
+        comparison_as_of=comparison_as_of,
+        unavailable_reason=unavailable_reason,
+        limit=limit,
+        measure=_cash_measure(cash),
+    )
+
+
+def _cash_with_measure(
+    *,
+    mandate: ManageMandateSource,
+    health: ManageMandateHealthSource | None,
+    cash: WorkbenchCashMeasureSource,
+    comparison_as_of: date,
+    unavailable_reason: str | None,
+    limit: WorkbenchMandateConstraintLimit,
+    measure: WorkbenchMandateConstraintMeasure,
+) -> WorkbenchMandateConstraintComparison:
+    dimension = health.dimension("CASH_LIQUIDITY") if health is not None else None
+    if health is None or dimension is None:
         return _measure_unavailable(
             key="cash_band",
             label="Cash allocation",
@@ -66,52 +73,38 @@ def build_cash_constraint(
                 "Cash allocation and Manage mandate-health evidence are not aligned to the "
                 "selected review date."
             ),
-            source_state=health_dimension.state,
-            source_reason_code=health_dimension.reason_code,
+            source_state=dimension.state,
+            source_reason_code=dimension.reason_code,
         )
+    return _build_aligned_cash_constraint(
+        mandate=mandate,
+        health_dimension=dimension,
+        cash=cash,
+        limit=limit,
+        measure=measure,
+    )
 
+
+def _build_aligned_cash_constraint(
+    *,
+    mandate: ManageMandateSource,
+    health_dimension: ManageMandateHealthDimensionSource,
+    cash: WorkbenchCashMeasureSource,
+    limit: WorkbenchMandateConstraintLimit,
+    measure: WorkbenchMandateConstraintMeasure,
+) -> WorkbenchMandateConstraintComparison:
+    constraints = mandate.constraints
     if health_dimension.state == "READY":
-        if not (
-            mandate.constraints.cash_band_min_weight
-            <= cash.value
-            <= mandate.constraints.cash_band_max_weight
-        ):
-            return _cash_source_conflict(
-                limit=limit,
-                measure=measure,
-                source_state=health_dimension.state,
-                source_reason_code=health_dimension.reason_code,
-            )
-        return WorkbenchMandateConstraintComparison(
-            key="cash_band",
-            label="Cash allocation",
-            limit=limit,
-            measure=measure,
-            headroom=_rounded(mandate.constraints.cash_band_max_weight - cash.value),
-            state="within",
-            reason="Cash allocation is within the approved mandate band.",
-            source_state=health_dimension.state,
-            source_reason_code=health_dimension.reason_code,
+        return _ready_cash_constraint(
+            constraints.cash_band_min_weight,
+            constraints.cash_band_max_weight,
+            cash,
+            limit,
+            measure,
+            health_dimension,
         )
-    if health_dimension.reason_code == "CASH_ABOVE_BAND":
-        if cash.value <= mandate.constraints.cash_band_max_weight:
-            return _cash_source_conflict(
-                limit=limit,
-                measure=measure,
-                source_state=health_dimension.state,
-                source_reason_code=health_dimension.reason_code,
-            )
-        headroom = mandate.constraints.cash_band_max_weight - cash.value
-    elif health_dimension.reason_code == "CASH_BELOW_BAND":
-        if cash.value >= mandate.constraints.cash_band_min_weight:
-            return _cash_source_conflict(
-                limit=limit,
-                measure=measure,
-                source_state=health_dimension.state,
-                source_reason_code=health_dimension.reason_code,
-            )
-        headroom = cash.value - mandate.constraints.cash_band_min_weight
-    else:
+    headroom = _cash_breach_headroom(mandate, cash, health_dimension)
+    if headroom is None:
         return _measure_unavailable(
             key="cash_band",
             label="Cash allocation",
@@ -133,6 +126,71 @@ def build_cash_constraint(
         reason="Cash allocation is outside the approved mandate band.",
         source_state=health_dimension.state,
         source_reason_code=health_dimension.reason_code,
+    )
+
+
+def _ready_cash_constraint(
+    minimum: float,  # monetary-float-allow
+    maximum: float,  # monetary-float-allow
+    cash: WorkbenchCashMeasureSource,
+    limit: WorkbenchMandateConstraintLimit,
+    measure: WorkbenchMandateConstraintMeasure,
+    dimension: ManageMandateHealthDimensionSource,
+) -> WorkbenchMandateConstraintComparison:
+    if not minimum <= cash.value <= maximum:
+        return _cash_source_conflict_from_dimension(limit, measure, dimension)
+    return WorkbenchMandateConstraintComparison(
+        key="cash_band",
+        label="Cash allocation",
+        limit=limit,
+        measure=measure,
+        headroom=_rounded(maximum - cash.value),
+        state="within",
+        reason="Cash allocation is within the approved mandate band.",
+        source_state=dimension.state,
+        source_reason_code=dimension.reason_code,
+    )
+
+
+def _cash_breach_headroom(
+    mandate: ManageMandateSource,
+    cash: WorkbenchCashMeasureSource,
+    dimension: ManageMandateHealthDimensionSource,
+) -> float | None:  # monetary-float-allow
+    constraints = mandate.constraints
+    if dimension.reason_code == "CASH_ABOVE_BAND" and cash.value > constraints.cash_band_max_weight:
+        return constraints.cash_band_max_weight - cash.value
+    if dimension.reason_code == "CASH_BELOW_BAND" and cash.value < constraints.cash_band_min_weight:
+        return cash.value - constraints.cash_band_min_weight
+    return None
+
+
+def _cash_limit(mandate: ManageMandateSource) -> WorkbenchMandateConstraintLimit:
+    return WorkbenchMandateConstraintLimit(
+        minimum=mandate.constraints.cash_band_min_weight,
+        maximum=mandate.constraints.cash_band_max_weight,
+    )
+
+
+def _cash_measure(cash: WorkbenchCashMeasureSource) -> WorkbenchMandateConstraintMeasure:
+    return WorkbenchMandateConstraintMeasure(
+        value=cash.value,
+        as_of_date=cash.as_of_date.isoformat(),
+        source_service="lotus-core",
+        source_metric="cash_weight",
+    )
+
+
+def _cash_source_conflict_from_dimension(
+    limit: WorkbenchMandateConstraintLimit,
+    measure: WorkbenchMandateConstraintMeasure,
+    dimension: ManageMandateHealthDimensionSource,
+) -> WorkbenchMandateConstraintComparison:
+    return _cash_source_conflict(
+        limit=limit,
+        measure=measure,
+        source_state=dimension.state,
+        source_reason_code=dimension.reason_code,
     )
 
 
