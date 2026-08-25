@@ -336,7 +336,12 @@ Authority and boundary:
    publishes archive availability and bounded reason codes, with metadata/download links only for
    a confirmed archived source document; the existing archive routes re-check tenant and region
    before access and no raw storage location is exposed,
-6. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
+6. `POST /api/v1/report-batches/preflight` is a read-only, non-authoritative candidate check over
+   the validated batch setup. It reads Core membership once and Report's ordering catalogue once,
+   preserves requested portfolio order, emits explicit candidate postures and separate source/config
+   posture, and never creates a durable batch or report job. Batch mutation repeats every boundary
+   check and browser-supplied candidate authority is ignored,
+7. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
    details fail closed behind a product-safe Gateway error.
 
 ## Idea Opportunity BFF
