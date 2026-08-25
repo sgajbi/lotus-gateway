@@ -17,11 +17,11 @@ PORTFOLIO_TAX_LOT_RESPONSE_EXAMPLE: dict[str, Any] = {
             "instrument_id": "AAPL",
             "security_id": "US0378331005",
             "acquisition_date": "2026-02-28",
-            "original_quantity": 100.0,
-            "open_quantity": 75.0,
-            "lot_cost_local": 15005.5,
-            "lot_cost_base": 15005.5,
-            "accrued_interest_paid_local": 0.0,
+            "original_quantity": "100.0",
+            "open_quantity": "75.0",
+            "lot_cost_local": "15005.5",
+            "lot_cost_base": "15005.5",
+            "accrued_interest_paid_local": "0.0",
             "economic_event_id": "EVT-2026-00987",
             "linked_transaction_group_id": "LTG-2026-00456",
             "calculation_policy_id": "BUY_DEFAULT_POLICY",
@@ -48,21 +48,21 @@ class PortfolioTaxLot(BaseModel):
         description="Source acquisition date for the lot.", examples=["2026-02-28"]
     )
     original_quantity: Decimal = Field(
-        description="Original acquired quantity as reported by Core.", examples=[100.0]
+        description="Original acquired quantity as reported by Core.", examples=["100.0"]
     )
     open_quantity: Decimal = Field(
-        description="Current open quantity as reported by Core.", examples=[100.0]
+        description="Current open quantity as reported by Core.", examples=["100.0"]
     )
     lot_cost_local: Decimal = Field(
         description="Lot cost in the source trade/local currency; not a reporting-currency value.",
-        examples=[15005.5],
+        examples=["15005.5"],
     )
     lot_cost_base: Decimal = Field(
         description="Lot cost in the portfolio base currency; not restated by Gateway.",
-        examples=[15005.5],
+        examples=["15005.5"],
     )
     accrued_interest_paid_local: Decimal = Field(
-        description="Accrued interest paid at acquisition in local currency.", examples=[1250.0]
+        description="Accrued interest paid at acquisition in local currency.", examples=["1250.0"]
     )
     economic_event_id: str | None = Field(
         default=None, description="Source economic event identifier.", examples=["EVT-2026-00987"]

@@ -13,6 +13,8 @@ def test_portfolio_tax_lot_route_has_closed_typed_openapi_contract():
     assert schema["additionalProperties"] is False
     assert lot_schema["additionalProperties"] is False
     assert schema["example"]["lots"][0]["lot_id"] == "LOT-TXN-2026-0001"
+    assert schema["example"]["lots"][0]["lot_cost_base"] == "15005.5"
+    assert schema["example"]["lots"][0]["original_quantity"] == "100.0"
     assert set(lot_schema["required"]) >= {
         "lot_id",
         "source_transaction_id",
