@@ -21,10 +21,12 @@ route construction remains fail-closed, including private helpers that accept a 
 path. The only exceptions are the small, named module/method allowlist for generic Core transport
 helpers; each entry carries a reason in the gate, and new generic helpers must be added explicitly.
 Opaque f-string interpolations are unresolved. A route-leading unencoded caller parameter is
-opaque, regardless of its name; a caller parameter after a concrete route prefix is retained as a
-normalized placeholder. Opaque `.format()` replacements also fail closed. Statically resolved
-route-bearing constants are retained in the route template, while aliases with multiple
-assignments are ambiguous and fail closed. The seven generic transport exemptions apply only to
+opaque, regardless of its name; a caller parameter after a stable concrete route prefix (a route
+boundary or an already-known `/integration/` marker) is retained as a normalized placeholder.
+Only the explicit Core base-URL attributes are trusted as host prefixes; arbitrary instance
+attributes and incomplete route prefixes fail closed. Opaque `.format()` replacements also fail
+closed. Statically resolved route-bearing constants are retained in the route template, while
+aliases with multiple assignments are ambiguous and fail closed. The seven generic transport exemptions apply only to
 their documented caller-path, caller-URL, or base-URL-plus-path AST shape. Only a non-rebound
 direct `from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
 caller-supplied segment. Aliases, other imports, local definitions, and rebindings fail closed.
