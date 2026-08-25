@@ -21,8 +21,11 @@ No quality step, threshold, artifact, or ratchet is removed by this event policy
 The protected Quality Baseline also runs the pinned duplicate-code detector over
 `src/app/**/*.py`. Its report is checked against `quality/duplicate_code_baseline.json` for clone
 count, duplicated lines, duplicated percentage, and stable source-pair/normalised-fragment
-occurrence fingerprints. Detector
+occurrence fingerprints, with stable AST context evidence and line-shift-safe occurrence ordering.
+Detector
 failure, malformed evidence, or a stale fingerprint after a cleanup fails the quality result;
 cleanup improvements must be banked through a reviewed baseline update before the clone can return.
 The duplicate-code result is evaluated after the other baseline producers and artifact upload so a
 failed ratchet cannot hide the remaining diagnostics.
+Duplicate-tool installation failures follow the same deferred-evidence path and remain hard failures
+at the final duplicate-ratchet result.

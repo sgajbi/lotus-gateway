@@ -35,6 +35,7 @@ jobs:
 
       - name: Install Duplicate-Code Quality Tooling
         working-directory: quality
+        continue-on-error: true
         run: npm ci --ignore-scripts
 
       - name: Install Python Quality Tooling
@@ -158,6 +159,7 @@ jobs:
             --report output/quality-baseline/duplicate-code/jscpd-report.json \
             --artifact-log output/quality-baseline/duplicate-code.txt \
             --baseline quality/duplicate_code_baseline.json \
+            --source-root . \
             2>&1 | tee output/quality-baseline/duplicate-code-ratchet.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code-ratchet.txt

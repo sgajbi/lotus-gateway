@@ -90,9 +90,10 @@ Duplicate-code enforcement is intentionally no-new-regression rather than an imm
 campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
-different new clone between the same files. Occurrence ordinals are assigned by measured location
-order but are not themselves part of the absolute source coordinates, so unrelated line shifts do
-not invalidate every fingerprint. A removed clone also creates a stale-fingerprint failure until a
+different new clone between the same files. A stable AST context digest distinguishes replacements
+in different structural locations; occurrence ordinals are assigned by measured location order but
+are not themselves part of the absolute source coordinates, so unrelated line shifts do not
+invalidate every fingerprint. A removed clone also creates a stale-fingerprint failure until a
 reviewed `--update-baseline` banks the
 improvement; this prevents the removed duplication from being silently reintroduced later.
 
@@ -103,6 +104,10 @@ hard gate in a final post-upload step. It also enforces evidence capture itself:
 workflow-governance proof, agent-quality-evidence proof, generated OpenAPI artifact, and ratchet
 evidence must exist before upload. Missing or unusable evidence is treated as a CI measurement
 defect.
+
+Duplicate-tool installation is allowed to record its failure and let the remaining baseline
+producers run; the final duplicate-ratchet result then fails closed after evidence upload. This
+keeps registry, lockfile, or supported-runtime failures diagnosable without weakening the gate.
 
 Every report-producing quality tool log also carries exactly one
 `QUALITY_COMMAND_STATUS=<non-negative integer>` marker written from the producer process exit

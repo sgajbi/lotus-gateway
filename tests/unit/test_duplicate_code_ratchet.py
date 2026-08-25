@@ -55,6 +55,14 @@ def _baseline_and_report(
     return build_baseline(report), report
 
 
+def _write_context_sources(root: Path, *, second_function: str, prefix: str = "") -> None:
+    source = f"{prefix}def first():\n    return 1\n\ndef {second_function}():\n    return 1\n"
+    for name in ("a.py", "b.py"):
+        path = root / "src" / "app" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(source, encoding="utf-8")
+
+
 def test_duplicate_ratchet_accepts_exact_reviewed_baseline(tmp_path: Path) -> None:
     entries = [_entry("src/app/a.py", "src/app/b.py")]
     baseline, report = _baseline_and_report(tmp_path, entries)
@@ -327,6 +335,103 @@ def test_duplicate_fingerprint_uses_stable_occurrence_order_not_absolute_lines(
 
     assert (
         build_baseline(first)["allowed_fingerprints"]
+        == build_baseline(moved)["allowed_fingerprints"]
+    )
+
+
+def test_duplicate_fingerprint_rejects_same_fragment_replacement_with_context(
+    tmp_path: Path,
+) -> None:
+    entries = [
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=2,
+            second_start=2,
+        ),
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=5,
+            second_start=5,
+        ),
+    ]
+    baseline_root = tmp_path / "baseline-source"
+    current_root = tmp_path / "current-source"
+    _write_context_sources(baseline_root, second_function="second")
+    _write_context_sources(current_root, second_function="replacement")
+
+    baseline = load_report(
+        _write_report(tmp_path / "baseline-report", entries), source_root=baseline_root
+    )
+    current = load_report(
+        _write_report(tmp_path / "current-report", entries), source_root=current_root
+    )
+    result = evaluate(current, build_baseline(baseline), status=0)
+
+    assert not result.passed
+    assert len(result.unexpected_fingerprints) == 1
+    assert len(result.stale_fingerprints) == 1
+
+
+def test_duplicate_fingerprint_context_survives_unrelated_line_shift(tmp_path: Path) -> None:
+    entries = [
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=2,
+            second_start=2,
+        ),
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=5,
+            second_start=5,
+        ),
+    ]
+    baseline_root = tmp_path / "baseline-source"
+    moved_root = tmp_path / "moved-source"
+    _write_context_sources(baseline_root, second_function="second")
+    _write_context_sources(
+        moved_root,
+        second_function="second",
+        prefix="from __future__ import annotations\n",
+    )
+    baseline = load_report(
+        _write_report(tmp_path / "baseline-report", entries), source_root=baseline_root
+    )
+    moved_entries = [
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=3,
+            second_start=3,
+        ),
+        _entry(
+            "src/app/a.py",
+            "src/app/b.py",
+            fragment="return 1\n",
+            lines=1,
+            first_start=6,
+            second_start=6,
+        ),
+    ]
+    moved = load_report(
+        _write_report(tmp_path / "moved-report", moved_entries), source_root=moved_root
+    )
+
+    assert (
+        build_baseline(baseline)["allowed_fingerprints"]
         == build_baseline(moved)["allowed_fingerprints"]
     )
 

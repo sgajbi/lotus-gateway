@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import re
@@ -43,10 +44,13 @@ class DuplicateIdentity:
     lines: int
     sources: tuple[str, str]
     locations: tuple[tuple[str, int], tuple[str, int]]
+    context_digests: tuple[str | None, str | None]
 
     @property
-    def grouping_key(self) -> tuple[str, str, tuple[str, str]]:
-        return self.format, self.fragment_digest, self.sources
+    def grouping_key(
+        self,
+    ) -> tuple[str, str, tuple[str, str], tuple[str | None, str | None]]:
+        return self.format, self.fragment_digest, self.sources, self.context_digests
 
 
 @dataclass(frozen=True)
@@ -109,7 +113,37 @@ def _normalise_location(value: dict[str, Any]) -> tuple[str, int]:
     return source, start
 
 
-def _identity(entry: dict[str, Any]) -> DuplicateIdentity:
+def _context_digest(source_root: Path, source: str, start: int, lines: int) -> str:
+    source_path = source_root.joinpath(*PurePosixPath(source).parts)
+    try:
+        source_text = source_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"duplicate report source cannot be read: {source_path}") from exc
+    try:
+        tree = ast.parse(source_text, filename=str(source_path))
+    except SyntaxError as exc:
+        raise ValueError(f"duplicate report source is not valid Python: {source_path}") from exc
+    end = start + lines - 1
+    candidates: list[tuple[int, int, ast.AST]] = []
+    for node in ast.walk(tree):
+        node_start = getattr(node, "lineno", None)
+        node_end = getattr(node, "end_lineno", None)
+        if (
+            isinstance(node_start, int)
+            and isinstance(node_end, int)
+            and node_start <= start
+            and node_end >= end
+            and isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        ):
+            candidates.append((node_start, node_end, node))
+    context_node: ast.AST = (
+        min(candidates, key=lambda item: (item[1] - item[0], item[0]))[2] if candidates else tree
+    )
+    context = ast.dump(context_node, annotate_fields=True, include_attributes=False)
+    return hashlib.sha256(context.encode("utf-8")).hexdigest()
+
+
+def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdentity:
     first = entry.get("firstFile")
     second = entry.get("secondFile")
     fragment = entry.get("fragment")
@@ -131,6 +165,28 @@ def _identity(entry: dict[str, Any]) -> DuplicateIdentity:
     locations = (sorted_locations[0], sorted_locations[1])
     sorted_sources = sorted((first_file, second_file))
     sources = (sorted_sources[0], sorted_sources[1])
+    location_contexts = [
+        (
+            first_file,
+            first_start,
+            _context_digest(source_root, first_file, first_start, lines)
+            if source_root is not None
+            else None,
+        ),
+        (
+            second_file,
+            second_start,
+            _context_digest(source_root, second_file, second_start, lines)
+            if source_root is not None
+            else None,
+        ),
+    ]
+    location_contexts.sort(key=lambda item: (item[0], item[1]))
+    locations = (
+        (location_contexts[0][0], location_contexts[0][1]),
+        (location_contexts[1][0], location_contexts[1][1]),
+    )
+    context_digests = (location_contexts[0][2], location_contexts[1][2])
     return DuplicateIdentity(
         format_name,
         fragment_digest,
@@ -139,6 +195,7 @@ def _identity(entry: dict[str, Any]) -> DuplicateIdentity:
         lines,
         sources,
         locations,
+        context_digests,
     )
 
 
@@ -148,6 +205,7 @@ def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> Duplicat
         "fragment_digest": identity.fragment_digest,
         "occurrence_index": occurrence_index,
         "sources": identity.sources,
+        "context_digests": identity.context_digests,
     }
     digest = hashlib.sha256(
         json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -155,7 +213,7 @@ def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> Duplicat
     return DuplicateFinding(digest, identity.first_file, identity.second_file, identity.lines)
 
 
-def load_report(path: Path) -> DuplicateReport:
+def load_report(path: Path, *, source_root: Path | None = None) -> DuplicateReport:
     document = json.loads(path.read_text(encoding="utf-8"), parse_float=Decimal)
     if not isinstance(document, dict):
         raise ValueError("duplicate report must contain a JSON object")
@@ -166,8 +224,10 @@ def load_report(path: Path) -> DuplicateReport:
     total = statistics.get("total")
     if not isinstance(total, dict) or not all(isinstance(entry, dict) for entry in duplicates):
         raise ValueError("duplicate report has invalid duplicate entries or total statistics")
-    identities = tuple(_identity(entry) for entry in duplicates)
-    grouped_indices: defaultdict[tuple[str, str, tuple[str, str]], list[int]] = defaultdict(list)
+    identities = tuple(_identity(entry, source_root) for entry in duplicates)
+    grouped_indices: defaultdict[
+        tuple[str, str, tuple[str, str], tuple[str | None, str | None]], list[int]
+    ] = defaultdict(list)
     for index, identity in enumerate(identities):
         grouped_indices[identity.grouping_key].append(index)
     occurrence_indices: dict[int, int] = {}
@@ -342,13 +402,18 @@ def main() -> int:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--artifact-log", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        help="Repository root used to add stable local source-context evidence to identities.",
+    )
     parser.add_argument("--initialize-baseline", action="store_true")
     parser.add_argument("--update-baseline", action="store_true")
     args = parser.parse_args()
     if args.initialize_baseline and args.update_baseline:
         parser.error("--initialize-baseline and --update-baseline are mutually exclusive")
     try:
-        report = load_report(args.report)
+        report = load_report(args.report, source_root=args.source_root)
         status = load_status(args.artifact_log)
         if args.initialize_baseline:
             if status != 0:

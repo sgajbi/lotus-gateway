@@ -132,6 +132,10 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "output/quality-baseline/demo-certification.txt" in workflow
     assert "Install Duplicate-Code Quality Tooling" in workflow
     assert "npm ci --ignore-scripts" in workflow
+    duplicate_install = workflow.split("      - name: Install Duplicate-Code Quality Tooling\n", 1)[
+        1
+    ].split("      - name: Install Python Quality Tooling", 1)[0]
+    assert "continue-on-error: true" in duplicate_install
     assert "Duplicate Code Baseline" in workflow
     assert "--min-lines 15" in workflow
     assert "--min-tokens 50" in workflow

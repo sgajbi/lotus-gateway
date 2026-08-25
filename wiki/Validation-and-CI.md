@@ -115,6 +115,8 @@ same actual revision may supersede one another.
   fragment occurrence fingerprints must not regress beyond the reviewed production baseline;
   removed pairs must be banked through a
   reviewed baseline update before they can be reintroduced
+- duplicate fingerprints include normalized AST context and stable occurrence ordering so line
+  shifts do not invalidate unrelated clones and replacements remain visible
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
