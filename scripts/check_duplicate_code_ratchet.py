@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path, PurePosixPath
@@ -31,6 +32,21 @@ class DuplicateFinding:
     first_file: str
     second_file: str
     lines: int
+
+
+@dataclass(frozen=True)
+class DuplicateIdentity:
+    format: str
+    fragment_digest: str
+    first_file: str
+    second_file: str
+    lines: int
+    sources: tuple[str, str]
+    locations: tuple[tuple[str, int], tuple[str, int]]
+
+    @property
+    def grouping_key(self) -> tuple[str, str, tuple[str, str]]:
+        return self.format, self.fragment_digest, self.sources
 
 
 @dataclass(frozen=True)
@@ -93,7 +109,7 @@ def _normalise_location(value: dict[str, Any]) -> tuple[str, int]:
     return source, start
 
 
-def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
+def _identity(entry: dict[str, Any]) -> DuplicateIdentity:
     first = entry.get("firstFile")
     second = entry.get("secondFile")
     fragment = entry.get("fragment")
@@ -107,17 +123,36 @@ def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
     normalised_fragment = FRAGMENT_WHITESPACE.sub(" ", fragment).strip()
     if not normalised_fragment:
         raise ValueError("duplicate report entry has an empty fragment")
+    format_name = entry.get("format")
+    if not isinstance(format_name, str) or not format_name:
+        raise ValueError("duplicate report entry has an invalid format")
     fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
-    identity = {
-        "format": entry.get("format"),
-        "fragment_digest": fragment_digest,
-        "locations": sorted(((first_file, first_start), (second_file, second_start))),
-        "sources": sorted((first_file, second_file)),
+    sorted_locations = sorted(((first_file, first_start), (second_file, second_start)))
+    locations = (sorted_locations[0], sorted_locations[1])
+    sorted_sources = sorted((first_file, second_file))
+    sources = (sorted_sources[0], sorted_sources[1])
+    return DuplicateIdentity(
+        format_name,
+        fragment_digest,
+        first_file,
+        second_file,
+        lines,
+        sources,
+        locations,
+    )
+
+
+def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> DuplicateFinding:
+    identity_payload = {
+        "format": identity.format,
+        "fragment_digest": identity.fragment_digest,
+        "occurrence_index": occurrence_index,
+        "sources": identity.sources,
     }
     digest = hashlib.sha256(
-        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-    return DuplicateFinding(digest, first_file, second_file, lines)
+    return DuplicateFinding(digest, identity.first_file, identity.second_file, identity.lines)
 
 
 def load_report(path: Path) -> DuplicateReport:
@@ -131,7 +166,20 @@ def load_report(path: Path) -> DuplicateReport:
     total = statistics.get("total")
     if not isinstance(total, dict) or not all(isinstance(entry, dict) for entry in duplicates):
         raise ValueError("duplicate report has invalid duplicate entries or total statistics")
-    findings = tuple(_fingerprint(entry) for entry in duplicates)
+    identities = tuple(_identity(entry) for entry in duplicates)
+    grouped_indices: defaultdict[tuple[str, str, tuple[str, str]], list[int]] = defaultdict(list)
+    for index, identity in enumerate(identities):
+        grouped_indices[identity.grouping_key].append(index)
+    occurrence_indices: dict[int, int] = {}
+    for indices in grouped_indices.values():
+        for occurrence_index, index in enumerate(
+            sorted(indices, key=lambda item: identities[item].locations), start=1
+        ):
+            occurrence_indices[index] = occurrence_index
+    findings = tuple(
+        _fingerprint(identity, occurrence_indices[index])
+        for index, identity in enumerate(identities)
+    )
     clones = total.get("clones")
     if isinstance(clones, bool) or not isinstance(clones, int) or clones < 0:
         raise ValueError("duplicate report has an invalid clone count")

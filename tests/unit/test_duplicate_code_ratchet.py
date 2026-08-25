@@ -303,6 +303,34 @@ def test_duplicate_fingerprint_distinguishes_identical_fragments_at_different_lo
     assert len(build_baseline(report)["allowed_fingerprints"]) == 2
 
 
+def test_duplicate_fingerprint_uses_stable_occurrence_order_not_absolute_lines(
+    tmp_path: Path,
+) -> None:
+    first = load_report(
+        _write_report(
+            tmp_path / "first",
+            [
+                _entry("src/app/a.py", "src/app/b.py"),
+                _entry("src/app/a.py", "src/app/b.py", first_start=30, second_start=40),
+            ],
+        )
+    )
+    moved = load_report(
+        _write_report(
+            tmp_path / "moved",
+            [
+                _entry("src/app/a.py", "src/app/b.py", first_start=100, second_start=200),
+                _entry("src/app/a.py", "src/app/b.py", first_start=300, second_start=400),
+            ],
+        )
+    )
+
+    assert (
+        build_baseline(first)["allowed_fingerprints"]
+        == build_baseline(moved)["allowed_fingerprints"]
+    )
+
+
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
     report_path = _write_report(tmp_path, [_entry("src/app/a.py", "src/app/b.py", fragment="\n")])
 
