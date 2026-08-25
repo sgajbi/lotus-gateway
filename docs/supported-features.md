@@ -202,7 +202,9 @@ storage location is exposed. `POST /api/v1/report-batches/preflight` is a read-o
 non-authoritative composition over the validated batch setup, one Core membership read, and one
 Report ordering-catalogue read. It preserves requested portfolio order and returns explicit
 candidate postures plus separate membership and report-configuration posture; batch mutation
-repeats every boundary check.
+repeats every boundary check. Permission-blocked candidates omit source evidence so the preflight
+does not disclose whether an identifier exists outside the caller's membership or when that source
+was last evaluated.
 
 ## Data Products
 

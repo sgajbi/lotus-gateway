@@ -167,6 +167,9 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `PortfolioManagerBookMembership:v1` once and the Report ordering catalogue once, preserves
   requested portfolio order, and returns `ready`, `partial`, `stale`, `permission_blocked`, or
   `unavailable` candidate posture with separate source membership and Report configuration posture.
+  `permission_blocked` candidates always omit `source_evidence`, so a fabricated portfolio ID and
+  an ID outside the caller's membership are indistinguishable apart from the echoed ID; source
+  existence and freshness are not disclosed.
   It is non-authoritative; `POST /api/v1/report-batches` repeats scope and configuration checks
   before creating durable Report-owned state. Browser-supplied candidate headers never authorize a
   result

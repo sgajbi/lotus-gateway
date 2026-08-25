@@ -340,7 +340,9 @@ Authority and boundary:
    the validated batch setup. It reads Core membership once and Report's ordering catalogue once,
    preserves requested portfolio order, emits explicit candidate postures and separate source/config
    posture, and never creates a durable batch or report job. Batch mutation repeats every boundary
-   check and browser-supplied candidate authority is ignored,
+   check and browser-supplied candidate authority is ignored. Permission-blocked candidates omit
+   source evidence, keeping fabricated and out-of-scope identifiers indistinguishable apart from
+   the echoed identifier,
 7. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
    details fail closed behind a product-safe Gateway error.
 

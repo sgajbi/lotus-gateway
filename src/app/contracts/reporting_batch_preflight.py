@@ -47,7 +47,14 @@ class ReportBatchCandidatePreflight(ReportBatchPreflightModel):
     state: PreflightCandidateState
     reason_code: str
     message: str
-    source_evidence: ReportBatchPreflightSourceEvidence | None = None
+    source_evidence: ReportBatchPreflightSourceEvidence | None = Field(
+        default=None,
+        description=(
+            "Source membership evidence for an entitled candidate; omitted for "
+            "permission_blocked candidates so portfolio existence and source freshness "
+            "are not disclosed."
+        ),
+    )
 
 
 class ReportBatchPreflightResponse(ReportBatchPreflightModel):

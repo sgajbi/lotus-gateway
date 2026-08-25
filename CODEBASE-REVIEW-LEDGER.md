@@ -4,6 +4,23 @@ Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 2V — lock report-batch preflight permission redaction (#637)
+
+- Objective: make the existing fail-closed disclosure boundary for report-batch candidate
+  preflight explicit and regression-protected.
+- Change: document on `ReportBatchCandidatePreflight.source_evidence` that evidence is omitted for
+  `permission_blocked` candidates, and test both an out-of-scope identifier and a fabricated
+  identifier. Their candidate payloads must match apart from the echoed `portfolio_id`; no source
+  membership reference or as-of date may be disclosed.
+- Regression proof: the unit contract asserts the permission-blocked state, absent evidence, and
+  payload indistinguishability while preserving one Core read and one Report catalogue read.
+- Compatibility: no route, response field, authorization rule, downstream call pattern, migration,
+  dependency, configuration, or retry-policy change. This records and protects behavior already
+  present on `main`.
+- Documentation decision: OpenAPI field truth, repository supported-features docs, API-surface and
+  supported-features wiki, and this ledger are updated. No central context or runbook change is
+  required. Wiki publication and strict parity are required after merge.
+
 ### Batch 2U — publish report-batch candidate preflight (#542)
 
 - Objective: let Workbench inspect an explicit report-batch selection before mutation without
