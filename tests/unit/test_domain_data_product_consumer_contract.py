@@ -7,6 +7,45 @@ CONTRACT_PATH = (
     / "domain-data-products"
     / "lotus-gateway-consumers.v1.json"
 )
+CLIENT_ROOT = Path(__file__).resolve().parents[2] / "src" / "app" / "clients"
+
+# This is intentionally an implementation-backed inventory rather than a prose copy of RFC-0082:
+# each entry names the client method and route fragments that prove the declared Core product is
+# still directly consumed by Gateway.  A missing method/route or an undeclared product fails the
+# contract test before federation can publish a stale dependency edge.
+IMPLEMENTED_CORE_ROUTE_INVENTORY = {
+    "PortfolioManagerBookMembership": {
+        "client": "lotus_core_portfolio_query_client.py",
+        "method": "get_portfolio_manager_book_memberships",
+        "route_fragments": (
+            "/integration/portfolio-manager-books/",
+            "/memberships",
+        ),
+    },
+    "PortfolioAnalyticsReference": {
+        "client": "lotus_core_query_client.py",
+        "method": "get_portfolio_analytics_reference",
+        "route_fragments": ("/integration/portfolios/", "/analytics/reference"),
+    },
+    "BenchmarkAssignment": {
+        "client": "lotus_core_query_client.py",
+        "method": "get_benchmark_assignment",
+        "route_fragments": ("/integration/portfolios/", "/benchmark-assignment"),
+    },
+    "BenchmarkDefinition": {
+        "client": "lotus_core_query_client.py",
+        "method": "get_benchmark_catalog",
+        "route_fragments": ("/integration/benchmarks/catalog",),
+    },
+    "ExternalOrderExecutionAcknowledgement": {
+        "client": "lotus_core_query_client.py",
+        "method": "get_external_order_execution_acknowledgement",
+        "route_fragments": (
+            "/integration/portfolios/",
+            "/external-order-execution-acknowledgement",
+        ),
+    },
+}
 
 
 def _consumer_contract() -> dict:
@@ -140,3 +179,20 @@ def test_gateway_declares_only_implemented_rfc_0084_dependencies() -> None:
     ]
 
     assert contract["dependencies"] == expected_dependencies
+
+
+def test_gateway_declarations_match_implemented_core_route_inventory() -> None:
+    contract_products = {
+        dependency["product_name"] for dependency in _consumer_contract()["dependencies"]
+    }
+
+    assert contract_products == set(IMPLEMENTED_CORE_ROUTE_INVENTORY)
+
+    for product_name, route_definition in IMPLEMENTED_CORE_ROUTE_INVENTORY.items():
+        client_source = (CLIENT_ROOT / route_definition["client"]).read_text(encoding="utf-8")
+        assert f"async def {route_definition['method']}" in client_source
+        for route_fragment in route_definition["route_fragments"]:
+            assert route_fragment in client_source, (
+                f"{product_name} route fragment {route_fragment!r} is missing from "
+                f"{route_definition['client']}"
+            )
