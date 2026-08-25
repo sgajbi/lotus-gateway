@@ -150,43 +150,107 @@ def _function_parameter_names(node: ast.AsyncFunctionDef | ast.FunctionDef) -> f
     return frozenset(parameter_names)
 
 
-def _caller_supplied_route_expression(
+def _expression_references_own_parameter(
     expression: ast.AST,
     own_parameters: frozenset[str],
     assignments: dict[str, ast.AST],
     resolving: frozenset[str] = frozenset(),
 ) -> bool:
-    if any(isinstance(child, ast.Call) for child in ast.walk(expression)):
-        return False
     if isinstance(expression, ast.Name):
         if expression.id in own_parameters:
             return True
         if expression.id in resolving or expression.id not in assignments:
             return False
-        return _caller_supplied_route_expression(
+        return _expression_references_own_parameter(
             assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
         )
     if isinstance(expression, ast.JoinedStr):
         return any(
-            _caller_supplied_route_expression(value.value, own_parameters, assignments, resolving)
+            _expression_references_own_parameter(
+                value.value, own_parameters, assignments, resolving
+            )
             for value in expression.values
             if isinstance(value, ast.FormattedValue)
         )
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
-        return _caller_supplied_route_expression(
+        return _expression_references_own_parameter(
             expression.left, own_parameters, assignments, resolving
-        ) or _caller_supplied_route_expression(
+        ) or _expression_references_own_parameter(
             expression.right, own_parameters, assignments, resolving
         )
     if isinstance(expression, ast.Attribute):
-        return _caller_supplied_route_expression(
+        return _expression_references_own_parameter(
             expression.value, own_parameters, assignments, resolving
         )
     if isinstance(expression, ast.Subscript):
-        return _caller_supplied_route_expression(
+        return _expression_references_own_parameter(
             expression.value, own_parameters, assignments, resolving
         )
     return False
+
+
+def _expression_contains_opaque_component(
+    expression: ast.AST,
+    own_parameters: frozenset[str],
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> bool:
+    if isinstance(expression, ast.Call):
+        return True
+    if isinstance(expression, ast.Name):
+        if expression.id in own_parameters:
+            return False
+        if expression.id in resolving or expression.id not in assignments:
+            return True
+        return _expression_contains_opaque_component(
+            assignments[expression.id], own_parameters, assignments, resolving | {expression.id}
+        )
+    if isinstance(expression, ast.Constant):
+        return False
+    if isinstance(expression, ast.JoinedStr):
+        for value in expression.values:
+            if not isinstance(value, ast.FormattedValue):
+                continue
+            if _expression_contains_opaque_component(
+                value.value, own_parameters, assignments, resolving
+            ):
+                return True
+            if value.format_spec is not None and _expression_contains_opaque_component(
+                value.format_spec, own_parameters, assignments, resolving
+            ):
+                return True
+        return False
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
+        return _expression_contains_opaque_component(
+            expression.left, own_parameters, assignments, resolving
+        ) or _expression_contains_opaque_component(
+            expression.right, own_parameters, assignments, resolving
+        )
+    if isinstance(expression, ast.Attribute):
+        if isinstance(expression.value, ast.Call):
+            return True
+        if isinstance(expression.value, (ast.Name, ast.Attribute)):
+            return False
+        return _expression_contains_opaque_component(
+            expression.value, own_parameters, assignments, resolving
+        )
+    if isinstance(expression, ast.Subscript):
+        return _expression_contains_opaque_component(
+            expression.value, own_parameters, assignments, resolving
+        ) or _expression_contains_opaque_component(
+            expression.slice, own_parameters, assignments, resolving
+        )
+    return True
+
+
+def _caller_supplied_route_expression(
+    expression: ast.AST,
+    own_parameters: frozenset[str],
+    assignments: dict[str, ast.AST],
+) -> bool:
+    return _expression_references_own_parameter(
+        expression, own_parameters, assignments
+    ) and not _expression_contains_opaque_component(expression, own_parameters, assignments)
 
 
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
@@ -570,6 +634,9 @@ class FakeCoreClient:
         route = path
         return await self._request(url=route)
 
+    async def _get_parameter_concat(self, path):
+        return await self._request(url=path + "/suffix")
+
     async def _get_parameter_fstring(self, path):
         url = f"{self._base_url}{path}"
         return await self._request(url=url)
@@ -583,6 +650,9 @@ class FakeCoreClient:
 
     async def _get_mixed_internal_route(self, path):
         return await self._request(url=path + build_route(path))
+
+    async def _get_fstring_internal_route(self, path):
+        return await self._request(url=f"{build_route(path)}{path}")
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -602,6 +672,7 @@ class FakeCoreClient:
     expected_internal_routes = (
         ("lotus_core_private_helper_client.py", "_get_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_fstring_internal_route"),
         ("lotus_core_private_only_client.py", "_get_internal_route"),
     )
     for client_module, client_method in expected_internal_routes:
@@ -621,6 +692,7 @@ class FakeCoreClient:
     for parameter_helper in (
         "_get_parameter_route",
         "_get_parameter_alias",
+        "_get_parameter_concat",
         "_get_parameter_fstring",
         "_get_parameter_varargs",
     ):
