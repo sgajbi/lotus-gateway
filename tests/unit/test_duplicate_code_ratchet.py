@@ -244,7 +244,7 @@ def test_duplicate_fingerprint_normalizes_path_separators_and_source_order(
                 _entry(
                     "src\\app\\b.py",
                     "src\\app\\a.py",
-                    fragment="def differently_named():\n    return 2\n",
+                    fragment="def shared():\r\n        return 1\r\n",
                 )
             ],
         )
@@ -254,3 +254,31 @@ def test_duplicate_fingerprint_normalizes_path_separators_and_source_order(
         build_baseline(first)["allowed_fingerprints"]
         == build_baseline(second)["allowed_fingerprints"]
     )
+
+
+def test_duplicate_fingerprint_distinguishes_multiple_clones_between_same_files(
+    tmp_path: Path,
+) -> None:
+    report = load_report(
+        _write_report(
+            tmp_path,
+            [
+                _entry("src/app/a.py", "src/app/b.py", fragment="def first():\n    return 1\n"),
+                _entry(
+                    "src/app/a.py",
+                    "src/app/b.py",
+                    fragment="def second():\n    return 2\n",
+                ),
+            ],
+        )
+    )
+
+    assert len({finding.fingerprint for finding in report.findings}) == 2
+    assert len(build_baseline(report)["allowed_fingerprints"]) == 2
+
+
+def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
+    report_path = _write_report(tmp_path, [_entry("src/app/a.py", "src/app/b.py", fragment="\n")])
+
+    with pytest.raises(ValueError, match="empty fragment"):
+        load_report(report_path)

@@ -202,6 +202,16 @@ def test_duplicate_detector_is_pinned_and_uses_the_repo_quality_package() -> Non
     assert lock["packages"]["node_modules/jscpd"]["version"] == "4.2.2"
 
 
+def test_make_duplicate_detector_captures_status_without_bash_extensions() -> None:
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    duplicate_recipe = makefile.split("duplicate-code:\n", 1)[1].split("\ntest:\n", 1)[0]
+
+    assert "set -o pipefail" not in duplicate_recipe
+    assert "PIPESTATUS" not in duplicate_recipe
+    assert "> output/duplicate-code/detector.txt 2>&1" in duplicate_recipe
+    assert "status=$$?" in duplicate_recipe
+
+
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:
     gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
 

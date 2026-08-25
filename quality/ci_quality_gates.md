@@ -66,7 +66,8 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
 7. Interrogate documentation coverage must not fall below 1.6%, and
 8. Spectral OpenAPI problems must not exceed 4.
 9. duplicate-code clone count must not exceed 88, duplicated lines must not exceed 1,767, and
-   duplicated percentage must not exceed 2.03%; stable source-pair fingerprints must not gain a
+   duplicated percentage must not exceed 2.03%; stable source-pair-plus-normalised-fragment
+   fingerprints must not gain a
    new finding. The detector is pinned in `quality/package-lock.json` and scans production
    `src/app/**/*.py` only.
 
@@ -88,8 +89,9 @@ until individual findings are remediated and promoted to clean thresholds:
 Duplicate-code enforcement is intentionally no-new-regression rather than an immediate cleanup
 campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
-source-pair fingerprints so removing one known clone cannot mask a different new clone. A removed
-clone also creates a stale-fingerprint failure until a reviewed `--update-baseline` banks the
+source-pair-plus-normalised-fragment fingerprints so removing one known clone cannot mask a
+different new clone between the same files. A removed clone also creates a stale-fingerprint
+failure until a reviewed `--update-baseline` banks the
 improvement; this prevents the removed duplication from being silently reintroduced later.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
