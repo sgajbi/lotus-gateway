@@ -107,6 +107,16 @@ class _RenderClient:
         }
 
 
+class _ArchiveAccessClient:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+        self.response: tuple[int, dict[str, object]] = (200, {"items": []})
+
+    async def preflight_document_access(self, **kwargs) -> tuple[int, dict[str, object]]:
+        self.calls.append(kwargs)
+        return self.response
+
+
 class _PortfolioResolver:
     def __init__(self, *, error: AdvisorBookServiceError | None = None) -> None:
         self.calls: list[dict[str, object]] = []
@@ -209,9 +219,11 @@ def _service(
     reporting_client: _ReportingClient,
     render_client: _RenderClient | None = None,
     portfolio_resolver: _PortfolioResolver | None = None,
+    archive_access_client: _ArchiveAccessClient | None = None,
 ) -> ReportingBatchLifecycleService:
     return ReportingBatchLifecycleService(
         reporting_client=reporting_client,
+        archive_access_client=archive_access_client or _ArchiveAccessClient(),
         render_client=render_client or _RenderClient(),
         scope_resolver=ReportingBatchScopeResolver(
             portfolio_resolver=portfolio_resolver or _PortfolioResolver()
@@ -327,6 +339,41 @@ async def test_reporting_batch_lifecycle_service_gets_batch_status_with_supporta
             "correlation_id": "corr-batch",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_reporting_batch_lifecycle_service_keeps_archive_preflight_advisory() -> None:
+    reporting_client = _ReportingClient()
+    archive_access_client = _ArchiveAccessClient()
+    archive_access_client.response = (503, {"detail": "archive timeout"})
+    reporting_client.status_response = (
+        200,
+        {
+            **_batch_status_payload(),
+            "items": [
+                {
+                    **_batch_status_payload()["items"][0],
+                    "status": "succeeded",
+                    "report_job_id": "rjob_1",
+                    "report_job_status": "archived",
+                    "archive_document_id": "doc_timeout",
+                }
+            ],
+        },
+    )
+    service = _service(reporting_client, archive_access_client=archive_access_client)
+
+    response = await service.get_batch_status(
+        batch_id="rbch_1",
+        caller_headers=_caller_headers(),
+        correlation_id="corr-batch",
+        tenant_id="tenant-sg",
+    )
+
+    assert response.items[0].archive_state == "unavailable"
+    assert response.items[0].archive_document_id is None
+    assert response.items[0].archive_metadata_url is None
+    assert len(archive_access_client.calls) == 1
 
 
 def test_reporting_batch_lifecycle_service_requires_idempotency_key() -> None:

@@ -4401,6 +4401,48 @@ async def test_archive_client_metadata_and_download_routes_forward_archive_conte
 
 
 @pytest.mark.asyncio
+async def test_archive_client_posts_one_caller_scoped_access_preflight():
+    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "result_state": "partial",
+            "requested_count": 2,
+            "returned_count": 2,
+            "items": [
+                {"document_id": "doc_1", "state": "allowed", "reason_code": "access_allowed"},
+                {
+                    "document_id": "doc_2",
+                    "state": "denied",
+                    "reason_code": "caller_scope_mismatch",
+                },
+            ],
+            "preflight_only": True,
+        },
+    )
+
+    status_code, payload = await client.preflight_document_access(
+        document_ids=["doc_1", "doc_2"],
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-archive-preflight",
+    )
+
+    assert status_code == 200
+    assert payload["preflight_only"] is True
+    assert _FakeAsyncClient.calls[0]["method"] == "POST"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://archive/documents/access-preflight"
+    assert _FakeAsyncClient.calls[0]["json"] == {"document_ids": ["doc_1", "doc_2"]}
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Caller-Service"] == "lotus-gateway"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Region"] == "APAC"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-archive-preflight"
+
+
+@pytest.mark.asyncio
 async def test_archive_client_download_returns_error_payload_without_binary_leakage():
     client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(

@@ -332,10 +332,12 @@ Authority and boundary:
    remains partial until authoritative portfolio identifiers are supplied,
 4. ordering eligibility does not authorize client distribution, prove render completion, prove
    archive completion, or make a report client-ready,
-5. report-batch status preserves the directly linked Report job and archive identity. Gateway
-   publishes archive availability and bounded reason codes, with metadata/download links only for
-   a confirmed archived source document; the existing archive routes re-check tenant and region
-   before access and no raw storage location is exposed,
+5. report-batch status preserves the directly linked Report job and uses one caller-scoped Archive
+   access-preflight batch for eligible document identities. Gateway publishes archive availability
+   and Gateway-owned bounded reason codes only after Archive confirms allowed access; denied,
+   missing, and unavailable postures remain indistinguishable and linkless. The existing
+   metadata/download routes re-check tenant and region before access and no raw storage location is
+   exposed,
 6. `POST /api/v1/report-batches/preflight` is a read-only, non-authoritative candidate check over
    the validated batch setup. It reads Core membership once and Report's ordering catalogue once,
    preserves requested portfolio order, emits explicit candidate postures and separate source/config

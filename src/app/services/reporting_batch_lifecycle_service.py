@@ -6,7 +6,10 @@ from app.contracts.reporting_batches import (
     BatchStatusResponse,
 )
 from app.contracts.reporting_errors import REPORT_BATCH_ERROR_EXAMPLES
-from app.services.reporting_batch_archive import project_report_batch_archive
+from app.services.domain_client_protocols import ArchiveAccessPreflightClient
+from app.services.reporting_batch_archive import (
+    project_report_batch_archive_with_access_preflight,
+)
 from app.services.reporting_batch_scope import (
     ReportingBatchScopeError,
     ReportingBatchScopeResolver,
@@ -25,10 +28,12 @@ class ReportingBatchLifecycleService:
         self,
         *,
         reporting_client: ReportingBatchLifecycleClient,
+        archive_access_client: ArchiveAccessPreflightClient,
         render_client: RenderMetadataClient,
         scope_resolver: ReportingBatchScopeResolver,
     ) -> None:
         self._reporting_client = reporting_client
+        self._archive_access_client = archive_access_client
         self._render_client = render_client
         self._scope_resolver = scope_resolver
 
@@ -88,8 +93,14 @@ class ReportingBatchLifecycleService:
             correlation_id=correlation_id,
         )
         raise_report_batch_error(status_code, payload)
+        projected_payload = await project_report_batch_archive_with_access_preflight(
+            payload,
+            archive_client=self._archive_access_client,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+        )
         response_payload = await self._attach_operator_supportability(
-            project_report_batch_archive(payload),
+            projected_payload,
             correlation_id=correlation_id,
             tenant_id=tenant_id,
         )

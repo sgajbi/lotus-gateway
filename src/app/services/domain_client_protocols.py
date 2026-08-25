@@ -1,6 +1,16 @@
 from typing import Any, Protocol
 
 
+class ArchiveAccessPreflightClient(Protocol):
+    async def preflight_document_access(
+        self,
+        *,
+        document_ids: list[str],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
 class ArchiveDocumentClient(Protocol):
     async def get_document_metadata(
         self,
