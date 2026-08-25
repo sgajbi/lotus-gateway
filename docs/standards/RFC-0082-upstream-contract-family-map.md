@@ -184,9 +184,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    is unavailable, invalid, or after the requested end date. Gateway #509
    owns the systematic inventory and declaration parity for the remaining implemented direct
    domain-product reads. The RFC-0084 unit gate now checks both the declared route inventory and
-   asynchronous Core integration methods in `lotus_core*.py`; capabilities, effective policy, and
-   core-snapshot remain explicitly classified control-plane/snapshot operations. This batch records
-   the Core analytics-reference, benchmark, and external OMS supportability dependencies without
+   asynchronous Core integration methods in `lotus_core*.py`, including normalized route identity
+   for every discovered integration path; capabilities, effective policy, and core-snapshot remain
+   explicitly classified control-plane/snapshot operations. This batch records the Core
+   analytics-reference, benchmark, and external OMS supportability dependencies without
    transferring their domain ownership to Gateway.
 
 ## Gap Register
