@@ -155,6 +155,8 @@ scorecard/context guidance synchronized for future agent development. It install
 - high-confidence dead-code candidates through `vulture`
 - dependency hygiene through `deptry`, with the local `app` and `tests` namespaces classified as
   first-party so shared test fixtures do not create false missing-dependency regressions
+- the dependency-findings ratchet is currently 21; a later Quality Baseline result of 22 fails
+  rather than spending the measured post-#645 improvement
 - security findings through `bandit` and `pip-audit`
 - import-boundary contracts through `import-linter`
 - docstring baseline through `interrogate`

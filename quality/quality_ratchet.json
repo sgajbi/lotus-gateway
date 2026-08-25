@@ -51,8 +51,8 @@
       "pattern": "Found (\\d+) dependency issues\\.",
       "zero_pattern": "Success! No dependency issues found\\.",
       "comparison": "not_above",
-      "baseline": 48,
-      "threshold": 48,
+      "baseline": 21,
+      "threshold": 21,
       "remediation": "Run deptry . and fix missing, transitive-only, or unused dependency declarations."
     },
     {
