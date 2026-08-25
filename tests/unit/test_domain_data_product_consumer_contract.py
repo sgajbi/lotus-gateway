@@ -243,14 +243,53 @@ def _expression_contains_opaque_component(
     return True
 
 
+def _expression_contains_integration_literal(
+    expression: ast.AST,
+    assignments: dict[str, ast.AST],
+    resolving: frozenset[str] = frozenset(),
+) -> bool:
+    if isinstance(expression, ast.Constant) and isinstance(expression.value, str):
+        return "/integration/" in expression.value
+    if isinstance(expression, ast.Name):
+        if expression.id in resolving or expression.id not in assignments:
+            return False
+        return _expression_contains_integration_literal(
+            assignments[expression.id], assignments, resolving | {expression.id}
+        )
+    if isinstance(expression, ast.JoinedStr):
+        return any(
+            (
+                isinstance(value, ast.Constant)
+                and isinstance(value.value, str)
+                and "/integration/" in value.value
+            )
+            or (
+                isinstance(value, ast.FormattedValue)
+                and _expression_contains_integration_literal(value.value, assignments, resolving)
+            )
+            for value in expression.values
+        )
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.Add):
+        return _expression_contains_integration_literal(
+            expression.left, assignments, resolving
+        ) or _expression_contains_integration_literal(expression.right, assignments, resolving)
+    if isinstance(expression, ast.Subscript):
+        return _expression_contains_integration_literal(
+            expression.value, assignments, resolving
+        ) or _expression_contains_integration_literal(expression.slice, assignments, resolving)
+    return False
+
+
 def _caller_supplied_route_expression(
     expression: ast.AST,
     own_parameters: frozenset[str],
     assignments: dict[str, ast.AST],
 ) -> bool:
-    return _expression_references_own_parameter(
-        expression, own_parameters, assignments
-    ) and not _expression_contains_opaque_component(expression, own_parameters, assignments)
+    return (
+        _expression_references_own_parameter(expression, own_parameters, assignments)
+        and not _expression_contains_opaque_component(expression, own_parameters, assignments)
+        and not _expression_contains_integration_literal(expression, assignments)
+    )
 
 
 def _core_client_route_templates(tree: ast.Module) -> set[str]:
@@ -623,6 +662,8 @@ def test_private_helper_route_exemption_requires_caller_supplied_expression(
 ) -> None:
     (tmp_path / "lotus_core_private_helper_client.py").write_text(
         """
+HIDDEN_ROUTE_PREFIX = "/integration/hidden-product/"
+
 class FakeCoreClient:
     async def get_capabilities(self):
         return await self._request(url="/integration/capabilities")
@@ -653,6 +694,16 @@ class FakeCoreClient:
 
     async def _get_fstring_internal_route(self, path):
         return await self._request(url=f"{build_route(path)}{path}")
+
+    async def _get_assigned_internal_route(self, path):
+        route = build_route(path)
+        return await self._request(url=route + path)
+
+    async def _get_literal_route(self, suffix):
+        return await self._request(url=HIDDEN_ROUTE_PREFIX + suffix)
+
+    async def _get_literal_fstring_route(self, suffix):
+        return await self._request(url=f"/integration/hidden-product/{suffix}")
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -673,6 +724,8 @@ class FakeCoreClient:
         ("lotus_core_private_helper_client.py", "_get_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_mixed_internal_route"),
         ("lotus_core_private_helper_client.py", "_get_fstring_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_assigned_internal_route"),
+        ("lotus_core_private_helper_client.py", "_get_literal_route"),
         ("lotus_core_private_only_client.py", "_get_internal_route"),
     )
     for client_module, client_method in expected_internal_routes:
@@ -681,6 +734,11 @@ class FakeCoreClient:
             client_method,
             _UNRESOLVED_ROUTE_TEMPLATE,
         ) in implemented
+    assert (
+        "lotus_core_private_helper_client.py",
+        "_get_literal_fstring_route",
+        "/integration/hidden-product/{}",
+    ) in implemented
 
     with pytest.raises(AssertionError) as exc_info:
         _assert_implemented_core_reads_are_declared(tmp_path)
