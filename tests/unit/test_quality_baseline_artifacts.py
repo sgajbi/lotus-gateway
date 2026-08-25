@@ -141,6 +141,15 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "scripts/check_duplicate_code_ratchet.py" in workflow
     assert "quality/duplicate_code_baseline.json" in workflow
     assert "output/quality-baseline/duplicate-code-ratchet.txt" in workflow
+    duplicate_ratchet = workflow.split("      - name: Enforce Duplicate Code Ratchet\n", 1)[
+        1
+    ].split("      - name: Dead Code Baseline", 1)[0]
+    assert "continue-on-error: true" in duplicate_ratchet
+    assert "      - name: Enforce Duplicate Code Ratchet Result" in workflow
+    assert workflow.index("      - name: Upload Quality Baseline Logs") < workflow.index(
+        "      - name: Enforce Duplicate Code Ratchet Result"
+    )
+    assert "Duplicate-code ratchet failed after evidence collection" in workflow
     assert "output/quality-baseline/quality-ratchet.txt" in workflow
     assert "Quality Baseline / Ratcheted Trend Gate" in workflow
     assert "set -o pipefail" in workflow

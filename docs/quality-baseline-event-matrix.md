@@ -24,3 +24,5 @@ count, duplicated lines, duplicated percentage, and stable source-pair-plus-norm
 fingerprints. Detector
 failure, malformed evidence, or a stale fingerprint after a cleanup fails the quality result;
 cleanup improvements must be banked through a reviewed baseline update before the clone can return.
+The duplicate-code result is evaluated after the other baseline producers and artifact upload so a
+failed ratchet cannot hide the remaining diagnostics.

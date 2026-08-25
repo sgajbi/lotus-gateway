@@ -96,7 +96,8 @@ improvement; this prevents the removed duplication from being silently reintrodu
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
 workflow-governance, and agent quality evidence thresholds, plus the no-new-regression ratchet,
-before artifact upload. It also enforces evidence capture itself: the expected quality-baseline log files,
+after all baseline producers have had a chance to emit evidence; the duplicate-code result remains a
+hard gate in a final post-upload step. It also enforces evidence capture itself: the expected quality-baseline log files,
 workflow-governance proof, agent-quality-evidence proof, generated OpenAPI artifact, and ratchet
 evidence must exist before upload. Missing or unusable evidence is treated as a CI measurement
 defect.
