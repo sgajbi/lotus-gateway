@@ -114,8 +114,10 @@ Current repository posture:
    Core base-URL attributes are trusted as host prefixes; arbitrary instance attributes and
    incomplete route prefixes fail closed. Opaque `.format()` replacements also fail closed.
    Statically resolved route-bearing constants are retained in the route template, while aliases
-   with multiple assignments are ambiguous and fail closed. The seven generic transport exemptions apply only to their
-   documented caller-path, caller-URL, or base-URL-plus-path AST shape. Only a non-rebound direct
+   with multiple assignments are ambiguous and fail closed. Parameter rebindings are collected
+   across plain, destructured, augmented, loop, and named-expression targets; writes to trusted
+   base-URL attributes also invalidate the transport exemption. The seven generic transport
+   exemptions apply only to their documented caller-path, caller-URL, or base-URL-plus-path AST shape. Only a non-rebound direct
    `from urllib.parse import quote` binding with `quote(..., safe="")` is known safe for a
    caller-supplied segment; aliases, other imports, local definitions, and rebindings fail closed.
    Capabilities, effective policy, and core-snapshot
