@@ -105,6 +105,13 @@ Current repository posture:
    not certify per-portfolio freshness because Core's current AUM response does not expose it.
    Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
    household, performance, risk, attention, suitability, communication, or execution truth. Its
+   current source-backed portfolio position tax-lot drill-down is active at
+   `/api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`; Gateway publishes
+   only Core's current BUY-lot identity, acquisition, quantity, cost, and lineage fields. It does
+   not invent as-of valuation, holding-period, unrealized-P&L, disposal, or reporting-currency
+   semantics. Core follow-up evidence for those semantics is tracked by #1033, with valuation and
+   disposal ownership remaining in Core issues #788 and #481; Gateway delivery is tracked by #630
+   under parent issue #586.
    repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
    trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
    fail-closed for entitlement, `PortfolioAnalyticsReference:v1` is fail-closed by default with
