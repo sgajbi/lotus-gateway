@@ -56,8 +56,9 @@ its extraction branches. They are retained as engineering history; current route
   evidence and is never used by protected CI
 - Memo contract fitness tests require every memo-family data schema to be explicitly closed
   (`additionalProperties: false`), expose named top-level properties, recursively close nested
-  memo-owned models, and reject contradictory audit-event counts. This keeps OpenAPI contract
-  drift and envelope-only typing out of the PR gate rather than relying on review discovery.
+  memo-owned models, reject nested `additionalProperties: true`, preserve typed scalar maps, and
+  reject contradictory audit-event counts. This keeps OpenAPI contract drift and envelope-only
+  typing out of the PR gate rather than relying on review discovery.
 - `make clean`
   removes disposable local generated artifacts and caches, including `output/`, `.codex-logs/`,
   coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`; publish or
@@ -159,9 +160,11 @@ scorecard/context guidance synchronized for future agent development. It install
 - OpenAPI governance through Spectral and `.spectral.yaml`
 - proposal-memo OpenAPI fitness through source-faithful typed response references and stale-shape
   rejection in `tests/contract/test_proposals_contract.py`; memo-family `data` payloads may not
-  regress to an unconstrained `dict[str, Any]`; the same contract gate rejects incomplete or
-  contradictory lineage evidence, while service tests require malformed successful Advise memo
-  payloads to map to `ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID` rather than a generic 500
+  regress to an unconstrained `dict[str, Any]`, and recursively reachable memo objects may not
+  reintroduce `additionalProperties: true`; bounded typed scalar maps remain valid. The same
+  contract gate rejects incomplete or contradictory lineage evidence, while service tests require
+  malformed successful Advise memo payloads to map to `ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`
+  rather than a generic 500
 - Gateway demo certification through `make demo-certification`, currently report-only, writing
   `output/demo-certification/gateway-demo-certification.json` and
   `output/quality-baseline/demo-certification.txt`

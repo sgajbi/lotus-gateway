@@ -1,8 +1,23 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
+
+### Batch 2Q — harden recursive proposal-memo OpenAPI fitness enforcement (#628, follow-up to #626)
+
+- Objective: turn the #626 review follow-up into a deterministic CI rule so a future nested memo
+  response object cannot silently become free-form.
+- Change: extracted the memo schema closure assertion and made it reject
+  `additionalProperties: true` at every recursively reachable property path, while preserving
+  typed scalar maps as valid bounded source evidence. Failure messages include the schema path.
+- Regression proof: contract tests prove the current memo family remains closed, a synthetic nested
+  free-form object fails the fitness function, and a synthetic typed scalar map remains accepted.
+- Compatibility: CI enforcement, context, ledger, and wiki truth only. No runtime route, public
+  response, generated OpenAPI shape, migration, dependency, or consumer behavior changes.
+- Documentation decision: repository context, review ledger, and `wiki/Validation-and-CI.md` now
+  state the recursive free-form-object prohibition. Wiki publication and strict parity are required
+  after merge.
 
 ### Batch 2P — reconcile proposal decisions with the Advise vocabulary (#599)
 

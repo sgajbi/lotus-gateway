@@ -82,7 +82,9 @@ Current repository posture:
    contract construction maps the latter to a product-safe `502` identifying `lotus-advise`.
    Memo lineage also requires item/count/latest identity consistency before publication. Contract
    tests and generated OpenAPI expose named nested properties and recursively closed response
-   references rather than an opaque memo-family `data` object;
+   references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also
+   rejects recursively reachable `additionalProperties: true` objects while allowing bounded
+   scalar maps;
    `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
