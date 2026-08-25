@@ -85,14 +85,22 @@ def _normalise_source(value: Any) -> str:
     return path.as_posix()
 
 
+def _normalise_location(value: dict[str, Any]) -> tuple[str, int]:
+    source = _normalise_source(value.get("name"))
+    start = value.get("start")
+    if isinstance(start, bool) or not isinstance(start, int) or start <= 0:
+        raise ValueError("duplicate report source has an invalid start line")
+    return source, start
+
+
 def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
     first = entry.get("firstFile")
     second = entry.get("secondFile")
     fragment = entry.get("fragment")
     if not isinstance(first, dict) or not isinstance(second, dict) or not isinstance(fragment, str):
         raise ValueError("duplicate report entry is missing source or fragment data")
-    first_file = _normalise_source(first.get("name"))
-    second_file = _normalise_source(second.get("name"))
+    first_file, first_start = _normalise_location(first)
+    second_file, second_start = _normalise_location(second)
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
@@ -103,6 +111,7 @@ def _fingerprint(entry: dict[str, Any]) -> DuplicateFinding:
     identity = {
         "format": entry.get("format"),
         "fragment_digest": fragment_digest,
+        "locations": sorted(((first_file, first_start), (second_file, second_start))),
         "sources": sorted((first_file, second_file)),
     }
     digest = hashlib.sha256(
