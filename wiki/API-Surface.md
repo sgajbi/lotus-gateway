@@ -182,6 +182,13 @@ or governed ingress endpoints without embedding environment-specific hostnames i
   `supportability.feature_key=report.observability.evidence_surface_supportability` from
   `lotus-report` integration capabilities so Workbench can record report evidence-surface
   freshness and supportability without direct service coupling
+- report-batch status items preserve Report's directly linked `report_job_status` and
+  `archive_document_id`. Gateway publishes `archive_state` (`available`, `pending`, or
+  `unavailable`) with bounded `archive_reason_code` values; only a source item whose linked job is
+  `archived` and carries a non-empty document identity receives Gateway-controlled
+  `archive_metadata_url` and `archive_download_url` routes. Metadata and binary access re-check
+  caller tenant/region through `/api/v1/documents/{document_id}*`; Gateway never exposes raw
+  storage locations or substitutes a correction/superseding document.
 - RFC-0098 proof-pack composition consumes `lotus-manage` RFC-0040 proof-pack APIs through
   `/api/v1/dpm/command-center/proof-packs*`. Gateway exposes generate, get, Markdown,
   report-input, AI-evidence-input, and AI PM memo routes for Workbench, preserving manage
