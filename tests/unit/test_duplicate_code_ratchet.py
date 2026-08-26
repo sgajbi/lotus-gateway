@@ -738,7 +738,19 @@ def test_duplicate_source_fragment_honours_reported_columns(tmp_path: Path) -> N
 
 def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
     fragment = 'items = [\n    "a",\n'
-    assert _normalise_fragment(fragment) == _normalise_fragment_lexically(fragment)
+    assert _normalise_fragment(fragment) == 'items = [ "a" ,'
+    assert _normalise_fragment("value+1,\n]\n") == _normalise_fragment("value + 1,\n]\n")
+    indented_slice = (
+        "\n        )\n\n    def _headers(\n"
+        "        self,\n        correlation_id: str,\n"
+        "    ) -> dict[str, str]:\n        raise NotImplementedError\n"
+    )
+    assert _normalise_fragment(indented_slice) == (
+        ") def _headers ( self , correlation_id : str , ) -> dict [ str , str ] : "
+        "raise NotImplementedError"
+    )
+    unterminated = 'x = "abc\ny = 1\n'
+    assert _normalise_fragment(unterminated) == _normalise_fragment_lexically(unterminated)
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
