@@ -41,7 +41,11 @@ def base_comparison(
                 or "No approved client mandate is available for this portfolio.",
             ),
         )
-    alignment, supportability, reason = _comparison_supportability(sources, comparison_as_of)
+    alignment, supportability, reason = _comparison_supportability(
+        sources,
+        mandate,
+        comparison_as_of,
+    )
     return WorkbenchMandateComparison(
         mandate_id=mandate.mandate_id,
         mandate_version=mandate.mandate_version,
@@ -72,15 +76,14 @@ def with_comparison(
 
 def _comparison_supportability(
     sources: RiskMandateSources,
+    mandate: ManageMandateSource,
     comparison_as_of: date,
 ) -> tuple[
     MandateComparisonDateAlignmentState,
     MandateComparisonSupportabilityState,
     str | None,
 ]:
-    mandate = sources.mandate
     health = sources.health
-    assert mandate is not None
     if health is None:
         return "unavailable", "partial", sources.health_failure_reason
     if mandate.as_of_date <= comparison_as_of and health.as_of_date == comparison_as_of:
