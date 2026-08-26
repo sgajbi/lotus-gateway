@@ -41,9 +41,11 @@ its extraction branches. They are retained as engineering history; current route
   migration smoke, integration tests, coverage, security audit, and the pinned duplicate-code
   ratchet over production Python sources
 - `make duplicate-code`
-  pinned jscpd scan and stable-finding ratchet using `quality/package-lock.json`; the protected
-  baseline is generated/enforced on Ubuntu/Node 20, while cross-platform candidate-selection drift
-  remains a tracked follow-up and must not be hidden by a union baseline
+  pinned jscpd scan, stable-finding ratchet, and repeated-run candidate-set check using
+  `quality/package-lock.json`; the protected baseline is generated/enforced on Ubuntu/Node 20 and
+  the detector must select the same normalized candidates and aggregate metrics twice. The local
+  repeated-run check proves same-environment determinism; cross-operating-system equivalence remains
+  unclaimed and must not be hidden by a union baseline
 - `make ci-local`
   local feature-lane validation
 - `make ci-local-docker`
@@ -117,6 +119,9 @@ same actual revision may supersede one another.
   fragment occurrence fingerprints must not regress beyond the reviewed production baseline;
   removed pairs must be banked through a
   reviewed baseline update before they can be reintroduced
+- the duplicate detector must also produce the same normalized candidate identities, including
+  source locations, and aggregate metrics on two identical invocations; detector failures,
+  missing status evidence, or candidate drift are hard quality failures
 - duplicate fingerprints include Python-version-independent normalized AST scope context and
   occurrence ordering so line shifts, adjacent source edits, or non-local scope-body edits do not
   invalidate unrelated clones; cross-scope replacements remain visible, while same-scope
