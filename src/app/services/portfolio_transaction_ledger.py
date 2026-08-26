@@ -1,4 +1,3 @@
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from app.contracts.portfolio_transactions import (
@@ -6,26 +5,8 @@ from app.contracts.portfolio_transactions import (
     PortfolioTransactionView,
 )
 from app.precision_policy import quantize_money, quantize_price, quantize_quantity
-from app.services.portfolio_transaction_requests import (
-    PortfolioTransactionLedgerRequest,
-    PortfolioTransactionsRequestContext,
-    build_transaction_ledger_request_context,
-)
+from app.services.portfolio_transaction_requests import PortfolioTransactionsRequestContext
 from app.services.portfolio_transaction_temporal import parse_transaction_timestamp
-
-
-async def build_transaction_ledger_response_for_request(
-    *,
-    request: PortfolioTransactionLedgerRequest,
-    contract_version: str,
-    load_payload: Callable[[PortfolioTransactionsRequestContext], Awaitable[dict[str, Any]]],
-) -> PortfolioTransactionLedgerResponse:
-    context = build_transaction_ledger_request_context(request)
-    return build_transaction_ledger_response(
-        context=context,
-        contract_version=contract_version,
-        result_payload=await load_payload(context),
-    )
 
 
 def build_transaction_ledger_response(
