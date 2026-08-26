@@ -396,8 +396,8 @@ Important validation expectations:
 4. workflow action-runtime governance is part of `make lint` and enforces the platform baseline
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
-   `scripts/check_agent_quality_evidence.py`; it keeps the executable 316/49 refactor ratchet, the
-    current evidence-selected `src/app/contracts/performance_workspace_details_contract.py`
+   `scripts/check_agent_quality_evidence.py`; it keeps the executable 315/49 refactor ratchet, the
+    current evidence-selected `src/app/contracts/dpm_pm_operating_quality.py`
    hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. proposal decision vocabulary governance is part of `make lint` through
