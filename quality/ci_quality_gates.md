@@ -27,7 +27,8 @@ The current local and PR-grade blocking gates are:
    producer artifact in protected and scheduled CI,
 7. PR issue-lifecycle text governance through `make pr-issue-lifecycle`: the Pull Request Merge
    Gate rejects malformed or negated auto-close wording and accepts only a standalone intended
-   closure such as `Closes #123`; keep-open work uses `Keep #123 open`,
+   closure such as `Closes #123`; keep-open work uses `Keep #123 open`; a PR title/body edit starts
+   fresh lifecycle evidence,
 8. `mypy` over `src`,
 9. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
