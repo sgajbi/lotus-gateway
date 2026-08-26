@@ -142,10 +142,14 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "--pattern '**/*.py'" in workflow
     assert "            src/app \\\n" in workflow
     assert "output/quality-baseline/duplicate-code.txt" in workflow
+    assert "output/quality-baseline/duplicate-code-reproducibility.txt" in workflow
     assert "Enforce Duplicate Code Ratchet" in workflow
     assert "scripts/check_duplicate_code_ratchet.py" in workflow
+    assert "Enforce Duplicate Code Reproducibility" in workflow
+    assert "python -m scripts.check_duplicate_code_reproducibility" in workflow
     assert "quality/duplicate_code_baseline.json" in workflow
     assert "output/quality-baseline/duplicate-code-ratchet.txt" in workflow
+    assert "output/quality-baseline/duplicate-code-reproducibility-ratchet.txt" in workflow
     duplicate_ratchet = workflow.split("      - name: Enforce Duplicate Code Ratchet\n", 1)[
         1
     ].split("      - name: Dead Code Baseline", 1)[0]
@@ -154,7 +158,7 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert workflow.index("      - name: Upload Quality Baseline Logs") < workflow.index(
         "      - name: Enforce Duplicate Code Ratchet Result"
     )
-    assert "Duplicate-code ratchet failed after evidence collection" in workflow
+    assert "Duplicate-code quality gate failed after evidence collection" in workflow
     assert "output/quality-baseline/quality-ratchet.txt" in workflow
     assert "Quality Baseline / Ratcheted Trend Gate" in workflow
     assert "set -o pipefail" in workflow
@@ -227,6 +231,8 @@ def test_make_duplicate_detector_captures_status_without_bash_extensions() -> No
     assert "> output/duplicate-code/detector.txt 2>&1" in duplicate_recipe
     assert "status=$$?" in duplicate_recipe
     assert "--pattern '**/*.py' src/app --noTips" in duplicate_recipe
+    assert "output/duplicate-code/reproducibility" in duplicate_recipe
+    assert "python -m scripts.check_duplicate_code_reproducibility" in duplicate_recipe
 
 
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:

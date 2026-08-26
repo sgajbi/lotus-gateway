@@ -41,6 +41,7 @@ class DuplicateFinding:
     first_file: str
     second_file: str
     lines: int
+    candidate_identity: DuplicateIdentity
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,10 @@ class DuplicateIdentity:
     second_file: str
     lines: int
     sources: tuple[str, str]
-    locations: tuple[tuple[str, int], tuple[str, int]]
+    locations: tuple[
+        tuple[str, int, int | None, int | None, int | None],
+        tuple[str, int, int | None, int | None, int | None],
+    ]
     context_digests: tuple[str | None, str | None]
 
     @property
@@ -570,8 +574,20 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
         ),
     )
     locations = (
-        (sorted_locations[0].source, sorted_locations[0].start),
-        (sorted_locations[1].source, sorted_locations[1].start),
+        (
+            sorted_locations[0].source,
+            sorted_locations[0].start,
+            sorted_locations[0].start_column,
+            sorted_locations[0].end,
+            sorted_locations[0].end_column,
+        ),
+        (
+            sorted_locations[1].source,
+            sorted_locations[1].start,
+            sorted_locations[1].start_column,
+            sorted_locations[1].end,
+            sorted_locations[1].end_column,
+        ),
     )
     sorted_sources = sorted((first_file, second_file))
     sources = (sorted_sources[0], sorted_sources[1])
@@ -584,17 +600,22 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
     if not normalised_fragment:
         raise ValueError("duplicate report entry has an empty fragment")
     fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
-    context_digests = tuple(
-        _context_digest(source_root, location.source, location.start, lines)
+    first_context = (
+        _context_digest(source_root, sorted_locations[0].source, sorted_locations[0].start, lines)
         if source_root is not None
         else None
-        for location in sorted_locations
     )
+    second_context = (
+        _context_digest(source_root, sorted_locations[1].source, sorted_locations[1].start, lines)
+        if source_root is not None
+        else None
+    )
+    context_digests = (first_context, second_context)
     return DuplicateIdentity(
         format_name,
         fragment_digest,
-        first_file,
-        second_file,
+        sources[0],
+        sources[1],
         lines,
         sources,
         locations,
@@ -613,7 +634,13 @@ def _fingerprint(identity: DuplicateIdentity, occurrence_index: int) -> Duplicat
     digest = hashlib.sha256(
         json.dumps(identity_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-    return DuplicateFinding(digest, identity.first_file, identity.second_file, identity.lines)
+    return DuplicateFinding(
+        digest,
+        identity.first_file,
+        identity.second_file,
+        identity.lines,
+        identity,
+    )
 
 
 def load_report(path: Path, *, source_root: Path | None = None) -> DuplicateReport:
