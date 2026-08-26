@@ -129,3 +129,11 @@ def test_summary_and_details_responses_accept_extracted_contracts() -> None:
 
     assert summary.net_performance.metric_basis == "NET"
     assert details.net_chart[0].frequency == "monthly"
+
+
+def test_details_openapi_example_preserves_extracted_static_details() -> None:
+    example = PerformanceWorkspaceDetailsResponse.model_config["json_schema_extra"]["example"]
+
+    assert example["net_chart"][0]["cumulative_benchmark_return_pct"] == 1.9
+    assert example["contribution"]["position_rows"][0]["position_id"] == "AAPL"
+    assert example["attribution"]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
