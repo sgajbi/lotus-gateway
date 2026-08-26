@@ -59,14 +59,17 @@ security-audit:
 	# available for this service yet. Remove this ignore when FastAPI supports it.
 	python -m pip_audit --ignore-vuln PYSEC-2026-161 -r requirements-audit.txt
 
+DUPLICATE_CODE_QUALITY_DIR ?= quality
+DUPLICATE_CODE_OUTPUT_DIR ?= output/duplicate-code
+
 duplicate-code:
-	cd quality && npm ci --ignore-scripts
-	mkdir -p output/duplicate-code
-	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code --pattern '**/*.py' src/app --noTips > output/duplicate-code/detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/detector.txt; cat output/duplicate-code/detector.txt; exit "$${status}"
-	mkdir -p output/duplicate-code/reproducibility
-	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code/reproducibility --pattern '**/*.py' src/app --noTips > output/duplicate-code/reproducibility-detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/reproducibility-detector.txt; cat output/duplicate-code/reproducibility-detector.txt; exit "$${status}"
-	python scripts/check_duplicate_code_ratchet.py --report output/duplicate-code/jscpd-report.json --artifact-log output/duplicate-code/detector.txt --baseline quality/duplicate_code_baseline.json --source-root .
-	python -m scripts.check_duplicate_code_reproducibility --first-report output/duplicate-code/jscpd-report.json --second-report output/duplicate-code/reproducibility/jscpd-report.json --first-artifact-log output/duplicate-code/detector.txt --second-artifact-log output/duplicate-code/reproducibility-detector.txt --source-root .
+	cd "$(DUPLICATE_CODE_QUALITY_DIR)" && npm ci --ignore-scripts
+	mkdir -p "$(DUPLICATE_CODE_OUTPUT_DIR)"
+	"$(DUPLICATE_CODE_QUALITY_DIR)/node_modules/.bin/jscpd" --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output "$(DUPLICATE_CODE_OUTPUT_DIR)" --pattern '**/*.py' src/app --noTips > "$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt" 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> "$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt"; cat "$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt"; exit "$${status}"
+	mkdir -p "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility"
+	"$(DUPLICATE_CODE_QUALITY_DIR)/node_modules/.bin/jscpd" --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility" --pattern '**/*.py' src/app --noTips > "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility-detector.txt" 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility-detector.txt"; cat "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility-detector.txt"; exit "$${status}"
+	python scripts/check_duplicate_code_ratchet.py --report "$(DUPLICATE_CODE_OUTPUT_DIR)/jscpd-report.json" --artifact-log "$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt" --baseline quality/duplicate_code_baseline.json --source-root .
+	python -m scripts.check_duplicate_code_reproducibility --first-report "$(DUPLICATE_CODE_OUTPUT_DIR)/jscpd-report.json" --second-report "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility/jscpd-report.json" --first-artifact-log "$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt" --second-artifact-log "$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility-detector.txt" --source-root .
 
 DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT ?= $(CI_LOCAL_COMPOSE_PROJECT)-duplicate-code-protected
 DUPLICATE_CODE_PROTECTED_ARTIFACT_ROOT ?= output/duplicate-code-protected
@@ -78,7 +81,7 @@ duplicate-code-protected:
 	container="duplicate-code-protected-$$(date +%s)-$$$$"; \
 	docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml run --no-deps --name "$$container" duplicate-code-protected; \
 	status=$$?; \
-	docker cp "$$container:/app/output/duplicate-code/." "$$artifacts_dir"; \
+	docker cp "$$container:/output/duplicate-code/." "$$artifacts_dir"; \
 	copy_status=$$?; \
 	docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml down -v --remove-orphans; \
 	cleanup_status=$$?; \

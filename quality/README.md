@@ -26,9 +26,9 @@ do not initialize or update the checked-in baseline from another operating syste
 cross-operating-system equivalence is not claimed by the repeated-run check. Use
 `make duplicate-code-protected` when the host runtime selects different candidates; it provisions
 the pinned Linux/Node 20 fallback in a checkout-specific Compose project and runs the same ratchet
-and repeated-run proof. It mounts the checkout read-only, keeps npm dependencies in a project-scoped
-volume, and copies the scan report before teardown into a run-unique caller-created
-`output/duplicate-code-protected/` directory, so native-Linux runs do not leave root-owned artifacts
+and repeated-run proof. It mounts the checkout read-only at a dedicated source root, keeps writable
+dependency and output volumes outside that mount, and copies the scan report before teardown into
+a run-unique caller-created `output/duplicate-code-protected/` directory, so native-Linux runs do not leave root-owned artifacts
 while mismatch diagnostics remain available. Use hosted Quality Baseline evidence for reviewed baseline changes. Node
 25+ is rejected by the strict engine policy until the detector is revalidated and the supported
 range is deliberately extended.

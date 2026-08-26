@@ -228,10 +228,12 @@ def test_make_duplicate_detector_captures_status_without_bash_extensions() -> No
 
     assert "set -o pipefail" not in duplicate_recipe
     assert "PIPESTATUS" not in duplicate_recipe
-    assert "> output/duplicate-code/detector.txt 2>&1" in duplicate_recipe
+    assert "DUPLICATE_CODE_QUALITY_DIR ?= quality" in makefile
+    assert "DUPLICATE_CODE_OUTPUT_DIR ?= output/duplicate-code" in makefile
+    assert '"$(DUPLICATE_CODE_OUTPUT_DIR)/detector.txt"' in duplicate_recipe
     assert "status=$$?" in duplicate_recipe
     assert "--pattern '**/*.py' src/app --noTips" in duplicate_recipe
-    assert "output/duplicate-code/reproducibility" in duplicate_recipe
+    assert '"$(DUPLICATE_CODE_OUTPUT_DIR)/reproducibility"' in duplicate_recipe
     assert "python -m scripts.check_duplicate_code_reproducibility" in duplicate_recipe
 
 
@@ -251,20 +253,31 @@ def test_protected_duplicate_code_fallback_isolates_checkout_writes() -> None:
     assert artifact_directory_command in protected_recipe
     assert 'run --no-deps --name "$$container" duplicate-code-protected' in protected_recipe
     assert "run --rm" not in protected_recipe
-    assert 'docker cp "$$container:/app/output/duplicate-code/." "$$artifacts_dir"' in (
+    assert 'docker cp "$$container:/output/duplicate-code/." "$$artifacts_dir"' in (
         protected_recipe
     )
     assert 'if [ "$$copy_status" -ne 0 ]; then exit "$$copy_status"; fi' in protected_recipe
     assert 'exit "$$cleanup_status"' in protected_recipe
-    assert "- ./:/app:ro" in compose
-    assert "- duplicate-code-protected-node-modules:/app/quality/node_modules" in compose
-    assert "- duplicate-code-protected-output:/app/output" in compose
-    assert "duplicate-code-protected-node-modules:" in compose
+    assert "working_dir: /source" in compose
+    assert "- ./:/source:ro" in compose
+    assert "- duplicate-code-protected-quality-dependencies:/dependencies/quality" in compose
+    assert "- duplicate-code-protected-output:/output" in compose
+    assert "duplicate-code-protected-quality-dependencies:" in compose
     assert "duplicate-code-protected-output:" in compose
+    assert "/source/quality/node_modules" not in compose
+    assert "/app/quality/node_modules" not in compose
     assert "HOME: /tmp" in compose
     assert "npm_config_cache: /tmp/.npm" in compose
     assert "ln -sf /usr/bin/python3 /tmp/python" in compose
-    assert 'PATH="/tmp:$$PATH" make duplicate-code' in compose
+    dependency_manifest_copy = (
+        "cp /source/quality/package.json /source/quality/package-lock.json /dependencies/quality/"
+    )
+    assert dependency_manifest_copy in compose
+    assert (
+        'PATH="/tmp:$$PATH" make duplicate-code '
+        "DUPLICATE_CODE_QUALITY_DIR=/dependencies/quality "
+        "DUPLICATE_CODE_OUTPUT_DIR=/output/duplicate-code"
+    ) in compose
     assert "/usr/local/bin/python" not in compose
     assert "user:" not in compose
 
