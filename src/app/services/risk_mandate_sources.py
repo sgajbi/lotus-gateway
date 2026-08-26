@@ -7,11 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class ManageMandateConstraintsSource(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    cash_band_min_weight: float = Field(  # monetary-float-allow
-        default=0.0, ge=0, le=1
+    cash_band_min_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
     )
-    cash_band_max_weight: float = Field(  # monetary-float-allow
-        default=1.0, ge=0, le=1
+    cash_band_max_weight: float | None = Field(  # monetary-float-allow
+        default=None, ge=0, le=1
     )
     single_position_max_weight: float | None = Field(  # monetary-float-allow
         default=None, ge=0, le=1
@@ -37,7 +37,11 @@ class ManageMandateConstraintsSource(BaseModel):
 
     @model_validator(mode="after")
     def validate_cash_band(self) -> "ManageMandateConstraintsSource":
-        if self.cash_band_min_weight > self.cash_band_max_weight:
+        if (
+            self.cash_band_min_weight is not None
+            and self.cash_band_max_weight is not None
+            and self.cash_band_min_weight > self.cash_band_max_weight
+        ):
             raise ValueError("cash mandate minimum must not exceed maximum")
         return self
 
