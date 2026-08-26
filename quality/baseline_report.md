@@ -4,6 +4,14 @@ Date: 2026-06-13
 Repository: `lotus-gateway`  
 Baseline phase: report-only
 
+## Current #664 Ratchet Update (2026-08-26)
+
+Static performance-detail OpenAPI examples, platform workspace descriptor state, and transaction
+request mapping are now owned by focused modules. The unchanged response schemas and downstream
+request values are covered by focused regression tests. The blocking agent quality evidence gate
+in `scripts/check_agent_quality_evidence.py` now enforces the 315/49 ratchet and selects
+`src/app/contracts/dpm_pm_operating_quality.py` as the current largest source-file evidence.
+
 ## Scope
 
 This baseline covers the current gateway hardening state after the report-only quality governance
@@ -1221,16 +1229,16 @@ evidence-selected largest source file.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 316 | `src/app/contracts/performance_workspace_details_contract.py` |
-| 2 | 316 | `src/app/services/platform_capabilities_workspace_descriptors.py` |
-| 3 | 315 | `src/app/services/performance_workspace_attribution_trend_service.py` |
-| 4 | 315 | `src/app/contracts/dpm_pm_operating_quality.py` |
-| 5 | 314 | `src/app/services/advisor_book_service.py` |
-| 6 | 314 | `src/app/contracts/proposals.py` |
-| 7 | 314 | `src/app/clients/lotus_analytics_performance_client.py` |
-| 8 | 313 | `src/app/services/portfolio_service.py` |
-| 9 | 312 | `src/app/contracts/risk_workspace.py` |
-| 10 | 310 | `src/app/services/performance_workspace_attribution.py` |
+| 1 | 315 | `src/app/contracts/dpm_pm_operating_quality.py` |
+| 2 | 315 | `src/app/contracts/portfolio_holdings.py` |
+| 3 | 315 | `src/app/services/portfolio_service.py` |
+| 4 | 314 | `src/app/clients/lotus_analytics_performance_client.py` |
+| 5 | 314 | `src/app/contracts/proposals.py` |
+| 6 | 312 | `src/app/contracts/risk_workspace.py` |
+| 7 | 310 | `src/app/services/performance_workspace_attribution.py` |
+| 8 | 308 | `src/app/services/performance_workspace_attribution_trend_service.py` |
+| 9 | 307 | `src/app/services/performance_workspace_context.py` |
+| 10 | 301 | `src/app/services/performance_workspace_context_service.py` |
 
 ## Largest Functions
 

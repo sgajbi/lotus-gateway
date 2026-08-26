@@ -3,6 +3,17 @@
 Date: 2026-06-13
 Phase: baseline/report-only
 
+## Current #664 Ratchet Update (2026-08-26)
+
+The #664 ownership split moves static performance-detail OpenAPI examples, platform workspace
+descriptor state derivation, and Lotus Core transaction request mapping into focused modules. It
+preserves Gateway routes, OpenAPI response schemas, downstream request values, and public client
+behaviour. The blocking agent quality evidence gate in
+`scripts/check_agent_quality_evidence.py` is now ratcheted to 315/49, with
+`src/app/contracts/dpm_pm_operating_quality.py` as the deterministic evidence-selected largest
+source file. This is a source-organisation and CI-fitness change; no migration, authentication,
+or domain-source semantic change is introduced.
+
 ## Current Direction
 
 Recent gateway hardening has reduced monolithic Workbench, router-registry, performance workspace,
@@ -1095,11 +1106,11 @@ and Lotus AI PM memo handoff behavior. This ratchets the blocking threshold from
 1. Quality Baseline uploads quality logs for baseline classification after blocking refactor
    threshold, workflow-governance, agent quality evidence, and artifact-integrity checks pass.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 316 lines,
+   - no Python source file under `src/app` above 315 lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. The blocking agent quality evidence gate runs `scripts/check_agent_quality_evidence.py` to
-   make future agent slices ratchet the 316/49 thresholds when the current largest file or
-   function improves, and to keep `src/app/contracts/performance_workspace_details_contract.py` hotspot
+   make future agent slices ratchet the 315/49 thresholds when the current largest file or
+   function improves, and to keep `src/app/contracts/dpm_pm_operating_quality.py` hotspot
    evidence truthful in scorecard/context docs.
 4. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

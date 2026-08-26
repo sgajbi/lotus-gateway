@@ -37,8 +37,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/platform_capabilities_workspace_descriptors.py` at 316 lines as the
-   evidence-selected ceiling blocker.
+1. `src/app/contracts/dpm_pm_operating_quality.py` at 315 lines as the evidence-selected ceiling
+   blocker.
 
 `src/app/contracts/advisor_brief.py` is reduced from 398 to 207 lines after the static
 Advisor Brief OpenAPI response example moved into `src/app/contracts/advisor_brief_examples.py`.
@@ -100,8 +100,8 @@ Portfolio workspace section contracts now live in
 public `portfolio_workspace` facade and OpenAPI schema names.
 
 The agent quality evidence gate through `scripts/check_agent_quality_evidence.py` now keeps the
-executable 316/49 ratchet, the current evidence-selected
-`src/app/services/platform_capabilities_workspace_descriptors.py` hotspot, and durable
+executable 315/49 ratchet, the current evidence-selected
+`src/app/contracts/dpm_pm_operating_quality.py` hotspot, and durable
 scorecard/context guidance synchronized.
 
 `src/app/contracts/dpm_outcome_review.py` is reduced below the 357-line ceiling after DPM
