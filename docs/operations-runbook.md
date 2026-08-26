@@ -50,7 +50,8 @@ make pr-issue-lifecycle
 An intended automatic close must be a standalone body line such as `Closes #673`. For partial work,
 use `Keep #673 open`; never combine an issue reference with negated close, fix, or resolve wording.
 The command reads text from environment variables, so CI does not interpolate untrusted PR text into
-a shell command.
+a shell command. The Pull Request Merge Gate re-runs this evidence when a PR is opened, readied,
+synchronized, or its title/body is edited.
 
 Use `make clean` to remove disposable local generated artifacts and caches. It deletes `output/`,
 `.codex-logs/`, coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`;
