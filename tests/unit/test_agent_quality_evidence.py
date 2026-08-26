@@ -1,8 +1,11 @@
+import json
 from pathlib import Path
 
 from scripts.check_agent_quality_evidence import (
+    DUPLICATE_CODE_DOCUMENTS,
     FunctionEvidence,
     SourceFileEvidence,
+    _validate_duplicate_code_documentation_alignment,
     collect_agent_quality_evidence,
     validate_agent_quality_evidence,
 )
@@ -77,6 +80,7 @@ def test_validate_agent_quality_evidence_reports_missing_documentation_truth(
     monkeypatch.setattr(module, "DEFAULT_MAX_SOURCE_FILE_LINES", 2)
     monkeypatch.setattr(module, "DEFAULT_MAX_FUNCTION_LINES", 2)
     monkeypatch.setattr(module, "REQUIRED_DOCUMENTS", (Path("quality/ci_quality_gates.md"),))
+    monkeypatch.setattr(module, "DUPLICATE_CODE_DOCUMENTS", ())
     document_path = tmp_path / "quality" / "ci_quality_gates.md"
     document_path.parent.mkdir()
     document_path.write_text("stale evidence\n", encoding="utf-8")
@@ -91,4 +95,60 @@ def test_validate_agent_quality_evidence_reports_missing_documentation_truth(
         f"{missing_fragment_prefix}scripts/check_agent_quality_evidence.py",
         f"{missing_fragment_prefix}2/2",
         f"{missing_fragment_prefix}src/app/service.py",
+    ]
+
+
+def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path) -> None:
+    baseline_path = tmp_path / "quality" / "duplicate_code_baseline.json"
+    baseline_path.parent.mkdir()
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "metrics": {
+                    "clone_count": {"threshold": 86},
+                    "duplicated_lines": {"threshold": 1720},
+                    "duplicated_percentage": {"threshold": 1.98},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    ci_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[0]
+    scorecard_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[1]
+    ci_document.write_text(
+        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
+        "and duplicated percentage must not exceed 1.98%",
+        encoding="utf-8",
+    )
+    scorecard_document.write_text(
+        "now measures 86 production clone findings, 1,720 duplicated lines, and "
+        "1.98% duplicated lines",
+        encoding="utf-8",
+    )
+
+    assert _validate_duplicate_code_documentation_alignment(tmp_path) == []
+
+    ci_document.write_text("stale duplicate-code threshold", encoding="utf-8")
+
+    findings = _validate_duplicate_code_documentation_alignment(tmp_path)
+
+    assert findings == [
+        f"{ci_document} is missing current duplicate-code threshold fragment: "
+        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
+        "and duplicated percentage must not exceed 1.98%"
+    ]
+
+    ci_document.write_text(
+        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
+        "and duplicated percentage must not exceed 1.98%",
+        encoding="utf-8",
+    )
+    scorecard_document.write_text("stale duplicate-code threshold", encoding="utf-8")
+
+    findings = _validate_duplicate_code_documentation_alignment(tmp_path)
+
+    assert findings == [
+        f"{scorecard_document} is missing current duplicate-code threshold fragment: "
+        "now measures 86 production clone findings, 1,720 duplicated lines, and "
+        "1.98% duplicated lines"
     ]
