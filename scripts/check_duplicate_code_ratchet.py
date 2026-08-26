@@ -252,12 +252,28 @@ def _normalise_fragment(fragment: str) -> str:
     """Normalize Python layout while preserving actual string-token contents."""
     text = fragment.replace("\r\n", "\n").replace("\r", "\n")
     try:
-        return _normalise_token_stream(
-            text,
-            tokenize.generate_tokens(io.StringIO(text).readline),
-        )
+        tokens = list(tokenize.generate_tokens(io.StringIO(text).readline))
+        if _token_stream_has_unclosed_delimiter(tokens):
+            return _normalise_fragment_lexically(text)
+        return _normalise_token_stream(text, tokens)
     except (IndentationError, SyntaxError, tokenize.TokenError):
         return _normalise_fragment_lexically(text)
+
+
+def _token_stream_has_unclosed_delimiter(tokens: list[Any]) -> bool:
+    """Identify incomplete bracketed detector slices consistently across Python versions."""
+    opening = {"(": ")", "[": "]", "{": "}"}
+    closing = set(opening.values())
+    stack: list[str] = []
+    for token in tokens:
+        if token.type != tokenize.OP:
+            continue
+        if token.string in opening:
+            stack.append(opening[token.string])
+        elif token.string in closing:
+            if not stack or stack.pop() != token.string:
+                return True
+    return bool(stack)
 
 
 def _normalise_token_stream(text: str, tokens: Any) -> str:
