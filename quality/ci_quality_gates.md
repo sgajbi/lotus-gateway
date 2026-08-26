@@ -71,7 +71,9 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
    new finding. The detector is pinned in `quality/package-lock.json` and scans production
    `src/app/**/*.py` only. The protected lane runs the same detector twice and fails if normalized
    candidate identities or aggregate metrics differ; local `make duplicate-code` runs the same
-   repeated check when the pinned Node runtime is available. This proves same-environment
+   repeated check when the pinned Node runtime is available. `make duplicate-code-protected` runs
+   that same proof in the pinned Linux/Node 20 image for hosts with different local selection,
+   using a checkout-specific Compose project and scoped cleanup. This proves same-environment
    determinism without claiming unverified cross-operating-system equivalence.
 
 `scripts/check_quality_baseline_ratchet.py` publishes current value, baseline, delta, threshold,
@@ -112,9 +114,10 @@ tokenizer paths while conversion, debug-expression, and format-specification tex
 Path selection does not depend on interpreter error message text. Occurrence
 ordinals are assigned by measured location order but are not themselves part of the absolute source
 coordinates, so unrelated line shifts or non-local body edits do not invalidate every fingerprint.
-A removed clone also creates a
-stale-fingerprint failure until a reviewed `--update-baseline` banks the
-improvement; this prevents the removed duplication from being silently reintroduced later.
+A removed clone creates a stale-fingerprint failure until a reviewed `--update-baseline` banks the
+improvement; this prevents the removed duplication from being silently reintroduced later. When
+unexpected findings, metric regressions, or detector failures are also present, the checker
+truthfully reports that `--update-baseline` is blocked until those conditions are resolved.
 
 The quality-baseline workflow now enforces the already-remediated source-size, function-size,
 workflow-governance, and agent quality evidence thresholds, plus the no-new-regression ratchet,

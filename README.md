@@ -30,7 +30,10 @@ source scope and fails when normalized candidate identities or aggregate metrics
 the invocations. `make duplicate-code` provides the same local check when the pinned Node runtime
 is available; Ubuntu/Node 20 in the protected Quality Baseline remains authoritative for reviewed
 baseline updates. This repeated-run check detects same-environment nondeterminism and does not
-claim unverified cross-operating-system equivalence.
+claim unverified cross-operating-system equivalence. `make duplicate-code-protected` provides the
+repository-native fallback for hosts whose local runtime selects different candidates: it runs the
+same scan and ratchet in the pinned Linux/Node 20 image, uses a checkout-specific Compose project,
+and cleans up that project without touching the canonical Gateway runtime.
 
 ## Purpose And Scope
 

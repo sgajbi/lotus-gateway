@@ -23,9 +23,12 @@ repeated-run candidate-set check. The protected baseline is generated and enforc
 Node 20 Quality Baseline lane, which runs the detector twice with identical inputs and fails closed
 on candidate or metric drift. Node 20 through Node 24 can install and run the same local check, but
 do not initialize or update the checked-in baseline from another operating system or runtime:
-cross-operating-system equivalence is not claimed by the repeated-run check. Use hosted Quality
-Baseline evidence for reviewed baseline changes. Node 25+ is rejected by the strict engine policy
-until the detector is revalidated and the supported range is deliberately extended.
+cross-operating-system equivalence is not claimed by the repeated-run check. Use
+`make duplicate-code-protected` when the host runtime selects different candidates; it provisions
+the pinned Linux/Node 20 fallback in a checkout-specific Compose project and runs the same ratchet
+and repeated-run proof. Use hosted Quality Baseline evidence for reviewed baseline changes. Node
+25+ is rejected by the strict engine policy until the detector is revalidated and the supported
+range is deliberately extended.
 
 ## Update Triggers
 

@@ -374,7 +374,9 @@ Use these commands as the primary local contract:
    `make ci`
 6. Docker parity
    `make ci-local-docker`
-7. canonical local runtime
+7. protected duplicate-code fallback when host selection differs
+   `make duplicate-code-protected`
+8. canonical local runtime
    `make run-canonical`
 
 ## Validation And CI Expectations
@@ -437,7 +439,11 @@ Important validation expectations:
    cross-operating-system equivalence remains intentionally unclaimed rather than being hidden in
    a union baseline;
    a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
-   reviewed baseline updates must bank removals before the improvement can be spent again.
+   reviewed baseline updates must bank removals before the improvement can be spent again. Hosts
+   with different candidate selection use `make duplicate-code-protected`, which runs the pinned
+   Linux/Node 20 image under a checkout-specific Compose project and removes only that project;
+   it does not disturb the canonical Gateway runtime. The checker reports `--update-baseline` as
+   blocked when unexpected findings, metric regressions, or detector failures remain.
    Every report-producing quality log must also carry exactly one numeric
    `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate
    markers are measurement failures, while non-zero status with reviewed baseline findings remains

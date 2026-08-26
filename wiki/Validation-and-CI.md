@@ -46,6 +46,10 @@ its extraction branches. They are retained as engineering history; current route
   the detector must select the same normalized candidates and aggregate metrics twice. The local
   repeated-run check proves same-environment determinism; cross-operating-system equivalence remains
   unclaimed and must not be hidden by a union baseline
+- `make duplicate-code-protected`
+  supported local fallback when host selection differs: runs the same duplicate-code scans and
+  ratchets in the pinned Linux/Node 20 image using a checkout-specific Compose project, then removes
+  only that project; it does not touch the canonical Gateway runtime
 - `make ci-local`
   local feature-lane validation
 - `make ci-local-docker`
@@ -138,6 +142,9 @@ same actual revision may supersede one another.
   preserving literals, comments, and interpreter-independent identity; complete f-string
   expressions receive the same layout normalization on the token path while conversion,
   debug-expression, and format-specification text remains preserved
+- duplicate-code ratchet output reports `--update-baseline` as blocked when unexpected findings,
+  metric regressions, or detector failures remain, instead of directing an operator to an unusable
+  update path
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
   release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
   provenance attestation
