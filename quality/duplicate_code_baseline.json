@@ -13,22 +13,21 @@
   },
   "metrics": {
     "clone_count": {
-      "baseline": 88,
-      "threshold": 88
+      "baseline": 86,
+      "threshold": 86
     },
     "duplicated_lines": {
-      "baseline": 1767,
-      "threshold": 1767
+      "baseline": 1720,
+      "threshold": 1720
     },
     "duplicated_percentage": {
-      "baseline": 2.03,
-      "threshold": 2.03
+      "baseline": 1.98,
+      "threshold": 1.98
     }
   },
   "allowed_fingerprints": [
     "0447570a4452e52c1c08dd9a3ffb79af7383eb17b06d7c969a4df533a1b0ed91",
     "04daf5862c187e03fb0f481d2a84500d5f60e34a21af373f96d5b9b811d61865",
-    "06c7c32b281e1e82b41ce352f0a5b5099f97b7cbb195be4df6b2235ec241b02d",
     "0f731ee0e6824c294c1db9eb74adfd75b82fdc28571b2afe22c8c9e52f8974a2",
     "1274d07c9b2d6091609ee3df192cafa3e219f7c54527bf637afcb774fa74fc0b",
     "12f7c7a5492054973220f9216288bf51f151c182833b26b235ab633cfbcede99",
@@ -104,7 +103,6 @@
     "dd930d230536b27fc110205194943020b22b450f72dd7587d93672ab5b4db459",
     "de3b53a6fb90c66b04e20def0ba4a14f160934d4d45fd26ae37727eeb257c311",
     "e15a4c6bcfd716cd94b14f3a06c4fe764ea5fea876643b8ae4259104d0e6a3c9",
-    "e61db543b71c5ee5c869736846afdbdcd31a020868df75c821af8d2492992359",
     "e7df9eae3ba24058a3892298ea95e15d662ccc8ce7b97c1e6f4ea46081d794ab",
     "e8a4d5ec0a5a225c949ef3a32f9455f2e7947ada58488e44cbc6092421182b6f",
     "ebb7d58da9a3aea6a6d9401726a232fa0b53245537abb5f69cbe1d25a37a672e",
