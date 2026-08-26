@@ -25,20 +25,6 @@ class _PortfolioWorkflowDependencies(Protocol):
         include_projected: bool,
         skip: int,
         limit: int,
-        transaction_type: str | None = None,
-        security_id: str | None = None,
-        instrument_id: str | None = None,
-        component_type: str | None = None,
-        linked_transaction_group_id: str | None = None,
-        fx_contract_id: str | None = None,
-        swap_event_id: str | None = None,
-        near_leg_group_id: str | None = None,
-        far_leg_group_id: str | None = None,
-        sort_by: str = "transaction_date",
-        sort_order: str = "desc",
-        start_date: str | None = None,
-        end_date: str | None = None,
-        reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse: ...
 
 

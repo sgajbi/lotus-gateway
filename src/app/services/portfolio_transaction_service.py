@@ -9,12 +9,10 @@ from app.contracts.portfolio_activity_income import (
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.services.portfolio_transaction_activity_summary import build_activity_summary_response
-from app.services.portfolio_transaction_ledger import (
-    build_transaction_ledger_response_for_request,
-)
+from app.services.portfolio_transaction_ledger import build_transaction_ledger_response
 from app.services.portfolio_transaction_requests import (
-    PortfolioTransactionLedgerRequest,
     PortfolioTransactionsRequestContext,
+    build_portfolio_transactions_request_context,
     build_transaction_rows_page_request_context,
 )
 from app.services.portfolio_transaction_summary import (
@@ -68,13 +66,20 @@ class PortfolioTransactionServiceMixin:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
-        request = PortfolioTransactionLedgerRequest(
+        """Return one Lotus Core transaction-ledger projection for the requested window."""
+
+        context = build_portfolio_transactions_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            include_projected=include_projected,
             skip=skip,
             limit=limit,
+            as_of_date=as_of_date,
+            start_date=start_date,
+            end_date=end_date,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            reporting_currency=reporting_currency,
+            include_projected=include_projected,
             transaction_type=transaction_type,
             security_id=security_id,
             instrument_id=instrument_id,
@@ -84,23 +89,18 @@ class PortfolioTransactionServiceMixin:
             swap_event_id=swap_event_id,
             near_leg_group_id=near_leg_group_id,
             far_leg_group_id=far_leg_group_id,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            start_date=start_date,
-            end_date=end_date,
-            reporting_currency=reporting_currency,
         )
-        return await self._build_transaction_ledger_response(request)
+        return await self._build_transaction_ledger_response(context)
 
     async def _build_transaction_ledger_response(
         self,
-        request: PortfolioTransactionLedgerRequest,
+        context: PortfolioTransactionsRequestContext,
     ) -> PortfolioTransactionLedgerResponse:
         try:
-            return await build_transaction_ledger_response_for_request(
-                request=request,
+            return build_transaction_ledger_response(
+                context=context,
                 contract_version=settings.contract_version,
-                load_payload=self._load_transaction_ledger_payload,
+                result_payload=await self._load_transaction_ledger_payload(context),
             )
         except PortfolioTransactionTemporalContractError as exc:
             raise _invalid_transaction_timestamp_contract() from exc

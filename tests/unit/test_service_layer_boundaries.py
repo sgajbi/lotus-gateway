@@ -919,19 +919,42 @@ def test_portfolio_transaction_ledger_delegates_request_mapping() -> None:
     request_classes = _class_names(_SERVICE_ROOT / "portfolio_transaction_requests.py")
     request_mapping_methods = {
         "build_portfolio_transactions_request_context",
-        "build_transaction_ledger_request_context",
         "build_transaction_rows_page_request_context",
         "portfolio_transactions_cache_key",
         "portfolio_transactions_client_kwargs",
     }
 
     assert request_mapping_methods <= request_methods
-    assert {
-        "PortfolioTransactionLedgerRequest",
-        "PortfolioTransactionsRequestContext",
-    } <= request_classes
+    assert "PortfolioTransactionsRequestContext" in request_classes
     assert ledger_methods.isdisjoint(request_mapping_methods)
     assert "app.services.portfolio_transaction_requests" in ledger_imports
+
+
+def test_portfolio_workflow_declares_only_the_ledger_arguments_it_uses() -> None:
+    path = _SERVICE_ROOT / "portfolio_workflow_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    workflow_protocol = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "_PortfolioWorkflowDependencies"
+    )
+    ledger_method = next(
+        node
+        for node in workflow_protocol.body
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_transaction_ledger"
+    )
+
+    assert [argument.arg for argument in ledger_method.args.args] == [
+        "self",
+        "portfolio_id",
+        "correlation_id",
+        "as_of_date",
+        "include_projected",
+        "skip",
+        "limit",
+    ]
+    assert ledger_method.args.vararg is None
+    assert ledger_method.args.kwarg is None
 
 
 def test_portfolio_service_delegates_workflow_orchestration() -> None:

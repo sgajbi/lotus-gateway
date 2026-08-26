@@ -2,14 +2,11 @@ import pytest
 
 from app.services.portfolio_transaction_ledger import (
     build_transaction_ledger_response,
-    build_transaction_ledger_response_for_request,
     parse_transaction_views,
 )
 from app.services.portfolio_transaction_requests import (
-    PortfolioTransactionLedgerRequest,
     PortfolioTransactionsRequestContext,
     build_portfolio_transactions_request_context,
-    build_transaction_ledger_request_context,
     build_transaction_rows_page_request_context,
     portfolio_transactions_cache_key,
     portfolio_transactions_client_kwargs,
@@ -94,51 +91,6 @@ def test_build_portfolio_transactions_request_context_preserves_filters():
     assert context.include_projected is False
     assert context.skip == 10
     assert context.limit == 50
-    assert context.transaction_type == "FX_FORWARD"
-    assert context.security_id == "SEC_1"
-    assert context.instrument_id == "INST_1"
-    assert context.component_type == "FX_CONTRACT_OPEN"
-    assert context.linked_transaction_group_id == "LTG-FX-2026-0001"
-    assert context.fx_contract_id == "FXC-2026-0001"
-    assert context.swap_event_id == "FXSWAP-2026-0001"
-    assert context.near_leg_group_id == "FXSWAP-2026-0001-NEAR"
-    assert context.far_leg_group_id == "FXSWAP-2026-0001-FAR"
-    assert context.sort_by == "settlement_date"
-    assert context.sort_order == "asc"
-    assert context.start_date == "2026-01-01"
-    assert context.end_date == "2026-03-31"
-    assert context.reporting_currency == "CHF"
-
-
-def test_build_transaction_ledger_request_context_preserves_request_filters():
-    context = build_transaction_ledger_request_context(
-        PortfolioTransactionLedgerRequest(
-            portfolio_id="PF_1001",
-            correlation_id="corr-ledger",
-            as_of_date="2026-03-27",
-            include_projected=True,
-            skip=10,
-            limit=50,
-            transaction_type="FX_FORWARD",
-            security_id="SEC_1",
-            instrument_id="INST_1",
-            component_type="FX_CONTRACT_OPEN",
-            linked_transaction_group_id="LTG-FX-2026-0001",
-            fx_contract_id="FXC-2026-0001",
-            swap_event_id="FXSWAP-2026-0001",
-            near_leg_group_id="FXSWAP-2026-0001-NEAR",
-            far_leg_group_id="FXSWAP-2026-0001-FAR",
-            sort_by="settlement_date",
-            sort_order="asc",
-            start_date="2026-01-01",
-            end_date="2026-03-31",
-            reporting_currency="CHF",
-        )
-    )
-
-    assert context.portfolio_id == "PF_1001"
-    assert context.correlation_id == "corr-ledger"
-    assert context.include_projected is True
     assert context.transaction_type == "FX_FORWARD"
     assert context.security_id == "SEC_1"
     assert context.instrument_id == "INST_1"
@@ -296,46 +248,6 @@ def test_build_transaction_ledger_response_falls_back_to_context_metadata():
     assert response.total == 0
     assert response.skip == 20
     assert response.limit == 25
-
-
-@pytest.mark.asyncio
-async def test_build_transaction_ledger_response_for_request_loads_payload_with_context():
-    loaded_contexts: list[PortfolioTransactionsRequestContext] = []
-
-    async def load_payload(
-        context: PortfolioTransactionsRequestContext,
-    ) -> dict[str, object]:
-        loaded_contexts.append(context)
-        return {
-            "as_of_date": "2026-03-28",
-            "total": 1,
-            "skip": context.skip,
-            "limit": context.limit,
-            "transactions": [],
-        }
-
-    response = await build_transaction_ledger_response_for_request(
-        request=PortfolioTransactionLedgerRequest(
-            portfolio_id="PF_1001",
-            correlation_id="corr-ledger",
-            as_of_date="2026-03-27",
-            include_projected=False,
-            skip=5,
-            limit=10,
-            transaction_type="DIVIDEND",
-        ),
-        contract_version="v-test",
-        load_payload=load_payload,
-    )
-
-    assert len(loaded_contexts) == 1
-    assert loaded_contexts[0].transaction_type == "DIVIDEND"
-    assert loaded_contexts[0].skip == 5
-    assert response.contract_version == "v-test"
-    assert response.as_of_date == "2026-03-28"
-    assert response.total == 1
-    assert response.skip == 5
-    assert response.limit == 10
 
 
 def test_parse_transaction_views_quantizes_amounts_and_preserves_event_identifiers():
