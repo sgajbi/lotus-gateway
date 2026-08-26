@@ -54,9 +54,10 @@ Docker parity is required because gateway is a live integration boundary.
 When host duplicate-code detection differs from protected CI, run `make duplicate-code-protected`.
 That command uses the pinned Linux/Node 20 duplicate-code image and a checkout-specific Compose
 project, then removes its temporary project; it does not start or stop the canonical Gateway stack.
-It mounts the checkout read-only, keeps npm dependencies in a project-scoped volume, and copies the
-scan report before teardown into a run-unique caller-created `output/duplicate-code-protected/`
-directory, preventing root-owned artifacts while retaining mismatch diagnostics.
+It mounts the checkout read-only at a dedicated source root, keeps writable dependency and output
+volumes outside that mount (never nested below it), and copies the scan report before teardown
+into a run-unique caller-created `output/duplicate-code-protected/` directory, preventing
+root-owned artifacts while retaining mismatch diagnostics.
 
 The development and Docker test extras include `httpx2>=2.12.0,<3.0.0` because the supported
 Starlette TestClient path uses HTTPX2. `make lint` runs

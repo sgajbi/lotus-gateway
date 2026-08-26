@@ -2,14 +2,14 @@ services:
   duplicate-code-protected:
     platform: linux/amd64
     image: node:20-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
-    working_dir: /app
+    working_dir: /source
     environment:
       HOME: /tmp
       npm_config_cache: /tmp/.npm
     volumes:
-      - ./:/app:ro
-      - duplicate-code-protected-node-modules:/app/quality/node_modules
-      - duplicate-code-protected-output:/app/output
+      - ./:/source:ro
+      - duplicate-code-protected-quality-dependencies:/dependencies/quality
+      - duplicate-code-protected-output:/output
     command:
       - sh
       - -lc
@@ -18,8 +18,10 @@ services:
         node --version
         python3 --version
         ln -sf /usr/bin/python3 /tmp/python
-        PATH="/tmp:$$PATH" make duplicate-code
+        mkdir -p /dependencies/quality
+        cp /source/quality/package.json /source/quality/package-lock.json /dependencies/quality/
+        PATH="/tmp:$$PATH" make duplicate-code DUPLICATE_CODE_QUALITY_DIR=/dependencies/quality DUPLICATE_CODE_OUTPUT_DIR=/output/duplicate-code
 
 volumes:
-  duplicate-code-protected-node-modules:
+  duplicate-code-protected-quality-dependencies:
   duplicate-code-protected-output:

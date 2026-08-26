@@ -50,7 +50,8 @@ its extraction branches. They are retained as engineering history; current route
   supported local fallback when host selection differs: runs the same duplicate-code scans and
   ratchets in the pinned Linux/Node 20 image using a checkout-specific Compose project, then removes
   only that project; it does not touch the canonical Gateway runtime. It mounts the checkout
-  read-only, keeps npm dependencies in a project-scoped volume, and copies the scan report before
+  read-only at a dedicated source root, keeps writable dependency and output volumes outside that
+  mount, and copies the scan report before
   teardown into a run-unique caller-created `output/duplicate-code-protected/` directory, so a
   native Linux run cannot leave root-owned artifacts while mismatch diagnostics remain available.
 - `make ci-local`

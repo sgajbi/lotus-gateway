@@ -75,9 +75,10 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
    candidate identities or aggregate metrics differ; local `make duplicate-code` runs the same
    repeated check when the pinned Node runtime is available. `make duplicate-code-protected` runs
    that same proof in the pinned Linux/Node 20 image for hosts with different local selection,
-   using a checkout-specific Compose project and scoped cleanup. It mounts the checkout read-only,
-   keeps npm dependencies in a project-scoped volume, and copies the scan report before teardown
-   into a run-unique caller-created `output/duplicate-code-protected/` directory. This prevents
+   using a checkout-specific Compose project and scoped cleanup. It mounts the checkout read-only
+   at a dedicated source root, keeps writable dependency and output volumes outside that mount,
+   and copies the scan report before teardown into a run-unique caller-created
+   `output/duplicate-code-protected/` directory. This prevents
    root-owned checkout artifacts on native Linux while retaining mismatch diagnostics and proves same-environment
    determinism without claiming unverified cross-operating-system equivalence.
 
