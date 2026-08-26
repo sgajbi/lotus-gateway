@@ -240,6 +240,25 @@ async def test_source_loader_rejects_invalid_mandate_ratio_bounds() -> None:
 
 
 @pytest.mark.asyncio
+async def test_source_loader_preserves_absent_cash_limits_without_defaulting_a_band() -> None:
+    manage = _ManageClient()
+    del manage.mandate_payload["constraints"]["cash_band_min_weight"]
+    del manage.mandate_payload["constraints"]["cash_band_max_weight"]
+
+    sources = await load_risk_mandate_sources(
+        manage_client=manage,
+        cash_source=_CashSource(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-1",
+        as_of_date="2026-05-03",
+    )
+
+    assert sources.mandate is not None
+    assert sources.mandate.constraints.cash_band_min_weight is None
+    assert sources.mandate.constraints.cash_band_max_weight is None
+
+
+@pytest.mark.asyncio
 async def test_source_loader_keeps_manage_evidence_when_cash_snapshot_fails() -> None:
     cash = _CashSource()
     cash.failure = HTTPException(status_code=502, detail="Core unavailable")

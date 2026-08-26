@@ -219,6 +219,21 @@ def test_summary_never_classifies_a_risk_measure_without_a_source_limit() -> Non
     assert tracking_error.headroom is None
 
 
+def test_summary_never_infers_a_cash_band_from_missing_source_limits() -> None:
+    response = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=_sources(mandate=_mandate(cash_band_min_weight=None)),
+    )
+
+    assert response.mandate_comparison is not None
+    cash = response.mandate_comparison.constraints[0]
+    assert cash.state == "not_defined"
+    assert cash.limit is None
+    assert cash.measure is not None
+    assert cash.headroom is None
+    assert "complete cash allocation band" in cash.reason
+
+
 def test_summary_reports_manage_unavailability_without_hiding_risk_measures() -> None:
     response = compose_summary_mandate_comparison(
         response=_summary(),
