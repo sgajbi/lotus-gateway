@@ -1373,12 +1373,9 @@ def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
         _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
     )
     expected_descriptor_methods = {
-        "apply_source_supportability",
         "build_workspace_descriptor",
         "build_workspace_descriptor_from_spec",
-        "source_supportability",
         "workspace_caching",
-        "workspace_descriptor_state",
         "workspace_descriptors",
         "workspace_evidence",
         "workspace_freshness",
@@ -1388,6 +1385,31 @@ def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
 
     assert expected_descriptor_methods <= descriptor_methods
     assert shell_methods.isdisjoint(expected_descriptor_methods)
+
+
+def test_workspace_descriptors_delegate_state_derivation() -> None:
+    descriptor_methods = _function_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    descriptor_imports = _imported_modules(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    state_methods = _function_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptor_state.py"
+    )
+    state_classes = _class_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptor_state.py"
+    )
+    expected_state_methods = {
+        "apply_source_supportability",
+        "source_supportability",
+        "workspace_descriptor_state",
+    }
+
+    assert expected_state_methods <= state_methods
+    assert "WorkspaceDescriptorState" in state_classes
+    assert descriptor_methods.isdisjoint(expected_state_methods)
+    assert "app.services.platform_capabilities_workspace_descriptor_state" in descriptor_imports
 
 
 def test_platform_capabilities_workspace_descriptors_delegate_static_specs() -> None:
