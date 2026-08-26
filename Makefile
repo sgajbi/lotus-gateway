@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check demo-certification duplicate-code openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check demo-certification duplicate-code duplicate-code-protected openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -67,6 +67,11 @@ duplicate-code:
 	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code/reproducibility --pattern '**/*.py' src/app --noTips > output/duplicate-code/reproducibility-detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/reproducibility-detector.txt; cat output/duplicate-code/reproducibility-detector.txt; exit "$${status}"
 	python scripts/check_duplicate_code_ratchet.py --report output/duplicate-code/jscpd-report.json --artifact-log output/duplicate-code/detector.txt --baseline quality/duplicate_code_baseline.json --source-root .
 	python -m scripts.check_duplicate_code_reproducibility --first-report output/duplicate-code/jscpd-report.json --second-report output/duplicate-code/reproducibility/jscpd-report.json --first-artifact-log output/duplicate-code/detector.txt --second-artifact-log output/duplicate-code/reproducibility-detector.txt --source-root .
+
+DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT ?= $(CI_LOCAL_COMPOSE_PROJECT)-duplicate-code-protected
+
+duplicate-code-protected:
+	set +e; docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml run --rm --no-deps duplicate-code-protected; status=$$?; docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml down -v --remove-orphans; exit "$$status"
 
 test:
 	$(MAKE) test-unit

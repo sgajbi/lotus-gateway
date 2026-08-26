@@ -1,0 +1,16 @@
+services:
+  duplicate-code-protected:
+    platform: linux/amd64
+    image: node:20-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command:
+      - sh
+      - -lc
+      - |
+        set -eu
+        node --version
+        python3 --version
+        ln -sf /usr/bin/python3 /usr/local/bin/python
+        make duplicate-code
