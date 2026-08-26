@@ -116,7 +116,7 @@ def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path)
     ci_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[0]
     scorecard_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[1]
     ci_document.write_text(
-        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
+        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720,\n"
         "and duplicated percentage must not exceed 1.98%",
         encoding="utf-8",
     )
