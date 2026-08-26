@@ -167,8 +167,11 @@ writes `output/container-security/image-release-manifest.json`, validates it wit
 operator review. PR images are not pushed or signed.
 
 Main Releasability builds the same Git-SHA tag, generates the SBOM, runs the Trivy scan before any
-push, pushes the passing image to GHCR from CI, captures the digest, signs the digest-pinned image
-with cosign, creates a provenance attestation, validates the same manifest without
+push, and pushes the passing image to GHCR from CI. A transient GHCR `unknown blob` response receives
+at most two retries (three total attempts) with 5/10-second backoff and a retained log per attempt;
+any other push failure is immediately a hard release-gate failure. Only a successful push permits
+digest capture, signing the digest-pinned image with cosign, provenance attestation, and validation
+of the same manifest without
 `--allow-unsigned`, and uploads `main-container-release-evidence`. Kubernetes deployment promotion
 must use the manifest `image.digest_ref`; do not deploy mutable tags.
 

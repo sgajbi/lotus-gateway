@@ -37,8 +37,10 @@ The current local and PR-grade blocking gates are:
 15. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
     labels, SBOM generation, pre-push Trivy image scan that fails on fixable HIGH/CRITICAL
     findings, release manifest generation, and artifact upload,
-16. main-only CI image promotion controls: GHCR push by CI, digest capture, cosign signing,
-    provenance attestation, and Kubernetes deployment reference by digest.
+16. main-only CI image promotion controls: GHCR push by CI, bounded retry only for its transient
+    `unknown blob` response (three total attempts with retained per-attempt logs), digest capture,
+    cosign signing, provenance attestation, and Kubernetes deployment reference by digest. Other
+    push errors remain immediate hard failures.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
 lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
