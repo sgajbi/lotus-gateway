@@ -912,6 +912,28 @@ def test_portfolio_service_delegates_transaction_workflows() -> None:
     assert "PortfolioTransactionServiceMixin" in base_names
 
 
+def test_portfolio_transaction_ledger_delegates_request_mapping() -> None:
+    ledger_methods = _function_names(_SERVICE_ROOT / "portfolio_transaction_ledger.py")
+    ledger_imports = _imported_modules(_SERVICE_ROOT / "portfolio_transaction_ledger.py")
+    request_methods = _function_names(_SERVICE_ROOT / "portfolio_transaction_requests.py")
+    request_classes = _class_names(_SERVICE_ROOT / "portfolio_transaction_requests.py")
+    request_mapping_methods = {
+        "build_portfolio_transactions_request_context",
+        "build_transaction_ledger_request_context",
+        "build_transaction_rows_page_request_context",
+        "portfolio_transactions_cache_key",
+        "portfolio_transactions_client_kwargs",
+    }
+
+    assert request_mapping_methods <= request_methods
+    assert {
+        "PortfolioTransactionLedgerRequest",
+        "PortfolioTransactionsRequestContext",
+    } <= request_classes
+    assert ledger_methods.isdisjoint(request_mapping_methods)
+    assert "app.services.portfolio_transaction_requests" in ledger_imports
+
+
 def test_portfolio_service_delegates_workflow_orchestration() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
