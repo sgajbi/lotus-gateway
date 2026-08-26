@@ -67,8 +67,8 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
 6. security severity counts must remain at Undefined 0, Low <=2, Medium <=1, and High 0,
 7. Interrogate documentation coverage must not fall below 1.6%, and
 8. Spectral OpenAPI problems must not exceed 4.
-9. duplicate-code clone count must not exceed 88, duplicated lines must not exceed 1,767, and
-   duplicated percentage must not exceed 2.03%; stable source-pair/normalised-fragment
+9. duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, and
+   duplicated percentage must not exceed 1.98%; stable source-pair/normalised-fragment
    occurrence fingerprints must not gain a
    new finding. The detector is pinned in `quality/package-lock.json` and scans production
    `src/app/**/*.py` only. The protected lane runs the same detector twice and fails if normalized

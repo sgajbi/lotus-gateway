@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,12 @@ REQUIRED_DOCUMENTS = (
     Path("quality/baseline_report.md"),
     Path("wiki/Validation-and-CI.md"),
     Path("REPOSITORY-ENGINEERING-CONTEXT.md"),
+)
+
+DUPLICATE_CODE_BASELINE = Path("quality/duplicate_code_baseline.json")
+DUPLICATE_CODE_DOCUMENTS = (
+    Path("quality/ci_quality_gates.md"),
+    Path("quality/quality_scorecard.md"),
 )
 
 
@@ -101,6 +108,7 @@ def validate_agent_quality_evidence(repo_root: Path = DEFAULT_REPO_ROOT) -> list
     findings.extend(_validate_workflow_alignment(repo_root))
     findings.extend(_validate_makefile_alignment(repo_root))
     findings.extend(_validate_documentation_alignment(repo_root, evidence))
+    findings.extend(_validate_duplicate_code_documentation_alignment(repo_root))
 
     return findings
 
@@ -187,6 +195,44 @@ def _validate_documentation_alignment(
                     f"{fragment}"
                 )
 
+    return findings
+
+
+def _validate_duplicate_code_documentation_alignment(repo_root: Path) -> list[str]:
+    if not DUPLICATE_CODE_DOCUMENTS:
+        return []
+    baseline_path = repo_root / DUPLICATE_CODE_BASELINE
+    if not baseline_path.is_file():
+        return [f"Missing duplicate-code baseline: {baseline_path}"]
+
+    metrics = json.loads(baseline_path.read_text(encoding="utf-8"))["metrics"]
+    clone_count = int(metrics["clone_count"]["threshold"])
+    duplicated_lines = int(metrics["duplicated_lines"]["threshold"])
+    duplicated_percentage = float(metrics["duplicated_percentage"]["threshold"])
+    required_fragments = {
+        Path("quality/ci_quality_gates.md"): (
+            "duplicate-code clone count must not exceed "
+            f"{clone_count:,}, duplicated lines must not exceed {duplicated_lines:,}, and "
+            f"duplicated percentage must not exceed {duplicated_percentage:.2f}%"
+        ),
+        Path("quality/quality_scorecard.md"): (
+            f"now measures {clone_count} production clone findings, "
+            f"{duplicated_lines:,} duplicated lines, and "
+            f"{duplicated_percentage:.2f}% duplicated lines"
+        ),
+    }
+    findings: list[str] = []
+    for relative_path in DUPLICATE_CODE_DOCUMENTS:
+        document_path = repo_root / relative_path
+        if not document_path.is_file():
+            findings.append(f"Missing duplicate-code quality document: {document_path}")
+            continue
+        fragment = required_fragments[relative_path]
+        document_text = " ".join(document_path.read_text(encoding="utf-8").split())
+        if fragment not in document_text:
+            findings.append(
+                f"{document_path} is missing current duplicate-code threshold fragment: {fragment}"
+            )
     return findings
 
 
