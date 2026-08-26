@@ -414,7 +414,8 @@ Important validation expectations:
    same command against event title/body values held in environment variables. Intended automatic
    closure must be a standalone body line such as `Closes #123`; partial work uses `Keep #123 open`.
    Negated close/fix/resolve wording with an issue reference and malformed closing references are
-   rejected because GitHub may still auto-close the issue. Opening, synchronizing, reopening, or
+   rejected, including GitHub issue URLs, because GitHub may still auto-close the issue. Opening,
+   synchronizing, reopening, or
    editing a PR title/body starts a fresh merge-gate event, so lifecycle evidence cannot survive a
    later metadata change. A draft PR's initial `opened` event already supplies this evidence, so
    changing only draft state does not redundantly restart the heavy merge lane,

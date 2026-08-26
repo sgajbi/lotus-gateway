@@ -8,16 +8,18 @@ import re
 from collections.abc import Sequence
 
 CLOSING_KEYWORD = r"(?:close(?:s|d)?|fix(?:es|ed)?|resolve(?:s|d)?)"
+ISSUE_REFERENCE_TOKEN = r"(?:#[^\s]*|https?://github\.com/[^\s/]+/[^\s/]+/issues/[^\s]*)"
 CLOSING_REFERENCE = re.compile(
     rf"^\s*(?:[-*+]\s+)?{CLOSING_KEYWORD}\s+#(?P<issue>[1-9][0-9]*)\s*$",
     re.IGNORECASE,
 )
 CLOSING_KEYWORD_WITH_REFERENCE = re.compile(
-    rf"\b{CLOSING_KEYWORD}\b[^\r\n]*#[^\s]*",
+    rf"\b{CLOSING_KEYWORD}\b[^\r\n]*{ISSUE_REFERENCE_TOKEN}",
     re.IGNORECASE,
 )
 NEGATED_CLOSING_REFERENCE = re.compile(
-    rf"\b(?:do\s+not|does\s+not|don't|doesn't|not|never)\s+{CLOSING_KEYWORD}\s+#[^\s]*",
+    rf"\b(?:do\s+not|does\s+not|don't|doesn't|not|never)\s+{CLOSING_KEYWORD}\s+"
+    rf"{ISSUE_REFERENCE_TOKEN}",
     re.IGNORECASE,
 )
 

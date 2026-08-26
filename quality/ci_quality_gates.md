@@ -28,7 +28,8 @@ The current local and PR-grade blocking gates are:
 7. PR issue-lifecycle text governance through `make pr-issue-lifecycle`: the Pull Request Merge
    Gate rejects malformed or negated auto-close wording and accepts only a standalone intended
    closure such as `Closes #123`; keep-open work uses `Keep #123 open`; opening, synchronization,
-   reopening, or a title/body edit starts fresh lifecycle evidence,
+   reopening, or a title/body edit starts fresh lifecycle evidence. GitHub issue URLs are not an
+   accepted closing-reference form,
 8. `mypy` over `src`,
 9. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,

@@ -41,6 +41,17 @@ def test_rejects_negated_closing_language() -> None:
     assert "Keep #123 open" in findings[0]
 
 
+def test_rejects_negated_closing_issue_url() -> None:
+    closing_issues, findings = validate_pr_text(
+        "Partial implementation",
+        "This does not close https://github.com/sgajbi/lotus-platform/issues/575.",
+    )
+
+    assert closing_issues == []
+    assert len(findings) == 1
+    assert "unsafe negated closing wording" in findings[0]
+
+
 def test_rejects_malformed_closing_reference() -> None:
     closing_issues, findings = validate_pr_text("Fix lifecycle guard", "Closes issue #673")
 
