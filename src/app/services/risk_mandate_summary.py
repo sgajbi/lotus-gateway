@@ -24,26 +24,26 @@ def compose_summary_mandate_comparison(
     return with_comparison(
         response,
         comparison,
-        _summary_constraints(response, sources, comparison_as_of),
+        _summary_constraints(response, sources, sources.mandate, comparison_as_of),
     )
 
 
 def _summary_constraints(
     response: WorkbenchRiskSummaryResponse,
     sources: RiskMandateSources,
+    mandate: ManageMandateSource,
     comparison_as_of: date,
 ) -> list[WorkbenchMandateConstraintComparison]:
-    assert sources.mandate is not None
     return [
         build_cash_constraint(
-            mandate=sources.mandate,
+            mandate=mandate,
             health=sources.health,
             cash=sources.cash,
             comparison_as_of=comparison_as_of,
             unavailable_reason=sources.cash_failure_reason or sources.health_failure_reason,
         ),
-        _tracking_error_constraint(response, sources.mandate),
-        *_unmeasured_constraints(sources.mandate),
+        _tracking_error_constraint(response, mandate),
+        *_unmeasured_constraints(mandate),
     ]
 
 

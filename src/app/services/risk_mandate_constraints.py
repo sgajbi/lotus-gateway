@@ -26,13 +26,12 @@ def build_cash_constraint(
     unavailable_reason: str | None,
 ) -> WorkbenchMandateConstraintComparison:
     cash_band = _cash_band(mandate)
-    measure = _cash_measure(cash) if cash is not None else None
     if cash_band is None:
         return WorkbenchMandateConstraintComparison(
             key="cash_band",
             label="Cash allocation",
             limit=None,
-            measure=measure,
+            measure=_cash_measure(cash) if cash is not None else None,
             headroom=None,
             state="not_defined",
             reason="The mandate does not define a complete cash allocation band.",
@@ -46,7 +45,6 @@ def build_cash_constraint(
             measure=None,
             reason=unavailable_reason or "Cash allocation is unavailable for this review date.",
         )
-    assert measure is not None
     return _cash_with_measure(
         health=health,
         cash=cash,
@@ -54,7 +52,7 @@ def build_cash_constraint(
         unavailable_reason=unavailable_reason,
         limit=limit,
         cash_band=cash_band,
-        measure=measure,
+        measure=_cash_measure(cash),
     )
 
 
