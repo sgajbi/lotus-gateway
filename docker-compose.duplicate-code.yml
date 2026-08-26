@@ -3,8 +3,13 @@ services:
     platform: linux/amd64
     image: node:20-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
     working_dir: /app
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm
     volumes:
-      - ./:/app
+      - ./:/app:ro
+      - duplicate-code-protected-node-modules:/app/quality/node_modules
+      - duplicate-code-protected-output:/app/output
     command:
       - sh
       - -lc
@@ -12,5 +17,9 @@ services:
         set -eu
         node --version
         python3 --version
-        ln -sf /usr/bin/python3 /usr/local/bin/python
-        make duplicate-code
+        ln -sf /usr/bin/python3 /tmp/python
+        PATH="/tmp:$$PATH" make duplicate-code
+
+volumes:
+  duplicate-code-protected-node-modules:
+  duplicate-code-protected-output:

@@ -235,6 +235,28 @@ def test_make_duplicate_detector_captures_status_without_bash_extensions() -> No
     assert "python -m scripts.check_duplicate_code_reproducibility" in duplicate_recipe
 
 
+def test_protected_duplicate_code_fallback_isolates_checkout_writes() -> None:
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    compose = (REPO_ROOT / "docker-compose.duplicate-code.yml").read_text(encoding="utf-8")
+    protected_recipe = makefile.split("duplicate-code-protected:\n", 1)[1].split("\ntest:\n", 1)[0]
+
+    assert 'docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)"' in (
+        protected_recipe
+    )
+    assert "down -v --remove-orphans" in protected_recipe
+    assert "- ./:/app:ro" in compose
+    assert "- duplicate-code-protected-node-modules:/app/quality/node_modules" in compose
+    assert "- duplicate-code-protected-output:/app/output" in compose
+    assert "duplicate-code-protected-node-modules:" in compose
+    assert "duplicate-code-protected-output:" in compose
+    assert "HOME: /tmp" in compose
+    assert "npm_config_cache: /tmp/.npm" in compose
+    assert "ln -sf /usr/bin/python3 /tmp/python" in compose
+    assert 'PATH="/tmp:$$PATH" make duplicate-code' in compose
+    assert "/usr/local/bin/python" not in compose
+    assert "user:" not in compose
+
+
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:
     gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
 
