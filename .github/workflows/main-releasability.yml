@@ -205,9 +205,50 @@ jobs:
             --output /output/trivy-image-scan.json \
             "${IMAGE_NAME}:${IMAGE_TAG}"
       - name: Push image from CI
+        shell: bash
         run: |
+          set -o pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
-          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          readonly MAX_PUSH_ATTEMPTS=3
+          readonly RETRY_DELAY_SECONDS=5
+          push_status=1
+
+          for attempt in $(seq 1 "$MAX_PUSH_ATTEMPTS"); do
+            push_log="output/container-security/ghcr-push-attempt-${attempt}.txt"
+            echo "::notice::Pushing ${IMAGE_NAME}:${IMAGE_TAG}; attempt ${attempt}/${MAX_PUSH_ATTEMPTS}."
+            set +e
+            docker push "${IMAGE_NAME}:${IMAGE_TAG}" 2>&1 | tee "$push_log"
+            pipe_status=("${PIPESTATUS[@]}")
+            push_status=${pipe_status[0]}
+            log_status=${pipe_status[1]}
+            set -e
+
+            if [ "$log_status" -ne 0 ]; then
+              echo "::error::Could not retain GHCR image-push diagnostics in $push_log."
+              exit "$log_status"
+            fi
+
+            if [ "$push_status" -eq 0 ]; then
+              break
+            fi
+
+            if ! grep -qiE 'unknown blob|blob unknown' "$push_log"; then
+              echo "::error::GHCR image push failed with a non-retryable response; see $push_log."
+              exit "$push_status"
+            fi
+
+            if [ "$attempt" -lt "$MAX_PUSH_ATTEMPTS" ]; then
+              delay_seconds=$((attempt * RETRY_DELAY_SECONDS))
+              echo "::warning::GHCR returned a transient unknown-blob response; retrying in ${delay_seconds}s."
+              sleep "$delay_seconds"
+            fi
+          done
+
+          if [ "$push_status" -ne 0 ]; then
+            echo "::error::GHCR image push failed after ${MAX_PUSH_ATTEMPTS} transient-error attempts."
+            exit "$push_status"
+          fi
+
           IMAGE_DIGEST="$(docker buildx imagetools inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
             --format '{{json .Manifest.Digest}}' | tr -d '"')"
           echo "LOTUS_IMAGE_DIGEST=${IMAGE_DIGEST}" >> "$GITHUB_ENV"

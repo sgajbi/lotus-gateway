@@ -320,6 +320,33 @@ def test_main_releasability_retains_release_and_container_evidence() -> None:
     assert "--build-arg LOTUS_IMAGE_DIGEST" not in workflow
 
 
+def test_main_releasability_retries_only_transient_ghcr_push_failures() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "main-releasability.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for fragment in (
+        "readonly MAX_PUSH_ATTEMPTS=3",
+        "readonly RETRY_DELAY_SECONDS=5",
+        'push_log="output/container-security/ghcr-push-attempt-${attempt}.txt"',
+        'pipe_status=("${PIPESTATUS[@]}")',
+        "push_status=${pipe_status[0]}",
+        "log_status=${pipe_status[1]}",
+        "Could not retain GHCR image-push diagnostics",
+        "if ! grep -qiE 'unknown blob|blob unknown' \"$push_log\"; then",
+        "GHCR image push failed with a non-retryable response",
+        "delay_seconds=$((attempt * RETRY_DELAY_SECONDS))",
+        'sleep "$delay_seconds"',
+        "GHCR image push failed after ${MAX_PUSH_ATTEMPTS} transient-error attempts.",
+    ):
+        assert fragment in workflow
+
+    push_index = workflow.index('docker push "${IMAGE_NAME}:${IMAGE_TAG}"')
+    digest_index = workflow.index('IMAGE_DIGEST="$(docker buildx imagetools inspect')
+    assert push_index < digest_index
+    assert workflow.index('if [ "$push_status" -ne 0 ]; then') < digest_index
+
+
 def test_pr_merge_gate_builds_sha_tagged_scanned_unsigned_container_evidence() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "pr-merge-gate.yml").read_text(
         encoding="utf-8"

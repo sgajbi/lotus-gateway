@@ -68,9 +68,12 @@ CI-owned image release evidence is retained under `output/container-security/` a
 and scan the Git-SHA-tagged image without pushing it. The Trivy image scan fails on fixable
 HIGH/CRITICAL vulnerabilities and retains the full JSON scan artifact so unfixed vendor findings
 remain visible for operator review. Main releasability performs SBOM generation and the Trivy scan
-before pushing the same Git-SHA tag to GHCR, then captures the digest, signs the digest-pinned
-image, writes provenance attestation evidence, and records the digest-pinned Kubernetes deployment
-reference in `image-release-manifest.json`. Do not deploy mutable image tags. The image digest is
+before pushing the same Git-SHA tag to GHCR. It retries only the documented transient `unknown blob`
+registry response, with three total attempts and 5/10-second backoff; every attempt is retained as a
+container-security artifact, while every other push failure remains an immediate hard gate failure.
+Only a successful push permits digest capture, signing the digest-pinned image, provenance attestation,
+and recording the digest-pinned Kubernetes deployment reference in `image-release-manifest.json`. Do
+not deploy mutable image tags. The image digest is
 captured after push and must be supplied to runtime `/version` metadata by deployment configuration;
 do not bake an `unknown` digest into Docker build args, ENV, or OCI labels.
 
