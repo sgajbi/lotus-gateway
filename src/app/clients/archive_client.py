@@ -42,6 +42,7 @@ class ArchiveClient:
             method="POST",
             url=f"{self._base_url}/documents/access-preflight",
             timeout_seconds=self._access_preflight_timeout,
+            total_deadline_seconds=self._access_preflight_timeout,
             max_retries=_ACCESS_PREFLIGHT_MAX_RETRIES,
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
