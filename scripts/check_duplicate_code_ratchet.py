@@ -309,7 +309,7 @@ def _normalise_token_stream(text: str, tokens: Any) -> str:
             if token.type == FSTRING_END_TOKEN:
                 fstring_depth -= 1
                 if fstring_depth == 0 and fstring_start is not None:
-                    pieces.append(_source_span(text, fstring_start, token.end))
+                    pieces.append(_normalise_literal(_source_span(text, fstring_start, token.end)))
                     fstring_start = None
             continue
         if token.type in {
@@ -324,6 +324,8 @@ def _normalise_token_stream(text: str, tokens: Any) -> str:
         value = token.string
         if token.type == tokenize.COMMENT:
             value = FRAGMENT_WHITESPACE.sub(" ", value).strip()
+        elif token.type == tokenize.STRING:
+            value = _normalise_literal(value)
         pieces.append(value)
     return " ".join(pieces).strip()
 

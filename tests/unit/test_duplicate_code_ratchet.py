@@ -681,6 +681,7 @@ def test_duplicate_fingerprint_normalizes_comment_quotes_and_layout() -> None:
 
 def test_duplicate_fingerprint_normalizes_fstrings_across_tokenizer_shapes() -> None:
     text = 'message = f"client  {name}"\n'
+    spaced_expression = 'message = f"client  { name }"\n'
     legacy_tokens = [
         tokenize.TokenInfo(tokenize.NAME, "message", (1, 0), (1, 7), text),
         tokenize.TokenInfo(tokenize.OP, "=", (1, 8), (1, 9), text),
@@ -711,6 +712,7 @@ def test_duplicate_fingerprint_normalizes_fstrings_across_tokenizer_shapes() -> 
         text, modern_tokens
     )
     assert _normalise_fragment(text) == _normalise_token_stream(text, legacy_tokens)
+    assert _normalise_fragment(text) == _normalise_fragment(spaced_expression)
 
 
 def test_duplicate_source_fragment_honours_reported_columns(tmp_path: Path) -> None:
