@@ -16,6 +16,16 @@ def test_fastapi_resolution_excludes_blocked_security_audit_release() -> None:
     assert "fastapi>=0.129.0,<0.136.3" in audit_requirements
 
 
+def test_pydantic_floor_supports_tolerant_nested_source_parsing() -> None:
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+
+    dependencies = pyproject["project"]["dependencies"]
+    audit_requirements = Path("requirements-audit.txt").read_text(encoding="utf-8").splitlines()
+
+    assert "pydantic>=2.12.0" in dependencies
+    assert "pydantic>=2.12.0" in audit_requirements
+
+
 def test_testclient_uses_secure_dev_only_httpx2_dependency() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
