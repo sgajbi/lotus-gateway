@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Final
 
 from app.clients.observed_fanout import (
     request_observed_binary_fanout,
@@ -9,12 +9,15 @@ from app.clients.upstream_headers import build_archive_caller_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
+_ACCESS_PREFLIGHT_MAX_RETRIES: Final = 0
+
 
 class ArchiveClient:
     def __init__(
         self,
         base_url: str,
         timeout_seconds: float,
+        access_preflight_timeout_seconds: float,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
     ):
@@ -22,6 +25,7 @@ class ArchiveClient:
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
+        self._access_preflight_timeout = access_preflight_timeout_seconds
 
     async def preflight_document_access(
         self,
@@ -37,8 +41,8 @@ class ArchiveClient:
             operation="archive.documents.access-preflight",
             method="POST",
             url=f"{self._base_url}/documents/access-preflight",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
+            timeout_seconds=self._access_preflight_timeout,
+            max_retries=_ACCESS_PREFLIGHT_MAX_RETRIES,
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
             json_body={"document_ids": document_ids},

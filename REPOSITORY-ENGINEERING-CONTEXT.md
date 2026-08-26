@@ -182,8 +182,10 @@ under parent issue #586.
    Archive confirms access; Gateway projects explicit available,
    pending, and unavailable archive posture and emits metadata/download links only for a confirmed
    archived source document. Before publishing those links, Gateway sends one bounded
-   caller-scoped Archive access-preflight request for unique eligible identities; denied, missing,
-   and unavailable Archive postures remain linkless and indistinguishable to the consumer. The
+   caller-scoped Archive access-preflight request for unique eligible identities. That advisory
+   request uses one HTTP attempt within the configured three-second maximum and never retries a
+   timeout; denied, missing, unavailable, malformed, and timeout postures remain linkless and
+   indistinguishable to the consumer. The
    final metadata/download routes still re-check tenant/region, and Gateway never exposes raw
    storage locations or substitutes a newer correction document. The read-only
    `/api/v1/report-batches/preflight` route now evaluates the same

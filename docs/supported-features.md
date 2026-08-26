@@ -276,7 +276,10 @@ distribution, prove PDF generation, or claim archive completion. Batch status pr
 directly linked Report job and archive identity, and publishes an available/pending/unavailable
 archive posture with bounded reasons. Gateway-controlled metadata/download links appear only for a
 confirmed archived source document; the existing archive routes re-check caller scope and no raw
-storage location is exposed. `POST /api/v1/report-batches/preflight` is a read-only,
+storage location is exposed. The advisory Archive access-preflight uses one HTTP attempt with
+`ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS` capped at three seconds (default three seconds); timeout
+or unusable source outcomes keep the Report status successful and the archive posture linkless.
+`POST /api/v1/report-batches/preflight` is a read-only,
 non-authoritative composition over the validated batch setup, one Core membership read, and one
 Report ordering-catalogue read. It preserves requested portfolio order and returns explicit
 candidate postures plus separate membership and report-configuration posture; batch mutation

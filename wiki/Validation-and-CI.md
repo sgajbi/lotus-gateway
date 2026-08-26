@@ -87,6 +87,12 @@ communication failures in result polling; they must not consume the elapsed anal
 be relabelled as source calculation unavailability. The taxonomy is covered by unit tests for the
 JSON transport and the analytics polling boundary.
 
+The caller-scoped Archive access-preflight on report-batch status is an explicit exception: it is an
+advisory, fail-closed status enrichment, so it makes one request only and does not retry a timeout.
+Its `ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS` setting is capped at three seconds. This prevents one
+unavailable Archive dependency from multiplying downstream calls or delaying a Report-owned status
+response; it does not define a total endpoint SLO.
+
 ## PR auto-merge posture
 
 PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses

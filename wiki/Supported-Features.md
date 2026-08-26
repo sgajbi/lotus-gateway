@@ -391,9 +391,11 @@ Authority and boundary:
 4. ordering eligibility does not authorize client distribution, prove render completion, prove
    archive completion, or make a report client-ready,
 5. report-batch status preserves the directly linked Report job and uses one caller-scoped Archive
-   access-preflight batch for eligible document identities. Gateway publishes archive availability
-   and Gateway-owned bounded reason codes only after Archive confirms allowed access; denied,
-   missing, and unavailable postures remain indistinguishable and linkless. The existing
+   access-preflight batch for eligible document identities. The advisory preflight makes one HTTP
+   attempt within `ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS` (default and maximum: three seconds)
+   and never retries a timeout. Gateway publishes archive availability and Gateway-owned bounded
+   reason codes only after Archive confirms allowed access; denied, missing, unavailable,
+   malformed, and timeout postures remain indistinguishable and linkless. The existing
    metadata/download routes re-check tenant and region before access and no raw storage location is
    exposed,
 6. `POST /api/v1/report-batches/preflight` is a read-only, non-authoritative candidate check over
