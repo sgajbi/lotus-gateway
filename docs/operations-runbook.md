@@ -49,6 +49,7 @@ make pr-issue-lifecycle
 
 An intended automatic close must be a standalone body line such as `Closes #673`. For partial work,
 use `Keep #673 open`; never combine an issue reference with negated close, fix, or resolve wording.
+GitHub issue URLs are deliberately rejected as closing references; use the explicit `#` form only.
 The command reads text from environment variables, so CI does not interpolate untrusted PR text into
 a shell command. The Pull Request Merge Gate re-runs this evidence when a PR is opened,
 synchronized, reopened, or its title/body is edited; making an already-checked draft ready does not
