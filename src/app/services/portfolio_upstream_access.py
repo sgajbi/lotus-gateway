@@ -7,7 +7,7 @@ from app.services.portfolio_client_protocols import (
     PortfolioManageClient,
     PortfolioPerformanceClient,
 )
-from app.services.portfolio_transaction_ledger import (
+from app.services.portfolio_transaction_requests import (
     PortfolioTransactionsRequestContext,
     portfolio_transactions_cache_key,
     portfolio_transactions_client_kwargs,
