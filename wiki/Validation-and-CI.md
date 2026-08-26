@@ -47,6 +47,8 @@ its extraction branches. They are retained as engineering history; current route
   rejecting negated or malformed closing references before product validation begins and rerunning
   the evidence after a PR title/body edit without restarting the heavy lane for a draft-state-only
   change. GitHub issue URLs are rejected as closing references; use the explicit `#` form only.
+  Manual dispatches receive a distinct non-satisfying lifecycle-check name because they have no PR
+  metadata.
 - `make duplicate-code`
   pinned jscpd scan, stable-finding ratchet, and repeated-run candidate-set check using
   `quality/package-lock.json`; the protected baseline is generated/enforced on Ubuntu/Node 20 and

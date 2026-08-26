@@ -29,7 +29,7 @@ The current local and PR-grade blocking gates are:
    Gate rejects malformed or negated auto-close wording and accepts only a standalone intended
    closure such as `Closes #123`; keep-open work uses `Keep #123 open`; opening, synchronization,
    reopening, or a title/body edit starts fresh lifecycle evidence. GitHub issue URLs are not an
-   accepted closing-reference form,
+   accepted closing-reference form, and manual dispatches use a distinct non-satisfying check name,
 8. `mypy` over `src`,
 9. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,

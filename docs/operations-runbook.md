@@ -53,7 +53,8 @@ GitHub issue URLs are deliberately rejected as closing references; use the expli
 The command reads text from environment variables, so CI does not interpolate untrusted PR text into
 a shell command. The Pull Request Merge Gate re-runs this evidence when a PR is opened,
 synchronized, reopened, or its title/body is edited; making an already-checked draft ready does not
-restart the heavy merge lane.
+restart the heavy merge lane. A manual workflow dispatch has no PR metadata and therefore reports a
+distinct non-satisfying lifecycle check, never the protected PR lifecycle result.
 
 Use `make clean` to remove disposable local generated artifacts and caches. It deletes `output/`,
 `.codex-logs/`, coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`;
