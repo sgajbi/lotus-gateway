@@ -33,7 +33,9 @@ baseline updates. This repeated-run check detects same-environment nondeterminis
 claim unverified cross-operating-system equivalence. `make duplicate-code-protected` provides the
 repository-native fallback for hosts whose local runtime selects different candidates: it runs the
 same scan and ratchet in the pinned Linux/Node 20 image, uses a checkout-specific Compose project,
-and cleans up that project without touching the canonical Gateway runtime.
+and cleans up that project without touching the canonical Gateway runtime. It mounts the checkout
+read-only and places npm dependencies and scan output in project-scoped volumes removed by teardown,
+so native-Linux runs cannot leave root-owned ignored artifacts in the developer checkout.
 
 ## Purpose And Scope
 

@@ -49,7 +49,9 @@ its extraction branches. They are retained as engineering history; current route
 - `make duplicate-code-protected`
   supported local fallback when host selection differs: runs the same duplicate-code scans and
   ratchets in the pinned Linux/Node 20 image using a checkout-specific Compose project, then removes
-  only that project; it does not touch the canonical Gateway runtime
+  only that project; it does not touch the canonical Gateway runtime. It mounts the checkout
+  read-only and keeps npm dependencies and scan output in project-scoped volumes removed by
+  teardown, so a native Linux run cannot leave root-owned ignored checkout artifacts.
 - `make ci-local`
   local feature-lane validation
 - `make ci-local-docker`

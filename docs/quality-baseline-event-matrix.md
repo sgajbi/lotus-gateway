@@ -49,5 +49,7 @@ For local hosts that do not select the protected candidate set, `make duplicate-
 provisions the pinned Linux/Node 20 image
 `node:20-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5`, runs the
 same two scans and ratchets against the checkout, and removes its checkout-specific Compose
-project afterward. It is the supported local fallback; it does not assert equivalence for an
+project afterward. It mounts the checkout read-only and keeps npm dependencies and scan output in
+project-scoped volumes removed by teardown, preventing root-owned ignored artifacts on native
+Linux. It is the supported local fallback; it does not assert equivalence for an
 unpinned host runtime and does not use the shared canonical runtime.
