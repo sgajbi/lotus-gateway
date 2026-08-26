@@ -251,29 +251,84 @@ def _scope_context(tree: ast.Module, start: int, end: int) -> str:
 def _normalise_fragment(fragment: str) -> str:
     """Normalize Python layout while preserving actual string-token contents."""
     text = fragment.replace("\r\n", "\n").replace("\r", "\n")
-    try:
-        tokens = list(tokenize.generate_tokens(io.StringIO(text).readline))
-        if _token_stream_has_unclosed_delimiter(tokens):
-            return _normalise_fragment_lexically(text)
-        return _normalise_token_stream(text, tokens)
-    except (IndentationError, SyntaxError, tokenize.TokenError):
+    tokens, tokenize_error = _tokenize_fragment(text)
+    if any(token.type == tokenize.ERRORTOKEN for token in tokens) or (
+        tokenize_error is not None
+        and any(
+            marker in str(tokenize_error).lower()
+            for marker in ("unterminated string", "multi-line string")
+        )
+    ):
         return _normalise_fragment_lexically(text)
+    if not tokens:
+        return _normalise_fragment_lexically(text)
+    return _normalise_token_stream(text, tokens)
 
 
-def _token_stream_has_unclosed_delimiter(tokens: list[Any]) -> bool:
-    """Identify incomplete bracketed detector slices consistently across Python versions."""
-    opening = {"(": ")", "[": "]", "{": "}"}
-    closing = set(opening.values())
-    stack: list[str] = []
-    for token in tokens:
-        if token.type != tokenize.OP:
+def _tokenize_fragment(text: str) -> tuple[list[Any], Exception | None]:
+    """Retain partial tokens while making indentation-only slices interpreter-stable."""
+    tokens: list[Any] = []
+    tokenize_error: Exception | None = None
+    try:
+        tokens.extend(tokenize.generate_tokens(io.StringIO(text).readline))
+        return tokens, None
+    except (IndentationError, SyntaxError, tokenize.TokenError) as exc:
+        tokenize_error = exc
+
+    indentation_neutralized = _neutralize_fragment_indentation(text)
+    if indentation_neutralized == text:
+        return tokens, tokenize_error
+
+    retry_tokens: list[Any] = []
+    retry_error: Exception | None = None
+    try:
+        retry_tokens.extend(tokenize.generate_tokens(io.StringIO(indentation_neutralized).readline))
+    except (IndentationError, SyntaxError, tokenize.TokenError) as exc:
+        retry_error = exc
+    if retry_tokens:
+        return retry_tokens, retry_error
+    return tokens, tokenize_error
+
+
+def _neutralize_fragment_indentation(text: str) -> str:
+    """Strip code indentation for a tokenizer retry without changing literals/comments."""
+    pieces: list[str] = []
+    line_start = True
+    in_comment = False
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if line_start:
+            while index < len(text) and text[index] in " \t":
+                index += 1
+            line_start = False
+            if index == len(text):
+                break
+            character = text[index]
+        if in_comment:
+            pieces.append(character)
+            index += 1
+            if character == "\n":
+                in_comment = False
+                line_start = True
             continue
-        if token.string in opening:
-            stack.append(opening[token.string])
-        elif token.string in closing:
-            if not stack or stack.pop() != token.string:
-                return True
-    return bool(stack)
+        if character == "#":
+            pieces.append(character)
+            in_comment = True
+            index += 1
+            continue
+        literal_end = _string_literal_end(text, index)
+        if literal_end is not None:
+            literal = text[index:literal_end]
+            pieces.append(literal)
+            index = literal_end
+            line_start = literal.endswith("\n")
+            continue
+        pieces.append(character)
+        index += 1
+        if character == "\n":
+            line_start = True
+    return "".join(pieces)
 
 
 def _normalise_token_stream(text: str, tokens: Any) -> str:
