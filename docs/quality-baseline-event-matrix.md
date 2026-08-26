@@ -23,7 +23,9 @@ The protected Quality Baseline also runs the pinned duplicate-code detector from
 count, duplicated lines, duplicated percentage, and stable source-pair/normalised-fragment
 occurrence fingerprints, with Python-version-independent AST scope evidence, canonical source-side
 selection with reported column boundaries, line-shift-safe occurrence ordering, and
-tokenizer-shape-independent f-string spans.
+tokenizer-shape-independent f-string spans. Incomplete token streams and unmatched delimiters are
+sent through a comment-safe lexical fallback that normalizes operator/layout spacing without
+including interpreter exception-message text in identity decisions.
 The scope digest identifies enclosing
 class/function names without hashing mutable scope bodies or adjacent source lines, so blank,
 comment, and unrelated statements beside an unchanged clone do not invalidate it. Same-scope

@@ -128,6 +128,9 @@ same actual revision may supersede one another.
   so repeated protected runs do not inherit checkout-root traversal order
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
+- incomplete duplicate detector slices are never fingerprinted from partial token streams; the
+  structural delimiter check and comment-safe lexical fallback normalize formatting while
+  preserving literals, comments, and interpreter-independent identity
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
   release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
   provenance attestation

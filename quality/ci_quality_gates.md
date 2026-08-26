@@ -102,7 +102,10 @@ a documented identity trade-off because position-sensitive anchors would make or
 fragile. Fragment normalization uses Python tokenization to preserve actual string-token contents.
 Complete f-string spans are reconstructed so Python 3.11's single `STRING` token and Python
 3.12+'s `FSTRING_*` tokens produce the same identity, with an explicit comment-safe lexical
-fallback for incomplete detector fragments. Occurrence
+fallback for incomplete detector fragments. Incomplete token streams and unmatched delimiters are
+never fingerprinted directly; the fallback performs token-like operator/layout normalization while
+preserving literal and comment contents, so path selection does not depend on interpreter error
+message text. Occurrence
 ordinals are assigned by measured location order but are not themselves part of the absolute source
 coordinates, so unrelated line shifts or non-local body edits do not invalidate every fingerprint.
 A removed clone also creates a

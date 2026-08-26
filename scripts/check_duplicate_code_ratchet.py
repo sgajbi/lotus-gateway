@@ -252,83 +252,40 @@ def _normalise_fragment(fragment: str) -> str:
     """Normalize Python layout while preserving actual string-token contents."""
     text = fragment.replace("\r\n", "\n").replace("\r", "\n")
     tokens, tokenize_error = _tokenize_fragment(text)
-    if any(token.type == tokenize.ERRORTOKEN for token in tokens) or (
+    if (
         tokenize_error is not None
-        and any(
-            marker in str(tokenize_error).lower()
-            for marker in ("unterminated string", "multi-line string")
-        )
+        or not tokens
+        or any(token.type == tokenize.ERRORTOKEN for token in tokens)
+        or _token_stream_has_unclosed_delimiter(tokens)
     ):
-        return _normalise_fragment_lexically(text)
-    if not tokens:
         return _normalise_fragment_lexically(text)
     return _normalise_token_stream(text, tokens)
 
 
 def _tokenize_fragment(text: str) -> tuple[list[Any], Exception | None]:
-    """Retain partial tokens while making indentation-only slices interpreter-stable."""
+    """Return a complete token stream or the structural tokenizer failure."""
     tokens: list[Any] = []
-    tokenize_error: Exception | None = None
     try:
         tokens.extend(tokenize.generate_tokens(io.StringIO(text).readline))
         return tokens, None
     except (IndentationError, SyntaxError, tokenize.TokenError) as exc:
-        tokenize_error = exc
-
-    indentation_neutralized = _neutralize_fragment_indentation(text)
-    if indentation_neutralized == text:
-        return tokens, tokenize_error
-
-    retry_tokens: list[Any] = []
-    retry_error: Exception | None = None
-    try:
-        retry_tokens.extend(tokenize.generate_tokens(io.StringIO(indentation_neutralized).readline))
-    except (IndentationError, SyntaxError, tokenize.TokenError) as exc:
-        retry_error = exc
-    if retry_tokens:
-        return retry_tokens, retry_error
-    return tokens, tokenize_error
+        return tokens, exc
 
 
-def _neutralize_fragment_indentation(text: str) -> str:
-    """Strip code indentation for a tokenizer retry without changing literals/comments."""
-    pieces: list[str] = []
-    line_start = True
-    in_comment = False
-    index = 0
-    while index < len(text):
-        character = text[index]
-        if line_start:
-            while index < len(text) and text[index] in " \t":
-                index += 1
-            line_start = False
-            if index == len(text):
-                break
-            character = text[index]
-        if in_comment:
-            pieces.append(character)
-            index += 1
-            if character == "\n":
-                in_comment = False
-                line_start = True
+def _token_stream_has_unclosed_delimiter(tokens: list[Any]) -> bool:
+    """Identify incomplete bracketed detector slices without using exception text."""
+    opening = {"(": ")", "[": "]", "{": "}"}
+    closing = set(opening.values())
+    stack: list[str] = []
+    for token in tokens:
+        if token.type != tokenize.OP:
             continue
-        if character == "#":
-            pieces.append(character)
-            in_comment = True
-            index += 1
-            continue
-        literal_end = _string_literal_end(text, index)
-        if literal_end is not None:
-            literal = text[index:literal_end]
-            pieces.append(literal)
-            index = literal_end
-            line_start = literal.endswith("\n")
-            continue
-        pieces.append(character)
-        index += 1
-        if character == "\n":
-            line_start = True
-    return "".join(pieces)
+        if token.string in opening:
+            stack.append(opening[token.string])
+        elif token.string in closing:
+            if not stack or stack.pop() != token.string:
+                return True
+    return bool(stack)
 
 
 def _normalise_token_stream(text: str, tokens: Any) -> str:
@@ -393,46 +350,74 @@ def _source_span(
 
 def _normalise_fragment_lexically(text: str) -> str:
     """Normalize an incomplete fragment without treating comment quotes as strings."""
+    multi_character_operators = (
+        "**=",
+        "//=",
+        ">>=",
+        "<<=",
+        "...",
+        "**",
+        "//",
+        ">>",
+        "<<",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "&=",
+        "|=",
+        "^=",
+        "@=",
+        ":=",
+        "->",
+        "==",
+        "!=",
+        "<=",
+        ">=",
+    )
     pieces: list[str] = []
-    pending_space = False
-    in_comment = False
     index = 0
     while index < len(text):
         character = text[index]
-        if in_comment:
-            if character == "\n":
-                in_comment = False
-            else:
-                if character.isspace():
-                    pending_space = True
-                    index += 1
-                    continue
-                if pending_space and pieces:
-                    pieces.append(" ")
-                pieces.append(character)
-                pending_space = False
-                index += 1
-                continue
         if character.isspace():
-            pending_space = True
+            index += 1
+            continue
+        if character == "#":
+            comment_end = text.find("\n", index)
+            if comment_end == -1:
+                comment_end = len(text)
+            pieces.append(FRAGMENT_WHITESPACE.sub(" ", text[index:comment_end]).strip())
+            index = comment_end
             index += 1
             continue
         literal_end = _string_literal_end(text, index)
-        if character == "#" and literal_end is None:
-            if pending_space and pieces:
-                pieces.append(" ")
-            pieces.append(character)
-            pending_space = False
-            in_comment = True
-            index += 1
+        if literal_end is not None:
+            pieces.append(text[index:literal_end])
+            index = literal_end
             continue
-        piece = text[index:literal_end] if literal_end is not None else character
-        if pending_space and pieces:
-            pieces.append(" ")
-        pieces.append(piece)
-        pending_space = False
-        index = literal_end if literal_end is not None else index + 1
-    return "".join(pieces).strip()
+        operator = next(
+            (
+                candidate
+                for candidate in multi_character_operators
+                if text.startswith(candidate, index)
+            ),
+            None,
+        )
+        if operator is not None:
+            pieces.append(operator)
+            index += len(operator)
+            continue
+        if character.isalnum() or character == "_":
+            end = index + 1
+            while end < len(text) and (text[end].isalnum() or text[end] in "_."):
+                end += 1
+            pieces.append(text[index:end])
+            index = end
+            continue
+        pieces.append(character)
+        index += 1
+    return " ".join(piece for piece in pieces if piece).strip()
 
 
 def _string_literal_end(text: str, start: int) -> int | None:
