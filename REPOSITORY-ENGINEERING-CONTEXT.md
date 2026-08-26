@@ -428,8 +428,8 @@ Important validation expectations:
    The pinned `quality/package-lock.json` jscpd scan also ratchets production duplicate-code
    clone count, duplicated lines, duplicated percentage, and stable source-pair/normalised-
    fragment occurrence fingerprints with Python-version-independent AST scope context,
-   canonical-source-side selection, literal-preserving normalization, stable f-string token-span
-   normalization, and stable occurrence
+   canonical-source-side selection with reported column boundaries, literal-preserving
+   normalization, stable f-string token-span normalization, and stable occurrence
    ordering; adjacent source edits and non-local scope-body edits must not invalidate unrelated
    clones, while same-scope relocation is an explicit identity trade-off. The checked-in baseline
    is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane; cross-platform jscpd

@@ -22,12 +22,14 @@ The protected Quality Baseline also runs the pinned duplicate-code detector over
 `src/app/**/*.py`. Its report is checked against `quality/duplicate_code_baseline.json` for clone
 count, duplicated lines, duplicated percentage, and stable source-pair/normalised-fragment
 occurrence fingerprints, with Python-version-independent AST scope evidence, canonical source-side
-selection, line-shift-safe occurrence ordering, and tokenizer-shape-independent f-string spans.
+selection with reported column boundaries, line-shift-safe occurrence ordering, and
+tokenizer-shape-independent f-string spans.
 The scope digest identifies enclosing
 class/function names without hashing mutable scope bodies or adjacent source lines, so blank,
 comment, and unrelated statements beside an unchanged clone do not invalidate it. Same-scope
 relocation is an explicit identity trade-off; fragment normalization preserves quoted literal
-contents and reconstructs f-string spans while collapsing layout whitespace. The protected baseline is generated and enforced on
+contents and reconstructs f-string spans while collapsing layout whitespace. The protected baseline
+is generated and enforced on
 Ubuntu/Node 20; cross-platform detector candidate-selection drift is tracked separately and must
 not be hidden by a union baseline.
 Detector

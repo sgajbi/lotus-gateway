@@ -43,6 +43,15 @@ class DuplicateFinding:
 
 
 @dataclass(frozen=True)
+class SourceLocation:
+    source: str
+    start: int
+    start_column: int | None = None
+    end: int | None = None
+    end_column: int | None = None
+
+
+@dataclass(frozen=True)
 class DuplicateIdentity:
     format: str
     fragment_digest: str
@@ -122,24 +131,72 @@ def _normalise_source(value: Any) -> str:
     return path.as_posix()
 
 
-def _normalise_location(value: dict[str, Any]) -> tuple[str, int]:
+def _normalise_location(value: dict[str, Any]) -> SourceLocation:
     source = _normalise_source(value.get("name"))
     start = value.get("start")
     if isinstance(start, bool) or not isinstance(start, int) or start <= 0:
         raise ValueError("duplicate report source has an invalid start line")
-    return source, start
+    start_loc = value.get("startLoc")
+    end_loc = value.get("endLoc")
+    if start_loc is None and end_loc is None:
+        return SourceLocation(source, start)
+    if not isinstance(start_loc, dict) or not isinstance(end_loc, dict):
+        raise ValueError("duplicate report source has incomplete location columns")
+    start_line = start_loc.get("line")
+    start_column = start_loc.get("column")
+    end_line = end_loc.get("line")
+    end_column = end_loc.get("column")
+    if (
+        isinstance(start_line, bool)
+        or not isinstance(start_line, int)
+        or start_line != start
+        or isinstance(start_column, bool)
+        or not isinstance(start_column, int)
+        or start_column < 0
+        or isinstance(end_line, bool)
+        or not isinstance(end_line, int)
+        or isinstance(end_column, bool)
+        or not isinstance(end_column, int)
+        or end_column < 0
+    ):
+        raise ValueError("duplicate report source has invalid location columns")
+    # jscpd 4.2.2 can emit a non-monotonic endLoc for an overlapping clone on
+    # a non-canonical report side. Keep the trusted line range for that side;
+    # canonical source extraction still uses columns whenever the range is
+    # coherent, and malformed scalar fields remain hard input errors above.
+    if end_line < start_line or (end_line == start_line and end_column < start_column):
+        return SourceLocation(source, start)
+    return SourceLocation(source, start, start_column, end_line, end_column)
 
 
-def _source_fragment(source_root: Path, source: str, start: int, lines: int) -> str:
-    source_path = source_root.joinpath(*PurePosixPath(source).parts)
+def _source_fragment(source_root: Path, location: SourceLocation, lines: int) -> str:
+    source_path = source_root.joinpath(*PurePosixPath(location.source).parts)
     try:
-        source_lines = source_path.read_text(encoding="utf-8").splitlines(keepends=True)
+        source_text = source_path.read_text(encoding="utf-8")
     except OSError as exc:
         raise ValueError(f"duplicate report source cannot be read: {source_path}") from exc
-    end = start - 1 + lines
-    if end > len(source_lines):
+    source_lines = source_text.splitlines(keepends=True)
+    end_line = location.end or location.start + lines - 1
+    if end_line > len(source_lines):
         raise ValueError(f"duplicate report source range exceeds file: {source_path}")
-    return "".join(source_lines[start - 1 : end])
+    if location.start_column is None or location.end_column is None:
+        end = location.start - 1 + lines
+        if end > len(source_lines):
+            raise ValueError(f"duplicate report source range exceeds file: {source_path}")
+        return "".join(source_lines[location.start - 1 : end])
+
+    line_offsets = [0]
+    for source_line in source_lines:
+        line_offsets.append(line_offsets[-1] + len(source_line))
+
+    def absolute(line: int, column: int) -> int:
+        return line_offsets[line - 1] + column
+
+    start_offset = absolute(location.start, location.start_column)
+    end_offset = absolute(end_line, location.end_column)
+    if end_offset < start_offset or end_offset > len(source_text):
+        raise ValueError(f"duplicate report source range exceeds file: {source_path}")
+    return source_text[start_offset:end_offset]
 
 
 def _context_digest(source_root: Path, source: str, start: int, lines: int) -> str:
@@ -334,20 +391,32 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
     fragment = entry.get("fragment")
     if not isinstance(first, dict) or not isinstance(second, dict) or not isinstance(fragment, str):
         raise ValueError("duplicate report entry is missing source or fragment data")
-    first_file, first_start = _normalise_location(first)
-    second_file, second_start = _normalise_location(second)
+    first_location = _normalise_location(first)
+    second_location = _normalise_location(second)
+    first_file = first_location.source
+    second_file = second_location.source
     lines = entry.get("lines")
     if isinstance(lines, bool) or not isinstance(lines, int) or lines <= 0:
         raise ValueError("duplicate report entry has an invalid line count")
     format_name = entry.get("format")
     if not isinstance(format_name, str) or not format_name:
         raise ValueError("duplicate report entry has an invalid format")
-    sorted_locations = sorted(((first_file, first_start), (second_file, second_start)))
-    locations = (sorted_locations[0], sorted_locations[1])
+    sorted_locations = sorted(
+        (first_location, second_location),
+        key=lambda location: (
+            location.source,
+            location.start,
+            location.start_column if location.start_column is not None else -1,
+        ),
+    )
+    locations = (
+        (sorted_locations[0].source, sorted_locations[0].start),
+        (sorted_locations[1].source, sorted_locations[1].start),
+    )
     sorted_sources = sorted((first_file, second_file))
     sources = (sorted_sources[0], sorted_sources[1])
     canonical_fragment = (
-        _source_fragment(source_root, locations[0][0], locations[0][1], lines)
+        _source_fragment(source_root, sorted_locations[0], lines)
         if source_root is not None
         else fragment
     )
@@ -355,28 +424,12 @@ def _identity(entry: dict[str, Any], source_root: Path | None) -> DuplicateIdent
     if not normalised_fragment:
         raise ValueError("duplicate report entry has an empty fragment")
     fragment_digest = hashlib.sha256(normalised_fragment.encode("utf-8")).hexdigest()
-    location_contexts = [
-        (
-            first_file,
-            first_start,
-            _context_digest(source_root, first_file, first_start, lines)
-            if source_root is not None
-            else None,
-        ),
-        (
-            second_file,
-            second_start,
-            _context_digest(source_root, second_file, second_start, lines)
-            if source_root is not None
-            else None,
-        ),
-    ]
-    location_contexts.sort(key=lambda item: (item[0], item[1]))
-    locations = (
-        (location_contexts[0][0], location_contexts[0][1]),
-        (location_contexts[1][0], location_contexts[1][1]),
+    context_digests = tuple(
+        _context_digest(source_root, location.source, location.start, lines)
+        if source_root is not None
+        else None
+        for location in sorted_locations
     )
-    context_digests = (location_contexts[0][2], location_contexts[1][2])
     return DuplicateIdentity(
         format_name,
         fragment_digest,

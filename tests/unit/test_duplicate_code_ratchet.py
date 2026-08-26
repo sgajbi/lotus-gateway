@@ -8,8 +8,10 @@ import pytest
 from scripts.check_duplicate_code_ratchet import (
     FSTRING_END_TOKEN,
     FSTRING_START_TOKEN,
+    SourceLocation,
     _normalise_fragment,
     _normalise_token_stream,
+    _source_fragment,
     build_baseline,
     evaluate,
     load_report,
@@ -709,6 +711,28 @@ def test_duplicate_fingerprint_normalizes_fstrings_across_tokenizer_shapes() -> 
         text, modern_tokens
     )
     assert _normalise_fragment(text) == _normalise_token_stream(text, legacy_tokens)
+
+
+def test_duplicate_source_fragment_honours_reported_columns(tmp_path: Path) -> None:
+    source_root = tmp_path / "source"
+    source_path = source_root / "src" / "app" / "a.py"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("prefix = 1; shared()\ntrailer()\n", encoding="utf-8")
+    before_edit = _source_fragment(
+        source_root,
+        SourceLocation("src/app/a.py", 1, start_column=12, end=1, end_column=20),
+        lines=1,
+    )
+
+    source_path.write_text("prefix = 999999; shared()\ntrailer()\n", encoding="utf-8")
+    after_edit = _source_fragment(
+        source_root,
+        SourceLocation("src/app/a.py", 1, start_column=17, end=1, end_column=25),
+        lines=1,
+    )
+
+    assert before_edit == "shared()"
+    assert after_edit == before_edit
 
 
 def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
