@@ -69,9 +69,22 @@ duplicate-code:
 	python -m scripts.check_duplicate_code_reproducibility --first-report output/duplicate-code/jscpd-report.json --second-report output/duplicate-code/reproducibility/jscpd-report.json --first-artifact-log output/duplicate-code/detector.txt --second-artifact-log output/duplicate-code/reproducibility-detector.txt --source-root .
 
 DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT ?= $(CI_LOCAL_COMPOSE_PROJECT)-duplicate-code-protected
+DUPLICATE_CODE_PROTECTED_ARTIFACT_ROOT ?= output/duplicate-code-protected
 
 duplicate-code-protected:
-	set +e; docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml run --rm --no-deps duplicate-code-protected; status=$$?; docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml down -v --remove-orphans; exit "$$status"
+	set +e; \
+	artifacts_dir="$(DUPLICATE_CODE_PROTECTED_ARTIFACT_ROOT)/$$(date +%Y%m%dT%H%M%S)-$$$$"; \
+	mkdir -p "$$artifacts_dir"; \
+	container="duplicate-code-protected-$$(date +%s)-$$$$"; \
+	docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml run --no-deps --name "$$container" duplicate-code-protected; \
+	status=$$?; \
+	docker cp "$$container:/app/output/duplicate-code/." "$$artifacts_dir"; \
+	copy_status=$$?; \
+	docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)" -f docker-compose.duplicate-code.yml down -v --remove-orphans; \
+	cleanup_status=$$?; \
+	if [ "$$status" -ne 0 ]; then exit "$$status"; fi; \
+	if [ "$$copy_status" -ne 0 ]; then exit "$$copy_status"; fi; \
+	exit "$$cleanup_status"
 
 test:
 	$(MAKE) test-unit

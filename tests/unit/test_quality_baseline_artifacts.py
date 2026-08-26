@@ -243,7 +243,19 @@ def test_protected_duplicate_code_fallback_isolates_checkout_writes() -> None:
     assert 'docker compose --project-name "$(DUPLICATE_CODE_PROTECTED_COMPOSE_PROJECT)"' in (
         protected_recipe
     )
+    assert "DUPLICATE_CODE_PROTECTED_ARTIFACT_ROOT ?= output/duplicate-code-protected" in makefile
     assert "down -v --remove-orphans" in protected_recipe
+    artifact_directory_command = (
+        'artifacts_dir="$(DUPLICATE_CODE_PROTECTED_ARTIFACT_ROOT)/$$(date +%Y%m%dT%H%M%S)-$$$$"'
+    )
+    assert artifact_directory_command in protected_recipe
+    assert 'run --no-deps --name "$$container" duplicate-code-protected' in protected_recipe
+    assert "run --rm" not in protected_recipe
+    assert 'docker cp "$$container:/app/output/duplicate-code/." "$$artifacts_dir"' in (
+        protected_recipe
+    )
+    assert 'if [ "$$copy_status" -ne 0 ]; then exit "$$copy_status"; fi' in protected_recipe
+    assert 'exit "$$cleanup_status"' in protected_recipe
     assert "- ./:/app:ro" in compose
     assert "- duplicate-code-protected-node-modules:/app/quality/node_modules" in compose
     assert "- duplicate-code-protected-output:/app/output" in compose
