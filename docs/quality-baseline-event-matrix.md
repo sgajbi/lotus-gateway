@@ -26,7 +26,8 @@ selection with reported column boundaries, line-shift-safe occurrence ordering, 
 tokenizer-shape-independent f-string spans. Incomplete token streams and unmatched delimiters are
 sent through a comment-safe lexical fallback that normalizes operator/layout spacing without
 including interpreter exception-message text in identity decisions; complete f-string expressions
-receive the same layout normalization on the token path.
+receive the same layout normalization on the token path while conversion, debug-expression, and
+format-specification text remains preserved.
 The scope digest identifies enclosing
 class/function names without hashing mutable scope bodies or adjacent source lines, so blank,
 comment, and unrelated statements beside an unchanged clone do not invalidate it. Same-scope

@@ -463,28 +463,62 @@ def _normalise_f_string_body(body: str) -> str:
             pieces.append(body[index:])
             break
         expression = body[index + 1 : expression_end]
-        pieces.append("{" + _normalise_fragment(expression) + "}")
+        pieces.append("{" + _normalise_f_string_expression(expression) + "}")
         index = expression_end + 1
     return "".join(pieces)
 
 
+def _normalise_f_string_expression(expression: str) -> str:
+    """Normalize only an f-string expression, preserving output-affecting suffix text."""
+    boundaries = _f_string_field_boundaries(expression)
+    if not boundaries:
+        return _normalise_fragment(expression)
+    boundary = min(boundaries)
+    return _normalise_fragment(expression[:boundary]) + expression[boundary:]
+
+
+def _f_string_field_boundaries(expression: str) -> list[int]:
+    boundaries: list[int] = []
+    depth = 0
+    index = 0
+    while index < len(expression):
+        literal_end = _string_literal_end(expression, index)
+        if literal_end is not None:
+            index = literal_end
+            continue
+        character = expression[index]
+        if character in "([{":
+            depth += 1
+        elif character in ")]}":
+            depth = max(0, depth - 1)
+        elif depth == 0 and character in "!:":
+            if index + 1 >= len(expression) or expression[index + 1] != "=":
+                boundaries.append(index)
+                break
+        elif depth == 0 and character == "=":
+            previous = expression[index - 1] if index else ""
+            following = expression[index + 1] if index + 1 < len(expression) else ""
+            if previous not in "=<>!:" and following != "=":
+                boundaries.append(index)
+                break
+        index += 1
+    return boundaries
+
+
 def _f_string_expression_end(body: str, start: int) -> int | None:
-    depth = 1
+    depth = 0
     index = start
     while index < len(body):
         literal_end = _string_literal_end(body, index)
         if literal_end is not None:
             index = literal_end
             continue
-        if body.startswith(("{{", "}}"), index):
-            index += 2
-            continue
         if body[index] == "{":
             depth += 1
         elif body[index] == "}":
-            depth -= 1
             if depth == 0:
                 return index
+            depth -= 1
         index += 1
     return None
 
