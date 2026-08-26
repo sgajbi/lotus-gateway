@@ -827,10 +827,17 @@ def _print_result(result: RatchetResult) -> None:
             f"{finding.first_file} <-> {finding.second_file} ({finding.lines} lines)"
         )
     if result.stale_fingerprints:
-        print(
-            "  stale baseline fingerprints require a reviewed --update-baseline to bank "
-            "the improvement"
-        )
+        if result.can_update_baseline:
+            print(
+                "  stale baseline fingerprints require a reviewed --update-baseline to bank "
+                "the improvement"
+            )
+        else:
+            print(
+                "  stale baseline fingerprints are present, but --update-baseline is blocked "
+                "until unexpected findings, metric regressions, and detector failures are "
+                "resolved"
+            )
     if not result.passed:
         print(
             "Duplicate-code ratchet failed: remove the new clone, correct the detector input, "

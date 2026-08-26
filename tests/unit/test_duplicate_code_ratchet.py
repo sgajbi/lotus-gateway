@@ -183,6 +183,41 @@ def test_duplicate_baseline_update_banks_removed_fingerprint(
     assert len(updated["allowed_fingerprints"]) == 1
 
 
+def test_duplicate_baseline_update_refusal_is_truthful_for_unexpected_findings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    baseline, _ = _baseline_and_report(
+        tmp_path / "baseline-report", [_entry("src/app/a.py", "src/app/b.py")]
+    )
+    current_report = _write_report(
+        tmp_path / "current-report", [_entry("src/app/c.py", "src/app/d.py")]
+    )
+    status_path = tmp_path / "detector.txt"
+    status_path.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(json.dumps(baseline, default=float), encoding="utf-8")
+    before = baseline_path.read_text(encoding="utf-8")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "check_duplicate_code_ratchet.py",
+            "--report",
+            str(current_report),
+            "--artifact-log",
+            str(status_path),
+            "--baseline",
+            str(baseline_path),
+            "--update-baseline",
+        ],
+    )
+
+    assert main() == 2
+    assert baseline_path.read_text(encoding="utf-8") == before
+    assert "--update-baseline is blocked" in capsys.readouterr().out
+
+
 def test_duplicate_ratchet_rejects_count_and_line_regression(tmp_path: Path) -> None:
     baseline, _ = _baseline_and_report(
         tmp_path / "baseline", [_entry("src/app/a.py", "src/app/b.py", lines=15)]
