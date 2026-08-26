@@ -45,7 +45,8 @@ its extraction branches. They are retained as engineering history; current route
   intended auto-close work uses a standalone `Closes #123` body line, while partial work uses
   `Keep #123 open`. The Pull Request Merge Gate runs the same command from environment variables,
   rejecting negated or malformed closing references before product validation begins and rerunning
-  the evidence after a PR title/body edit.
+  the evidence after a PR title/body edit without restarting the heavy lane for a draft-state-only
+  change.
 - `make duplicate-code`
   pinned jscpd scan, stable-finding ratchet, and repeated-run candidate-set check using
   `quality/package-lock.json`; the protected baseline is generated/enforced on Ubuntu/Node 20 and

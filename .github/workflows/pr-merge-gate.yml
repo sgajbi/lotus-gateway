@@ -3,7 +3,7 @@ name: Pull Request Merge Gate
 on:
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
 concurrency:
