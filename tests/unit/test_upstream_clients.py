@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -4515,6 +4516,55 @@ async def test_archive_client_preflight_timeout_uses_one_attempt_and_safe_fanout
     assert len(_FakeAsyncClient.calls) == 1
     assert _FakeAsyncClient.timeouts == [3.0]
     assert payload == {"detail": "upstream communication failure: ReadTimeout"}
+    [record] = _fanout_records(caplog.records, service="lotus-archive")
+    fields = record.extra_fields
+    assert fields["operation"] == "archive.documents.access-preflight"
+    assert fields["status_class"] == "5xx"
+    assert fields["state"] == "degraded"
+    assert "doc_sensitive_1" not in fields.values()
+    assert "document_id" not in fields
+
+
+@pytest.mark.asyncio
+async def test_archive_client_preflight_enforces_elapsed_deadline_and_safe_fanout_evidence(
+    caplog, monkeypatch
+):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    request_kwargs: dict[str, object] = {}
+    request_cancelled = False
+
+    async def _slow_request(**kwargs):
+        nonlocal request_cancelled
+        request_kwargs.update(kwargs)
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            request_cancelled = True
+            raise
+
+    monkeypatch.setattr("app.clients.observed_fanout.request_with_retry", _slow_request)
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=8.0,
+        max_retries=2,
+        access_preflight_timeout_seconds=0.01,
+    )
+
+    status_code, payload = await client.preflight_document_access(
+        document_ids=["doc_sensitive_1"],
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-archive-preflight-deadline",
+    )
+
+    assert status_code == 503
+    assert payload == {"detail": "upstream communication failure: elapsed deadline exceeded"}
+    assert request_cancelled is True
+    assert request_kwargs["timeout_seconds"] == 0.01
+    assert request_kwargs["max_retries"] == 0
     [record] = _fanout_records(caplog.records, service="lotus-archive")
     fields = record.extra_fields
     assert fields["operation"] == "archive.documents.access-preflight"
