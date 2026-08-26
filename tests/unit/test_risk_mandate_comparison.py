@@ -219,6 +219,18 @@ def test_summary_never_classifies_a_risk_measure_without_a_source_limit() -> Non
     assert tracking_error.headroom is None
 
 
+def test_summary_treats_binary_float_noise_at_a_ratio_limit_as_within() -> None:
+    response = compose_summary_mandate_comparison(
+        response=_summary(tracking_error=0.1 + 0.2),
+        sources=_sources(mandate=_mandate(max_tracking_error=0.3)),
+    )
+
+    assert response.mandate_comparison is not None
+    tracking_error = response.mandate_comparison.constraints[1]
+    assert tracking_error.state == "within"
+    assert tracking_error.headroom == 0
+
+
 def test_summary_never_infers_a_cash_band_from_missing_source_limits() -> None:
     response = compose_summary_mandate_comparison(
         response=_summary(),

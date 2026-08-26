@@ -14,6 +14,8 @@ from app.services.risk_mandate_sources import (
     WorkbenchCashMeasureSource,
 )
 
+RATIO_HEADROOM_DECISION_DECIMAL_PLACES = 10
+
 
 def build_cash_constraint(
     *,
@@ -132,7 +134,7 @@ def _build_aligned_cash_constraint(
         label="Cash allocation",
         limit=limit,
         measure=measure,
-        headroom=_rounded(headroom),
+        headroom=_stabilize_ratio_headroom(headroom),
         state="breach",
         reason="Cash allocation is outside the approved mandate band.",
         source_state=health_dimension.state,
@@ -160,7 +162,7 @@ def _ready_cash_constraint(
         label="Cash allocation",
         limit=limit,
         measure=measure,
-        headroom=_rounded(maximum - cash.value),
+        headroom=_stabilize_ratio_headroom(maximum - cash.value),
         state="within",
         reason="Cash allocation is within the approved mandate band.",
         source_state=dimension.state,
@@ -224,7 +226,7 @@ def build_maximum_constraint(
             measure=measure,
             reason=unavailable_reason,
         )
-    headroom = _rounded(limit_value - measure.value)
+    headroom = _stabilize_ratio_headroom(limit_value - measure.value)
     state: MandateComparisonConstraintState = "within" if headroom >= 0 else "breach"
     return WorkbenchMandateConstraintComparison(
         key=key,
@@ -301,5 +303,6 @@ def _cash_source_conflict(
     )
 
 
-def _rounded(value: float) -> float:  # monetary-float-allow
-    return round(value, 10)
+def _stabilize_ratio_headroom(value: float) -> float:  # monetary-float-allow
+    """Remove binary float noise before a bounded-ratio breach decision."""
+    return round(value, RATIO_HEADROOM_DECISION_DECIMAL_PLACES)
