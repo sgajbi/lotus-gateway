@@ -91,7 +91,8 @@ campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd r
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
 different new clone between the same files. When source-root mode is enabled, the fragment is
-selected from the canonical source side so reverse report orientation cannot change its identity.
+selected from the canonical source side and the detector's reported start/end columns are honored
+so reverse report orientation or an unrelated same-line prefix cannot change its identity.
 A stable, Python-version-independent AST scope digest
 distinguishes replacements in different class/function scopes without hashing mutable scope bodies.
 The identity deliberately does not hash adjacent source lines: blank, comment, or unrelated
