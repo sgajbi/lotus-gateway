@@ -87,7 +87,8 @@ until individual findings are remediated and promoted to clean thresholds:
    behavior and a remediation/exception policy is approved.
 
 Duplicate-code enforcement is intentionally no-new-regression rather than an immediate cleanup
-campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, rejects
+campaign. `scripts/check_duplicate_code_ratchet.py` validates the pinned jscpd report, whose input
+root is explicitly `src/app` with a `**/*.py` pattern to avoid checkout-root traversal drift, and rejects
 out-of-scope paths and detector failures, reports both source locations, and compares stable
 source-pair/normalised-fragment occurrence fingerprints so removing one known clone cannot mask a
 different new clone between the same files. When source-root mode is enabled, the fragment is

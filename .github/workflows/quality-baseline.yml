@@ -142,8 +142,8 @@ jobs:
             --format python \
             --reporters json \
             --output output/quality-baseline/duplicate-code \
-            --pattern 'src/app/**/*.py' \
-            . \
+            --pattern '**/*.py' \
+            src/app \
             --noTips 2>&1 | tee output/quality-baseline/duplicate-code.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code.txt
