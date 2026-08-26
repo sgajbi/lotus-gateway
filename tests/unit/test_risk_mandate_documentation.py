@@ -14,6 +14,7 @@ def test_risk_mandate_docs_preserve_source_authority_and_fail_closed_behavior() 
         _read("wiki/Integrations.md"),
         _read("wiki/Supported-Features.md"),
         _read("REPOSITORY-ENGINEERING-CONTEXT.md"),
+        _read("CODEBASE-REVIEW-LEDGER.md"),
     ]
 
     for content in documents:
@@ -24,9 +25,11 @@ def test_risk_mandate_docs_preserve_source_authority_and_fail_closed_behavior() 
     supported = " ".join(documents[0].lower().split())
     wiki = " ".join(documents[3].lower().split())
     context = " ".join(documents[4].lower().split())
+    ledger = " ".join(documents[5].lower().split())
     assert "never an inferred all-clear" in supported
     assert "does not calculate mandate health or invent limits" in wiki
     assert "must not calculate mandate health" in context
+    assert "gateway maps and fails closed" in ledger
 
 
 def test_risk_mandate_docs_name_current_historical_limit_without_claiming_completion() -> None:
