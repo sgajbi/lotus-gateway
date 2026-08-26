@@ -1133,6 +1133,16 @@ class _FakeAdviseInvalidMemoContractClient(_FakeAdviseClient):
         return 200, payload
 
 
+class _FakeAdviseAdditiveMemoContractClient(_FakeAdviseClient):
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        payload = _memo_response_payload(proposal_id, version_no)
+        payload["source_release_marker"] = "advise-additive-v2"
+        payload["proposal"]["source_advisor_segment"] = "PRIVATE_BANKING"
+        payload["memo"]["source_rendering_hints"] = {"layout": "advisor"}
+        payload["audit_events"][0]["reason"]["source_event_note"] = "additive evidence"
+        return 200, payload
+
+
 @pytest.mark.asyncio
 async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
     client = _FakeAdviseClient()
@@ -1522,6 +1532,24 @@ async def test_malformed_proposal_memo_success_maps_to_product_safe_502() -> Non
         "error_code": "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID",
         "detail": "lotus-advise proposal memo evidence did not match the governed contract.",
     }
+
+
+@pytest.mark.asyncio
+async def test_additive_proposal_memo_source_fields_are_not_published() -> None:
+    service = ProposalService(advise_client=_FakeAdviseAdditiveMemoContractClient())
+
+    result = await service.get_proposal_memo(
+        proposal_id="pp_1",
+        version_no=2,
+        correlation_id="corr_memo_additive",
+    )
+
+    published = result.data.model_dump(mode="python")
+    assert result.data.memo_hash == "sha256:memo-1"
+    assert "source_release_marker" not in published
+    assert "source_advisor_segment" not in published["proposal"]
+    assert "source_rendering_hints" not in published["memo"]
+    assert "source_event_note" not in published["audit_events"][0]["reason"]
 
 
 @pytest.mark.asyncio
