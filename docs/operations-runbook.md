@@ -38,6 +38,20 @@ diagnosis; it does not prove producer alignment.
 
 `make ci` adds migration smoke, integration tests, coverage, and security audit.
 
+Before creating or editing a PR, validate the title and body through the same fail-closed command
+used by the Pull Request Merge Gate:
+
+```powershell
+$env:LOTUS_PR_TITLE = 'Publish issue lifecycle guard'
+$env:LOTUS_PR_BODY = 'Closes #673'
+make pr-issue-lifecycle
+```
+
+An intended automatic close must be a standalone body line such as `Closes #673`. For partial work,
+use `Keep #673 open`; never combine an issue reference with negated close, fix, or resolve wording.
+The command reads text from environment variables, so CI does not interpolate untrusted PR text into
+a shell command.
+
 Use `make clean` to remove disposable local generated artifacts and caches. It deletes `output/`,
 `.codex-logs/`, coverage outputs, Python bytecode caches, package metadata, and `gateway-*.log`;
 publish or preserve required evidence before cleanup.

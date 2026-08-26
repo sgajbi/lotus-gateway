@@ -21,6 +21,19 @@ env:
   TRIVY_IMAGE: aquasec/trivy:0.72.0
 
 jobs:
+  issue-lifecycle:
+    name: PR Merge Gate / Issue Lifecycle Text
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Enforce PR issue lifecycle wording
+        env:
+          LOTUS_PR_TITLE: ${{ github.event.pull_request.title }}
+          LOTUS_PR_BODY: ${{ github.event.pull_request.body }}
+        run: make pr-issue-lifecycle
+
   workflow-lint:
     name: PR Merge Gate / Workflow Lint
     runs-on: ubuntu-latest

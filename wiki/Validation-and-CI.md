@@ -40,6 +40,11 @@ its extraction branches. They are retained as engineering history; current route
 - `make ci`
   migration smoke, integration tests, coverage, security audit, and the pinned duplicate-code
   ratchet over production Python sources
+- `make pr-issue-lifecycle`
+  fail-closed PR title/body lifecycle validation. Set `LOTUS_PR_TITLE` and `LOTUS_PR_BODY` first;
+  intended auto-close work uses a standalone `Closes #123` body line, while partial work uses
+  `Keep #123 open`. The Pull Request Merge Gate runs the same command from environment variables,
+  rejecting negated or malformed closing references before product validation begins.
 - `make duplicate-code`
   pinned jscpd scan, stable-finding ratchet, and repeated-run candidate-set check using
   `quality/package-lock.json`; the protected baseline is generated/enforced on Ubuntu/Node 20 and

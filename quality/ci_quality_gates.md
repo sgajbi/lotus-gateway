@@ -25,19 +25,22 @@ The current local and PR-grade blocking gates are:
    `scripts/check_proposal_decision_vocabulary.py`, which requires an external source for the
    blocking gate, rejects implicit packaged self-comparison, and reconciles the current Advise
    producer artifact in protected and scheduled CI,
-7. `mypy` over `src`,
-8. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+7. PR issue-lifecycle text governance through `make pr-issue-lifecycle`: the Pull Request Merge
+   Gate rejects malformed or negated auto-close wording and accepts only a standalone intended
+   closure such as `Closes #123`; keep-open work uses `Keep #123 open`,
+8. `mypy` over `src`,
+9. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-9. migration contract smoke,
-10. unit and contract tests,
-11. integration tests,
-12. coverage with an 84% floor,
-13. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-14. Docker build and local Docker parity in the PR Merge Gate,
-15. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
-    labels, SBOM generation, pre-push Trivy image scan that fails on fixable HIGH/CRITICAL
-    findings, release manifest generation, and artifact upload,
-16. main-only CI image promotion controls: GHCR push by CI, bounded retry only for its transient
+10. migration contract smoke,
+11. unit and contract tests,
+12. integration tests,
+13. coverage with an 84% floor,
+14. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+15. Docker build and local Docker parity in the PR Merge Gate,
+16. container release evidence in PR and main Docker lanes: Git-SHA image tagging, OCI build
+   labels, SBOM generation, pre-push Trivy image scan that fails on fixable HIGH/CRITICAL
+   findings, release manifest generation, and artifact upload,
+17. main-only CI image promotion controls: GHCR push by CI, bounded retry only for its transient
     `unknown blob` response (three total attempts with retained per-attempt logs), digest capture,
     cosign signing, provenance attestation, and Kubernetes deployment reference by digest. Other
     push errors remain immediate hard failures.
