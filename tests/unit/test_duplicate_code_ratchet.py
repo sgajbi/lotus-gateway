@@ -10,7 +10,6 @@ from scripts.check_duplicate_code_ratchet import (
     FSTRING_START_TOKEN,
     SourceLocation,
     _normalise_fragment,
-    _normalise_fragment_lexically,
     _normalise_token_stream,
     _source_fragment,
     build_baseline,
@@ -749,8 +748,11 @@ def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
         ") def _headers ( self , correlation_id : str , ) -> dict [ str , str ] : "
         "raise NotImplementedError"
     )
+    assert _normalise_fragment('x = f"{alpha\ny = 1\n') != _normalise_fragment(
+        'x = f"{beta\nz = 9\n'
+    )
     unterminated = 'x = "abc\ny = 1\n'
-    assert _normalise_fragment(unterminated) == _normalise_fragment_lexically(unterminated)
+    assert _normalise_fragment(unterminated) == 'x = "abc\ny = 1'
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
