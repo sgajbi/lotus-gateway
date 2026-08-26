@@ -25,6 +25,13 @@ Quality and enterprise-readiness baseline:
 [docs/security.md](docs/security.md), and
 [docs/operations-runbook.md](docs/operations-runbook.md)
 
+The duplicate-code quality gate runs the pinned jscpd detector twice with the same production
+source scope and fails when normalized candidate identities or aggregate metrics drift between
+the invocations. `make duplicate-code` provides the same local check when the pinned Node runtime
+is available; Ubuntu/Node 20 in the protected Quality Baseline remains authoritative for reviewed
+baseline updates. This repeated-run check detects same-environment nondeterminism and does not
+claim unverified cross-operating-system equivalence.
+
 ## Purpose And Scope
 
 `lotus-gateway` owns product-facing API composition for Lotus.

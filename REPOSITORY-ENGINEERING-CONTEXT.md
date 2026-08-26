@@ -432,9 +432,10 @@ Important validation expectations:
    normalization, stable f-string token-span normalization, and stable occurrence
    ordering; adjacent source edits and non-local scope-body edits must not invalidate unrelated
    clones, while same-scope relocation is an explicit identity trade-off. The checked-in baseline
-   is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane; cross-platform jscpd
-   candidate-selection drift must remain a tracked follow-up rather than being hidden in a union
-   baseline;
+   is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane; that lane runs the
+   detector twice and fails on normalized candidate-identity-set or aggregate-metric drift, while
+   cross-operating-system equivalence remains intentionally unclaimed rather than being hidden in
+   a union baseline;
    a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
    reviewed baseline updates must bank removals before the improvement can be spent again.
    Every report-producing quality log must also carry exactly one numeric

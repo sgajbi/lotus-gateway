@@ -18,24 +18,25 @@ Manual dispatch remains available, but it is not a replacement for the protected
 
 No quality step, threshold, artifact, or ratchet is removed by this event policy.
 
-The protected Quality Baseline also runs the pinned duplicate-code detector from `src/app` with a
-`**/*.py` pattern. Its report is checked against `quality/duplicate_code_baseline.json` for clone
-count, duplicated lines, duplicated percentage, and stable source-pair/normalised-fragment
-occurrence fingerprints, with Python-version-independent AST scope evidence, canonical source-side
-selection with reported column boundaries, line-shift-safe occurrence ordering, and
-tokenizer-shape-independent f-string spans. Incomplete token streams and unmatched delimiters are
-sent through a comment-safe lexical fallback that normalizes operator/layout spacing without
-including interpreter exception-message text in identity decisions; complete f-string expressions
-receive the same layout normalization on the token path while conversion, debug-expression, and
-format-specification text remains preserved.
+The protected Quality Baseline runs the pinned duplicate-code detector twice from `src/app` with a
+`**/*.py` pattern and identical jscpd 4.2.2 options. Each report is checked against
+`quality/duplicate_code_baseline.json` for clone count, duplicated lines, duplicated percentage,
+and stable source-pair/normalised-fragment occurrence fingerprints, with Python-version-independent
+AST scope evidence, canonical source-side selection with reported column boundaries, line-shift-safe
+occurrence ordering, and tokenizer-shape-independent f-string spans. The reproducibility checker
+also fails when the two reports differ in normalized candidate identities or aggregate metrics.
+Incomplete token streams and unmatched delimiters are sent through a comment-safe lexical fallback
+that normalizes operator/layout spacing without including interpreter exception-message text in
+identity decisions; complete f-string expressions receive the same layout normalization on the
+token path while conversion, debug-expression, and format-specification text remains preserved.
 The scope digest identifies enclosing
 class/function names without hashing mutable scope bodies or adjacent source lines, so blank,
 comment, and unrelated statements beside an unchanged clone do not invalidate it. Same-scope
 relocation is an explicit identity trade-off; fragment normalization preserves quoted literal
 contents and reconstructs f-string spans while collapsing layout whitespace. The protected baseline
-is generated and enforced on
-Ubuntu/Node 20; cross-platform detector candidate-selection drift is tracked separately and must
-not be hidden by a union baseline.
+and repeated-run evidence are generated and enforced on Ubuntu/Node 20. The repeated-run gate
+detects nondeterminism within that authoritative environment; it does not hide or assert
+cross-operating-system candidate equivalence, and no union baseline is permitted.
 Detector
 failure, malformed evidence, or a stale fingerprint after a cleanup fails the quality result;
 cleanup improvements must be banked through a reviewed baseline update before the clone can return.

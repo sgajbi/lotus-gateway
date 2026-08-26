@@ -18,15 +18,14 @@ rules, and scorecards used to ratchet maintainability without hiding known gaps.
 
 Run `make lint` for refactor thresholds, workflow runtime governance, agent quality evidence, and
 folder-guide validation. Run quality-baseline workflow evidence checks before relying on reports.
-Run `make duplicate-code` for the pinned production-source duplicate-code detector and ratchet.
-The protected baseline is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane.
-Node 20 through Node 24 can install and run the diagnostic detector, but do not initialize or
-update the checked-in baseline from another operating system or runtime: the detector input is
-rooted at `src/app` for stable traversal, but jscpd can still choose a different member of an
-equivalent clone family across environments. Use hosted Quality Baseline evidence for baseline
-changes until the cross-platform reproducibility follow-up is closed. Node 25+ is rejected by the
-strict engine policy until the detector is revalidated and the supported range is deliberately
-extended.
+Run `make duplicate-code` for the pinned production-source duplicate-code detector, ratchet, and
+repeated-run candidate-set check. The protected baseline is generated and enforced on the Ubuntu /
+Node 20 Quality Baseline lane, which runs the detector twice with identical inputs and fails closed
+on candidate or metric drift. Node 20 through Node 24 can install and run the same local check, but
+do not initialize or update the checked-in baseline from another operating system or runtime:
+cross-operating-system equivalence is not claimed by the repeated-run check. Use hosted Quality
+Baseline evidence for reviewed baseline changes. Node 25+ is rejected by the strict engine policy
+until the detector is revalidated and the supported range is deliberately extended.
 
 ## Update Triggers
 
