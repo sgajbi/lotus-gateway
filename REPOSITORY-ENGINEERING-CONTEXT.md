@@ -442,10 +442,10 @@ Important validation expectations:
    reviewed baseline updates must bank removals before the improvement can be spent again. Hosts
    with different candidate selection use `make duplicate-code-protected`, which runs the pinned
    Linux/Node 20 image under a checkout-specific Compose project and removes only that project;
-   it does not disturb the canonical Gateway runtime. The fallback mounts the checkout read-only
-   and keeps npm dependencies and scan output in project-scoped volumes that teardown removes, so
-   native-Linux runs cannot leave root-owned ignored artifacts in the checkout. The checker reports
-   `--update-baseline` as
+   it does not disturb the canonical Gateway runtime. The fallback mounts the checkout read-only,
+   keeps npm dependencies in a project-scoped volume, and copies its scan report before teardown
+   into a run-unique caller-created `output/duplicate-code-protected/` directory. This preserves
+   diagnostics without leaving root-owned checkout artifacts. The checker reports `--update-baseline` as
    blocked when unexpected findings, metric regressions, or detector failures remain.
    Every report-producing quality log must also carry exactly one numeric
    `QUALITY_COMMAND_STATUS` marker from the producer exit status; missing, malformed, or duplicate

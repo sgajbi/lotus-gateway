@@ -34,8 +34,9 @@ claim unverified cross-operating-system equivalence. `make duplicate-code-protec
 repository-native fallback for hosts whose local runtime selects different candidates: it runs the
 same scan and ratchet in the pinned Linux/Node 20 image, uses a checkout-specific Compose project,
 and cleans up that project without touching the canonical Gateway runtime. It mounts the checkout
-read-only and places npm dependencies and scan output in project-scoped volumes removed by teardown,
-so native-Linux runs cannot leave root-owned ignored artifacts in the developer checkout.
+read-only, keeps npm dependencies in a project-scoped volume, and copies the scan report before
+teardown into a run-unique `output/duplicate-code-protected/` directory created by the caller, so
+native-Linux runs cannot leave root-owned artifacts while diagnostics remain available for comparison.
 
 ## Purpose And Scope
 
