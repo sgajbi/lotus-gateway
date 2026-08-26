@@ -69,7 +69,10 @@ now fails when any measured metric regresses beyond the checked-in ratchet in
    duplicated percentage must not exceed 2.03%; stable source-pair/normalised-fragment
    occurrence fingerprints must not gain a
    new finding. The detector is pinned in `quality/package-lock.json` and scans production
-   `src/app/**/*.py` only.
+   `src/app/**/*.py` only. The protected lane runs the same detector twice and fails if normalized
+   candidate identities or aggregate metrics differ; local `make duplicate-code` runs the same
+   repeated check when the pinned Node runtime is available. This proves same-environment
+   determinism without claiming unverified cross-operating-system equivalence.
 
 `scripts/check_quality_baseline_ratchet.py` publishes current value, baseline, delta, threshold,
 and remediation command for every metric. A baseline update requires an explicit reviewed change;
