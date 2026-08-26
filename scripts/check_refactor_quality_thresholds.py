@@ -158,10 +158,10 @@ def main() -> int:
         return 0
 
     print("Refactor quality threshold violations:")
-    for violation in result.file_size_violations:
-        print(f"- {violation.format()}")
-    for violation in result.function_size_violations:
-        print(f"- {violation.format()}")
+    for file_violation in result.file_size_violations:
+        print(f"- {file_violation.format()}")
+    for function_violation in result.function_size_violations:
+        print(f"- {function_violation.format()}")
     return 1
 
 
