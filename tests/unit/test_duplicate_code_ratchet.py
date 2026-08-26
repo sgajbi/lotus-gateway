@@ -10,6 +10,7 @@ from scripts.check_duplicate_code_ratchet import (
     FSTRING_START_TOKEN,
     SourceLocation,
     _normalise_fragment,
+    _normalise_fragment_lexically,
     _normalise_token_stream,
     _source_fragment,
     build_baseline,
@@ -736,7 +737,8 @@ def test_duplicate_source_fragment_honours_reported_columns(tmp_path: Path) -> N
 
 
 def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
-    assert _normalise_fragment("value = call(\n") == "value = call("
+    fragment = 'items = [\n    "a",\n'
+    assert _normalise_fragment(fragment) == _normalise_fragment_lexically(fragment)
 
 
 def test_duplicate_report_rejects_empty_fragment(tmp_path: Path) -> None:
