@@ -63,7 +63,10 @@ duplicate-code:
 	cd quality && npm ci --ignore-scripts
 	mkdir -p output/duplicate-code
 	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code --pattern '**/*.py' src/app --noTips > output/duplicate-code/detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/detector.txt; cat output/duplicate-code/detector.txt; exit "$${status}"
+	mkdir -p output/duplicate-code/reproducibility
+	quality/node_modules/.bin/jscpd --min-lines 15 --min-tokens 50 --max-lines 10000 --max-size 1mb --format python --reporters json --output output/duplicate-code/reproducibility --pattern '**/*.py' src/app --noTips > output/duplicate-code/reproducibility-detector.txt 2>&1; status=$$?; printf 'QUALITY_COMMAND_STATUS=%s\n' "$${status}" >> output/duplicate-code/reproducibility-detector.txt; cat output/duplicate-code/reproducibility-detector.txt; exit "$${status}"
 	python scripts/check_duplicate_code_ratchet.py --report output/duplicate-code/jscpd-report.json --artifact-log output/duplicate-code/detector.txt --baseline quality/duplicate_code_baseline.json --source-root .
+	python -m scripts.check_duplicate_code_reproducibility --first-report output/duplicate-code/jscpd-report.json --second-report output/duplicate-code/reproducibility/jscpd-report.json --first-artifact-log output/duplicate-code/detector.txt --second-artifact-log output/duplicate-code/reproducibility-detector.txt --source-root .
 
 test:
 	$(MAKE) test-unit

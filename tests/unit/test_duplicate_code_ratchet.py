@@ -18,6 +18,7 @@ from scripts.check_duplicate_code_ratchet import (
     load_status,
     main,
 )
+from scripts.check_duplicate_code_reproducibility import check_reproducibility, compare_reports
 
 
 def _entry(
@@ -787,3 +788,92 @@ def test_duplicate_report_rejects_invalid_source_start(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="invalid start line"):
         load_report(report_path)
+
+
+def test_duplicate_reproducibility_accepts_identical_candidate_sets(tmp_path: Path) -> None:
+    first = load_report(_write_report(tmp_path / "first", [_entry("src/app/a.py", "src/app/b.py")]))
+    second = load_report(
+        _write_report(tmp_path / "second", [_entry("src/app/a.py", "src/app/b.py")])
+    )
+    first_log = tmp_path / "first.txt"
+    second_log = tmp_path / "second.txt"
+    first_log.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+    second_log.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+
+    assert compare_reports(first, second) == (set(), set())
+    assert (
+        check_reproducibility(
+            first_report=tmp_path / "first" / "jscpd-report.json",
+            second_report=tmp_path / "second" / "jscpd-report.json",
+            first_artifact_log=first_log,
+            second_artifact_log=second_log,
+        )
+        == 0
+    )
+
+
+def test_duplicate_reproducibility_ignores_report_member_orientation(tmp_path: Path) -> None:
+    first = load_report(_write_report(tmp_path / "first", [_entry("src/app/a.py", "src/app/b.py")]))
+    reversed_report = load_report(
+        _write_report(
+            tmp_path / "reversed",
+            [
+                _entry(
+                    "src/app/b.py",
+                    "src/app/a.py",
+                    first_start=20,
+                    second_start=10,
+                )
+            ],
+        )
+    )
+
+    assert compare_reports(first, reversed_report) == (set(), set())
+
+
+def test_duplicate_reproducibility_rejects_candidate_selection_drift(tmp_path: Path) -> None:
+    first = load_report(_write_report(tmp_path / "first", [_entry("src/app/a.py", "src/app/b.py")]))
+    second = load_report(
+        _write_report(
+            tmp_path / "second",
+            [_entry("src/app/a.py", "src/app/b.py", first_start=11, second_start=21)],
+        )
+    )
+
+    first_only, second_only = compare_reports(first, second)
+
+    assert first_only
+    assert second_only
+    assert first_only.isdisjoint(second_only)
+    first_log = tmp_path / "first.txt"
+    second_log = tmp_path / "second.txt"
+    first_log.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+    second_log.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+    assert (
+        check_reproducibility(
+            first_report=tmp_path / "first" / "jscpd-report.json",
+            second_report=tmp_path / "second" / "jscpd-report.json",
+            first_artifact_log=first_log,
+            second_artifact_log=second_log,
+        )
+        == 1
+    )
+
+
+def test_duplicate_reproducibility_rejects_failed_detector_invocation(tmp_path: Path) -> None:
+    first_report = _write_report(tmp_path / "first", [_entry("src/app/a.py", "src/app/b.py")])
+    second_report = _write_report(tmp_path / "second", [_entry("src/app/a.py", "src/app/b.py")])
+    first_log = tmp_path / "first.txt"
+    second_log = tmp_path / "second.txt"
+    first_log.write_text("QUALITY_COMMAND_STATUS=1\n", encoding="utf-8")
+    second_log.write_text("QUALITY_COMMAND_STATUS=0\n", encoding="utf-8")
+
+    assert (
+        check_reproducibility(
+            first_report=first_report,
+            second_report=second_report,
+            first_artifact_log=first_log,
+            second_artifact_log=second_log,
+        )
+        == 1
+    )

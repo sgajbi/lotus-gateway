@@ -147,7 +147,25 @@ jobs:
             --noTips 2>&1 | tee output/quality-baseline/duplicate-code.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code.txt
-          exit "${status}"
+          first_status=${status}
+
+          mkdir -p output/quality-baseline/duplicate-code/reproducibility
+          quality/node_modules/.bin/jscpd \
+            --min-lines 15 \
+            --min-tokens 50 \
+            --max-lines 10000 \
+            --max-size 1mb \
+            --format python \
+            --reporters json \
+            --output output/quality-baseline/duplicate-code/reproducibility \
+            --pattern '**/*.py' \
+            src/app \
+            --noTips 2>&1 | tee output/quality-baseline/duplicate-code-reproducibility.txt
+          second_status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${second_status}" >> output/quality-baseline/duplicate-code-reproducibility.txt
+          if [ "${first_status}" -ne 0 ] || [ "${second_status}" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Enforce Duplicate Code Ratchet
         if: always()
@@ -163,6 +181,23 @@ jobs:
             2>&1 | tee output/quality-baseline/duplicate-code-ratchet.txt
           status=${PIPESTATUS[0]}
           printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code-ratchet.txt
+          exit "${status}"
+
+      - name: Enforce Duplicate Code Reproducibility
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          set -o pipefail
+          python -m scripts.check_duplicate_code_reproducibility \
+            --first-report output/quality-baseline/duplicate-code/jscpd-report.json \
+            --second-report output/quality-baseline/duplicate-code/reproducibility/jscpd-report.json \
+            --first-artifact-log output/quality-baseline/duplicate-code.txt \
+            --second-artifact-log output/quality-baseline/duplicate-code-reproducibility.txt \
+            --source-root . \
+            2>&1 | tee output/quality-baseline/duplicate-code-reproducibility-ratchet.txt
+          status=${PIPESTATUS[0]}
+          printf 'QUALITY_COMMAND_STATUS=%s\n' "${status}" >> output/quality-baseline/duplicate-code-reproducibility-ratchet.txt
           exit "${status}"
 
       - name: Dead Code Baseline
@@ -261,15 +296,24 @@ jobs:
       - name: Enforce Duplicate Code Ratchet Result
         if: always()
         run: |
-          status=missing
-          marker_count=0
+          ratchet_status=missing
+          ratchet_marker_count=0
           if [ -f output/quality-baseline/duplicate-code-ratchet.txt ]; then
-            marker_count=$(grep -c '^QUALITY_COMMAND_STATUS=' output/quality-baseline/duplicate-code-ratchet.txt || true)
-            if [ "${marker_count}" -eq 1 ]; then
-              status=$(sed -n 's/^QUALITY_COMMAND_STATUS=//p' output/quality-baseline/duplicate-code-ratchet.txt)
+            ratchet_marker_count=$(grep -c '^QUALITY_COMMAND_STATUS=' output/quality-baseline/duplicate-code-ratchet.txt || true)
+            if [ "${ratchet_marker_count}" -eq 1 ]; then
+              ratchet_status=$(sed -n 's/^QUALITY_COMMAND_STATUS=//p' output/quality-baseline/duplicate-code-ratchet.txt)
             fi
           fi
-          if [ "${marker_count}" -ne 1 ] || [ "${status}" != "0" ]; then
-            echo "Duplicate-code ratchet failed after evidence collection (status=${status}; markers=${marker_count})."
+          reproducibility_status=missing
+          reproducibility_marker_count=0
+          if [ -f output/quality-baseline/duplicate-code-reproducibility-ratchet.txt ]; then
+            reproducibility_marker_count=$(grep -c '^QUALITY_COMMAND_STATUS=' output/quality-baseline/duplicate-code-reproducibility-ratchet.txt || true)
+            if [ "${reproducibility_marker_count}" -eq 1 ]; then
+              reproducibility_status=$(sed -n 's/^QUALITY_COMMAND_STATUS=//p' output/quality-baseline/duplicate-code-reproducibility-ratchet.txt)
+            fi
+          fi
+          if [ "${ratchet_marker_count}" -ne 1 ] || [ "${ratchet_status}" != "0" ] || \
+             [ "${reproducibility_marker_count}" -ne 1 ] || [ "${reproducibility_status}" != "0" ]; then
+            echo "Duplicate-code quality gate failed after evidence collection (ratchet_status=${ratchet_status}; ratchet_markers=${ratchet_marker_count}; reproducibility_status=${reproducibility_status}; reproducibility_markers=${reproducibility_marker_count})."
             exit 1
           fi
