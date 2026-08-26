@@ -131,7 +131,8 @@ same actual revision may supersede one another.
 - incomplete duplicate detector slices are never fingerprinted from partial token streams; the
   structural delimiter check and comment-safe lexical fallback normalize formatting while
   preserving literals, comments, and interpreter-independent identity; complete f-string
-  expressions receive the same layout normalization on the token path
+  expressions receive the same layout normalization on the token path while conversion,
+  debug-expression, and format-specification text remains preserved
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,
   release manifest, digest-pinned Kubernetes reference, main-only GHCR push, cosign signature, and
   provenance attestation
