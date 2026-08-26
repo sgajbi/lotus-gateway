@@ -1,6 +1,8 @@
 """Static OpenAPI example fragments for performance workspace details."""
 
-PERFORMANCE_WORKSPACE_DETAILS_EXAMPLE_DETAILS = {
+from typing import Any
+
+PERFORMANCE_WORKSPACE_DETAILS_EXAMPLE_DETAILS: dict[str, Any] = {
     "net_chart": [
         {
             "label": "2026-01",
