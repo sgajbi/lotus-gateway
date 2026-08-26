@@ -4,6 +4,44 @@ Last updated: 2026-08-26
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
 
+### Batch 3A — compose source-owned risk mandate comparison (#575)
+
+- Objective: publish the mandate posture that advisors need on existing Workbench risk reads,
+  without making Gateway an owner of client limits, risk methodology, or mandate-health decisions.
+- Finding: Workbench received source-owned risk measures but no typed relationship to the approved
+  Manage mandate, so it correctly withheld mandate headroom, breach, and review-cadence claims.
+- Change: add the optional, closed `mandate_comparison` contract to risk summary and concentration;
+  load Manage mandate/health and the existing Core-backed cash measure concurrently with Risk;
+  cache the composed response under the existing request context; and calculate signed ratio
+  headroom only from date- and basis-aligned source facts. Manage remains authoritative for mandate
+  identity, limits, health verdict, review policy, and lineage; Risk owns tracking error and
+  concentration; Core owns the cash measure and effective date. Gateway maps and fails closed—it
+  never invents a limit, all-clear, breach, source date, or mandate-health result.
+- Failure and compatibility posture: unavailable, stale, contradictory, invalid-basis, missing-limit,
+  or missing-measure evidence produces an explicit partial/unavailable/not-defined posture. Existing
+  routes, query parameters, response fields, authorization boundary, source calls, and valid payload
+  behavior remain unchanged; the added envelope is nullable. No migration, persistence, runtime
+  topology, retry-policy, dependency, or source-domain rule changes are included.
+- Historical-read boundary: Gateway forwards the selected review date and exposes source-date
+  mismatch rather than blending evidence. `lotus-manage#639` owns the historical Manage read that
+  is required before Gateway can claim same-date historical mandate-health proof.
+- Same-pattern result: summary and concentration share the same typed source loading, base
+  comparison, constraint mapping, date-alignment, and cache identity. Drawdown, rolling, and
+  attribution do not expose an equivalent mandate-measure decision surface and are intentionally
+  unchanged; extending the comparison there would require a separately source-backed issue.
+- Regression proof: mapper truth tables, source-loading failure paths, response composition/cache,
+  client date forwarding, router integration, contract/OpenAPI, and documentation tests pass. The
+  rebased branch also passes all 2,045 unit tests, 125 contract tests, 284 integration tests, Ruff,
+  formatting, mypy over 803 production files, monetary-float, source/function-size, workflow,
+  folder-ownership, test-client, no-schema migration, and wiki-quality gates. The live Advise
+  vocabulary and Linux duplicate-code/security lanes remain protected-CI proof because this Windows
+  checkout has no configured Advise vocabulary URL.
+- Documentation and guidance decision: repository context, supported-features, API/integration/
+  supported-features wiki source, and this ledger change because public composition truth changes.
+  No central context or skill update is needed: existing Gateway composition, closed-contract,
+  source-authority, and fail-closed guidance already covers this pattern. Wiki publication and strict
+  parity remain required after merge.
+
 ### Batch 2Z — proposal memo source-contract alignment (#652)
 
 - Objective: restore canonical Workbench memo review by keeping Gateway's closed typed consumer
