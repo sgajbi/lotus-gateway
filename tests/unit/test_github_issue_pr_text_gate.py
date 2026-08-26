@@ -72,6 +72,7 @@ def test_pr_merge_gate_runs_the_repo_native_command() -> None:
     workflow = (REPO_ROOT / ".github/workflows/pr-merge-gate.yml").read_text(encoding="utf-8")
 
     assert "PR Merge Gate / Issue Lifecycle Text" in workflow
+    assert "PR Merge Gate / Issue Lifecycle Text (manual metadata unavailable)" in workflow
     assert "types: [opened, synchronize, reopened, edited]" in workflow
     assert "LOTUS_PR_TITLE: ${{ github.event.pull_request.title }}" in workflow
     assert "LOTUS_PR_BODY: ${{ github.event.pull_request.body }}" in workflow

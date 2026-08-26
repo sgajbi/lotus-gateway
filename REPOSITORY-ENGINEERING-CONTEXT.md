@@ -418,7 +418,9 @@ Important validation expectations:
    synchronizing, reopening, or
    editing a PR title/body starts a fresh merge-gate event, so lifecycle evidence cannot survive a
    later metadata change. A draft PR's initial `opened` event already supplies this evidence, so
-   changing only draft state does not redundantly restart the heavy merge lane,
+   changing only draft state does not redundantly restart the heavy merge lane. A manual workflow
+   dispatch has no PR text and receives a distinct `manual metadata unavailable` check name, so it
+   cannot satisfy the protected lifecycle context,
 8. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
    with a warning when the token is absent so an authorized human or release actor can perform the

@@ -23,7 +23,7 @@ env:
 
 jobs:
   issue-lifecycle:
-    name: PR Merge Gate / Issue Lifecycle Text
+    name: ${{ github.event_name == 'pull_request' && 'PR Merge Gate / Issue Lifecycle Text' || 'PR Merge Gate / Issue Lifecycle Text (manual metadata unavailable)' }}
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
