@@ -25,6 +25,7 @@ from app.contracts.proposals import (
 )
 from app.services.proposal_client_protocols import ProposalClient
 from app.services.proposal_memo_errors import raise_proposal_memo_contract_invalid
+from app.services.proposal_memo_source_contract import project_tolerant_memo_source_payload
 from app.services.upstream_envelope import build_typed_gateway_envelope
 
 EnvelopeT = TypeVar("EnvelopeT", bound=BaseModel)
@@ -39,11 +40,12 @@ def _build_typed_memo_envelope(
     upstream_payload: dict[str, Any],
 ) -> EnvelopeT:
     try:
+        published_payload = project_tolerant_memo_source_payload(payload_model, upstream_payload)
         return build_typed_gateway_envelope(
             response_model,
             payload_model,
             correlation_id=correlation_id,
-            upstream_payload=upstream_payload,
+            upstream_payload=published_payload.model_dump(mode="python"),
         )
     except ValidationError as exc:
         raise_proposal_memo_contract_invalid(exc)

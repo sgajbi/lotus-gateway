@@ -714,6 +714,18 @@ def test_proposal_memo_rejects_missing_or_inconsistent_audit_evidence() -> None:
         )
 
 
+def test_proposal_memo_public_contract_rejects_additive_source_fields() -> None:
+    source_payload = _memo_response_payload()
+    source_payload["source_release_marker"] = "advise-additive-v2"
+
+    with pytest.raises(ValidationError, match="source_release_marker"):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_additive_source_field",
+            contract_version="v1",
+            data=source_payload,
+        )
+
+
 def test_proposal_memo_lineage_rejects_incomplete_or_inconsistent_evidence() -> None:
     base_data = {
         "proposal": _memo_proposal_summary(),

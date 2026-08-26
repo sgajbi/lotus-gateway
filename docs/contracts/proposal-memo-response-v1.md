@@ -25,9 +25,11 @@ unconstrained `dict[str, Any]` at the API boundary.
 
 The memo evidence pack, projection policy and sections, review/report/AI/read postures, replay
 evidence, commentary, and report explanation use closed typed models with named OpenAPI
-properties. Advise still owns the values and vocabulary; Gateway does not reinterpret them. A
-small set of source-owned metadata fields remains a bounded scalar-keyed map so Gateway can
-preserve evidence without inventing domain semantics.
+properties. Gateway consumes Advise memo payloads through tolerant source-facing models, then
+projects them into these closed public models; additive source fields are deliberately discarded
+and never become Gateway contract properties. Advise still owns the values and vocabulary; Gateway
+does not reinterpret them. A small set of source-owned metadata fields remains a bounded
+scalar-keyed map so Gateway can preserve evidence without inventing domain semantics.
 
 Recorded memo-review posture preserves the source idempotency key and request hash together with
 the memo and source-input hashes. Memo audit-event reasons preserve the source `memo_status` and
@@ -43,17 +45,19 @@ publish them without recomputation or omission.
   must use `data.memo`, `data.review_event`, `data.report_package_event`, `data.ai_event`, and
   top-level `data.audience` where those fields apply; the old illustrative shapes such as
   `data.review_posture.advisor_use` are not contract truth.
-- Gateway validates each successful upstream payload against its typed source projection. A
-  missing required source field fails the response construction rather than publishing an
-  incomplete success object that Workbench could mistake for authoritative evidence.
+- Gateway tolerates additive Advise fields only while parsing the source payload, then revalidates
+  the projected payload against the closed published contract. A missing or invalid required
+  source field still fails response construction rather than publishing an incomplete success
+  object that Workbench could mistake for authoritative evidence.
 - If Advise returns HTTP 2xx with a malformed memo payload, Gateway returns a product-safe `502`
   with `error_code=ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID`, identifies `lotus-advise` as the
   source, and does not publish the invalid payload as a `200` response.
 - Memo detail requires `audit_events` and rejects any response where `event_count` differs from
   the number of returned events; Gateway never fabricates an empty event list for a claimed count.
-- Recorded review and audit-event evidence remains closed: newly published source hash,
-  idempotency, memo-status, and lifecycle-status fields are named contract properties, while
-  unknown fields still fail with the same product-safe contract error.
+- Recorded review and audit-event evidence remains closed: published source hash, idempotency,
+  memo-status, and lifecycle-status fields are named contract properties. Additive upstream
+  fields are not published; fields that are unknown at the Gateway public contract boundary still
+  fail closed.
 - Memo lineage requires `memos`, requires `memo_count` to equal the returned item count, requires
   `latest_memo_id` to identify the final source-ordered item, and rejects descending proposal
   version order. This prevents contradictory completeness evidence from reaching Workbench.
@@ -65,6 +69,8 @@ publish them without recomputation or omission.
 `tests/contract/test_proposals_contract.py` proves source-faithful payloads, rejects stale
 illustrative nesting, and asserts that every memo-family envelope points to a closed OpenAPI
 component with named properties; nested memo refs are checked recursively. It also rejects
-missing or contradictory lineage and audit-count evidence. `tests/unit/test_proposal_service.py`
-proves malformed successful upstream memo payloads map to the product-safe source-contract error;
-the integration route test proves the report-package event route returns its typed event envelope.
+additive fields at the public boundary and missing or contradictory lineage and audit-count
+evidence. `tests/unit/test_proposal_service.py` proves additive Advise source fields are discarded
+before publication and malformed successful upstream memo payloads map to the product-safe
+source-contract error; the integration route test proves the report-package event route returns
+its typed event envelope.
