@@ -739,6 +739,12 @@ def test_duplicate_fingerprint_fallback_handles_incomplete_fragment() -> None:
     fragment = 'items = [\n    "a",\n'
     assert _normalise_fragment(fragment) == 'items = [ "a" ,'
     assert _normalise_fragment("value+1,\n]\n") == _normalise_fragment("value + 1,\n]\n")
+    assert _normalise_fragment("items = [\nobj.attr,\n") == _normalise_fragment(
+        "items = [\nobj . attr,\n"
+    )
+    assert _normalise_fragment('items = [\nx = f"{foo(a)}",\n') == _normalise_fragment(
+        'items = [\nx = f"{ foo( a ) }",\n'
+    )
     indented_slice = (
         "\n        )\n\n    def _headers(\n"
         "        self,\n        correlation_id: str,\n"

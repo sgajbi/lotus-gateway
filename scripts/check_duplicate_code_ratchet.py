@@ -393,7 +393,7 @@ def _normalise_fragment_lexically(text: str) -> str:
             continue
         literal_end = _string_literal_end(text, index)
         if literal_end is not None:
-            pieces.append(text[index:literal_end])
+            pieces.append(_normalise_literal(text[index:literal_end]))
             index = literal_end
             continue
         operator = next(
@@ -408,9 +408,16 @@ def _normalise_fragment_lexically(text: str) -> str:
             pieces.append(operator)
             index += len(operator)
             continue
-        if character.isalnum() or character == "_":
+        if character.isdigit():
             end = index + 1
             while end < len(text) and (text[end].isalnum() or text[end] in "_."):
+                end += 1
+            pieces.append(text[index:end])
+            index = end
+            continue
+        if character.isalpha() or character == "_":
+            end = index + 1
+            while end < len(text) and (text[end].isalnum() or text[end] == "_"):
                 end += 1
             pieces.append(text[index:end])
             index = end
@@ -418,6 +425,66 @@ def _normalise_fragment_lexically(text: str) -> str:
         pieces.append(character)
         index += 1
     return " ".join(piece for piece in pieces if piece).strip()
+
+
+def _normalise_literal(literal: str) -> str:
+    """Preserve literal text while normalizing expressions in complete f-strings."""
+    prefix_end = 0
+    while prefix_end < len(literal) and literal[prefix_end] in "rRuUbBfF":
+        prefix_end += 1
+    if "f" not in literal[:prefix_end].lower():
+        return literal
+    quote = literal[prefix_end : prefix_end + 1]
+    delimiter = quote * 3 if literal.startswith(quote * 3, prefix_end) else quote
+    if not quote or not literal.endswith(delimiter):
+        return literal
+    body_start = prefix_end + len(delimiter)
+    body_end = len(literal) - len(delimiter)
+    body = literal[body_start:body_end]
+    return literal[:body_start] + _normalise_f_string_body(body) + literal[body_end:]
+
+
+def _normalise_f_string_body(body: str) -> str:
+    pieces: list[str] = []
+    index = 0
+    while index < len(body):
+        if body.startswith(("{{", "}}"), index):
+            pieces.append(body[index : index + 2])
+            index += 2
+            continue
+        if body[index] != "{":
+            pieces.append(body[index])
+            index += 1
+            continue
+        expression_end = _f_string_expression_end(body, index + 1)
+        if expression_end is None:
+            pieces.append(body[index:])
+            break
+        expression = body[index + 1 : expression_end]
+        pieces.append("{" + _normalise_fragment(expression) + "}")
+        index = expression_end + 1
+    return "".join(pieces)
+
+
+def _f_string_expression_end(body: str, start: int) -> int | None:
+    depth = 1
+    index = start
+    while index < len(body):
+        literal_end = _string_literal_end(body, index)
+        if literal_end is not None:
+            index = literal_end
+            continue
+        if body.startswith(("{{", "}}"), index):
+            index += 2
+            continue
+        if body[index] == "{":
+            depth += 1
+        elif body[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
 
 
 def _string_literal_end(text: str, start: int) -> int | None:
