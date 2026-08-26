@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check demo-certification duplicate-code duplicate-code-protected openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check pr-issue-lifecycle demo-certification duplicate-code duplicate-code-protected openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -37,6 +37,9 @@ proposal-decision-vocabulary-gate:
 
 proposal-decision-vocabulary-snapshot-check:
 	python scripts/check_proposal_decision_vocabulary.py --allow-packaged-snapshot
+
+pr-issue-lifecycle:
+	python scripts/github_issue_pr_text_gate.py --title-env LOTUS_PR_TITLE --body-env LOTUS_PR_BODY
 
 demo-certification:
 	python scripts/certify_demo_readiness.py

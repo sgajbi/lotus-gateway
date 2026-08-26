@@ -380,6 +380,8 @@ Use these commands as the primary local contract:
    `make duplicate-code-protected`
 8. canonical local runtime
    `make run-canonical`
+9. PR issue-lifecycle text guard (before creating or editing a PR)
+   `$env:LOTUS_PR_TITLE='<title>'; $env:LOTUS_PR_BODY='<body>'; make pr-issue-lifecycle`
 
 ## Validation And CI Expectations
 
@@ -408,22 +410,27 @@ Important validation expectations:
    packaged artifact, while Remote Feature, PR Merge, Main Releasability, and scheduled drift lanes
    compare it with the current Advise source artifact. The explicit offline snapshot target is not
    producer-drift evidence,
-7. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
+7. `make pr-issue-lifecycle` is a fail-closed pre-PR guard and the Pull Request Merge Gate runs the
+   same command against event title/body values held in environment variables. Intended automatic
+   closure must be a standalone body line such as `Closes #123`; partial work uses `Keep #123 open`.
+   Negated close/fix/resolve wording with an issue reference and malformed closing references are
+   rejected because GitHub may still auto-close the issue,
+8. PR auto-merge is rebase-only for linear history; `.github/workflows/pr-auto-merge.yml` uses
    `LOTUS_AUTOMERGE_TOKEN` and `gh pr merge --auto --rebase --delete-branch`, and skips cleanly
    with a warning when the token is absent so an authorized human or release actor can perform the
    rebase merge without leaving a false red helper check,
-8. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
+9. `.github/workflows/merged-pr-main-releasability.yml` dispatches `main-releasability.yml` after
    a pull request is merged into `main`, preserving exact-main release evidence for authorized
    human or release-actor merges as well as token-backed auto-merge; `main-releasability.yml` is
    intentionally `workflow_dispatch`-only so this dispatcher remains the single automatic
    post-merge path and does not duplicate a push-triggered release run; its concurrency identity is
    always the checked-out `github.sha`, while caller-supplied `expected_sha` remains validation-only,
    so malformed input and newer merges cannot cancel another revision's evidence,
-9. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
+10. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality
    Baseline until repeated low-noise evidence and exception policy justify blocking promotion,
-10. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
+11. `scripts/check_quality_baseline_ratchet.py` enforces no-new-regression thresholds from
    `quality/quality_ratchet.json`; every Quality Baseline run must publish current value, baseline,
    delta, threshold, and remediation evidence. Baseline updates auto-tighten only; any loosening
    requires per-metric `--allow-regression METRIC=VALUE --reason "..."` in a reviewed change.
