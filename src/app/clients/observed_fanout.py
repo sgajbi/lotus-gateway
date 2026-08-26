@@ -12,6 +12,20 @@ from app.observability.analytics_ui import (
 )
 
 
+async def _request_with_optional_total_deadline(
+    *,
+    request_kwargs: dict[str, Any],
+    total_deadline_seconds: float | None,
+) -> tuple[int, dict[str, Any]]:
+    try:
+        if total_deadline_seconds is None:
+            return await request_with_retry(**request_kwargs)
+        async with asyncio.timeout(total_deadline_seconds):
+            return await request_with_retry(**request_kwargs)
+    except TimeoutError:
+        return communication_failure_result("elapsed deadline exceeded")
+
+
 async def request_observed_fanout(
     *,
     logger: logging.Logger,
@@ -46,14 +60,10 @@ async def request_observed_fanout(
         "files": files,
         "retry_timeout_exceptions": retry_timeout_exceptions,
     }
-    try:
-        if total_deadline_seconds is None:
-            status_code, payload = await request_with_retry(**request_kwargs)
-        else:
-            async with asyncio.timeout(total_deadline_seconds):
-                status_code, payload = await request_with_retry(**request_kwargs)
-    except TimeoutError:
-        status_code, payload = communication_failure_result("elapsed deadline exceeded")
+    status_code, payload = await _request_with_optional_total_deadline(
+        request_kwargs=request_kwargs,
+        total_deadline_seconds=total_deadline_seconds,
+    )
     emit_gateway_analytics_fanout_log(
         logger=logger,
         started_at=started_at,
