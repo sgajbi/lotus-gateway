@@ -24,6 +24,7 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
     assert settings.reporting_aggregation_base_url == "http://report.dev.lotus"
     assert settings.archive_service_base_url == "http://archive.dev.lotus"
+    assert settings.archive_access_preflight_timeout_seconds == 3.0
     assert settings.idea_service_base_url == "http://idea.dev.lotus"
     assert settings.management_service_base_url == "http://manage.dev.lotus"
     assert Path(settings.domain_product_catalog_path).parts[-3:] == (
@@ -88,6 +89,15 @@ def test_settings_reject_performance_summary_deadline_beyond_source_slo():
             _env_file=None,
             _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
             performance_summary_deadline_seconds=30.1,
+        )
+
+
+def test_settings_reject_archive_access_preflight_timeout_above_status_budget():
+    with pytest.raises(ValueError, match="less than or equal to 3"):
+        Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+            archive_access_preflight_timeout_seconds=3.1,
         )
 
 

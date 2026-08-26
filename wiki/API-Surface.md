@@ -220,10 +220,12 @@ consumer migration remain tracked by parent issue #569.
 - report-batch status items preserve Report's directly linked `report_job_status`; Gateway publishes
   `archive_document_id` and Gateway-owned `archive_state` (`available`, `pending`, or
   `unavailable`) only after one caller-scoped Archive access-preflight batch confirms each allowed
-  document identity. Archive denied, missing, and unavailable postures collapse to the same
-  consumer-safe linkless response; Archive reason codes and document existence/ownership/purge
-  distinctions are not exposed. Only an `archived` Report job with an Archive-confirmed allowed
-  identity receives Gateway-controlled `archive_metadata_url` and `archive_download_url` routes.
+  document identity. The advisory preflight has one HTTP attempt within the configured three-second
+  maximum and does not retry timeout failures. Archive denied, missing, unavailable, malformed, and
+  timeout postures collapse to the same consumer-safe linkless response; Archive reason codes and
+  document existence/ownership/purge distinctions are not exposed. Only an `archived` Report job
+  with an Archive-confirmed allowed identity receives Gateway-controlled `archive_metadata_url` and
+  `archive_download_url` routes.
   Metadata and binary access re-check caller tenant/region through
   `/api/v1/documents/{document_id}*`; Gateway never exposes raw storage locations or substitutes a
   correction/superseding document.

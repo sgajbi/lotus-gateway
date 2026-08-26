@@ -23,6 +23,9 @@ def test_gateway_compose_mounts_domain_product_artifacts_read_only() -> None:
     assert (
         "IDEA_SERVICE_BASE_URL=${IDEA_SERVICE_BASE_URL:-http://host.docker.internal:8330}"
     ) in compose_text
+    assert (
+        "ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS=${ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS:-3}"
+    ) in compose_text
     assert "../lotus-platform/generated:/lotus-platform/generated:ro" in compose_text
     assert (
         "../lotus-platform/output/trust-certification:/lotus-platform/output/trust-certification:ro"
@@ -47,6 +50,12 @@ def test_ci_local_compose_cleanup_uses_an_isolated_project_identity() -> None:
         "down -v --remove-orphans"
     ) in makefile_text
     assert "docker compose -f docker-compose.ci-local.yml down" not in makefile_text
+
+
+def test_ci_local_compose_keeps_archive_access_preflight_within_status_budget() -> None:
+    compose_text = Path("docker-compose.ci-local.yml").read_text(encoding="utf-8")
+
+    assert "ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS=3" in compose_text
 
 
 def test_ci_local_compose_project_name_is_stable_and_checkout_specific(tmp_path: Path) -> None:

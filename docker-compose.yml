@@ -19,6 +19,7 @@ services:
       - REPORTING_AGGREGATION_BASE_URL=${REPORTING_AGGREGATION_BASE_URL:-http://host.docker.internal:8300}
       - RENDER_SERVICE_BASE_URL=${RENDER_SERVICE_BASE_URL:-http://host.docker.internal:8310}
       - ARCHIVE_SERVICE_BASE_URL=${ARCHIVE_SERVICE_BASE_URL:-http://host.docker.internal:8150}
+      - ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS=${ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS:-3}
       - IDEA_SERVICE_BASE_URL=${IDEA_SERVICE_BASE_URL:-http://host.docker.internal:8330}
       - DOMAIN_PRODUCT_CATALOG_PATH=${DOMAIN_PRODUCT_CATALOG_PATH:-/lotus-platform/generated/domain-product-catalog.json}
       - DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH=${DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH:-/lotus-platform/generated/domain-product-dependency-graph.json}

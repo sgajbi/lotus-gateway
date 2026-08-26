@@ -34,11 +34,13 @@ def _governed_dpm_manage_request_scope():
 
 
 class _FakeAsyncClient:
-    responses: list[httpx.Response] = []
+    responses: list[httpx.Response | httpx.RequestError] = []
     calls: list[dict] = []
+    timeouts: list[float] = []
 
     def __init__(self, timeout: float, **_: object):
         self.timeout = timeout
+        self.timeouts.append(timeout)
 
     async def __aenter__(self):
         return self
@@ -81,7 +83,10 @@ class _FakeAsyncClient:
     def _next_response(cls) -> httpx.Response:
         if not cls.responses:
             raise AssertionError("No queued response available.")
-        return cls.responses.pop(0)
+        response = cls.responses.pop(0)
+        if isinstance(response, httpx.RequestError):
+            raise response
+        return response
 
     @classmethod
     def queue_json(cls, status_code: int, payload: dict | list):
@@ -106,6 +111,10 @@ class _FakeAsyncClient:
         )
 
     @classmethod
+    def queue_request_error(cls, error: httpx.RequestError) -> None:
+        cls.responses.append(error)
+
+    @classmethod
     def queue_bytes(cls, status_code: int, content: bytes, headers: dict[str, str] | None = None):
         cls.responses.append(
             httpx.Response(
@@ -121,6 +130,7 @@ class _FakeAsyncClient:
 def _patch_async_client(monkeypatch):
     _FakeAsyncClient.responses = []
     _FakeAsyncClient.calls = []
+    _FakeAsyncClient.timeouts = []
     monkeypatch.setattr("httpx.AsyncClient", _FakeAsyncClient)
 
 
@@ -4369,7 +4379,11 @@ async def test_reporting_client_emits_safe_fanout_metrics_without_runtime_ids(ca
 
 @pytest.mark.asyncio
 async def test_archive_client_metadata_and_download_routes_forward_archive_context():
-    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=2.0,
+        access_preflight_timeout_seconds=2.0,
+    )
     caller_headers = {
         "X-Actor-Id": "advisor-123",
         "X-Tenant-Id": "tenant-sg",
@@ -4430,7 +4444,11 @@ async def test_archive_client_metadata_and_download_routes_forward_archive_conte
 
 @pytest.mark.asyncio
 async def test_archive_client_posts_one_caller_scoped_access_preflight():
-    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=2.0,
+        access_preflight_timeout_seconds=2.0,
+    )
     _FakeAsyncClient.queue_json(
         200,
         {
@@ -4471,8 +4489,48 @@ async def test_archive_client_posts_one_caller_scoped_access_preflight():
 
 
 @pytest.mark.asyncio
+async def test_archive_client_preflight_timeout_uses_one_attempt_and_safe_fanout_evidence(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=8.0,
+        max_retries=2,
+        access_preflight_timeout_seconds=3.0,
+    )
+    _FakeAsyncClient.queue_request_error(
+        httpx.ReadTimeout("preflight timed out", request=httpx.Request("POST", "http://archive"))
+    )
+
+    status_code, payload = await client.preflight_document_access(
+        document_ids=["doc_sensitive_1"],
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-archive-preflight-timeout",
+    )
+
+    assert status_code == 503
+    assert len(_FakeAsyncClient.calls) == 1
+    assert _FakeAsyncClient.timeouts == [3.0]
+    assert payload == {"detail": "upstream communication failure: ReadTimeout"}
+    [record] = _fanout_records(caplog.records, service="lotus-archive")
+    fields = record.extra_fields
+    assert fields["operation"] == "archive.documents.access-preflight"
+    assert fields["status_class"] == "5xx"
+    assert fields["state"] == "degraded"
+    assert "doc_sensitive_1" not in fields.values()
+    assert "document_id" not in fields
+
+
+@pytest.mark.asyncio
 async def test_archive_client_download_returns_error_payload_without_binary_leakage():
-    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=2.0,
+        access_preflight_timeout_seconds=2.0,
+    )
     _FakeAsyncClient.queue_json(
         404,
         {
@@ -4502,7 +4560,11 @@ async def test_archive_client_download_returns_error_payload_without_binary_leak
 @pytest.mark.asyncio
 async def test_archive_client_emits_safe_binary_fanout_metrics(caplog):
     caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
-    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    client = ArchiveClient(
+        base_url="http://archive",
+        timeout_seconds=2.0,
+        access_preflight_timeout_seconds=2.0,
+    )
     _FakeAsyncClient.queue_json(
         404,
         {"error": {"code": "document_binary_missing", "document_id": "doc_sensitive_1"}},
