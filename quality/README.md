@@ -21,8 +21,9 @@ folder-guide validation. Run quality-baseline workflow evidence checks before re
 Run `make duplicate-code` for the pinned production-source duplicate-code detector and ratchet.
 The protected baseline is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane.
 Node 20 through Node 24 can install and run the diagnostic detector, but do not initialize or
-update the checked-in baseline from another operating system or runtime: jscpd can choose a
-different member of an equivalent clone family. Use hosted Quality Baseline evidence for baseline
+update the checked-in baseline from another operating system or runtime: the detector input is
+rooted at `src/app` for stable traversal, but jscpd can still choose a different member of an
+equivalent clone family across environments. Use hosted Quality Baseline evidence for baseline
 changes until the cross-platform reproducibility follow-up is closed. Node 25+ is rejected by the
 strict engine policy until the detector is revalidated and the supported range is deliberately
 extended.

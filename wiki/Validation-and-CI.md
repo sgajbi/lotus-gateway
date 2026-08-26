@@ -124,7 +124,8 @@ same actual revision may supersede one another.
   detector reports the same clone in reverse order; reported column boundaries are honored so
   unrelated same-line prefixes do not change the fragment; quoted literal contents are preserved
   during fragment normalization, including stable reconstruction of Python 3.11 versus 3.12+
-  f-string token spans
+  f-string token spans; the detector input root is explicitly `src/app` with a `**/*.py` pattern
+  so repeated protected runs do not inherit checkout-root traversal order
 - duplicate-code ratchet failures remain hard merge gates, but are enforced after baseline evidence
   collection and artifact upload so diagnostics from later quality producers are retained
 - container supply-chain evidence for Gateway images: Git-SHA tags, OCI labels, SBOM, Trivy scan,

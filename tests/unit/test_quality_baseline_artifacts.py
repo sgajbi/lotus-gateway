@@ -139,7 +139,8 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     assert "Duplicate Code Baseline" in workflow
     assert "--min-lines 15" in workflow
     assert "--min-tokens 50" in workflow
-    assert "--pattern 'src/app/**/*.py'" in workflow
+    assert "--pattern '**/*.py'" in workflow
+    assert "            src/app \\\n" in workflow
     assert "output/quality-baseline/duplicate-code.txt" in workflow
     assert "Enforce Duplicate Code Ratchet" in workflow
     assert "scripts/check_duplicate_code_ratchet.py" in workflow
@@ -225,6 +226,7 @@ def test_make_duplicate_detector_captures_status_without_bash_extensions() -> No
     assert "PIPESTATUS" not in duplicate_recipe
     assert "> output/duplicate-code/detector.txt 2>&1" in duplicate_recipe
     assert "status=$$?" in duplicate_recipe
+    assert "--pattern '**/*.py' src/app --noTips" in duplicate_recipe
 
 
 def test_repo_ignores_root_ci_failure_log_without_hiding_quality_evidence() -> None:
