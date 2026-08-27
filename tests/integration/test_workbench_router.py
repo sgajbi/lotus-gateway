@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Any
 
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -60,6 +61,79 @@ async def _analytics_reference(*args, **kwargs):
 
 async def _support_overview(*args, **kwargs):
     return 200, {"business_date": "2026-02-23"}
+
+
+@pytest.mark.parametrize(
+    ("query", "include_performance_snapshot", "include_rebalance_snapshot"),
+    [
+        ("", True, True),
+        ("?include_performance_snapshot=false", False, True),
+        ("?include_rebalance_snapshot=false", True, False),
+        (
+            "?include_performance_snapshot=false&include_rebalance_snapshot=false",
+            False,
+            False,
+        ),
+    ],
+)
+def test_workbench_router_propagates_optional_enrichment_controls(
+    monkeypatch,
+    query: str,
+    include_performance_snapshot: bool,
+    include_rebalance_snapshot: bool,
+) -> None:
+    observed: list[dict[str, Any]] = []
+
+    async def _overview(
+        self,
+        portfolio_id,
+        correlation_id,
+        *,
+        include_performance_snapshot=True,
+        include_rebalance_snapshot=True,
+        requested_as_of_date=None,
+    ):
+        observed.append(
+            {
+                "portfolio_id": portfolio_id,
+                "include_performance_snapshot": include_performance_snapshot,
+                "include_rebalance_snapshot": include_rebalance_snapshot,
+                "requested_as_of_date": requested_as_of_date,
+            }
+        )
+        return WorkbenchOverviewResponse(
+            correlation_id=correlation_id,
+            as_of_date="2026-05-03",
+            requested_as_of_date=requested_as_of_date,
+            effective_as_of_date="2026-05-03",
+            as_of_state="confirmed",
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id=portfolio_id,
+                base_currency="USD",
+            ),
+            overview=WorkbenchOverviewSummary(
+                market_value_base=1_000_000,
+                cash_weight_pct=1.816455,
+                position_count=11,
+            ),
+        )
+
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_workbench_overview",
+        _overview,
+    )
+
+    response = TestClient(app).get(f"/api/v1/workbench/PB_SG_GLOBAL_BAL_001/overview{query}")
+
+    assert response.status_code == 200
+    assert observed == [
+        {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "include_performance_snapshot": include_performance_snapshot,
+            "include_rebalance_snapshot": include_rebalance_snapshot,
+            "requested_as_of_date": None,
+        }
+    ]
 
 
 def test_workbench_router_success(monkeypatch):

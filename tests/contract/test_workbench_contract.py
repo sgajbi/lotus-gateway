@@ -181,6 +181,17 @@ def test_workbench_openapi_contract_registered() -> None:
     assert overview_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert overview_parameters["as_of_date"]["description"]
     assert overview_parameters["as_of_date"]["schema"]["examples"] == ["2026-08-23"]
+    assert overview_parameters["include_performance_snapshot"]["schema"]["default"] is True
+    assert overview_parameters["include_performance_snapshot"]["description"]
+    assert (
+        "analytics availability"
+        in overview_parameters["include_performance_snapshot"]["description"]
+    )
+    assert overview_parameters["include_rebalance_snapshot"]["schema"]["default"] is True
+    assert overview_parameters["include_rebalance_snapshot"]["description"]
+    assert (
+        "workflow availability" in overview_parameters["include_rebalance_snapshot"]["description"]
+    )
     assert "portfolio-360" in overview_operation["description"]
     assert overview_parameters["portfolio_id"]["description"]
     assert overview_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
