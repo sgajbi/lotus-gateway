@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Query
 
 from app.contracts.workbench import WorkbenchOverviewResponse
 from app.middleware.correlation import correlation_id_var
@@ -12,12 +12,16 @@ async def _get_workbench_overview(
     *,
     portfolio_id: str,
     requested_as_of_date: str | None,
+    include_performance_snapshot: bool,
+    include_rebalance_snapshot: bool,
 ) -> WorkbenchOverviewResponse:
     service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_overview(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
+        include_performance_snapshot=include_performance_snapshot,
+        include_rebalance_snapshot=include_rebalance_snapshot,
         requested_as_of_date=requested_as_of_date,
     )
 
@@ -40,8 +44,28 @@ async def get_workbench_overview(
         examples=["PF_1001"],
     ),
     as_of_date: str | None = WORKBENCH_AS_OF_DATE_QUERY,
+    include_performance_snapshot: bool = Query(
+        default=True,
+        description=(
+            "Include optional performance context. Set false when the caller needs only "
+            "source-confirmed portfolio valuation facts and must isolate them from analytics "
+            "availability."
+        ),
+        examples=[True],
+    ),
+    include_rebalance_snapshot: bool = Query(
+        default=True,
+        description=(
+            "Include optional rebalance workflow context. Set false when the caller needs only "
+            "source-confirmed portfolio valuation facts and must isolate them from workflow "
+            "availability."
+        ),
+        examples=[True],
+    ),
 ) -> WorkbenchOverviewResponse:
     return await _get_workbench_overview(
         portfolio_id=portfolio_id,
         requested_as_of_date=as_of_date,
+        include_performance_snapshot=include_performance_snapshot,
+        include_rebalance_snapshot=include_rebalance_snapshot,
     )
