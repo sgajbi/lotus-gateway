@@ -90,7 +90,10 @@ consumer migration remain tracked by parent issue #569.
 
 ## Current contract notes
 
-- Workbench overview and portfolio-360 accept an optional requested `as_of_date`. Their response
+- Workbench overview and portfolio-360 accept an optional requested `as_of_date`. The overview
+  also accepts additive `include_performance_snapshot` and `include_rebalance_snapshot` controls,
+  both defaulting to `true`; source-evidence consumers can set both to `false` to isolate confirmed
+  portfolio valuation facts from optional analytics or workflow availability. Their response
   publishes `requested_as_of_date`, `effective_as_of_date`, and `as_of_state`; the legacy
   top-level `as_of_date` is the effective source date or `null`. For an explicit request, top-level
   Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`. When the request is
