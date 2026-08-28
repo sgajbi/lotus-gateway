@@ -68,6 +68,8 @@ Business outcome:
    measure date, valuation basis, and explicit supportability needed to explain the decision,
 3. an absent limit, missing measure, cross-date snapshot, invalid basis, source failure, or
    contradictory verdict cannot become a false breach or false all-clear.
+4. incomplete issuer coverage cannot become an inside-mandate conclusion, and an omitted source
+   review cadence is never replaced with a Gateway default.
 
 Supported routes:
 
@@ -82,9 +84,12 @@ Authority and composition:
 3. `lotus-core`, consumed through the existing Workbench snapshot composition, owns the cash
    measure and effective business date,
 4. Gateway normalizes percentage points to mandate ratios and calculates signed presentation
-   headroom only from aligned source facts; it does not calculate mandate health or invent limits,
-5. the compact concentration comparison requires Risk's `weight_basis`; null limits remain
-   `not_defined`, and turnover remains `measure_unavailable` until a source measure exists.
+   headroom only from aligned source facts; cash buffer uses the nearest approved band boundary.
+   It does not calculate mandate health or invent limits or review cadence,
+5. the compact concentration comparison solely owns largest-position and largest-issuer rows,
+   requires Risk's `weight_basis`, and requires complete issuer coverage before an issuer verdict,
+6. null limits remain `not_defined`; turnover, sector, region, and currency remain
+   `measure_unavailable` until a source measure exists; missing review cadence remains absent.
 
 Historical limitation:
 
