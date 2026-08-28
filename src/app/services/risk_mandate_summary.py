@@ -89,12 +89,6 @@ def _unmeasured_constraints(
     return build_unmeasured_constraints(
         [
             ("turnover_budget", "Turnover budget", constraints.turnover_budget),
-            (
-                "single_position_max_weight",
-                "Largest position exposure",
-                constraints.single_position_max_weight,
-            ),
-            ("issuer_max_weight", "Largest issuer exposure", constraints.issuer_max_weight),
             ("sector_max_weight", "Largest sector exposure", constraints.sector_max_weight),
             ("region_max_weight", "Largest regional exposure", constraints.region_max_weight),
             ("currency_max_weight", "Largest currency exposure", constraints.currency_max_weight),

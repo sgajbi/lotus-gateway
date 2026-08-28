@@ -143,8 +143,12 @@ class WorkbenchMandateConstraintComparison(BaseModel):
 
 
 class WorkbenchMandateReviewPolicy(BaseModel):
-    review_frequency: str = Field(
-        description="Source-owned mandate review frequency.",
+    review_frequency: str | None = Field(
+        default=None,
+        description=(
+            "Source-owned mandate review frequency when supplied; Gateway never invents a "
+            "default cadence."
+        ),
         examples=["QUARTERLY"],
     )
     last_review_date: str | None = Field(

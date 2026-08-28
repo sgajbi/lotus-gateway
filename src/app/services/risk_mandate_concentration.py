@@ -35,8 +35,7 @@ def _constraints(
         if payload and payload.execution_context
         else response.as_of_date
     )
-    reason = _measure_unavailable_reason(response, basis)
-    ready = payload is not None and basis is not None and measure_as_of == response.as_of_date
+    base_ready = payload is not None and basis is not None and measure_as_of == response.as_of_date
     return [
         _constraint(
             response,
@@ -45,8 +44,8 @@ def _constraints(
             mandate.constraints.single_position_max_weight,
             basis,
             measure_as_of,
-            ready,
-            reason,
+            base_ready,
+            _measure_unavailable_reason(response, basis),
         ),
         _constraint(
             response,
@@ -55,8 +54,10 @@ def _constraints(
             mandate.constraints.issuer_max_weight,
             basis,
             measure_as_of,
-            ready,
-            reason,
+            base_ready
+            and payload is not None
+            and payload.issuer_concentration.coverage_status == "complete",
+            _issuer_measure_unavailable_reason(response, basis, base_ready),
         ),
     ]
 
@@ -114,3 +115,18 @@ def _measure_unavailable_reason(
     if response.partial_failures:
         return response.partial_failures[0].detail
     return "Concentration measures are unavailable from lotus-risk."
+
+
+def _issuer_measure_unavailable_reason(
+    response: WorkbenchRiskConcentrationResponse,
+    basis: str | None,
+    base_ready: bool,
+) -> str:
+    payload = response.payload
+    if (
+        base_ready
+        and payload is not None
+        and payload.issuer_concentration.coverage_status != "complete"
+    ):
+        return "Issuer concentration coverage is incomplete, so no mandate verdict is published."
+    return _measure_unavailable_reason(response, basis)

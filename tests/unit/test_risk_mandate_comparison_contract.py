@@ -82,3 +82,14 @@ def test_mandate_constraint_contract_can_refuse_classification_without_a_limit()
     assert constraint.state == "not_defined"
     assert constraint.limit is None
     assert constraint.headroom is None
+
+
+def test_review_policy_contract_preserves_an_absent_source_cadence() -> None:
+    policy = WorkbenchMandateReviewPolicy(
+        review_frequency=None,
+        last_review_date="2026-03-31",
+        next_review_due_date="2026-06-30",
+        state="scheduled",
+    )
+
+    assert policy.model_dump(mode="json")["review_frequency"] is None

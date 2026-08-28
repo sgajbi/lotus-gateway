@@ -49,7 +49,7 @@ class ManageMandateConstraintsSource(BaseModel):
 class ManageMandateReviewPolicySource(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    review_frequency: str = "QUARTERLY"
+    review_frequency: str | None = None
     last_review_date: date | None = None
     next_review_due_date: date | None = None
 
