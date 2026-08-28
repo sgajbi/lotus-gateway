@@ -1,8 +1,37 @@
 # Codebase Review Ledger
 
-Last updated: 2026-08-26
+Last updated: 2026-08-28
 Repository: `lotus-gateway`
 Reference branch: `origin/main`
+
+### Batch 3B — correct Workbench risk mandate comparison truth (#677)
+
+- Objective: ensure the Workbench Risk review receives one coherent, source-backed answer for each
+  approved mandate constraint, with no reassuring verdict on incomplete evidence and no invented
+  review policy.
+- Finding: the first #575 consumer review exposed four related composition defects. Partial issuer
+  coverage could still publish `within`; cash inside a two-sided band reported distance only to the
+  ceiling; an omitted source cadence became `QUARTERLY`; and summary emitted unmeasured position and
+  issuer rows while concentration emitted measured rows for the same keys.
+- Change: require complete issuer coverage for an issuer verdict while preserving independent
+  single-position evidence; calculate within-band cash headroom to the nearest boundary; make
+  review frequency nullable from source through OpenAPI; and partition largest-position/largest-
+  issuer ownership exclusively to concentration. Summary retains cash, tracking error, turnover,
+  sector, region, and currency posture.
+- Failure and compatibility posture: incomplete issuer coverage retains its source measure but
+  publishes `measure_unavailable` with no headroom; missing cadence remains absent; structurally
+  unavailable summary measures remain explicit; missing concentration data still returns its two
+  owned keys once. Workbench #890 owns tolerant presentation of nullable cadence before producer
+  promotion; Workbench #896 owns consumer/canonical regression proof after this Gateway fix.
+- Regression proof: four failing-first scenarios reproduced the incorrect mainline behavior.
+  Composition, source-loading, contract, and OpenAPI tests now cover nearest-boundary cash
+  headroom, partial issuer coverage, complete-coverage independence, disjoint key ownership,
+  unavailable concentration, undefined limits, and absent cadence. Protected CI, exact-main
+  validation, and downstream Workbench proof remain delivery gates.
+- Guidance decision: repository context, supported-features, API/integration wiki source, and this
+  ledger are updated because public response truth changed. Existing source-authority and
+  fail-closed Gateway skills already govern the repeatable pattern; no central skill change is
+  required.
 
 ### Batch 3A — compose source-owned risk mandate comparison (#575)
 

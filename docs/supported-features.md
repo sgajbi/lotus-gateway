@@ -105,18 +105,22 @@ Status: implementation-backed for the Gateway contract and date-aligned source c
 historical Manage reads remain tracked by `lotus-manage#639`.
 
 The Workbench risk summary combines Risk-owned measures with the approved Manage mandate,
-Manage-owned cash-health verdict, review cadence, and bounded source lineage. The concentration
-route publishes the same mandate identity with a compact position/issuer comparison. Gateway
+Manage-owned cash-health verdict, optional source review cadence, and bounded source lineage. The
+concentration route is the sole owner of the compact largest-position and largest-issuer
+comparison, so the two routes never publish contradictory rows for the same constraint. Gateway
 calculates signed headroom only when a source limit and source measure are both present and their
-business dates and valuation basis align. A missing limit is `not_defined`; missing, stale,
-mismatched, malformed, or contradictory evidence is `measure_unavailable` or supportability
-`unavailable`, never an inferred all-clear.
+business dates and valuation basis align. Cash headroom is the distance to the nearest edge of the
+approved band. An issuer verdict additionally requires complete source coverage. A missing limit is
+`not_defined`; missing, stale, incomplete, mismatched, malformed, or contradictory evidence is
+`measure_unavailable` or supportability `unavailable`, never an inferred all-clear. An omitted
+review cadence remains absent rather than defaulting to quarterly.
 
 Cash percentage points from the Workbench snapshot are normalized to the ratio unit used by the
 mandate, but Manage remains the cash-band verdict authority. Gateway rejects a Manage verdict that
 contradicts same-date cash and limit evidence instead of publishing either competing judgement.
-Risk remains the tracking-error and concentration-measure authority. Turnover and other
-unmeasured constraints remain explicitly unavailable until an owning service supplies a measure.
+Risk remains the tracking-error and concentration-measure authority. Turnover, sector, region, and
+currency constraints remain explicitly unavailable on the summary until an owning service supplies
+a measure.
 
 ## Performance Summary Review Controls
 

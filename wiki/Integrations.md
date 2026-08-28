@@ -108,10 +108,13 @@ authority remains with the named downstream execution provider as the execution 
    alongside dependency-specific supportability entries; Gateway does not recompute risk
    supportability
 6. risk summary and concentration compose `lotus-manage` mandate identity, constraints, health,
-   review cadence, and lineage with `lotus-risk` measures and the date-resolved Workbench cash
-   measure. Manage owns cash-health verdicts and approved limits; Risk owns tracking error and
-   concentration measures; Core owns the cash measure. Gateway calculates only signed presentation
-   headroom from aligned source facts, rejects conflicting or cross-portfolio evidence, and emits
+   optional review cadence, and lineage with `lotus-risk` measures and the date-resolved Workbench
+   cash measure. Manage owns cash-health verdicts and approved limits; Risk owns tracking error and
+   concentration measures; Core owns the cash measure. Summary owns cash, tracking error, turnover,
+   sector, region, and currency posture; concentration solely owns largest-position and
+   largest-issuer posture. Gateway calculates only signed presentation headroom from aligned source
+   facts, uses the nearest boundary for a two-sided cash band, requires complete issuer coverage,
+   rejects conflicting or cross-portfolio evidence, preserves absent cadence as absent, and emits
    explicit unavailable posture for missing limits, measures, dates, or bases. Historical Manage
    selection remains tracked by `lotus-manage#639`.
 7. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
