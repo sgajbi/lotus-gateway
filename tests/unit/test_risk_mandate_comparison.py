@@ -376,6 +376,27 @@ def test_concentration_compares_position_and_issuer_on_the_source_weight_basis()
     assert issuer.headroom == -0.0107
 
 
+def test_concentration_normalizes_complete_issuer_coverage_before_verdict() -> None:
+    concentration = _concentration()
+    assert concentration.payload is not None
+    concentration.payload.issuer_concentration.coverage_status = "COMPLETE"
+
+    response = compose_concentration_mandate_comparison(
+        response=concentration,
+        sources=_sources(
+            mandate=_mandate(
+                single_position_max_weight=0.20,
+                issuer_max_weight=0.20,
+            )
+        ),
+    )
+
+    assert response.mandate_comparison is not None
+    _, issuer = response.mandate_comparison.constraints
+    assert issuer.state == "breach"
+    assert issuer.headroom == -0.0107
+
+
 def test_concentration_refuses_an_issuer_verdict_when_coverage_is_partial() -> None:
     concentration = _concentration()
     assert concentration.payload is not None
