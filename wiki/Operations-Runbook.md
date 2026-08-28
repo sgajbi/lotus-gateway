@@ -1,7 +1,7 @@
 # Operations Runbook
 
 This page summarizes everyday operational checks. Use
-[docs/operations-runbook.md](../docs/operations-runbook.md) for the root runbook and
+[docs/operations-runbook.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/operations-runbook.md) for the root runbook and
 [Troubleshooting](Troubleshooting) for failure triage.
 
 ## Important operational checks
@@ -11,9 +11,9 @@ This page summarizes everyday operational checks. Use
 - treat partial-failure and supportability signals as contract data, not as noise to suppress
 - use repo-native gates before inventing custom checks
 - preserve support references and bounded degraded reasons when escalating incidents
-- use [docs/operations-runbook.md](../docs/operations-runbook.md),
-  [docs/observability.md](../docs/observability.md), and
-  [docs/security.md](../docs/security.md) as the consolidated root-doc entry points for
+- use [docs/operations-runbook.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/operations-runbook.md),
+  [docs/observability.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/observability.md), and
+  [docs/security.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/security.md) as the consolidated root-doc entry points for
   operators and enterprise-readiness reviews
 
 The development and Docker test extras include `httpx2>=2.12.0,<3.0.0` because the supported
@@ -118,6 +118,6 @@ evidence. It is not a replacement for populated Workbench browser proof.
 
 ## Key references
 
-- [docs/architecture.md](../docs/architecture.md)
-- [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
-- [docs/demo/README.md](../docs/demo/README.md)
+- [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md)
+- [docs/standards/RFC-0082-upstream-contract-family-map.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/standards/RFC-0082-upstream-contract-family-map.md)
+- [docs/demo/README.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/demo/README.md)

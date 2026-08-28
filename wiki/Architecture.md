@@ -18,8 +18,8 @@ state roadmap.
 - upstream integrations under `src/app/clients/`
 - workbench-facing contracts under `src/app/contracts/`
 - consolidated architecture and quality-baseline docs under
-  [docs/architecture.md](../docs/architecture.md) and
-  [quality/architecture_rules.md](../quality/architecture_rules.md)
+  [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md) and
+  [quality/architecture_rules.md](https://github.com/sgajbi/lotus-gateway/blob/main/quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
   existing public service/client surfaces; the blocking source-file threshold is now ratcheted to
   315 script-counted lines, with

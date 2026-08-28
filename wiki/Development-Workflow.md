@@ -30,9 +30,9 @@
 - keep `wiki/` as the authored wiki source
 - keep route-family detail and request examples in the wiki, not in the README
 - keep deep architecture and RFC detail in `docs/`
-- update [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md) when route
+- update [REPOSITORY-ENGINEERING-CONTEXT.md](https://github.com/sgajbi/lotus-gateway/blob/main/REPOSITORY-ENGINEERING-CONTEXT.md) when route
   ownership, startup commands, CI posture, or integration boundaries change
-- update [docs/demo/README.md](../docs/demo/README.md) when demo-safe claims or certification
+- update [docs/demo/README.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/demo/README.md) when demo-safe claims or certification
   evidence change
 - run the repo wiki check before merge when wiki source changes:
 
