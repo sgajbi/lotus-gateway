@@ -160,7 +160,7 @@ def _ready_cash_constraint(
         label="Cash allocation",
         limit=limit,
         measure=measure,
-        headroom=_stabilize_ratio_headroom(maximum - cash.value),
+        headroom=_stabilize_ratio_headroom(min(cash.value - minimum, maximum - cash.value)),
         state="within",
         reason="Cash allocation is within the approved mandate band.",
         source_state=dimension.state,

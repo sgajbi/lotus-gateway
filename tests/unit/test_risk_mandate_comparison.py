@@ -154,6 +154,18 @@ def test_summary_uses_manage_cash_verdict_and_calculates_signed_headroom() -> No
     assert cash.source_state == "READY"
 
 
+def test_summary_reports_cash_headroom_to_the_nearest_band_boundary() -> None:
+    response = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=_sources(cash_value=0.021),
+    )
+
+    assert response.mandate_comparison is not None
+    cash = response.mandate_comparison.constraints[0]
+    assert cash.state == "within"
+    assert cash.headroom == 0.001
+
+
 def test_summary_preserves_manage_cash_breach_instead_of_reclassifying_it() -> None:
     response = compose_summary_mandate_comparison(
         response=_summary(),
@@ -362,6 +374,134 @@ def test_concentration_compares_position_and_issuer_on_the_source_weight_basis()
     assert position.measure.basis == "total_market_value_base"
     assert issuer.state == "breach"
     assert issuer.headroom == -0.0107
+
+
+def test_concentration_refuses_an_issuer_verdict_when_coverage_is_partial() -> None:
+    concentration = _concentration()
+    assert concentration.payload is not None
+    concentration.payload.issuer_concentration.coverage_status = "partial"
+    concentration.payload.issuer_concentration.top_issuer_weight_current = 0.18
+
+    response = compose_concentration_mandate_comparison(
+        response=concentration,
+        sources=_sources(
+            mandate=_mandate(
+                single_position_max_weight=0.20,
+                issuer_max_weight=0.20,
+            )
+        ),
+    )
+
+    assert response.mandate_comparison is not None
+    position, issuer = response.mandate_comparison.constraints
+    assert position.state == "within"
+    assert issuer.state == "measure_unavailable"
+    assert issuer.headroom is None
+    assert issuer.measure is not None
+    assert issuer.measure.value == 0.18
+    assert "coverage" in issuer.reason.lower()
+
+
+def test_summary_and_concentration_partition_constraint_ownership() -> None:
+    mandate = _mandate(
+        single_position_max_weight=0.20,
+        issuer_max_weight=0.20,
+        sector_max_weight=0.30,
+        region_max_weight=0.40,
+        currency_max_weight=0.50,
+    )
+    sources = _sources(mandate=mandate)
+
+    summary = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=sources,
+    )
+    concentration = compose_concentration_mandate_comparison(
+        response=_concentration(),
+        sources=sources,
+    )
+
+    assert summary.mandate_comparison is not None
+    assert concentration.mandate_comparison is not None
+    summary_keys = {item.key for item in summary.mandate_comparison.constraints}
+    concentration_keys = {item.key for item in concentration.mandate_comparison.constraints}
+    assert summary_keys.isdisjoint(concentration_keys)
+
+
+def test_constraint_partition_stays_unique_when_concentration_is_unavailable() -> None:
+    mandate = _mandate(
+        max_tracking_error=0.05,
+        single_position_max_weight=0.20,
+        issuer_max_weight=0.20,
+        sector_max_weight=0.30,
+        region_max_weight=0.40,
+        currency_max_weight=0.50,
+    )
+    sources = _sources(mandate=mandate)
+    unavailable_concentration = _concentration().model_copy(
+        update={"state": "unavailable", "payload": None}
+    )
+
+    summary = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=sources,
+    )
+    concentration = compose_concentration_mandate_comparison(
+        response=unavailable_concentration,
+        sources=sources,
+    )
+
+    assert summary.mandate_comparison is not None
+    assert concentration.mandate_comparison is not None
+    constraints = [
+        *summary.mandate_comparison.constraints,
+        *concentration.mandate_comparison.constraints,
+    ]
+    assert len(constraints) == 8
+    assert len({item.key for item in constraints}) == len(constraints)
+
+
+def test_undefined_position_limit_is_reported_once_by_its_measure_owner() -> None:
+    sources = _sources(
+        mandate=_mandate(
+            single_position_max_weight=None,
+            issuer_max_weight=0.20,
+        )
+    )
+
+    summary = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=sources,
+    )
+    concentration = compose_concentration_mandate_comparison(
+        response=_concentration(),
+        sources=sources,
+    )
+
+    assert summary.mandate_comparison is not None
+    assert concentration.mandate_comparison is not None
+    constraints = [
+        *summary.mandate_comparison.constraints,
+        *concentration.mandate_comparison.constraints,
+    ]
+    position_rows = [item for item in constraints if item.key == "single_position_max_weight"]
+    assert len(position_rows) == 1
+    assert position_rows[0].state == "not_defined"
+
+
+def test_missing_source_review_frequency_does_not_become_quarterly() -> None:
+    mandate_payload = _mandate().model_dump(mode="json")
+    del mandate_payload["review_policy"]["review_frequency"]
+    mandate = ManageMandateSource.model_validate(mandate_payload)
+
+    response = compose_summary_mandate_comparison(
+        response=_summary(),
+        sources=_sources(mandate=mandate),
+    )
+
+    assert response.mandate_comparison is not None
+    assert response.mandate_comparison.review_policy is not None
+    assert response.mandate_comparison.review_policy.review_frequency is None
 
 
 def test_concentration_refuses_classification_without_source_weight_basis() -> None:

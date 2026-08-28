@@ -162,6 +162,23 @@ async def test_source_loader_forwards_review_date_and_normalizes_cash_percentage
 
 
 @pytest.mark.asyncio
+async def test_source_loader_does_not_default_an_absent_review_frequency() -> None:
+    manage = _ManageClient()
+    del manage.mandate_payload["review_policy"]["review_frequency"]
+
+    sources = await load_risk_mandate_sources(
+        manage_client=manage,
+        cash_source=_CashSource(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-1",
+        as_of_date="2026-05-03",
+    )
+
+    assert sources.mandate is not None
+    assert sources.mandate.review_policy.review_frequency is None
+
+
+@pytest.mark.asyncio
 async def test_source_loader_does_not_request_health_when_mandate_is_unavailable() -> None:
     manage = _ManageClient()
     manage.mandate_status = 503

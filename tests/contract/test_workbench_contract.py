@@ -537,11 +537,19 @@ def test_workbench_openapi_contract_registered() -> None:
     mandate_constraint_schema = spec["components"]["schemas"][
         "WorkbenchMandateConstraintComparison"
     ]
+    mandate_review_policy_schema = spec["components"]["schemas"]["WorkbenchMandateReviewPolicy"]
     assert mandate_comparison_schema["properties"]["comparison_as_of_date"]["description"]
     assert mandate_comparison_schema["properties"]["date_alignment_state"]["description"]
     assert mandate_comparison_schema["properties"]["source_lineage"]["description"]
     assert mandate_constraint_schema["properties"]["headroom"]["description"]
     assert mandate_constraint_schema["properties"]["source_state"]["description"]
+    review_frequency_schema = mandate_review_policy_schema["properties"]["review_frequency"]
+    assert review_frequency_schema["description"]
+    assert {variant.get("type") for variant in review_frequency_schema["anyOf"]} == {
+        "string",
+        "null",
+    }
+    assert "review_frequency" not in mandate_review_policy_schema.get("required", [])
     assert metric_schema["properties"]["key"]["description"]
     assert metric_schema["properties"]["value"]["examples"] == [0.12]
     assert metric_schema["properties"]["details"]["description"]
