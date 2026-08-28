@@ -290,9 +290,17 @@ bug.
 | `documentation_percent` | 1.6 | must not fall below | `interrogate.txt` |
 | `openapi_spectral_problems` | 4 | must not exceed | `spectral.txt` |
 
-A ratchet is set at the measured value with no headroom, so an improvement cannot go unbanked and a
-regression cannot be absorbed silently. Each metric carries its own remediation string in the JSON,
-which the failure message prints — read that first when a gate blocks.
+These eleven are **directional, not equality** checks: `not_below` passes on `current >= threshold`
+and `not_above` on `current <= threshold`. A regression fails the build; an improvement simply
+passes and is **not** banked. Banking it is a separate, explicit action — `--update-baseline` — so
+an unbanked improvement will sit outside the checked-in baseline until someone records it, and the
+next regression will be measured against the older, looser value.
+
+Bank improvements deliberately in the same PR that produces them. The equality-style ceilings that
+*cannot* drift are the `315/49` pair below, which is a different gate.
+
+Each metric carries its own remediation string in the JSON, which the failure message prints — read
+that first when a gate blocks.
 
 ### Agent quality evidence
 
@@ -320,8 +328,10 @@ The workflow fragments are checked too, so `--max-source-file-lines` and `--max-
 3. Fix the finding. If it genuinely cannot be fixed now, a baseline update is a **reviewed,
    explicit** action — `--update-baseline` after inspecting the underlying findings — never an
    automatic step and never a way to absorb a regression.
-4. If the ratchet blocks because the tree *improved*, bank the improvement by updating the recorded
-   value in the same PR.
+4. If the tree *improved*, the directional metrics will not tell you — they pass silently. Bank the
+   new value with `--update-baseline` in the same PR, or the improvement is lost to the next
+   comparison. The `315/49` ceilings behave differently: they fail until the recorded value is
+   updated, so those cannot be forgotten.
 
 ### Where the per-branch refactor history went
 
