@@ -37,6 +37,6 @@
 
 ## Local references
 
-- [docs/rfcs/README.md](../docs/rfcs/README.md)
-- [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
-- [docs/architecture.md](../docs/architecture.md)
+- [docs/rfcs/README.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/rfcs/README.md)
+- [docs/standards/RFC-0082-upstream-contract-family-map.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/standards/RFC-0082-upstream-contract-family-map.md)
+- [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md)

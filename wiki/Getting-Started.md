@@ -70,8 +70,8 @@ the governed Workbench runtime and platform QA evidence.
 
 ## First docs to read
 
-- [README.md](../README.md)
-- [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
-- [docs/demo/README.md](../docs/demo/README.md)
-- [docs/architecture.md](../docs/architecture.md)
-- [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
+- [README.md](https://github.com/sgajbi/lotus-gateway/blob/main/README.md)
+- [REPOSITORY-ENGINEERING-CONTEXT.md](https://github.com/sgajbi/lotus-gateway/blob/main/REPOSITORY-ENGINEERING-CONTEXT.md)
+- [docs/demo/README.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/demo/README.md)
+- [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md)
+- [docs/standards/RFC-0082-upstream-contract-family-map.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/standards/RFC-0082-upstream-contract-family-map.md)

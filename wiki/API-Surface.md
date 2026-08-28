@@ -6,6 +6,13 @@ intended as operator smoke checks, while executable contract truth remains in th
 OpenAPI generation. Examples use `GATEWAY_BASE_URL` so the same commands work against local, Docker,
 or governed ingress endpoints without embedding environment-specific hostnames in the wiki.
 
+## Contents
+
+1. [Route families](#route-families)
+2. [Portfolio transaction temporal contract](#portfolio-transaction-temporal-contract)
+3. [Current contract notes](#current-contract-notes)
+4. [Request examples](#request-examples)
+
 ## Route families
 
 - `GET /api/v1/portfolio/portfolios`
@@ -537,21 +544,34 @@ consumer migration remain tracked by parent issue #569.
   operation, service, state, reason, forbidden-field, and operator-guidance posture and emits
   `gateway.analytics.audit.protected_diagnostics_lookup`.
 
+### Performance horizon windows
+
+Performance workspace summary, details, attribution trend, advisor brief, and portfolio snapshot
+routes accept the canonical periods `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and
+`EXPLICIT`. `2Y` and `10Y` use inclusive trailing boundaries. `SI` is resolved only from Core's
+`PortfolioAnalyticsReference.portfolio_open_date`; missing or invalid source evidence fails closed
+with a typed `422`. `EXPLICIT` requires `report_start_date`, and unknown periods or malformed
+dates never fall back to YTD. The portfolio snapshot uses canonical `report_start_date` and
+`report_end_date` names, retaining deprecated `explicit_start_date` and `explicit_end_date` for
+one release; canonical values take precedence independently when both names are supplied. The
+compact horizon-comparison route is intentionally limited to
+`MTD`, `QTD`, `YTD`, and `EXPLICIT`; use summary or details for longer horizons.
+
 ## Request examples
 
-Set the target gateway once:
+### Set the target gateway once
 
 ```bash
 export GATEWAY_BASE_URL="<gateway-base-url>"
 ```
 
-Platform capabilities:
+### Platform capabilities
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
 ```
 
-Domain-product catalog:
+### Domain-product catalog
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
@@ -561,13 +581,13 @@ The catalog response includes platform provenance such as `governedByRfcs`,
 `sourceManifestPath`, and `sourceDeclarationDirectory`; missing or invalid artifact failures use
 bounded product-safe detail text rather than configured filesystem paths.
 
-Domain-product detail:
+### Domain-product detail
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/domain-products/products/lotus-core/PortfolioStateSnapshot/v1?consumerSystem=lotus-workbench"
 ```
 
-Domain-product dependency graph:
+### Domain-product dependency graph
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/domain-products/dependency-graph?consumerSystem=lotus-workbench"
@@ -576,13 +596,13 @@ curl "$GATEWAY_BASE_URL/api/v1/domain-products/dependency-graph?consumerSystem=l
 The dependency graph preserves platform `governedByRfcs` and source catalog provenance from the
 generated artifact.
 
-Domain-product trust certification:
+### Domain-product trust certification
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
-Portfolio workspace:
+### Portfolio workspace
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
@@ -592,7 +612,7 @@ The portfolio workspace uses the product-owned Gateway contract for first-paint 
 Use the dedicated Workbench performance routes for detailed performance evidence and horizon
 semantics.
 
-Portfolio allocation contributors:
+### Portfolio allocation contributors
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/allocations?as_of_date=2026-03-27&reporting_currency=USD&look_through_mode=prefer_look_through&contributor_limit_per_bucket=50"
@@ -620,7 +640,7 @@ The published Gateway-owned `PortfolioAllocation*` schemas are closed objects in
 new free-form response objects cannot silently reach Workbench; the Core source reader remains
 tolerant of additive upstream fields.
 
-Performance summary:
+### Performance summary
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
@@ -632,20 +652,8 @@ curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?pe
   -H "X-Role: advisor"
 ```
 
-### Performance horizon windows
 
-Performance workspace summary, details, attribution trend, advisor brief, and portfolio snapshot
-routes accept the canonical periods `MTD`, `QTD`, `YTD`, `1Y`, `2Y`, `3Y`, `5Y`, `10Y`, `SI`, and
-`EXPLICIT`. `2Y` and `10Y` use inclusive trailing boundaries. `SI` is resolved only from Core's
-`PortfolioAnalyticsReference.portfolio_open_date`; missing or invalid source evidence fails closed
-with a typed `422`. `EXPLICIT` requires `report_start_date`, and unknown periods or malformed
-dates never fall back to YTD. The portfolio snapshot uses canonical `report_start_date` and
-`report_end_date` names, retaining deprecated `explicit_start_date` and `explicit_end_date` for
-one release; canonical values take precedence independently when both names are supplied. The
-compact horizon-comparison route is intentionally limited to
-`MTD`, `QTD`, `YTD`, and `EXPLICIT`; use summary or details for longer horizons.
-
-Risk summary:
+### Risk summary
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?period=YTD&detail_basis=NET&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&reporting_currency=USD" \
@@ -668,7 +676,7 @@ Until `lotus-manage#639` delivers historical mandate and health reads, a histori
 may truthfully report `date_alignment_state: mismatch` when Manage can supply only its latest
 snapshot. Consumers must present that posture as unavailable evidence, not a breach or all-clear.
 
-Advisor brief:
+### Advisor brief
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
@@ -680,7 +688,7 @@ curl "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-br
   -H "X-Role: advisor"
 ```
 
-Advisor brief review action:
+### Advisor brief review action
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief/review-actions?period=YTD" \
@@ -694,7 +702,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/workbench/DEMO_ADV_USD_001/performance/ad
   -d "{\"action_type\":\"ACCEPT\",\"reviewed_by\":\"advisor-123\",\"reason\":\"Approved for client discussion.\"}"
 ```
 
-Authenticated advisor own-book discovery:
+### Authenticated advisor own-book discovery
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/advisor-book/portfolios?asOfDate=2026-04-10&sortBy=client_id&limit=25" \
@@ -711,7 +719,7 @@ The response contains only the source-backed own-book cohort for the trusted act
 centre. Treat `trusted_context_only`, `legacy_advisor_projection`, and other limitations as
 operating boundaries; do not promote them to tenant certification or authoritative role coverage.
 
-Report ordering options for a selected portfolio:
+### Report ordering options for a selected portfolio
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/report-ordering/options?scopeType=portfolio&scopeId=PB_SG_GLOBAL_BAL_001" \
@@ -729,7 +737,7 @@ ready while PDF remains unavailable with a Report-owned reason code. Use the ret
 path for an eligible ordering mode; do not infer distribution or document completion from this
 discovery response.
 
-Reporting summary:
+### Reporting summary
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/summary" \
@@ -737,7 +745,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/summary" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"WEALTH\",\"ALLOCATION\"],\"allocationDimensions\":[\"asset_class\"]}"
 ```
 
-Reporting portfolio review:
+### Reporting portfolio review
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/review" \
@@ -745,7 +753,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/DEMO_DPM_EUR_001/review" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"allocationDimensions\":[\"asset_class\"],\"lookThroughMode\":\"full\",\"benchmarkCode\":\"BMK_PB_GLOBAL_BALANCED_60_40\"}"
 ```
 
-Portfolio review report job:
+### Portfolio review report job
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/portfolio-reviews" \
@@ -760,7 +768,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/portfolio-reviews" \
   -d "{\"portfolio_scope\":{\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"]},\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"json\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"benchmark_code\":\"BMK_PB_GLOBAL_BALANCED_60_40\"}}"
 ```
 
-Outcome-review report job:
+### Outcome-review report job
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/reports/outcome-reviews" \
@@ -779,7 +787,7 @@ and correlation. Product callers must not select Gateway workload authority. Gat
 supplied service identity or capability and derives exactly `X-Service-Identity: lotus-gateway`
 plus `X-Capabilities: manage.write` only for outbound Manage mutations.
 
-DPM outcome-review create:
+### DPM outcome-review create
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews" \
@@ -793,14 +801,14 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews" \
   -d "{\"body\":{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}}"
 ```
 
-DPM outcome-review supportability:
+### DPM outcome-review supportability
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/supportability" \
   -H "X-Correlation-Id: corr-rfc42-supportability-1"
 ```
 
-DPM outcome-review AI narrative handoff:
+### DPM outcome-review AI narrative handoff
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/ai-narrative" \
@@ -813,7 +821,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/outcome-reviews/or_202
   -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
 ```
 
-DPM proof-pack AI PM memo handoff:
+### DPM proof-pack AI PM memo handoff
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo" \
@@ -826,7 +834,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/proof-packs/dpp_rr_001
   -d "{\"requested_outputs\":[\"pm_memo\",\"rationale_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\"]}"
 ```
 
-DPM rebalance-wave create:
+### DPM rebalance-wave create
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves" \
@@ -839,21 +847,21 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves" \
   -d "{\"idempotency_key\":\"wave-idem-001\",\"body\":{\"trigger_type\":\"EXPLICIT_PORTFOLIO_LIST\",\"trigger_id\":\"manual-wave-20260503-001\",\"rationale\":\"CIO model update for the Singapore balanced DPM book.\",\"as_of_date\":\"2026-05-03\",\"actor_id\":\"pm_sg_1\",\"portfolios\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\"}]}}"
 ```
 
-DPM rebalance-wave supportability:
+### DPM rebalance-wave supportability
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/supportability" \
   -H "X-Correlation-Id: corr-rfc41-wave-supportability"
 ```
 
-DPM rebalance-wave report input:
+### DPM rebalance-wave report input
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/report-input" \
   -H "X-Correlation-Id: corr-rfc41-wave-report-input"
 ```
 
-DPM rebalance-wave AI PM memo:
+### DPM rebalance-wave AI PM memo
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo" \
@@ -866,7 +874,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/ai-pm-me
   -d "{\"requested_outputs\":[\"wave_pm_memo\",\"approval_checklist\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\",\"operations\"]}"
 ```
 
-DPM rebalance-wave selection with proof-pack generation:
+### DPM rebalance-wave selection with proof-pack generation
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select" \
@@ -879,13 +887,13 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/dpm/command-center/waves/dwv_001/items/dw
   -d "{\"body\":{\"alternative_id\":\"alt_001\",\"actor_id\":\"pm_sg_1\",\"reason_code\":\"PM_SELECTED\",\"generate_proof_pack\":true}}"
 ```
 
-Report job status:
+### Report job status
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/report-jobs/rjob_example"
 ```
 
-Report job operational search:
+### Report job operational search
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&portfolioId=PB_SG_GLOBAL_BAL_001&status=accepted&limit=25" \
@@ -894,13 +902,13 @@ curl "$GATEWAY_BASE_URL/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&portfo
   -H "X-Region: APAC"
 ```
 
-Report job event history:
+### Report job event history
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/report-jobs/rjob_example/events"
 ```
 
-Report batch materialization:
+### Report batch materialization
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches" \
@@ -915,7 +923,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches" \
   -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\"]},\"max_batch_size\":250}"
 ```
 
-Report batch candidate preflight:
+### Report batch candidate preflight
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches/preflight" \
@@ -934,7 +942,7 @@ The preflight response uses `report-batch-preflight.v1`, returns one candidate r
 portfolio in request order, and separates source membership posture from report-configuration
 posture. It does not reserve, create, or authorize a later batch.
 
-Report batch status:
+### Report batch status
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example" \
@@ -943,7 +951,7 @@ curl "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example" \
   -H "X-Region: APAC"
 ```
 
-Report batch bounded operator run:
+### Report batch bounded operator run
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example:run-once" \
@@ -954,7 +962,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/report-batches/rbch_example:run-once" \
   -d "{\"worker_id\":\"lotus-report-batch-worker-1\",\"recover_expired_leases\":true,\"dispatch_policy\":{\"max_active_batches\":1,\"max_active_items\":5,\"max_active_upstream_jobs\":3,\"max_active_render_jobs\":2,\"max_active_archive_jobs\":2,\"lease_seconds\":300},\"runtime_load\":{\"active_batches\":0,\"active_items\":0,\"active_upstream_jobs\":0,\"active_render_jobs\":0,\"active_archive_jobs\":0}}"
 ```
 
-Archived document metadata:
+### Archived document metadata
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example" \
@@ -966,7 +974,7 @@ curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example" \
   -H "X-Role: advisor"
 ```
 
-Archived document download:
+### Archived document download
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example/download" \
@@ -979,7 +987,7 @@ curl "$GATEWAY_BASE_URL/api/v1/documents/doc_example/download" \
   --output portfolio-review.pdf
 ```
 
-Advisor idea review queue:
+### Advisor idea review queue
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z" \
@@ -992,7 +1000,7 @@ curl "$GATEWAY_BASE_URL/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-0
   -H "X-Caller-Client-Ids: client-001"
 ```
 
-Idea candidate detail:
+### Idea candidate detail
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7" \
@@ -1005,7 +1013,7 @@ curl "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7"
   -H "X-Caller-Client-Ids: client-001"
 ```
 
-Idea candidate review action:
+### Idea candidate review action
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/review-actions" \
@@ -1023,7 +1031,7 @@ The `feedback` and `conversion-intents` routes use the same caller-context and i
 They record only Lotus Idea-owned workflow facts; a conversion intent does not initiate downstream
 submission, rebalance, execution, suitability approval, or client communication.
 
-Analytics diagnostics protected lookup:
+### Analytics diagnostics protected lookup
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
@@ -1033,7 +1041,7 @@ curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permi
   -H "X-Role: support-operator"
 ```
 
-Proposal creation:
+### Proposal creation
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals" \
@@ -1042,7 +1050,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals" \
   -d @docs/demo/payloads/proposal-create.json
 ```
 
-Proposal risk and impact evidence:
+### Proposal risk and impact evidence
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/risk-impact" \
@@ -1055,7 +1063,7 @@ readiness. See the
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-risk-impact-v1.md)
 for field authority and v1 boundaries.
 
-Proposal implementation status evidence:
+### Proposal implementation status evidence
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/execution-status" \
@@ -1085,7 +1093,7 @@ report-package posture, consent, client release, and client delivery independent
 [repo contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-discussion-pack-review-v1.md)
 for the full authority, supportability, and contradiction map.
 
-Proposal narrative review:
+### Proposal narrative review
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/narrative/review" \
@@ -1095,7 +1103,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/narrative/revie
   -d "{\"action\":\"APPROVE\",\"reviewed_by\":\"compliance_reviewer_001\",\"reason\":\"Evidence-grounded and suitable for advisor use.\"}"
 ```
 
-Proposal report request with reviewed narrative package:
+### Proposal report request with reviewed narrative package
 
 ```bash
 curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/report-requests" \
@@ -1104,7 +1112,7 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/report-requests" \
   -d "{\"report_type\":\"PORTFOLIO_REVIEW\",\"requested_by\":\"advisor_1\",\"related_version_no\":2,\"include_reviewed_narrative\":true}"
 ```
 
-Proposal memo evidence and action family:
+### Proposal memo evidence and action family
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/versions/2/memo" \
@@ -1136,7 +1144,7 @@ missing items, count mismatches, contradictory latest identity, and descending p
 order; memo detail rejects a missing or contradictory `audit_events`/`event_count` pair. See the
 [proposal memo response contract](https://github.com/sgajbi/lotus-gateway/blob/main/docs/contracts/proposal-memo-response-v1.md).
 
-Proposal delivery posture:
+### Proposal delivery posture
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/delivery-summary" \
@@ -1146,7 +1154,7 @@ curl "$GATEWAY_BASE_URL/api/v1/proposals/pp_1/delivery-events" \
   -H "X-Correlation-Id: corr-rfc23-delivery-events"
 ```
 
-Bank-demo proof supported-claim register:
+### Bank-demo proof supported-claim register
 
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/advisory/bank-demo-proof/supported-claim-register" \

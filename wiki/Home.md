@@ -8,18 +8,18 @@ portfolio, performance, risk, advisory, DPM, reporting, archive, or AI truth.
 
 ## Start here
 
-- Repo entrypoint: [README.md](../README.md)
-- Repo context: [REPOSITORY-ENGINEERING-CONTEXT.md](../REPOSITORY-ENGINEERING-CONTEXT.md)
+- Repo entrypoint: [README.md](https://github.com/sgajbi/lotus-gateway/blob/main/README.md)
+- Repo context: [REPOSITORY-ENGINEERING-CONTEXT.md](https://github.com/sgajbi/lotus-gateway/blob/main/REPOSITORY-ENGINEERING-CONTEXT.md)
 - Demo pack and claim control:
-  [docs/demo/README.md](../docs/demo/README.md)
+  [docs/demo/README.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/demo/README.md)
 - Architecture guide:
-  [docs/architecture.md](../docs/architecture.md)
+  [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md)
 - Upstream contract-family map:
-  [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
+  [docs/standards/RFC-0082-upstream-contract-family-map.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/standards/RFC-0082-upstream-contract-family-map.md)
 - Quality and enterprise-readiness baseline:
-  [quality/baseline_report.md](../quality/baseline_report.md),
-  [quality/quality_scorecard.md](../quality/quality_scorecard.md), and
-  [docs/architecture.md](../docs/architecture.md)
+  [quality/baseline_report.md](https://github.com/sgajbi/lotus-gateway/blob/main/quality/baseline_report.md),
+  [quality/quality_scorecard.md](https://github.com/sgajbi/lotus-gateway/blob/main/quality/quality_scorecard.md), and
+  [docs/architecture.md](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md)
 
 ## Current phase
 
