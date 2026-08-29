@@ -1139,7 +1139,9 @@ that are not named Gateway properties, and then publishes only the closed contra
 commentary entries preserve Advise-owned section key, advisor-facing title, review-gated text, and
 review state through one closed type reused by posture, action, audit, lineage, and replay paths.
 Unavailable or not-recorded commentary may carry an empty section list; legacy strings and
-incomplete section objects fail closed. Recorded
+incomplete section objects fail closed. Recorded commentary posture also retains source memo/input
+hashes, idempotency evidence, requested section keys, and reason so Workbench can verify the
+refreshed action before showing confirmation. Recorded
 memo-review posture retains Advise's idempotency key and request hash plus the memo and source-input
 hashes; audit-event reasons retain source memo and lifecycle status when present. These remain
 optional, named fields for source events that carry them; unknown public-contract fields still fail

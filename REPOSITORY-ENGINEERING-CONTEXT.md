@@ -85,7 +85,9 @@ Current repository posture:
    audit-count contradictions, and malformed successful source payloads fail closed: typed
    contract construction maps the latter to a product-safe `502` identifying `lotus-advise`.
    Commentary posture, action, audit, lineage, and replay paths reuse one closed section contract
-   carrying Advise-owned section key, title, text, and review state;
+   carrying Advise-owned section key, title, text, and review state. Recorded commentary posture
+   retains source memo/input hashes, idempotency evidence, requested section keys, and reason so
+   Workbench can verify the refreshed action before confirming it;
    Memo lineage also requires item/count/latest identity consistency before publication. Contract
    tests and generated OpenAPI expose named nested properties and recursively closed response
    references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also

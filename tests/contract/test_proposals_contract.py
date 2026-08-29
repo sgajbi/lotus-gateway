@@ -467,8 +467,16 @@ def _memo_response_payload() -> dict:
         "report_package_posture": {"status": "RECORDED", "client_ready_publication": "BLOCKED"},
         "ai_commentary_posture": {
             "status": "RECORDED",
+            "event_id": "pme_ai_001",
+            "idempotency_key": "idem-memo-ai-001",
+            "idempotency_request_hash": "sha256:ai-request-001",
+            "memo_hash": "sha256:memo-001",
+            "source_input_hash": "sha256:ai-source-001",
+            "source_memo_hash": "sha256:memo-001",
             "ai_status": "REVIEW_REQUIRED",
             "sections": [_memo_commentary_section()],
+            "requested_sections": ["EXECUTIVE_SUMMARY"],
+            "reason": {"purpose": "advisor-use commentary"},
         },
         "replay_metadata": {
             "proposal_artifact_hash": "sha256:artifact-001",
@@ -685,6 +693,10 @@ def test_proposal_memo_contract_shapes() -> None:
     assert memo_payload.data.audit_events[0].reason.memo_status == "BLOCKED"
     assert memo_payload.data.ai_commentary_posture.sections[0].model_dump() == (
         _memo_commentary_section()
+    )
+    assert memo_payload.data.ai_commentary_posture.source_memo_hash == ("sha256:memo-001")
+    assert memo_payload.data.ai_commentary_posture.idempotency_request_hash == (
+        "sha256:ai-request-001"
     )
     assert projection_payload.data.audience == "COMPLIANCE"
     assert review_payload.data.review_event.event_type == "MEMO_REVIEW_RECORDED"

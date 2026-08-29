@@ -147,8 +147,15 @@ class ProposalMemoAiCommentaryPosture(_ClosedMemoModel):
     event_id: str | None = None
     actor_id: str | None = None
     occurred_at: str | None = None
+    idempotency_key: str | None = None
+    idempotency_request_hash: str | None = None
+    memo_hash: str | None = None
+    source_input_hash: str | None = None
+    source_memo_hash: str | None = None
     ai_status: str | None = None
     sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
+    requested_sections: list[str] = Field(default_factory=list)
+    reason: MemoReason = Field(default_factory=dict)
     lineage: MemoReason = Field(default_factory=dict)
     review_guidance: list[str] = Field(default_factory=list)
     client_ready_publication: str | None = None
