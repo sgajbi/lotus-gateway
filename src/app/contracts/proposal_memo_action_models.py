@@ -1,14 +1,15 @@
 from pydantic import Field
 
+from app.contracts.proposal_memo_commentary_models import ProposalMemoCommentary
+from app.contracts.proposal_memo_common import ClosedProposalMemoModel
 from app.contracts.proposal_memo_models import (
     ProposalMemoAuditEvent,
     ProposalMemoReportResponse,
     ProposalMemoResponse,
 )
-from app.contracts.proposal_memo_nested_models import ProposalMemoCommentary, _ClosedMemoModel
 
 
-class ProposalMemoReviewResponse(_ClosedMemoModel):
+class ProposalMemoReviewResponse(ClosedProposalMemoModel):
     memo: ProposalMemoResponse = Field(description="Memo response after review event recording.")
     review_event: ProposalMemoAuditEvent = Field(description="Created or replayed review event.")
     replayed: bool = Field(
@@ -17,7 +18,7 @@ class ProposalMemoReviewResponse(_ClosedMemoModel):
     )
 
 
-class ProposalMemoReportPackageEventResponse(_ClosedMemoModel):
+class ProposalMemoReportPackageEventResponse(ClosedProposalMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after report-package event recording."
     )
@@ -30,7 +31,7 @@ class ProposalMemoReportPackageEventResponse(_ClosedMemoModel):
     )
 
 
-class ProposalMemoReportPackageResponse(_ClosedMemoModel):
+class ProposalMemoReportPackageResponse(ClosedProposalMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after report/render/archive package materialization."
     )
@@ -46,7 +47,7 @@ class ProposalMemoReportPackageResponse(_ClosedMemoModel):
     )
 
 
-class ProposalMemoAiCommentaryResponse(_ClosedMemoModel):
+class ProposalMemoAiCommentaryResponse(ClosedProposalMemoModel):
     memo: ProposalMemoResponse = Field(
         description="Memo response after AI commentary lineage recording."
     )

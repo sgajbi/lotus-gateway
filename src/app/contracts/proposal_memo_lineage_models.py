@@ -1,8 +1,9 @@
 from pydantic import Field, model_validator
 
+from app.contracts.proposal_memo_commentary_models import ProposalMemoAiCommentaryPosture
+from app.contracts.proposal_memo_common import ClosedProposalMemoModel
 from app.contracts.proposal_memo_models import ProposalMemoAuditEvent, ProposalMemoProposalSummary
 from app.contracts.proposal_memo_nested_models import (
-    ProposalMemoAiCommentaryPosture,
     ProposalMemoArchivePosture,
     ProposalMemoLineagePosture,
     ProposalMemoReplayEvidence,
@@ -11,11 +12,10 @@ from app.contracts.proposal_memo_nested_models import (
     ProposalMemoReplayMetadata,
     ProposalMemoReplaySubject,
     ProposalMemoReportPackagePosture,
-    _ClosedMemoModel,
 )
 
 
-class ProposalMemoLineageItem(_ClosedMemoModel):
+class ProposalMemoLineageItem(ClosedProposalMemoModel):
     memo_id: str = Field(description="Persisted memo identifier.", examples=["memo_001"])
     proposal_version_no: int = Field(description="Owning proposal version number.", examples=[1])
     proposal_version_id: str | None = Field(
@@ -47,8 +47,16 @@ class ProposalMemoLineageItem(_ClosedMemoModel):
         description="Latest review-gated AI commentary posture recorded for this memo.",
     )
 
+    @model_validator(mode="after")
+    def validate_commentary_identity(self) -> "ProposalMemoLineageItem":
+        self.ai_commentary_posture.require_memo_identity(
+            memo_hash=self.memo_hash,
+            source_input_hash=self.source_input_hash,
+        )
+        return self
 
-class ProposalMemoLineageResponse(_ClosedMemoModel):
+
+class ProposalMemoLineageResponse(ClosedProposalMemoModel):
     proposal: ProposalMemoProposalSummary = Field(
         description="Proposal summary used as lineage root."
     )
@@ -88,7 +96,7 @@ class ProposalMemoLineageResponse(_ClosedMemoModel):
         return self
 
 
-class ProposalMemoReplayEvidenceResponse(_ClosedMemoModel):
+class ProposalMemoReplayEvidenceResponse(ClosedProposalMemoModel):
     subject: ProposalMemoReplaySubject = Field(description="Memo replay subject identifiers.")
     hashes: ProposalMemoReplayHashes = Field(
         description="Canonical proposal and memo hashes proving replay source identity."
@@ -105,6 +113,14 @@ class ProposalMemoReplayEvidenceResponse(_ClosedMemoModel):
     explanation: ProposalMemoReplayExplanation = Field(
         description="Replay explanation and unsupported product-surface boundaries.",
     )
+
+    @model_validator(mode="after")
+    def validate_commentary_identity(self) -> "ProposalMemoReplayEvidenceResponse":
+        self.evidence.ai_commentary_posture.require_memo_identity(
+            memo_hash=self.hashes.memo_hash,
+            source_input_hash=self.hashes.source_input_hash,
+        )
+        return self
 
 
 __all__ = [

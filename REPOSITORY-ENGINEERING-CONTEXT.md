@@ -88,8 +88,10 @@ Current repository posture:
    carrying Advise-owned section key, title, text, and review state. Recorded commentary posture
    retains source memo/input hashes, idempotency evidence, requested section keys, and reason so
    Workbench can verify the refreshed action before confirming it. Recorded or available
-   commentary without its idempotency and memo/source hashes fails closed; non-recorded posture
-   may omit that action lineage;
+   commentary without its idempotency and memo/source hashes fails closed. Those hashes must match
+   the enclosing memo, lineage item, or replay evidence, and the commentary action result must
+   match the submitted memo hash and idempotency key; non-recorded posture may omit that action
+   lineage;
    Memo lineage also requires item/count/latest identity consistency before publication. Contract
    tests and generated OpenAPI expose named nested properties and recursively closed response
    references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also

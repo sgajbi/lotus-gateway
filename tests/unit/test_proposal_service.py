@@ -20,7 +20,7 @@ def _memo_commentary_posture(memo_hash: str, status: str = "AVAILABLE") -> dict:
         "idempotency_key": "idem-memo-ai-1",
         "idempotency_request_hash": "sha256:ai-request-1",
         "memo_hash": memo_hash,
-        "source_input_hash": "sha256:ai-source-1",
+        "source_input_hash": "sha256:source-1",
         "source_memo_hash": memo_hash,
         "ai_status": "REVIEW_REQUIRED",
         "sections": [_memo_commentary_section()],
@@ -1107,6 +1107,7 @@ class _FakeAdviseClient:
             },
             "hashes": {
                 "memo_hash": "sha256:memo-1",
+                "source_input_hash": "sha256:source-1",
                 "proposal_artifact_hash": "sha256:artifact-1",
             },
             "replay_metadata": {"replay_policy": "EXACT_SOURCE_HASH_MATCH"},
@@ -1188,6 +1189,56 @@ class _FakeAdviseIncompleteMemoCommentaryLineageClient(_FakeAdviseClient):
         payload = _memo_response_payload(proposal_id, version_no)
         payload["ai_commentary_posture"].pop("source_memo_hash")
         return 200, payload
+
+
+class _FakeAdviseMismatchedMemoCommentaryIdentityClient(_FakeAdviseClient):
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        payload = _memo_response_payload(proposal_id, version_no)
+        payload["ai_commentary_posture"]["memo_hash"] = "sha256:stale-memo"
+        return 200, payload
+
+
+class _FakeAdviseMismatchedLineageCommentaryIdentityClient(_FakeAdviseClient):
+    async def get_proposal_memo_lineage(self, proposal_id: str, correlation_id: str):
+        status, payload = await super().get_proposal_memo_lineage(proposal_id, correlation_id)
+        payload["memos"][0]["ai_commentary_posture"]["source_memo_hash"] = "sha256:stale-memo"
+        return status, payload
+
+
+class _FakeAdviseMismatchedReplayCommentaryIdentityClient(_FakeAdviseClient):
+    async def get_proposal_memo_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ):
+        status, payload = await super().get_proposal_memo_replay_evidence(
+            proposal_id,
+            version_no,
+            correlation_id,
+        )
+        payload["evidence"]["ai_commentary_posture"]["source_input_hash"] = "sha256:stale-source"
+        return status, payload
+
+
+class _FakeAdviseMismatchedActionCommentaryIdentityClient(_FakeAdviseClient):
+    async def request_proposal_memo_ai_commentary(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        status, payload = await super().request_proposal_memo_ai_commentary(
+            proposal_id,
+            version_no,
+            body,
+            idempotency_key,
+            correlation_id,
+        )
+        payload["memo"]["ai_commentary_posture"]["idempotency_key"] = "idem-stale-action"
+        return status, payload
 
 
 @pytest.mark.asyncio
@@ -1653,6 +1704,46 @@ async def test_incomplete_recorded_commentary_lineage_maps_to_product_safe_502()
         "error_code": "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID",
         "detail": "lotus-advise proposal memo evidence did not match the governed contract.",
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("client", "operation"),
+    [
+        (_FakeAdviseMismatchedMemoCommentaryIdentityClient(), "memo"),
+        (_FakeAdviseMismatchedLineageCommentaryIdentityClient(), "lineage"),
+        (_FakeAdviseMismatchedReplayCommentaryIdentityClient(), "replay"),
+        (_FakeAdviseMismatchedActionCommentaryIdentityClient(), "action"),
+    ],
+)
+async def test_mismatched_commentary_identity_maps_to_product_safe_502(
+    client: _FakeAdviseClient,
+    operation: str,
+) -> None:
+    service = ProposalService(advise_client=client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        if operation == "memo":
+            await service.get_proposal_memo("pp_1", 2, "corr_memo_identity")
+        elif operation == "lineage":
+            await service.get_proposal_memo_lineage("pp_1", "corr_lineage_identity")
+        elif operation == "replay":
+            await service.get_proposal_memo_replay_evidence("pp_1", 2, "corr_replay_identity")
+        else:
+            await service.request_proposal_memo_ai_commentary(
+                proposal_id="pp_1",
+                version_no=2,
+                body={
+                    "requested_by": "advisor_1",
+                    "source_memo_hash": "sha256:memo-1",
+                    "requested_sections": ["EXECUTIVE_SUMMARY"],
+                },
+                idempotency_key="idem-memo-ai-1",
+                correlation_id="corr_action_identity",
+            )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["error_code"] == "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID"
 
 
 @pytest.mark.asyncio
