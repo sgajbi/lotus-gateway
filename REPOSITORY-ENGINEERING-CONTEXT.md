@@ -87,7 +87,9 @@ Current repository posture:
    Commentary posture, action, audit, lineage, and replay paths reuse one closed section contract
    carrying Advise-owned section key, title, text, and review state. Recorded commentary posture
    retains source memo/input hashes, idempotency evidence, requested section keys, and reason so
-   Workbench can verify the refreshed action before confirming it;
+   Workbench can verify the refreshed action before confirming it. Recorded or available
+   commentary without its idempotency and memo/source hashes fails closed; non-recorded posture
+   may omit that action lineage;
    Memo lineage also requires item/count/latest identity consistency before publication. Contract
    tests and generated OpenAPI expose named nested properties and recursively closed response
    references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also

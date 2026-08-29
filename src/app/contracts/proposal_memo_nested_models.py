@@ -1,6 +1,6 @@
-from typing import TypeAlias
+from typing import Self, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 MemoReasonValue: TypeAlias = str | bool | int | None
 MemoReason: TypeAlias = dict[str, MemoReasonValue]
@@ -162,6 +162,29 @@ class ProposalMemoAiCommentaryPosture(_ClosedMemoModel):
     review_required: bool | None = None
     authoritative_for_memo_status: bool | None = None
     authority: str | None = None
+
+    @model_validator(mode="after")
+    def require_recorded_action_lineage(self) -> Self:
+        if self.status not in {"AVAILABLE", "RECORDED"}:
+            return self
+
+        missing_fields = [
+            field_name
+            for field_name in (
+                "idempotency_key",
+                "idempotency_request_hash",
+                "memo_hash",
+                "source_input_hash",
+                "source_memo_hash",
+            )
+            if not getattr(self, field_name)
+        ]
+        if missing_fields:
+            raise ValueError(
+                "recorded commentary posture requires source-owned action lineage: "
+                + ", ".join(missing_fields)
+            )
+        return self
 
 
 class ProposalMemoReplayMetadata(_ClosedMemoModel):

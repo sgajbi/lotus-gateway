@@ -384,6 +384,22 @@ def _memo_commentary_section() -> dict:
     }
 
 
+def _memo_commentary_posture(status: str = "AVAILABLE") -> dict:
+    return {
+        "status": status,
+        "event_id": "pme_ai_001",
+        "idempotency_key": "idem-memo-ai-001",
+        "idempotency_request_hash": "sha256:ai-request-001",
+        "memo_hash": "sha256:memo-001",
+        "source_input_hash": "sha256:ai-source-001",
+        "source_memo_hash": "sha256:memo-001",
+        "ai_status": "REVIEW_REQUIRED",
+        "sections": [_memo_commentary_section()],
+        "requested_sections": ["EXECUTIVE_SUMMARY"],
+        "reason": {"purpose": "advisor-use commentary"},
+    }
+
+
 def _memo_audit_event(event_type: str = "MEMO_DRAFT_CREATED") -> dict:
     reason: dict[str, object] = {
         "lifecycle_status": "DRAFT",
@@ -465,19 +481,7 @@ def _memo_response_payload() -> dict:
             "client_ready_publication": "BLOCKED",
         },
         "report_package_posture": {"status": "RECORDED", "client_ready_publication": "BLOCKED"},
-        "ai_commentary_posture": {
-            "status": "RECORDED",
-            "event_id": "pme_ai_001",
-            "idempotency_key": "idem-memo-ai-001",
-            "idempotency_request_hash": "sha256:ai-request-001",
-            "memo_hash": "sha256:memo-001",
-            "source_input_hash": "sha256:ai-source-001",
-            "source_memo_hash": "sha256:memo-001",
-            "ai_status": "REVIEW_REQUIRED",
-            "sections": [_memo_commentary_section()],
-            "requested_sections": ["EXECUTIVE_SUMMARY"],
-            "reason": {"purpose": "advisor-use commentary"},
-        },
+        "ai_commentary_posture": _memo_commentary_posture("RECORDED"),
         "replay_metadata": {
             "proposal_artifact_hash": "sha256:artifact-001",
             "replay_policy": "EXACT_SOURCE_HASH_MATCH",
@@ -620,10 +624,7 @@ def test_proposal_memo_contract_shapes() -> None:
                         "archive": {"uri": "archive://memo/report/1"},
                     },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
-                    "ai_commentary_posture": {
-                        "status": "AVAILABLE",
-                        "sections": [_memo_commentary_section()],
-                    },
+                    "ai_commentary_posture": _memo_commentary_posture(),
                 }
             ],
             "lineage_posture": {
@@ -666,10 +667,7 @@ def test_proposal_memo_contract_shapes() -> None:
                     "client_ready_publication": "BLOCKED",
                 },
                 "report_package_posture": {"status": "NOT_RECORDED"},
-                "ai_commentary_posture": {
-                    "status": "AVAILABLE",
-                    "sections": [_memo_commentary_section()],
-                },
+                "ai_commentary_posture": _memo_commentary_posture(),
             },
             "explanation": {
                 "source": "PERSISTED_MEMO_RECORD",
@@ -742,6 +740,50 @@ def test_proposal_memo_contract_rejects_legacy_or_incomplete_commentary_sections
             contract_version="v1",
             data=source_payload,
         )
+
+
+@pytest.mark.parametrize("status", ["AVAILABLE", "RECORDED"])
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "idempotency_key",
+        "idempotency_request_hash",
+        "memo_hash",
+        "source_input_hash",
+        "source_memo_hash",
+    ],
+)
+def test_recorded_commentary_contract_requires_action_lineage(
+    status: str,
+    missing_field: str,
+) -> None:
+    source_payload = _memo_response_payload()
+    source_payload["ai_commentary_posture"]["status"] = status
+    source_payload["ai_commentary_posture"].pop(missing_field)
+
+    with pytest.raises(
+        ValidationError,
+        match="recorded commentary posture requires source-owned action lineage",
+    ):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_incomplete_commentary_lineage",
+            contract_version="v1",
+            data=source_payload,
+        )
+
+
+def test_not_recorded_commentary_contract_permits_absent_action_lineage() -> None:
+    source_payload = _memo_response_payload()
+    source_payload["ai_commentary_posture"] = {"status": "NOT_RECORDED"}
+
+    response = ProposalMemoEnvelopeResponse(
+        correlation_id="corr_commentary_not_recorded",
+        contract_version="v1",
+        data=source_payload,
+    )
+
+    assert response.data.ai_commentary_posture.status == "NOT_RECORDED"
+    assert response.data.ai_commentary_posture.source_memo_hash is None
 
 
 def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:

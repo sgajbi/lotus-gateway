@@ -38,7 +38,9 @@ lineage, and replay evidence. Empty lists remain valid when commentary is unavai
 recorded; legacy string entries and incomplete objects fail closed rather than losing evidence.
 Recorded commentary posture also preserves source memo/input hashes, action idempotency evidence,
 requested section keys, and source reason so a consumer can prove refreshed evidence belongs to
-the persisted action before presenting confirmation.
+the persisted action before presenting confirmation. `RECORDED` and `AVAILABLE` postures require
+the idempotency key and request hash plus memo, source-input, and source-memo hashes; omission is a
+malformed successful source response and fails closed. Non-recorded postures may omit those fields.
 
 Recorded memo-review posture preserves the source idempotency key and request hash together with
 the memo and source-input hashes. Memo audit-event reasons preserve the source `memo_status` and
