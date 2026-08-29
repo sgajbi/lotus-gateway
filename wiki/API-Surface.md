@@ -1141,7 +1141,9 @@ review state through one closed type reused by posture, action, audit, lineage, 
 Unavailable or not-recorded commentary may carry an empty section list; legacy strings and
 incomplete section objects fail closed. Recorded commentary posture also retains source memo/input
 hashes, idempotency evidence, requested section keys, and reason so Workbench can verify the
-refreshed action before showing confirmation. Recorded
+refreshed action before showing confirmation. `RECORDED` and `AVAILABLE` postures require the
+idempotency key and request hash plus memo, source-input, and source-memo hashes; missing action
+lineage fails closed, while non-recorded posture may omit it. Recorded
 memo-review posture retains Advise's idempotency key and request hash plus the memo and source-input
 hashes; audit-event reasons retain source memo and lifecycle status when present. These remain
 optional, named fields for source events that carry them; unknown public-contract fields still fail

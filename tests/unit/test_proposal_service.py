@@ -13,6 +13,22 @@ def _memo_commentary_section() -> dict:
     }
 
 
+def _memo_commentary_posture(memo_hash: str, status: str = "AVAILABLE") -> dict:
+    return {
+        "status": status,
+        "event_id": "pme_ai_1",
+        "idempotency_key": "idem-memo-ai-1",
+        "idempotency_request_hash": "sha256:ai-request-1",
+        "memo_hash": memo_hash,
+        "source_input_hash": "sha256:ai-source-1",
+        "source_memo_hash": memo_hash,
+        "ai_status": "REVIEW_REQUIRED",
+        "sections": [_memo_commentary_section()],
+        "requested_sections": ["EXECUTIVE_SUMMARY"],
+        "reason": {"purpose": "advisor-use commentary"},
+    }
+
+
 def _memo_proposal_summary(proposal_id: str, version_no: int) -> dict:
     return {
         "proposal_id": proposal_id,
@@ -117,19 +133,7 @@ def _memo_response_payload(
             "client_ready_publication": "BLOCKED",
         },
         "report_package_posture": {"status": "NOT_REQUESTED"},
-        "ai_commentary_posture": {
-            "status": "AVAILABLE",
-            "event_id": "pme_ai_1",
-            "idempotency_key": "idem-memo-ai-1",
-            "idempotency_request_hash": "sha256:ai-request-1",
-            "memo_hash": memo_hash,
-            "source_input_hash": "sha256:ai-source-1",
-            "source_memo_hash": memo_hash,
-            "ai_status": "REVIEW_REQUIRED",
-            "sections": [_memo_commentary_section()],
-            "requested_sections": ["EXECUTIVE_SUMMARY"],
-            "reason": {"purpose": "advisor-use commentary"},
-        },
+        "ai_commentary_posture": _memo_commentary_posture(memo_hash),
         "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
         "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED", memo_hash)],
         "event_count": 1,
@@ -1067,10 +1071,7 @@ class _FakeAdviseClient:
                         "archive": {"uri": "archive://memo/report/1"},
                     },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
-                    "ai_commentary_posture": {
-                        "status": "AVAILABLE",
-                        "sections": [_memo_commentary_section()],
-                    },
+                    "ai_commentary_posture": _memo_commentary_posture("sha256:memo-1"),
                 }
             ],
             "lineage_posture": {
@@ -1130,10 +1131,7 @@ class _FakeAdviseClient:
                     "client_ready_publication": "BLOCKED",
                 },
                 "report_package_posture": {"status": "NOT_RECORDED"},
-                "ai_commentary_posture": {
-                    "status": "AVAILABLE",
-                    "sections": [_memo_commentary_section()],
-                },
+                "ai_commentary_posture": _memo_commentary_posture("sha256:memo-1"),
             },
             "explanation": {
                 "source": "PERSISTED_MEMO_RECORD",
@@ -1182,6 +1180,13 @@ class _FakeAdviseLegacyMemoCommentaryClient(_FakeAdviseClient):
     async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
         payload = _memo_response_payload(proposal_id, version_no)
         payload["ai_commentary_posture"]["sections"] = ["EXECUTIVE_SUMMARY"]
+        return 200, payload
+
+
+class _FakeAdviseIncompleteMemoCommentaryLineageClient(_FakeAdviseClient):
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        payload = _memo_response_payload(proposal_id, version_no)
+        payload["ai_commentary_posture"].pop("source_memo_hash")
         return 200, payload
 
 
@@ -1619,6 +1624,26 @@ async def test_legacy_string_memo_commentary_maps_to_product_safe_502() -> None:
             proposal_id="pp_1",
             version_no=2,
             correlation_id="corr_memo_legacy_commentary",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 200,
+        "error_code": "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID",
+        "detail": "lotus-advise proposal memo evidence did not match the governed contract.",
+    }
+
+
+@pytest.mark.asyncio
+async def test_incomplete_recorded_commentary_lineage_maps_to_product_safe_502() -> None:
+    service = ProposalService(advise_client=_FakeAdviseIncompleteMemoCommentaryLineageClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_memo(
+            proposal_id="pp_1",
+            version_no=2,
+            correlation_id="corr_memo_incomplete_commentary_lineage",
         )
 
     assert exc_info.value.status_code == 502
