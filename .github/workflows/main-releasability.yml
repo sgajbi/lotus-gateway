@@ -189,7 +189,7 @@ jobs:
 
   docker-build:
     name: Main Releasability / Validate Docker Build
-    needs: [integration, coverage]
+    needs: [integration, coverage, duplicate-code]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

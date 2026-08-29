@@ -274,7 +274,7 @@ def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None
     ) in workflow
     assert (
         "  docker-build:\n    name: Main Releasability / Validate Docker Build\n"
-        "    needs: [integration, coverage]"
+        "    needs: [integration, coverage, duplicate-code]"
     ) in workflow
     assert (
         "  ci-local-docker:\n    name: Main Releasability / CI Local Docker Parity\n"

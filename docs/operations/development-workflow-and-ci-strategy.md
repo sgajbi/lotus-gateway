@@ -39,4 +39,6 @@ Quality Baseline check owns pull-request enforcement after collecting its full d
 set. Main Releasability then runs the same pinned `make duplicate-code` detector, versioned
 baseline ratchet, and repeated-run reproducibility check after exact-revision assertion. Its
 `main-duplicate-code-evidence` artifact preserves the merged-SHA detector output; neither lane is a
-substitute for the other.
+substitute for the other. The Main Releasability container job depends on the duplicate-code job,
+so registry push, signing, and provenance side effects cannot begin for a revision that fails the
+ratchet.
