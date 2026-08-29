@@ -51,6 +51,30 @@ def _build_typed_memo_envelope(
         raise_proposal_memo_contract_invalid(exc)
 
 
+def _validate_ai_commentary_request_identity(
+    response: ProposalMemoAiCommentaryEnvelopeResponse,
+    *,
+    source_memo_hash: str,
+    idempotency_key: str | None,
+) -> ProposalMemoAiCommentaryEnvelopeResponse:
+    posture = response.data.memo.ai_commentary_posture
+    mismatched_fields: list[str] = []
+    if response.data.memo.memo_hash != source_memo_hash:
+        mismatched_fields.append("memo_hash")
+    if posture.source_memo_hash != source_memo_hash:
+        mismatched_fields.append("source_memo_hash")
+    if idempotency_key is not None and posture.idempotency_key != idempotency_key:
+        mismatched_fields.append("idempotency_key")
+    if mismatched_fields:
+        raise_proposal_memo_contract_invalid(
+            ValueError(
+                "AI commentary response did not match the submitted action identity: "
+                + ", ".join(mismatched_fields)
+            )
+        )
+    return response
+
+
 class ProposalMemoServiceMixin:
     _advise_client: ProposalClient
 
@@ -218,11 +242,16 @@ class ProposalMemoServiceMixin:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return _build_typed_memo_envelope(
+        response = _build_typed_memo_envelope(
             ProposalMemoAiCommentaryEnvelopeResponse,
             ProposalMemoAiCommentaryResponse,
             correlation_id=correlation_id,
             upstream_payload=upstream_payload,
+        )
+        return _validate_ai_commentary_request_identity(
+            response,
+            source_memo_hash=body["source_memo_hash"],
+            idempotency_key=idempotency_key,
         )
 
     async def get_proposal_memo_lineage(

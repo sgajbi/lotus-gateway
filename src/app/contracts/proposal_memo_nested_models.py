@@ -1,21 +1,15 @@
-from typing import Self, TypeAlias
+from pydantic import Field
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-MemoReasonValue: TypeAlias = str | bool | int | None
-MemoReason: TypeAlias = dict[str, MemoReasonValue]
+from app.contracts.proposal_memo_commentary_models import ProposalMemoAiCommentaryPosture
+from app.contracts.proposal_memo_common import ClosedProposalMemoModel, MemoReason
 
 
-class _ClosedMemoModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class ProposalMemoSourceAuthorityEntry(_ClosedMemoModel):
+class ProposalMemoSourceAuthorityEntry(ClosedProposalMemoModel):
     section_keys: list[str] = Field(default_factory=list)
     ready_section_keys: list[str] = Field(default_factory=list)
 
 
-class ProposalMemoMaterialClaim(_ClosedMemoModel):
+class ProposalMemoMaterialClaim(ClosedProposalMemoModel):
     claim_id: str
     text: str
     evidence_refs: list[str] = Field(default_factory=list)
@@ -23,7 +17,7 @@ class ProposalMemoMaterialClaim(_ClosedMemoModel):
     reason_codes: list[str] = Field(default_factory=list)
 
 
-class ProposalMemoSection(_ClosedMemoModel):
+class ProposalMemoSection(ClosedProposalMemoModel):
     section_id: str
     title: str
     status: str
@@ -42,21 +36,21 @@ class ProposalMemoSection(_ClosedMemoModel):
     section_hash: str
 
 
-class ProposalMemoSourceAuthorityManifest(_ClosedMemoModel):
+class ProposalMemoSourceAuthorityManifest(ClosedProposalMemoModel):
     contract_version: str
     overall_posture: str
     source_authority: dict[str, ProposalMemoSourceAuthorityEntry] = Field(default_factory=dict)
     section_statuses: dict[str, str] = Field(default_factory=dict)
 
 
-class ProposalMemoProjectionPolicy(_ClosedMemoModel):
+class ProposalMemoProjectionPolicy(ClosedProposalMemoModel):
     advisor_projection: str
     client_draft_projection: str
     client_ready_publication: str
     report_render_archive: str
 
 
-class ProposalMemoSupportability(_ClosedMemoModel):
+class ProposalMemoSupportability(ClosedProposalMemoModel):
     capability_posture: str
     persistence: str
     api: str
@@ -66,7 +60,7 @@ class ProposalMemoSupportability(_ClosedMemoModel):
     client_ready_publication: str
 
 
-class ProposalMemoEvidencePack(_ClosedMemoModel):
+class ProposalMemoEvidencePack(ClosedProposalMemoModel):
     memo_id: str
     memo_version: str
     proposal_id: str
@@ -82,7 +76,7 @@ class ProposalMemoEvidencePack(_ClosedMemoModel):
     supportability: ProposalMemoSupportability
 
 
-class ProposalMemoReviewPosture(_ClosedMemoModel):
+class ProposalMemoReviewPosture(ClosedProposalMemoModel):
     status: str
     event_id: str | None = None
     actor_id: str | None = None
@@ -110,7 +104,7 @@ class ProposalMemoReviewPosture(_ClosedMemoModel):
     client_ready_publication: str | None = None
 
 
-class ProposalMemoArchivePosture(_ClosedMemoModel):
+class ProposalMemoArchivePosture(ClosedProposalMemoModel):
     archive_request_id: str | None = None
     document_id: str | None = None
     completed_at: str | None = None
@@ -120,7 +114,7 @@ class ProposalMemoArchivePosture(_ClosedMemoModel):
     uri: str | None = None
 
 
-class ProposalMemoReportPackagePosture(_ClosedMemoModel):
+class ProposalMemoReportPackagePosture(ClosedProposalMemoModel):
     status: str
     event_id: str | None = None
     actor_id: str | None = None
@@ -133,61 +127,7 @@ class ProposalMemoReportPackagePosture(_ClosedMemoModel):
     archive: ProposalMemoArchivePosture | None = None
 
 
-class ProposalMemoCommentarySection(_ClosedMemoModel):
-    """Source-owned advisor commentary for one governed memo section."""
-
-    section_key: str = Field(description="Stable source-owned memo section key.")
-    title: str = Field(description="Advisor-facing section title supplied by lotus-advise.")
-    text: str = Field(description="Review-gated commentary text supplied by lotus-advise.")
-    review_state: str = Field(description="Source-owned review posture for this commentary.")
-
-
-class ProposalMemoAiCommentaryPosture(_ClosedMemoModel):
-    status: str
-    event_id: str | None = None
-    actor_id: str | None = None
-    occurred_at: str | None = None
-    idempotency_key: str | None = None
-    idempotency_request_hash: str | None = None
-    memo_hash: str | None = None
-    source_input_hash: str | None = None
-    source_memo_hash: str | None = None
-    ai_status: str | None = None
-    sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
-    requested_sections: list[str] = Field(default_factory=list)
-    reason: MemoReason = Field(default_factory=dict)
-    lineage: MemoReason = Field(default_factory=dict)
-    review_guidance: list[str] = Field(default_factory=list)
-    client_ready_publication: str | None = None
-    review_required: bool | None = None
-    authoritative_for_memo_status: bool | None = None
-    authority: str | None = None
-
-    @model_validator(mode="after")
-    def require_recorded_action_lineage(self) -> Self:
-        if self.status not in {"AVAILABLE", "RECORDED"}:
-            return self
-
-        missing_fields = [
-            field_name
-            for field_name in (
-                "idempotency_key",
-                "idempotency_request_hash",
-                "memo_hash",
-                "source_input_hash",
-                "source_memo_hash",
-            )
-            if not getattr(self, field_name)
-        ]
-        if missing_fields:
-            raise ValueError(
-                "recorded commentary posture requires source-owned action lineage: "
-                + ", ".join(missing_fields)
-            )
-        return self
-
-
-class ProposalMemoReplayMetadata(_ClosedMemoModel):
+class ProposalMemoReplayMetadata(ClosedProposalMemoModel):
     proposal_request_hash: str | None = None
     proposal_artifact_hash: str | None = None
     proposal_simulation_hash: str | None = None
@@ -198,7 +138,7 @@ class ProposalMemoReplayMetadata(_ClosedMemoModel):
     replay_policy: str | None = None
 
 
-class ProposalMemoReadPosture(_ClosedMemoModel):
+class ProposalMemoReadPosture(ClosedProposalMemoModel):
     source: str
     memo_api_supported: bool
     report_package_generation_supported: bool
@@ -210,7 +150,7 @@ class ProposalMemoReadPosture(_ClosedMemoModel):
     supportability: str | None = None
 
 
-class ProposalMemoProjectionPosture(_ClosedMemoModel):
+class ProposalMemoProjectionPosture(ClosedProposalMemoModel):
     source: str
     mutation_performed: bool
     audience_filter: str | None = None
@@ -220,7 +160,7 @@ class ProposalMemoProjectionPosture(_ClosedMemoModel):
     supportability: str | None = None
 
 
-class ProposalMemoLineagePosture(_ClosedMemoModel):
+class ProposalMemoLineagePosture(ClosedProposalMemoModel):
     source: str
     memo_api_supported: bool
     gateway_supported: bool
@@ -228,18 +168,7 @@ class ProposalMemoLineagePosture(_ClosedMemoModel):
     client_ready_publication: str
 
 
-class ProposalMemoCommentary(_ClosedMemoModel):
-    status: str | None = None
-    authority: str | None = None
-    sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
-    lineage: MemoReason = Field(default_factory=dict)
-    review_guidance: list[str] = Field(default_factory=list)
-    client_ready_publication: str | None = None
-    review_required: bool | None = None
-    authoritative_for_memo_status: bool | None = None
-
-
-class ProposalMemoReportExplanation(_ClosedMemoModel):
+class ProposalMemoReportExplanation(ClosedProposalMemoModel):
     ownership: str
     render: MemoReason = Field(default_factory=dict)
     archive: MemoReason = Field(default_factory=dict)
@@ -247,14 +176,14 @@ class ProposalMemoReportExplanation(_ClosedMemoModel):
     replayed_from_memo_event: str | None = None
 
 
-class ProposalMemoReplaySubject(_ClosedMemoModel):
+class ProposalMemoReplaySubject(ClosedProposalMemoModel):
     proposal_id: str
     proposal_version_no: int
     proposal_version_id: str | None = None
     memo_id: str
 
 
-class ProposalMemoReplayHashes(_ClosedMemoModel):
+class ProposalMemoReplayHashes(ClosedProposalMemoModel):
     memo_hash: str
     source_input_hash: str | None = None
     proposal_request_hash: str | None = None
@@ -263,7 +192,7 @@ class ProposalMemoReplayHashes(_ClosedMemoModel):
     memo_request_hash: str | None = None
 
 
-class ProposalMemoReplayEvidence(_ClosedMemoModel):
+class ProposalMemoReplayEvidence(ClosedProposalMemoModel):
     memo_status: str
     lifecycle_status: str
     projection: ProposalMemoProjectionPolicy
@@ -272,7 +201,7 @@ class ProposalMemoReplayEvidence(_ClosedMemoModel):
     ai_commentary_posture: ProposalMemoAiCommentaryPosture
 
 
-class ProposalMemoReplayExplanation(_ClosedMemoModel):
+class ProposalMemoReplayExplanation(ClosedProposalMemoModel):
     source: str
     replay_policy: str
     mutation_performed: bool
@@ -282,10 +211,7 @@ class ProposalMemoReplayExplanation(_ClosedMemoModel):
 
 
 __all__ = [
-    "ProposalMemoAiCommentaryPosture",
     "ProposalMemoArchivePosture",
-    "ProposalMemoCommentary",
-    "ProposalMemoCommentarySection",
     "ProposalMemoEvidencePack",
     "ProposalMemoMaterialClaim",
     "ProposalMemoLineagePosture",

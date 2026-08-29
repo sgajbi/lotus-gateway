@@ -391,7 +391,7 @@ def _memo_commentary_posture(status: str = "AVAILABLE") -> dict:
         "idempotency_key": "idem-memo-ai-001",
         "idempotency_request_hash": "sha256:ai-request-001",
         "memo_hash": "sha256:memo-001",
-        "source_input_hash": "sha256:ai-source-001",
+        "source_input_hash": "sha256:source-001",
         "source_memo_hash": "sha256:memo-001",
         "ai_status": "REVIEW_REQUIRED",
         "sections": [_memo_commentary_section()],
@@ -643,6 +643,7 @@ def test_proposal_memo_contract_shapes() -> None:
             "subject": {"proposal_id": "pp_1", "proposal_version_no": 2, "memo_id": "memo_001"},
             "hashes": {
                 "memo_hash": "sha256:memo-001",
+                "source_input_hash": "sha256:source-001",
                 "proposal_artifact_hash": "sha256:artifact-001",
             },
             "replay_metadata": {"replay_policy": "EXACT_SOURCE_HASH_MATCH"},
@@ -767,6 +768,32 @@ def test_recorded_commentary_contract_requires_action_lineage(
     ):
         ProposalMemoEnvelopeResponse(
             correlation_id="corr_incomplete_commentary_lineage",
+            contract_version="v1",
+            data=source_payload,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "mismatched_value"),
+    [
+        ("memo_hash", "sha256:stale-memo"),
+        ("source_memo_hash", "sha256:stale-memo"),
+        ("source_input_hash", "sha256:stale-source"),
+    ],
+)
+def test_recorded_commentary_contract_binds_lineage_to_enclosing_memo(
+    field_name: str,
+    mismatched_value: str,
+) -> None:
+    source_payload = _memo_response_payload()
+    source_payload["ai_commentary_posture"][field_name] = mismatched_value
+
+    with pytest.raises(
+        ValidationError,
+        match="recorded commentary posture must match its enclosing memo identity",
+    ):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_mismatched_commentary_identity",
             contract_version="v1",
             data=source_payload,
         )

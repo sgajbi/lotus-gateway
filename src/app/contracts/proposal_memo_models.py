@@ -1,9 +1,11 @@
 from pydantic import Field, model_validator
 
-from app.contracts.proposal_memo_nested_models import (
-    MemoReason,
+from app.contracts.proposal_memo_commentary_models import (
     ProposalMemoAiCommentaryPosture,
     ProposalMemoCommentarySection,
+)
+from app.contracts.proposal_memo_common import ClosedProposalMemoModel, MemoReason
+from app.contracts.proposal_memo_nested_models import (
     ProposalMemoEvidencePack,
     ProposalMemoProjectionPolicy,
     ProposalMemoProjectionPosture,
@@ -13,11 +15,10 @@ from app.contracts.proposal_memo_nested_models import (
     ProposalMemoReportPackagePosture,
     ProposalMemoReviewPosture,
     ProposalMemoSection,
-    _ClosedMemoModel,
 )
 
 
-class ProposalMemoProposalSummary(_ClosedMemoModel):
+class ProposalMemoProposalSummary(ClosedProposalMemoModel):
     """Source-owned proposal identity carried by every memo response."""
 
     proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
@@ -64,7 +65,7 @@ class ProposalMemoProposalSummary(_ClosedMemoModel):
     )
 
 
-class ProposalMemoAuditReason(_ClosedMemoModel):
+class ProposalMemoAuditReason(ClosedProposalMemoModel):
     """Structured source-owned reason evidence carried by memo audit events."""
 
     lifecycle_status: str | None = Field(
@@ -102,7 +103,7 @@ class ProposalMemoAuditReason(_ClosedMemoModel):
     archive_ref: str | None = None
 
 
-class ProposalMemoAuditEvent(_ClosedMemoModel):
+class ProposalMemoAuditEvent(ClosedProposalMemoModel):
     """Append-only memo event evidence owned by lotus-advise."""
 
     event_id: str = Field(description="Memo audit event identifier.", examples=["pme_001"])
@@ -120,7 +121,7 @@ class ProposalMemoAuditEvent(_ClosedMemoModel):
     )
 
 
-class ProposalMemoReportResponse(_ClosedMemoModel):
+class ProposalMemoReportResponse(ClosedProposalMemoModel):
     """Typed report handle returned by the Advise-to-Report boundary."""
 
     proposal: ProposalMemoProposalSummary = Field(
@@ -157,7 +158,7 @@ class ProposalMemoReportResponse(_ClosedMemoModel):
     )
 
 
-class ProposalMemoResponse(_ClosedMemoModel):
+class ProposalMemoResponse(ClosedProposalMemoModel):
     """Persisted proposal memo evidence returned by lotus-advise."""
 
     proposal: ProposalMemoProposalSummary = Field(
@@ -240,10 +241,14 @@ class ProposalMemoResponse(_ClosedMemoModel):
     def validate_audit_event_count(self) -> "ProposalMemoResponse":
         if self.event_count != len(self.audit_events):
             raise ValueError("event_count must equal the number of returned audit events")
+        self.ai_commentary_posture.require_memo_identity(
+            memo_hash=self.memo_hash,
+            source_input_hash=self.source_input_hash,
+        )
         return self
 
 
-class ProposalMemoProjectionResponse(_ClosedMemoModel):
+class ProposalMemoProjectionResponse(ClosedProposalMemoModel):
     """Audience projection returned by lotus-advise without Gateway reconstruction."""
 
     proposal: ProposalMemoProposalSummary = Field(

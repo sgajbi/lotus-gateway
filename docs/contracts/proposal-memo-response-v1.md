@@ -40,7 +40,11 @@ Recorded commentary posture also preserves source memo/input hashes, action idem
 requested section keys, and source reason so a consumer can prove refreshed evidence belongs to
 the persisted action before presenting confirmation. `RECORDED` and `AVAILABLE` postures require
 the idempotency key and request hash plus memo, source-input, and source-memo hashes; omission is a
-malformed successful source response and fails closed. Non-recorded postures may omit those fields.
+malformed successful source response and fails closed. Those hashes must also equal the enclosing
+memo, lineage item, or replay hashes. An AI-commentary action response must match the submitted
+source memo hash and, when supplied, idempotency key before Gateway returns success. Missing or
+mismatched action identity is an invalid upstream contract. Non-recorded postures may omit those
+fields.
 
 Recorded memo-review posture preserves the source idempotency key and request hash together with
 the memo and source-input hashes. Memo audit-event reasons preserve the source `memo_status` and
@@ -82,8 +86,9 @@ illustrative nesting, and asserts that every memo-family envelope points to a cl
 component with named properties; nested memo refs are checked recursively. It also rejects
 additive fields at the public boundary and missing or contradictory lineage and audit-count
 evidence. It also proves all commentary-bearing paths reference the same closed section schema and
-reject legacy strings or incomplete objects. `tests/unit/test_proposal_service.py` proves exact
-commentary objects survive publication, additive Advise source fields are discarded before
-publication, and malformed successful upstream memo payloads map to the product-safe
-source-contract error; the integration route test proves the report-package event route returns its
-typed event envelope.
+reject legacy strings, incomplete objects, and identity values that conflict with an enclosing memo.
+`tests/unit/test_proposal_service.py` proves exact commentary objects survive publication, additive
+Advise source fields are discarded before publication, memo/lineage/replay/action identity
+mismatches map to the product-safe source-contract error, and malformed successful upstream memo
+payloads cannot publish a success; the integration route test proves the report-package event route
+returns its typed event envelope.
