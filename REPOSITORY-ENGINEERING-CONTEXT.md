@@ -81,8 +81,11 @@ Current repository posture:
    memo lifecycle or publication rules into Gateway. Memo evidence, projection, posture, replay,
    commentary, and report-explanation structures are closed typed models; only bounded scalar
    metadata maps remain source-owned pass-through evidence. Stale illustrative response nesting,
+   legacy string commentary sections, incomplete commentary objects,
    audit-count contradictions, and malformed successful source payloads fail closed: typed
    contract construction maps the latter to a product-safe `502` identifying `lotus-advise`.
+   Commentary posture, action, audit, lineage, and replay paths reuse one closed section contract
+   carrying Advise-owned section key, title, text, and review state;
    Memo lineage also requires item/count/latest identity consistency before publication. Contract
    tests and generated OpenAPI expose named nested properties and recursively closed response
    references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also

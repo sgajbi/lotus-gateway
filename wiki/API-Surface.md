@@ -1136,6 +1136,10 @@ projection policies, sections, postures, commentary, replay evidence, and report
 closed typed OpenAPI structures with named properties; bounded scalar metadata maps remain
 source-owned evidence. Gateway parses additive Advise source fields tolerantly, discards fields
 that are not named Gateway properties, and then publishes only the closed contract. Recorded
+commentary entries preserve Advise-owned section key, advisor-facing title, review-gated text, and
+review state through one closed type reused by posture, action, audit, lineage, and replay paths.
+Unavailable or not-recorded commentary may carry an empty section list; legacy strings and
+incomplete section objects fail closed. Recorded
 memo-review posture retains Advise's idempotency key and request hash plus the memo and source-input
 hashes; audit-event reasons retain source memo and lifecycle status when present. These remain
 optional, named fields for source events that carry them; unknown public-contract fields still fail
