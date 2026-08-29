@@ -31,6 +31,12 @@ and never become Gateway contract properties. Advise still owns the values and v
 does not reinterpret them. A small set of source-owned metadata fields remains a bounded
 scalar-keyed map so Gateway can preserve evidence without inventing domain semantics.
 
+Every persisted commentary entry is a closed `ProposalMemoCommentarySection` with the
+source-owned `section_key`, advisor-facing `title`, review-gated `text`, and `review_state`.
+The same type is used in the current memo posture, commentary action response, audit-event reason,
+lineage, and replay evidence. Empty lists remain valid when commentary is unavailable or not yet
+recorded; legacy string entries and incomplete objects fail closed rather than losing evidence.
+
 Recorded memo-review posture preserves the source idempotency key and request hash together with
 the memo and source-input hashes. Memo audit-event reasons preserve the source `memo_status` and
 `lifecycle_status` when present. These fields are optional because a `NOT_RECORDED` posture and
@@ -70,7 +76,9 @@ publish them without recomputation or omission.
 illustrative nesting, and asserts that every memo-family envelope points to a closed OpenAPI
 component with named properties; nested memo refs are checked recursively. It also rejects
 additive fields at the public boundary and missing or contradictory lineage and audit-count
-evidence. `tests/unit/test_proposal_service.py` proves additive Advise source fields are discarded
-before publication and malformed successful upstream memo payloads map to the product-safe
-source-contract error; the integration route test proves the report-package event route returns
-its typed event envelope.
+evidence. It also proves all commentary-bearing paths reference the same closed section schema and
+reject legacy strings or incomplete objects. `tests/unit/test_proposal_service.py` proves exact
+commentary objects survive publication, additive Advise source fields are discarded before
+publication, and malformed successful upstream memo payloads map to the product-safe
+source-contract error; the integration route test proves the report-package event route returns its
+typed event envelope.
