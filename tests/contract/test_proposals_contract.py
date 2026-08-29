@@ -375,18 +375,30 @@ def _memo_proposal_summary(proposal_id: str = "pp_1", version_no: int = 2) -> di
     }
 
 
+def _memo_commentary_section() -> dict:
+    return {
+        "section_key": "EXECUTIVE_SUMMARY",
+        "title": "Executive Summary",
+        "text": "Advisor-use commentary grounded in the persisted memo evidence.",
+        "review_state": "REVIEW_REQUIRED",
+    }
+
+
 def _memo_audit_event(event_type: str = "MEMO_DRAFT_CREATED") -> dict:
+    reason: dict[str, object] = {
+        "lifecycle_status": "DRAFT",
+        "memo_status": "BLOCKED",
+        "memo_hash": "sha256:memo-001",
+        "source_input_hash": "sha256:source-001",
+    }
+    if event_type == "MEMO_AI_COMMENTARY_REQUESTED":
+        reason["sections"] = [_memo_commentary_section()]
     return {
         "event_id": "pme_001",
         "event_type": event_type,
         "actor_id": "advisor_1",
         "occurred_at": "2026-05-23T12:00:00+00:00",
-        "reason": {
-            "lifecycle_status": "DRAFT",
-            "memo_status": "BLOCKED",
-            "memo_hash": "sha256:memo-001",
-            "source_input_hash": "sha256:source-001",
-        },
+        "reason": reason,
     }
 
 
@@ -453,7 +465,11 @@ def _memo_response_payload() -> dict:
             "client_ready_publication": "BLOCKED",
         },
         "report_package_posture": {"status": "RECORDED", "client_ready_publication": "BLOCKED"},
-        "ai_commentary_posture": {"status": "RECORDED", "ai_status": "REVIEW_REQUIRED"},
+        "ai_commentary_posture": {
+            "status": "RECORDED",
+            "ai_status": "REVIEW_REQUIRED",
+            "sections": [_memo_commentary_section()],
+        },
         "replay_metadata": {
             "proposal_artifact_hash": "sha256:artifact-001",
             "replay_policy": "EXACT_SOURCE_HASH_MATCH",
@@ -565,7 +581,10 @@ def test_proposal_memo_contract_shapes() -> None:
         data={
             "memo": _memo_response_payload(),
             "ai_event": _memo_audit_event("MEMO_AI_COMMENTARY_REQUESTED"),
-            "commentary": {"authority": "NON_AUTHORITATIVE"},
+            "commentary": {
+                "authority": "NON_AUTHORITATIVE",
+                "sections": [_memo_commentary_section()],
+            },
             "replayed": False,
         },
     )
@@ -593,7 +612,10 @@ def test_proposal_memo_contract_shapes() -> None:
                         "archive": {"uri": "archive://memo/report/1"},
                     },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
-                    "ai_commentary_posture": {"status": "AVAILABLE"},
+                    "ai_commentary_posture": {
+                        "status": "AVAILABLE",
+                        "sections": [_memo_commentary_section()],
+                    },
                 }
             ],
             "lineage_posture": {
@@ -636,7 +658,10 @@ def test_proposal_memo_contract_shapes() -> None:
                     "client_ready_publication": "BLOCKED",
                 },
                 "report_package_posture": {"status": "NOT_RECORDED"},
-                "ai_commentary_posture": {"status": "NOT_RECORDED"},
+                "ai_commentary_posture": {
+                    "status": "AVAILABLE",
+                    "sections": [_memo_commentary_section()],
+                },
             },
             "explanation": {
                 "source": "PERSISTED_MEMO_RECORD",
@@ -658,17 +683,53 @@ def test_proposal_memo_contract_shapes() -> None:
     assert memo_payload.data.review_posture.memo_hash == "sha256:memo-001"
     assert memo_payload.data.audit_events[0].reason.lifecycle_status == "DRAFT"
     assert memo_payload.data.audit_events[0].reason.memo_status == "BLOCKED"
+    assert memo_payload.data.ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert projection_payload.data.audience == "COMPLIANCE"
     assert review_payload.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
     assert report_event_payload.data.replayed is False
     assert report_payload.data.report.report_reference_id == "report_001"
     assert ai_payload.data.commentary.authority == "NON_AUTHORITATIVE"
+    assert ai_payload.data.commentary.sections[0].model_dump() == _memo_commentary_section()
+    assert ai_payload.data.ai_event.reason.sections[0].model_dump() == _memo_commentary_section()
     assert lineage_payload.data.memos[0].memo_hash == "sha256:memo-001"
+    assert lineage_payload.data.memos[0].ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert replay_payload.data.hashes.memo_hash == "sha256:memo-001"
     assert replay_payload.data.evidence.review_posture.idempotency_request_hash == (
         "sha256:review-request-001"
     )
     assert replay_payload.data.audit_events[0].reason.lifecycle_status == "DRAFT"
+    assert replay_payload.data.evidence.ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_section",
+    [
+        "EXECUTIVE_SUMMARY",
+        {
+            "section_key": "EXECUTIVE_SUMMARY",
+            "title": "Executive Summary",
+            "text": "Advisor-use commentary.",
+        },
+    ],
+)
+def test_proposal_memo_contract_rejects_legacy_or_incomplete_commentary_sections(
+    invalid_section: object,
+) -> None:
+    source_payload = _memo_response_payload()
+    source_payload["ai_commentary_posture"]["sections"] = [invalid_section]
+
+    with pytest.raises(ValidationError):
+        ProposalMemoEnvelopeResponse(
+            correlation_id="corr_invalid_commentary_section",
+            contract_version="v1",
+            data=source_payload,
+        )
 
 
 def test_proposal_memo_contracts_reject_stale_opaque_shapes() -> None:
@@ -1445,6 +1506,24 @@ def test_proposal_memo_openapi_data_schemas_are_closed_and_typed() -> None:
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
 
     _assert_closed_memo_schemas(schemas)
+
+    commentary_section_schema = schemas["ProposalMemoCommentarySection"]
+    assert commentary_section_schema["additionalProperties"] is False
+    assert set(commentary_section_schema["required"]) == {
+        "section_key",
+        "title",
+        "text",
+        "review_state",
+    }
+    assert schemas["ProposalMemoAiCommentaryPosture"]["properties"]["sections"]["items"] == {
+        "$ref": "#/components/schemas/ProposalMemoCommentarySection"
+    }
+    assert schemas["ProposalMemoCommentary"]["properties"]["sections"]["items"] == {
+        "$ref": "#/components/schemas/ProposalMemoCommentarySection"
+    }
+    assert schemas["ProposalMemoAuditReason"]["properties"]["sections"]["items"] == {
+        "$ref": "#/components/schemas/ProposalMemoCommentarySection"
+    }
 
 
 def test_proposal_memo_openapi_fitness_rejects_nested_free_form_objects() -> None:

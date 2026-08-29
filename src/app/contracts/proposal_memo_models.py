@@ -3,6 +3,7 @@ from pydantic import Field, model_validator
 from app.contracts.proposal_memo_nested_models import (
     MemoReason,
     ProposalMemoAiCommentaryPosture,
+    ProposalMemoCommentarySection,
     ProposalMemoEvidencePack,
     ProposalMemoProjectionPolicy,
     ProposalMemoProjectionPosture,
@@ -93,7 +94,7 @@ class ProposalMemoAuditReason(_ClosedMemoModel):
     report_package_status: str | None = None
     reason: MemoReason = Field(default_factory=dict)
     ai_status: str | None = None
-    sections: list[str] = Field(default_factory=list)
+    sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
     lineage: MemoReason = Field(default_factory=dict)
     review_guidance: list[str] = Field(default_factory=list)
     review_required: bool | None = None

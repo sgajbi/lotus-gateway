@@ -4,6 +4,15 @@ from fastapi import HTTPException
 from app.services.proposal_service import ProposalService
 
 
+def _memo_commentary_section() -> dict:
+    return {
+        "section_key": "EXECUTIVE_SUMMARY",
+        "title": "Executive Summary",
+        "text": "Advisor-use commentary grounded in the persisted memo evidence.",
+        "review_state": "REVIEW_REQUIRED",
+    }
+
+
 def _memo_proposal_summary(proposal_id: str, version_no: int) -> dict:
     return {
         "proposal_id": proposal_id,
@@ -22,17 +31,20 @@ def _memo_proposal_summary(proposal_id: str, version_no: int) -> dict:
 
 
 def _memo_audit_event(event_type: str, memo_hash: str = "sha256:memo-1") -> dict:
+    reason: dict[str, object] = {
+        "lifecycle_status": "DRAFT",
+        "memo_status": "PENDING_REVIEW",
+        "memo_hash": memo_hash,
+        "source_input_hash": "sha256:source-1",
+    }
+    if event_type == "MEMO_AI_COMMENTARY_REQUESTED":
+        reason["sections"] = [_memo_commentary_section()]
     return {
         "event_id": "pme_1",
         "event_type": event_type,
         "actor_id": "advisor_1",
         "occurred_at": "2026-05-23T12:00:00+00:00",
-        "reason": {
-            "lifecycle_status": "DRAFT",
-            "memo_status": "PENDING_REVIEW",
-            "memo_hash": memo_hash,
-            "source_input_hash": "sha256:source-1",
-        },
+        "reason": reason,
     }
 
 
@@ -105,7 +117,11 @@ def _memo_response_payload(
             "client_ready_publication": "BLOCKED",
         },
         "report_package_posture": {"status": "NOT_REQUESTED"},
-        "ai_commentary_posture": {"status": "NOT_RECORDED", "ai_status": "NOT_REQUESTED"},
+        "ai_commentary_posture": {
+            "status": "AVAILABLE",
+            "ai_status": "REVIEW_REQUIRED",
+            "sections": [_memo_commentary_section()],
+        },
         "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
         "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED", memo_hash)],
         "event_count": 1,
@@ -1007,7 +1023,11 @@ class _FakeAdviseClient:
         return 200, {
             "memo": _memo_response_payload(proposal_id, version_no, body["source_memo_hash"]),
             "ai_event": _memo_audit_event("MEMO_AI_COMMENTARY_REQUESTED", body["source_memo_hash"]),
-            "commentary": {"status": "AVAILABLE", "authority": "NON_AUTHORITATIVE"},
+            "commentary": {
+                "status": "AVAILABLE",
+                "authority": "NON_AUTHORITATIVE",
+                "sections": [_memo_commentary_section()],
+            },
             "replayed": False,
         }
 
@@ -1039,7 +1059,10 @@ class _FakeAdviseClient:
                         "archive": {"uri": "archive://memo/report/1"},
                     },
                     "archive_refs": [{"uri": "archive://memo/report/1"}],
-                    "ai_commentary_posture": {"status": "AVAILABLE"},
+                    "ai_commentary_posture": {
+                        "status": "AVAILABLE",
+                        "sections": [_memo_commentary_section()],
+                    },
                 }
             ],
             "lineage_posture": {
@@ -1099,7 +1122,10 @@ class _FakeAdviseClient:
                     "client_ready_publication": "BLOCKED",
                 },
                 "report_package_posture": {"status": "NOT_RECORDED"},
-                "ai_commentary_posture": {"status": "NOT_RECORDED"},
+                "ai_commentary_posture": {
+                    "status": "AVAILABLE",
+                    "sections": [_memo_commentary_section()],
+                },
             },
             "explanation": {
                 "source": "PERSISTED_MEMO_RECORD",
@@ -1140,6 +1166,14 @@ class _FakeAdviseAdditiveMemoContractClient(_FakeAdviseClient):
         payload["proposal"]["source_advisor_segment"] = "PRIVATE_BANKING"
         payload["memo"]["source_rendering_hints"] = {"layout": "advisor"}
         payload["audit_events"][0]["reason"]["source_event_note"] = "additive evidence"
+        payload["ai_commentary_posture"]["sections"][0]["source_model"] = "lotus-ai"
+        return 200, payload
+
+
+class _FakeAdviseLegacyMemoCommentaryClient(_FakeAdviseClient):
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        payload = _memo_response_payload(proposal_id, version_no)
+        payload["ai_commentary_posture"]["sections"] = ["EXECUTIVE_SUMMARY"]
         return 200, payload
 
 
@@ -1490,6 +1524,9 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     )
 
     assert created.data.memo_hash == "sha256:memo-1"
+    assert created.data.ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert created.data.review_posture.idempotency_key == "ui-memo-review-2-pp_1-001"
     assert created.data.audit_events[0].reason.lifecycle_status == "DRAFT"
     assert memo.data.read_posture.supportability == "SUPPORTED_ADVISOR_USE"
@@ -1497,9 +1534,19 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     assert review.data.review_event.event_type == "MEMO_REVIEW_RECORDED"
     assert report_package.data.report.report_reference_id == "report_1"
     assert ai_commentary.data.commentary.authority == "NON_AUTHORITATIVE"
+    assert ai_commentary.data.commentary.sections[0].model_dump() == _memo_commentary_section()
+    assert ai_commentary.data.ai_event.reason.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert lineage.data.memos[0].ai_commentary_posture.status == "AVAILABLE"
+    assert lineage.data.memos[0].ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert replay.data.hashes.proposal_artifact_hash == "sha256:artifact-1"
     assert replay.data.evidence.review_posture.memo_hash == "sha256:memo-1"
+    assert replay.data.evidence.ai_commentary_posture.sections[0].model_dump() == (
+        _memo_commentary_section()
+    )
     assert [name for name, _ in client.calls[-8:]] == [
         "create_proposal_memo",
         "get_proposal_memo",
@@ -1550,6 +1597,27 @@ async def test_additive_proposal_memo_source_fields_are_not_published() -> None:
     assert "source_advisor_segment" not in published["proposal"]
     assert "source_rendering_hints" not in published["memo"]
     assert "source_event_note" not in published["audit_events"][0]["reason"]
+    assert "source_model" not in published["ai_commentary_posture"]["sections"][0]
+
+
+@pytest.mark.asyncio
+async def test_legacy_string_memo_commentary_maps_to_product_safe_502() -> None:
+    service = ProposalService(advise_client=_FakeAdviseLegacyMemoCommentaryClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_proposal_memo(
+            proposal_id="pp_1",
+            version_no=2,
+            correlation_id="corr_memo_legacy_commentary",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 200,
+        "error_code": "ADVISE_PROPOSAL_MEMO_CONTRACT_INVALID",
+        "detail": "lotus-advise proposal memo evidence did not match the governed contract.",
+    }
 
 
 @pytest.mark.asyncio
