@@ -133,13 +133,22 @@ class ProposalMemoReportPackagePosture(_ClosedMemoModel):
     archive: ProposalMemoArchivePosture | None = None
 
 
+class ProposalMemoCommentarySection(_ClosedMemoModel):
+    """Source-owned advisor commentary for one governed memo section."""
+
+    section_key: str = Field(description="Stable source-owned memo section key.")
+    title: str = Field(description="Advisor-facing section title supplied by lotus-advise.")
+    text: str = Field(description="Review-gated commentary text supplied by lotus-advise.")
+    review_state: str = Field(description="Source-owned review posture for this commentary.")
+
+
 class ProposalMemoAiCommentaryPosture(_ClosedMemoModel):
     status: str
     event_id: str | None = None
     actor_id: str | None = None
     occurred_at: str | None = None
     ai_status: str | None = None
-    sections: list[str] = Field(default_factory=list)
+    sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
     lineage: MemoReason = Field(default_factory=dict)
     review_guidance: list[str] = Field(default_factory=list)
     client_ready_publication: str | None = None
@@ -192,7 +201,7 @@ class ProposalMemoLineagePosture(_ClosedMemoModel):
 class ProposalMemoCommentary(_ClosedMemoModel):
     status: str | None = None
     authority: str | None = None
-    sections: list[str] = Field(default_factory=list)
+    sections: list[ProposalMemoCommentarySection] = Field(default_factory=list)
     lineage: MemoReason = Field(default_factory=dict)
     review_guidance: list[str] = Field(default_factory=list)
     client_ready_publication: str | None = None
@@ -246,6 +255,7 @@ __all__ = [
     "ProposalMemoAiCommentaryPosture",
     "ProposalMemoArchivePosture",
     "ProposalMemoCommentary",
+    "ProposalMemoCommentarySection",
     "ProposalMemoEvidencePack",
     "ProposalMemoMaterialClaim",
     "ProposalMemoLineagePosture",
