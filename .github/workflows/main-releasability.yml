@@ -58,6 +58,31 @@ jobs:
           fi
           echo "Validated exact merged PR SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown}."
 
+  duplicate-code:
+    name: Main Releasability / Duplicate Code
+    needs: [exact-revision-assertion]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - name: Enforce duplicate-code ratchet
+        run: |
+          mkdir -p output/duplicate-code
+          make duplicate-code
+      - name: Upload duplicate-code evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: main-duplicate-code-evidence
+          path: output/duplicate-code/
+          if-no-files-found: error
+
   workflow-lint:
     name: Main Releasability / Workflow Lint
     needs: [exact-revision-assertion]
