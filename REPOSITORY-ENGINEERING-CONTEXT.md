@@ -454,8 +454,9 @@ Important validation expectations:
    aggregate-metric drift. Main Releasability independently runs the same blocking
    `make duplicate-code` target after exact-revision assertion and retains
    `main-duplicate-code-evidence`, so the reviewed baseline is proved again at the exact merged
-   SHA. Cross-operating-system equivalence remains intentionally unclaimed rather than being
-   hidden in a union baseline;
+   SHA. The image build, registry push, signing, and provenance job depends on this result, so a
+   failing ratchet cannot publish release artifacts for the rejected revision. Cross-operating-
+   system equivalence remains intentionally unclaimed rather than being hidden in a union baseline;
    a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
    reviewed baseline updates must bank removals before the improvement can be spent again. Hosts
    with different candidate selection use `make duplicate-code-protected`, which runs the pinned

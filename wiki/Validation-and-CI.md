@@ -262,7 +262,9 @@ steps retain evidence with `continue-on-error`, but a final blocking result step
 malformed, or non-zero ratchet and reproducibility statuses. After merge, Main Releasability runs
 the same pinned `make duplicate-code` target as a separate blocking job after exact-revision
 assertion and uploads `main-duplicate-code-evidence`. This proves the reviewed baseline at the
-exact merged SHA without duplicating the pull-request scan inside the PR Merge Gate.
+exact merged SHA without duplicating the pull-request scan inside the PR Merge Gate. The container
+release job depends on this result, preventing registry push, signing, or provenance publication
+for a revision that fails duplicate-code enforcement.
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
 findings, prove the blocking no-regression checks, then promote only agreed additional checks into
