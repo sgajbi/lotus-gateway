@@ -1241,6 +1241,30 @@ class _FakeAdviseMismatchedActionCommentaryIdentityClient(_FakeAdviseClient):
         return status, payload
 
 
+class _FakeAdviseMismatchedActionMemoHashClient(_FakeAdviseClient):
+    async def request_proposal_memo_ai_commentary(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        status, payload = await super().request_proposal_memo_ai_commentary(
+            proposal_id,
+            version_no,
+            body,
+            idempotency_key,
+            correlation_id,
+        )
+        payload["memo"] = _memo_response_payload(
+            proposal_id,
+            version_no,
+            memo_hash="sha256:different-memo",
+        )
+        return status, payload
+
+
 @pytest.mark.asyncio
 async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
     client = _FakeAdviseClient()
@@ -1714,6 +1738,7 @@ async def test_incomplete_recorded_commentary_lineage_maps_to_product_safe_502()
         (_FakeAdviseMismatchedLineageCommentaryIdentityClient(), "lineage"),
         (_FakeAdviseMismatchedReplayCommentaryIdentityClient(), "replay"),
         (_FakeAdviseMismatchedActionCommentaryIdentityClient(), "action"),
+        (_FakeAdviseMismatchedActionMemoHashClient(), "action"),
     ],
 )
 async def test_mismatched_commentary_identity_maps_to_product_safe_502(
