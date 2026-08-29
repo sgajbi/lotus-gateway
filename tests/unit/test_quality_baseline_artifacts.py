@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from scripts.check_quality_baseline_artifacts import (
@@ -8,6 +9,13 @@ from scripts.check_quality_baseline_artifacts import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _workflow_job(workflow: str, job_name: str) -> str:
+    start = workflow.index(f"  {job_name}:\n")
+    remainder = workflow[start + 1 :]
+    next_job = re.search(r"(?m)^  [a-z0-9-]+:\n", remainder)
+    return workflow[start:] if next_job is None else workflow[start : start + 1 + next_job.start()]
 
 
 def _write_complete_artifacts(tmp_path: Path) -> tuple[Path, Path]:
@@ -155,6 +163,8 @@ def test_quality_baseline_workflow_enforces_artifact_set_before_upload() -> None
     ].split("      - name: Dead Code Baseline", 1)[0]
     assert "continue-on-error: true" in duplicate_ratchet
     assert "      - name: Enforce Duplicate Code Ratchet Result" in workflow
+    duplicate_result = workflow.split("      - name: Enforce Duplicate Code Ratchet Result\n", 1)[1]
+    assert "continue-on-error" not in duplicate_result
     assert workflow.index("      - name: Upload Quality Baseline Logs") < workflow.index(
         "      - name: Enforce Duplicate Code Ratchet Result"
     )
@@ -205,6 +215,25 @@ def test_quality_baseline_workflow_has_one_authoritative_automated_event() -> No
     )
     assert "cancel-in-progress: true" in workflow
     assert "name: Quality Baseline / Ratcheted Trend Gate" in workflow
+
+
+def test_main_releasability_blocks_on_duplicate_code_ratchet() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "main-releasability.yml").read_text(
+        encoding="utf-8"
+    )
+
+    duplicate_job = _workflow_job(workflow, "duplicate-code")
+
+    assert "name: Main Releasability / Duplicate Code" in duplicate_job
+    assert "needs: [exact-revision-assertion]" in duplicate_job
+    assert "uses: actions/setup-python@v6" in duplicate_job
+    assert "uses: actions/setup-node@v5" in duplicate_job
+    assert 'node-version: "20"' in duplicate_job
+    assert "make duplicate-code" in duplicate_job
+    assert "if: always()" in duplicate_job
+    assert "output/duplicate-code/" in duplicate_job
+    assert "if-no-files-found: error" in duplicate_job
+    assert "continue-on-error" not in duplicate_job
 
 
 def test_duplicate_detector_is_pinned_and_uses_the_repo_quality_package() -> None:
