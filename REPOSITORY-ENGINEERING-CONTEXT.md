@@ -449,10 +449,13 @@ Important validation expectations:
    normalization, stable f-string token-span normalization, and stable occurrence
    ordering; adjacent source edits and non-local scope-body edits must not invalidate unrelated
    clones, while same-scope relocation is an explicit identity trade-off. The checked-in baseline
-   is generated and enforced on the Ubuntu/Node 20 Quality Baseline lane; that lane runs the
-   detector twice and fails on normalized candidate-identity-set or aggregate-metric drift, while
-   cross-operating-system equivalence remains intentionally unclaimed rather than being hidden in
-   a union baseline;
+   is generated and enforced for pull requests on the required Ubuntu/Node 20 Quality Baseline
+   lane; that lane runs the detector twice and fails on normalized candidate-identity-set or
+   aggregate-metric drift. Main Releasability independently runs the same blocking
+   `make duplicate-code` target after exact-revision assertion and retains
+   `main-duplicate-code-evidence`, so the reviewed baseline is proved again at the exact merged
+   SHA. Cross-operating-system equivalence remains intentionally unclaimed rather than being
+   hidden in a union baseline;
    a new clone, stale baseline fingerprint, or detector failure is a protected quality failure;
    reviewed baseline updates must bank removals before the improvement can be spent again. Hosts
    with different candidate selection use `make duplicate-code-protected`, which runs the pinned

@@ -137,7 +137,7 @@ same actual revision may supersede one another.
 - Workflow-level Node 24 JavaScript action runtime opt-in through
   `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
 - main release evidence retention for coverage, workflow governance, agent quality, security,
-  OpenAPI, and demo-certification artifacts
+  OpenAPI, demo certification, and the exact-main duplicate-code ratchet
 - duplicate-code clone count, duplicated-line percentage, and stable source-pair/normalised-
   fragment occurrence fingerprints must not regress beyond the reviewed production baseline;
   removed pairs must be banked through a
@@ -256,6 +256,13 @@ revalidation. The concurrency key uses the pull-request number to cancel stale i
 across synchronized revisions, while manual dispatch uses a unique run ID. The complete push-only,
 PR, updated-PR, and manual event matrix is documented in
 `docs/quality-baseline-event-matrix.md`.
+
+The required Quality Baseline check is the pull-request duplicate-code authority: its producer
+steps retain evidence with `continue-on-error`, but a final blocking result step rejects missing,
+malformed, or non-zero ratchet and reproducibility statuses. After merge, Main Releasability runs
+the same pinned `make duplicate-code` target as a separate blocking job after exact-revision
+assertion and uploads `main-duplicate-code-evidence`. This proves the reviewed baseline at the
+exact merged SHA without duplicating the pull-request scan inside the PR Merge Gate.
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
 findings, prove the blocking no-regression checks, then promote only agreed additional checks into

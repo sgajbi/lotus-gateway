@@ -33,3 +33,10 @@ merged commit.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR dispatcher
 is the single automatic post-merge path and prevents duplicate push-triggered and dispatch-triggered
 main releasability runs for the same merge.
+
+Duplicate-code regression protection is deliberate in both release authorities. The required
+Quality Baseline check owns pull-request enforcement after collecting its full diagnostic artifact
+set. Main Releasability then runs the same pinned `make duplicate-code` detector, versioned
+baseline ratchet, and repeated-run reproducibility check after exact-revision assertion. Its
+`main-duplicate-code-evidence` artifact preserves the merged-SHA detector output; neither lane is a
+substitute for the other.
