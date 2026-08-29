@@ -119,8 +119,16 @@ def _memo_response_payload(
         "report_package_posture": {"status": "NOT_REQUESTED"},
         "ai_commentary_posture": {
             "status": "AVAILABLE",
+            "event_id": "pme_ai_1",
+            "idempotency_key": "idem-memo-ai-1",
+            "idempotency_request_hash": "sha256:ai-request-1",
+            "memo_hash": memo_hash,
+            "source_input_hash": "sha256:ai-source-1",
+            "source_memo_hash": memo_hash,
             "ai_status": "REVIEW_REQUIRED",
             "sections": [_memo_commentary_section()],
+            "requested_sections": ["EXECUTIVE_SUMMARY"],
+            "reason": {"purpose": "advisor-use commentary"},
         },
         "replay_metadata": {"proposal_artifact_hash": "sha256:artifact-1"},
         "audit_events": [_memo_audit_event("MEMO_DRAFT_CREATED", memo_hash)],
@@ -1527,6 +1535,8 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
     assert created.data.ai_commentary_posture.sections[0].model_dump() == (
         _memo_commentary_section()
     )
+    assert created.data.ai_commentary_posture.source_memo_hash == "sha256:memo-1"
+    assert created.data.ai_commentary_posture.idempotency_request_hash == ("sha256:ai-request-1")
     assert created.data.review_posture.idempotency_key == "ui-memo-review-2-pp_1-001"
     assert created.data.audit_events[0].reason.lifecycle_status == "DRAFT"
     assert memo.data.read_posture.supportability == "SUPPORTED_ADVISOR_USE"
