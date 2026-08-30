@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import Any
 
 from app.main import app
-from app.services.idea_service import _PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES
+from app.services.idea_source_error_policy import (
+    PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES,
+)
 
 CONTRACT_PATH = (
     Path(__file__).resolve().parents[2]
@@ -38,6 +40,9 @@ def test_openapi_publishes_exact_presentation_receipt_transport() -> None:
         ]
         == "replayed"
     )
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/IdeaCandidatePresentationReceiptResponse"
+    }
     assert (
         operation["responses"]["201"]["content"]["application/json"]["example"][
             "persistenceDecision"
@@ -57,7 +62,7 @@ def test_presentation_receipt_contract_keeps_candidate_identity_in_the_path() ->
 def test_presentation_receipt_safe_problem_allowlist_matches_versioned_contract() -> None:
     safe_codes = {
         str(status_code): sorted(messages)
-        for status_code, messages in _PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES.items()
+        for status_code, messages in PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES.items()
     }
 
     assert safe_codes == {
