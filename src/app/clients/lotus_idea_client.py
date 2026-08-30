@@ -104,6 +104,27 @@ class LotusIdeaClient:
             causation_id=causation_id,
         )
 
+    async def record_candidate_presentation_receipt(
+        self,
+        *,
+        candidate_id: str,
+        body: dict[str, Any],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        idempotency_key: str,
+        causation_id: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._record_candidate_action(
+            operation="idea.candidates.presentation-receipts.record",
+            candidate_id=candidate_id,
+            action_path="presentation-receipts",
+            body=body,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            causation_id=causation_id,
+        )
+
     async def record_candidate_conversion_intent(
         self,
         *,

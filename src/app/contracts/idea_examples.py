@@ -8,6 +8,8 @@ IDEA_REVIEW_QUEUE_EXAMPLE: dict[str, Any] = {
             "rank": 1,
             "candidate": {
                 "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
+                "materialVersion": 1,
+                "evidenceVersion": 1,
                 "family": "high_cash",
                 "lifecycleStatus": "generated",
                 "reviewPosture": "advisor_review_required",
@@ -18,7 +20,7 @@ IDEA_REVIEW_QUEUE_EXAMPLE: dict[str, Any] = {
             },
             "score": "82",
             "priorityBucket": "high",
-            "policyVersion": "idle-liquidity-v1",
+            "policyVersion": "idea-deterministic-ranking-v1",
             "reasonCodes": ["high_cash_ratio", "review_required"],
         }
     ],
@@ -108,9 +110,10 @@ IDEA_FEEDBACK_EXAMPLE: dict[str, Any] = {
         "feedbackId": "feedback-001",
         "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
         "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "taxonomyVersion": "idea-feedback-taxonomy-v1",
         "outcome": "useful",
+        "reason": "relevant",
         "actorRole": "advisor",
-        "reasonCodes": ["review_required"],
         "recordedAtUtc": "2026-06-21T10:16:00Z",
     },
     "persistence": {
@@ -122,6 +125,39 @@ IDEA_FEEDBACK_EXAMPLE: dict[str, Any] = {
     },
     "durableStorageBacked": True,
     "supportedFeaturePromoted": False,
+}
+
+IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE: dict[str, Any] = {
+    "receipt": {
+        "receiptId": "receipt-presentation-001",
+        "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
+        "tenantId": "tenant-private-bank-sg",
+        "presentedAtUtc": "2026-06-21T10:16:00Z",
+        "rankAtPresentation": 1,
+        "visibleCandidateCount": 7,
+        "queueSnapshotDigest": f"sha256:{'a' * 64}",
+        "queuePolicyVersion": "idea-deterministic-ranking-v1",
+        "rankingPolicyVersion": "idle-liquidity-v1",
+        "candidateMaterialVersion": 1,
+        "candidateEvidenceVersion": 1,
+        "schemaVersion": "lotus-idea.candidate-presentation-receipt.v1",
+        "surface": "advisor_review_queue",
+        "producer": "lotus-workbench",
+    },
+    "persistenceDecision": "accepted",
+    "durableStorageBacked": True,
+    "effectivenessMeasurementStatus": "stored_consumer_certification_pending",
+    "certificationStatus": "not_certified",
+    "certificationBlockers": [
+        "gateway_presentation_receipt_pass_through_not_certified",
+        "workbench_visible_render_producer_not_certified",
+    ],
+    "supportedFeaturePromoted": False,
+}
+
+IDEA_PRESENTATION_RECEIPT_REPLAYED_EXAMPLE: dict[str, Any] = {
+    **IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE,
+    "persistenceDecision": "replayed",
 }
 
 IDEA_CONVERSION_INTENT_EXAMPLE: dict[str, Any] = {

@@ -7,11 +7,13 @@ from app.contracts.idea_examples import (
     IDEA_FEEDBACK_EXAMPLE,
     IDEA_REVIEW_ACTION_EXAMPLE,
 )
+from app.contracts.idea_interactions import (
+    IdeaCandidateFeedbackRequest,
+    IdeaCandidateFeedbackResponse,
+)
 from app.contracts.ideas import (
     IdeaCandidateConversionIntentRequest,
     IdeaCandidateConversionIntentResponse,
-    IdeaCandidateFeedbackRequest,
-    IdeaCandidateFeedbackResponse,
     IdeaCandidateReviewActionRequest,
     IdeaCandidateReviewActionResponse,
 )

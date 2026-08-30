@@ -1,0 +1,36 @@
+{
+  "contractId": "lotus-idea-feedback-taxonomy",
+  "version": "1.0.0",
+  "sourceAuthority": "lotus-idea",
+  "sourceSchema": "idea-feedback-taxonomy-v1",
+  "sourcePath": "src/app/domain/feedback_taxonomy.py",
+  "taxonomyVersion": "idea-feedback-taxonomy-v1",
+  "outcomes": [
+    "useful",
+    "not_useful"
+  ],
+  "reasons": [
+    "relevant",
+    "not_relevant",
+    "already_known",
+    "wrong_timing",
+    "insufficient_evidence",
+    "wrong_priority",
+    "duplicate",
+    "client_specific_constraint"
+  ],
+  "allowedReasonsByOutcome": {
+    "useful": [
+      "relevant"
+    ],
+    "not_useful": [
+      "not_relevant",
+      "already_known",
+      "wrong_timing",
+      "insufficient_evidence",
+      "wrong_priority",
+      "duplicate",
+      "client_specific_constraint"
+    ]
+  }
+}

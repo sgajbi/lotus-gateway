@@ -250,8 +250,9 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
             "/feedback",
             {
                 "feedbackId": "feedback-001",
+                "taxonomyVersion": "idea-feedback-taxonomy-v1",
                 "outcome": "useful",
-                "reasonCodes": ["review_required"],
+                "reason": "relevant",
                 "recordedAtUtc": "2026-06-21T10:16:00Z",
             },
             "feedbackEvent",
@@ -259,9 +260,10 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "feedbackId": "feedback-001",
                 "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
                 "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+                "taxonomyVersion": "idea-feedback-taxonomy-v1",
                 "outcome": "useful",
+                "reason": "relevant",
                 "actorRole": "advisor",
-                "reasonCodes": ["review_required"],
                 "recordedAtUtc": "2026-06-21T10:16:00Z",
             },
         ),
@@ -394,7 +396,7 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
 
 
 @pytest.mark.parametrize(
-    ("method_name", "path", "body"),
+    ("method_name", "path", "body", "rejected_field"),
     [
         (
             "record_candidate_review_action",
@@ -405,16 +407,19 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
                 "reasonCodes": ["advisor_review"],
                 "decidedAtUtc": "2026-06-21T10:15:00Z",
             },
+            "reasonCodes",
         ),
         (
             "record_candidate_feedback",
             "/feedback",
             {
                 "feedbackId": "feedback-invalid-reason",
+                "taxonomyVersion": "idea-feedback-taxonomy-v1",
                 "outcome": "useful",
-                "reasonCodes": ["advisor_feedback"],
+                "reason": "advisor_feedback",
                 "recordedAtUtc": "2026-06-21T10:16:00Z",
             },
+            "reason",
         ),
         (
             "record_candidate_conversion_intent",
@@ -425,6 +430,7 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
                 "reasonCodes": ["advisor_conversion_intent"],
                 "requestedAtUtc": "2026-06-21T10:17:00Z",
             },
+            "reasonCodes",
         ),
     ],
 )
@@ -433,6 +439,7 @@ def test_idea_candidate_action_rejects_unknown_reason_before_upstream_call(
     method_name,
     path,
     body,
+    rejected_field,
 ) -> None:
     async def _action(*args, **kwargs):
         raise AssertionError("Gateway must reject unknown Idea reasons before fan-out.")
@@ -446,7 +453,7 @@ def test_idea_candidate_action_rejects_unknown_reason_before_upstream_call(
     )
 
     assert response.status_code == 422
-    assert "reasonCodes" in str(response.json())
+    assert rejected_field in str(response.json())
 
 
 def test_idea_candidate_action_requires_idempotency_before_upstream_call(monkeypatch) -> None:
@@ -490,8 +497,9 @@ def test_idea_candidate_action_preserves_source_permission_denial_without_payloa
         "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/feedback",
         json={
             "feedbackId": "feedback-001",
+            "taxonomyVersion": "idea-feedback-taxonomy-v1",
             "outcome": "useful",
-            "reasonCodes": ["review_required"],
+            "reason": "relevant",
             "recordedAtUtc": "2026-06-21T10:16:00Z",
         },
         headers={**_headers(), "Idempotency-Key": "idea-action-idem-denied"},
@@ -519,8 +527,9 @@ def test_idea_candidate_action_preserves_source_conflict_and_validation_status(
         "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/feedback",
         json={
             "feedbackId": "feedback-001",
+            "taxonomyVersion": "idea-feedback-taxonomy-v1",
             "outcome": "useful",
-            "reasonCodes": ["review_required"],
+            "reason": "relevant",
             "recordedAtUtc": "2026-06-21T10:16:00Z",
         },
         headers={**_headers(), "Idempotency-Key": "idea-action-idem-error"},

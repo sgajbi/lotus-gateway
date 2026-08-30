@@ -59,6 +59,22 @@ class IdeaGatewayErrorResponse(BaseModel):
     message: str = Field(..., description="Product-safe error message.")
 
 
+class IdeaGatewayReviewQueueCandidateResponse(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    candidate_id: str = Field(..., alias="candidateId")
+    material_version: int = Field(..., alias="materialVersion", ge=1)
+    evidence_version: int = Field(..., alias="evidenceVersion", ge=1)
+
+
+class IdeaGatewayReviewQueueItemResponse(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    rank: int = Field(..., ge=1)
+    candidate: IdeaGatewayReviewQueueCandidateResponse
+    policy_version: str = Field(..., alias="policyVersion")
+
+
 class IdeaGatewayReviewQueueResponse(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -68,7 +84,7 @@ class IdeaGatewayReviewQueueResponse(BaseModel):
         alias="evaluatedAtUtc",
         description="Source evaluation instant returned by lotus-idea.",
     )
-    items: list[dict[str, Any]] = Field(
+    items: list[IdeaGatewayReviewQueueItemResponse] = Field(
         ...,
         description="Lotus Idea-ranked queue entries preserved without Gateway reranking.",
     )
@@ -182,20 +198,6 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
     snoozed_until_utc: datetime | None = Field(default=None, alias="snoozedUntilUtc")
 
 
-class IdeaCandidateFeedbackRequest(IdeaCandidateActionRequest):
-    feedback_id: str = Field(..., alias="feedbackId", min_length=1)
-    outcome: Literal[
-        "useful",
-        "not_useful",
-        "duplicate",
-        "too_late",
-        "missing_context",
-        "unsupported_claim",
-    ]
-    reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
-    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
-
-
 class IdeaCandidateConversionIntentRequest(IdeaCandidateActionRequest):
     conversion_intent_id: str = Field(..., alias="conversionIntentId", min_length=1)
     target: Literal["advise_proposal", "manage_review", "report_evidence"]
@@ -239,22 +241,6 @@ class IdeaReviewDecisionResponse(BaseModel):
 
 class IdeaCandidateReviewActionResponse(IdeaCandidateActionResponse):
     review_decision: IdeaReviewDecisionResponse | None = Field(default=None, alias="reviewDecision")
-
-
-class IdeaFeedbackEventResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    feedback_id: str = Field(..., alias="feedbackId")
-    candidate_id: str = Field(..., alias="candidateId")
-    evidence_packet_id: str = Field(..., alias="evidencePacketId")
-    outcome: str
-    actor_role: str = Field(..., alias="actorRole")
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
-    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
-
-
-class IdeaCandidateFeedbackResponse(IdeaCandidateActionResponse):
-    feedback_event: IdeaFeedbackEventResponse | None = Field(default=None, alias="feedbackEvent")
 
 
 class IdeaConversionIntentResponse(BaseModel):

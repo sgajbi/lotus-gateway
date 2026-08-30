@@ -62,7 +62,8 @@ way:
 3. Gateway has implementation-backed route families for Workbench, platform
    capabilities, domain-product discovery, portfolio, performance/risk workbench reads, proposals,
    advisory policy, advisor cockpit, bank-demo proof, DPM command center, reporting, report
-   batches, archive metadata/download, idea review/candidate reads, and analytics diagnostics.
+   batches, archive metadata/download, idea review/candidate reads and governed actions, and
+   analytics diagnostics.
 4. Gateway exposes bounded degraded, partial, unavailable, and permission-blocked states where the
    UI and operators need them.
 5. Gateway does not by itself certify full product demo readiness. Populated Workbench proof,
@@ -142,7 +143,8 @@ Boundary rules that matter:
    reporting, intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
-4. Idea queue/detail reads and bounded candidate review, feedback, and conversion-intent routes are
+4. Idea queue/detail reads and bounded candidate review, governed feedback, conversion-intent, and
+   visible-render presentation-receipt routes are
    active as source-preserving BFF facades over `lotus-idea`; Gateway does not rank, generate,
    enrich, authorize, or promote ideas locally.
 5. The repository is still moving from thin pass-through behavior toward cleaner experience-API
@@ -230,7 +232,11 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/documents/{document_id}`, `/api/v1/documents/{document_id}/download`
 - `ideas`
   `/api/v1/ideas/review-queues/advisor`,
-  `/api/v1/ideas/candidates/{candidate_id}`
+  `/api/v1/ideas/candidates/{candidate_id}`,
+  `/api/v1/ideas/candidates/{candidate_id}/review-actions`,
+  `/api/v1/ideas/candidates/{candidate_id}/feedback`,
+  `/api/v1/ideas/candidates/{candidate_id}/conversion-intents`,
+  `/api/v1/ideas/candidates/{candidate_id}/presentation-receipts`
 - platform surfaces
   `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -424,8 +430,13 @@ Important current parameter conventions:
    `X-Lotus-Trusted-Caller-Context` to `lotus-idea` for entitlement-scope enforcement. Candidate
    mutations require `Idempotency-Key` and forward correlation/trace context and optional
    `X-Causation-Id`. Gateway preserves
-   `supportedFeaturePromoted=false` and does not rank, score, enrich, or certify idea candidates
-   locally, grant downstream authority, or create downstream execution records
+   `supportedFeaturePromoted=false`; feedback uses `idea-feedback-taxonomy-v1` without legacy
+   aliases, queue items preserve current material/evidence versions, and presentation receipts
+   preserve Idea accepted/replayed status without deriving visible-render facts. Gateway does not
+   rank, score, enrich, or certify idea candidates locally, grant downstream authority, or create
+   downstream execution records. See
+   [`docs/operations/idea-opportunity-action-transport.md`](docs/operations/idea-opportunity-action-transport.md)
+   for field ownership, failure semantics, and the consumer-certification boundary
 13. Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review
    action routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,
