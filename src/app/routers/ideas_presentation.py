@@ -56,6 +56,11 @@ async def _record_idea_candidate_presentation_receipt(
                 "description": "An exact immutable presentation receipt was replayed.",
                 "content": {
                     "application/json": {
+                        "schema": {
+                            "$ref": (
+                                "#/components/schemas/IdeaCandidatePresentationReceiptResponse"
+                            )
+                        },
                         "example": IDEA_PRESENTATION_RECEIPT_REPLAYED_EXAMPLE,
                     }
                 },
