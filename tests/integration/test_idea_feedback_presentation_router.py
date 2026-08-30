@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.contracts.idea_examples import (
+    IDEA_FEEDBACK_EXAMPLE,
     IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE,
     IDEA_REVIEW_QUEUE_EXAMPLE,
 )
@@ -47,6 +48,14 @@ def _feedback_payload(outcome: str = "useful", reason: str = "relevant") -> dict
         "reason": reason,
         "recordedAtUtc": "2026-06-21T10:16:00Z",
     }
+
+
+def _feedback_success_payload() -> dict[str, object]:
+    payload = deepcopy(IDEA_FEEDBACK_EXAMPLE)
+    payload["feedbackEvent"].update(_feedback_payload())
+    payload["feedbackEvent"]["candidateId"] = _CANDIDATE_ID
+    payload["persistence"]["candidateId"] = _CANDIDATE_ID
+    return payload
 
 
 def _presentation_payload() -> dict[str, object]:
@@ -196,6 +205,56 @@ def test_feedback_preserves_allowlisted_source_conflict_codes_safely(
 
 
 @pytest.mark.parametrize(
+    ("field", "changed_value"),
+    (
+        ("feedbackId", "feedback-different"),
+        ("candidateId", "idea_high_cash_different_candidate"),
+        ("outcome", "not_useful"),
+        ("reason", "wrong_timing"),
+        ("recordedAtUtc", "2026-06-21T10:17:00Z"),
+    ),
+)
+def test_feedback_rejects_persisted_event_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    changed_value: object,
+) -> None:
+    async def _feedback(self, **kwargs):
+        payload = _feedback_success_payload()
+        payload["feedbackEvent"][field] = changed_value
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_feedback",
+        _feedback,
+    )
+
+    response = TestClient(app).post(_FEEDBACK_PATH, json=_feedback_payload(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_feedback_evidence_mismatch"
+
+
+def test_feedback_rejects_success_without_persisted_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _feedback(self, **kwargs):
+        payload = _feedback_success_payload()
+        del payload["feedbackEvent"]
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_feedback",
+        _feedback,
+    )
+
+    response = TestClient(app).post(_FEEDBACK_PATH, json=_feedback_payload(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
     ("source_status", "decision"),
     ((201, "accepted"), (200, "replayed")),
 )
@@ -327,6 +386,35 @@ def test_presentation_receipt_preserves_allowlisted_source_problem_codes_safely(
 
     assert response.status_code == source_status
     assert response.json()["detail"]["code"] == source_code
+    assert "database internals" not in response.text
+
+
+@pytest.mark.parametrize(
+    ("source_status", "source_code"),
+    ((422, "invalid_request"), (400, "unrecognized_receipt_failure")),
+)
+def test_presentation_receipt_rejects_non_allowlisted_source_problem(
+    monkeypatch: pytest.MonkeyPatch,
+    source_status: int,
+    source_code: str,
+) -> None:
+    async def _presentation(self, **kwargs):
+        return source_status, {
+            "code": source_code,
+            "detail": "candidate client tenant and database internals",
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_presentation_receipt",
+        _presentation,
+    )
+
+    response = TestClient(app).post(
+        _PRESENTATION_PATH, json=_presentation_payload(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == ("idea_presentation_receipt_problem_invalid")
     assert "database internals" not in response.text
 
 
@@ -481,7 +569,10 @@ def test_queue_retrieval_never_synthesizes_presentation_evidence(
     assert (candidate["materialVersion"], candidate["evidenceVersion"]) == (1, 1)
 
 
-@pytest.mark.parametrize("version_field", ("materialVersion", "evidenceVersion"))
+@pytest.mark.parametrize(
+    "version_field",
+    ("materialVersion", "evidenceVersion", "scorePolicyVersion"),
+)
 def test_queue_rejects_missing_source_versions_before_workbench_consumption(
     monkeypatch: pytest.MonkeyPatch,
     version_field: str,

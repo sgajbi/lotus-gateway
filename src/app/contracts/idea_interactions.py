@@ -81,7 +81,7 @@ class IdeaFeedbackEventResponse(BaseModel):
 
 
 class IdeaCandidateFeedbackResponse(IdeaCandidateActionResponse):
-    feedback_event: IdeaFeedbackEventResponse | None = Field(default=None, alias="feedbackEvent")
+    feedback_event: IdeaFeedbackEventResponse = Field(..., alias="feedbackEvent")
 
 
 class IdeaPresentationReceiptFields(BaseModel):

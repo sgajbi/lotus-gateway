@@ -65,6 +65,12 @@ class IdeaGatewayReviewQueueCandidateResponse(BaseModel):
     candidate_id: str = Field(..., alias="candidateId")
     material_version: int = Field(..., alias="materialVersion", ge=1)
     evidence_version: int = Field(..., alias="evidenceVersion", ge=1)
+    score_policy_version: str = Field(
+        ...,
+        alias="scorePolicyVersion",
+        min_length=1,
+        pattern=r"\S",
+    )
 
 
 class IdeaGatewayReviewQueueItemResponse(BaseModel):
