@@ -45,10 +45,12 @@ async def _record_idea_candidate_presentation_receipt(
     summary="Record visible idea candidate presentation",
     description=(
         "Forwards one Workbench-authored visible-render receipt to Lotus Idea without deriving "
-        "rank, visible count, queue digest, policy versions, candidate versions, or presentation "
-        "time. Queue retrieval and prefetch never create presentation evidence. Lotus Idea owns "
-        "candidate validation, immutable persistence, and effectiveness methodology; this route "
-        "does not certify the consumer journey or promote a supported feature."
+        "or comparing its source-owned global rank and Workbench-observed visible-set count. "
+        "Gateway also preserves the queue digest, policy versions, candidate versions, and "
+        "presentation time without reinterpretation. Queue retrieval and prefetch never create "
+        "presentation evidence. Lotus Idea owns candidate validation, immutable persistence, and "
+        "effectiveness methodology; this route does not certify the consumer journey or promote "
+        "a supported feature."
     ),
     openapi_extra={
         "responses": {

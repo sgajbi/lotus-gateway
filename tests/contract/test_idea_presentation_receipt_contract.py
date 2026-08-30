@@ -29,6 +29,8 @@ def test_openapi_publishes_exact_presentation_receipt_transport() -> None:
 
     assert request_schema["required"] == contract["requiredRequestFields"]
     assert request_schema["additionalProperties"] is False
+    assert request_schema["properties"]["rankAtPresentation"]["minimum"] == 1
+    assert request_schema["properties"]["visibleCandidateCount"]["maximum"] == 100
     assert response_schema["properties"]["durableStorageBacked"]["const"] is True
     assert evidence_schema["properties"]["queueSnapshotDigest"]["pattern"].startswith("^sha256:")
     assert {int(status_code) for status_code in operation["responses"]} >= set(
@@ -49,6 +51,11 @@ def test_openapi_publishes_exact_presentation_receipt_transport() -> None:
         ]
         == "accepted"
     )
+    accepted_receipt = operation["responses"]["201"]["content"]["application/json"]["example"][
+        "receipt"
+    ]
+    assert accepted_receipt["rankAtPresentation"] == 25
+    assert accepted_receipt["visibleCandidateCount"] == 1
 
 
 def test_presentation_receipt_contract_keeps_candidate_identity_in_the_path() -> None:

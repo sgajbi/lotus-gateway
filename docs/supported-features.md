@@ -320,8 +320,9 @@ deriving lifecycle, authorization, audit, or downstream authority locally. The r
 conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
 feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
 legacy aliases. Queue items must include Idea-owned material/evidence versions. Presentation
-receipts forward only Workbench-authored visible-render facts and preserve Idea `201` accepted,
-`200` replayed, and allowlisted stable problem codes. Queue retrieval emits no receipt. The
+receipts preserve the Idea-owned global rank independently from Workbench-authored visible-render
+time, visible-set count, and digest, together with Idea `201` accepted, `200` replayed, and
+allowlisted stable problem codes. Queue retrieval emits no receipt. The
 versioned reconciliation snapshots are `contracts/upstream/lotus-idea-reason-codes.v1.json`,
 `contracts/upstream/lotus-idea-feedback-taxonomy.v1.json`, and
 `contracts/upstream/lotus-idea-presentation-receipt.v1.json`. Presentation measurement remains

@@ -62,8 +62,8 @@ def _presentation_payload() -> dict[str, object]:
     return {
         "tenantId": "tenant-private-bank-sg",
         "presentedAtUtc": "2026-06-21T10:16:00Z",
-        "rankAtPresentation": 1,
-        "visibleCandidateCount": 7,
+        "rankAtPresentation": 25,
+        "visibleCandidateCount": 1,
         "queueSnapshotDigest": f"sha256:{'a' * 64}",
         "queuePolicyVersion": "idea-deterministic-ranking-v1",
         "rankingPolicyVersion": "idle-liquidity-v1",
@@ -298,7 +298,6 @@ def test_presentation_receipt_preserves_source_status_body_and_lineage(
         {**_presentation_payload(), "presentedAtUtc": "2026-06-21T10:16:00"},
         {**_presentation_payload(), "presentedAtUtc": "2026-06-21T11:16:00+01:00"},
         {**_presentation_payload(), "rankAtPresentation": 0},
-        {**_presentation_payload(), "rankAtPresentation": 8},
         {**_presentation_payload(), "visibleCandidateCount": 101},
         {**_presentation_payload(), "queueSnapshotDigest": "sha256:not-a-digest"},
         {**_presentation_payload(), "candidateEvidenceVersion": 0},
@@ -317,6 +316,38 @@ def test_presentation_receipt_rejects_malformed_transport_before_fanout(
     )
 
     response = TestClient(app).post(_PRESENTATION_PATH, json=payload, headers=_headers())
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "rankAtPresentation",
+        "visibleCandidateCount",
+        "candidateMaterialVersion",
+        "candidateEvidenceVersion",
+    ),
+)
+@pytest.mark.parametrize("invalid_value", (True, "1"))
+def test_presentation_receipt_rejects_coerced_integer_evidence_before_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    field_name: str,
+    invalid_value: object,
+) -> None:
+    async def _presentation(*args, **kwargs):
+        raise AssertionError("Coerced presentation evidence must not reach Lotus Idea.")
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_presentation_receipt",
+        _presentation,
+    )
+
+    response = TestClient(app).post(
+        _PRESENTATION_PATH,
+        json={**_presentation_payload(), field_name: invalid_value},
+        headers=_headers(),
+    )
 
     assert response.status_code == 422
 
@@ -470,8 +501,8 @@ def test_presentation_receipt_rejects_status_decision_mismatch(
         ("candidateId", "idea_high_cash_different_candidate"),
         ("tenantId", "tenant-private-bank-hk"),
         ("presentedAtUtc", "2026-06-21T10:17:00Z"),
-        ("rankAtPresentation", 2),
-        ("visibleCandidateCount", 8),
+        ("rankAtPresentation", 24),
+        ("visibleCandidateCount", 2),
         ("queueSnapshotDigest", f"sha256:{'b' * 64}"),
         ("queuePolicyVersion", "idea-deterministic-ranking-v2"),
         ("rankingPolicyVersion", "idle-liquidity-v2"),
@@ -525,7 +556,7 @@ def test_presentation_receipt_rejects_untruthful_source_success_payload(
         elif mutation == "non_durable_success":
             payload["durableStorageBacked"] = False
         else:
-            payload["receipt"]["rankAtPresentation"] = 8
+            payload["receipt"]["rankAtPresentation"] = True
         return 201, payload
 
     monkeypatch.setattr(

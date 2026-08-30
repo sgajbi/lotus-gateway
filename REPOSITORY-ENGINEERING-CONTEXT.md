@@ -218,8 +218,9 @@ under parent issue #586.
    `idea-feedback-taxonomy-v1` contract with no legacy aliases. Queue candidates require
    Idea-owned material/evidence versions so Workbench can bind visible-render receipts without
    reconstructing source state. Presentation receipt transport preserves Idea `201` accepted,
-   `200` replayed, and allowlisted product-safe failure codes; it never derives rank, count,
-   digest, policy, version, or presentation time and queue reads never synthesize receipts.
+   `200` replayed, and allowlisted product-safe failure codes. It preserves Idea global rank
+   independently from Workbench visible-set count and never derives, compares, or rewrites rank,
+   count, digest, policy, version, or presentation time; queue reads never synthesize receipts.
    Gateway does not generate, rank, enrich, certify, authorize, or promote
    ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client
