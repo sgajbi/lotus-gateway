@@ -206,10 +206,41 @@ class IdeaService:
                 "idea_presentation_receipt_status_invalid",
                 "Lotus Idea returned an invalid presentation-receipt success status.",
             )
-        return status_code, self._validate_payload(
-            IdeaCandidatePresentationReceiptResponse,
-            payload,
+        response = self._validate_presentation_receipt_response(
+            candidate_id=candidate_id,
+            request=request,
+            status_code=status_code,
+            payload=payload,
         )
+        return status_code, response
+
+    def _validate_presentation_receipt_response(
+        self,
+        *,
+        candidate_id: str,
+        request: IdeaCandidatePresentationReceiptRequest,
+        status_code: int,
+        payload: dict[str, Any],
+    ) -> IdeaCandidatePresentationReceiptResponse:
+        response = self._validate_payload(IdeaCandidatePresentationReceiptResponse, payload)
+        expected_decision = "accepted" if status_code == status.HTTP_201_CREATED else "replayed"
+        if response.persistence_decision != expected_decision:
+            raise self._gateway_error(
+                status.HTTP_502_BAD_GATEWAY,
+                "idea_presentation_receipt_decision_invalid",
+                "Lotus Idea returned presentation-receipt persistence evidence that contradicts "
+                "the source status.",
+            )
+        submitted_fields = request.model_dump()
+        persisted_fields = response.receipt.model_dump(include=set(submitted_fields))
+        if response.receipt.candidate_id != candidate_id or persisted_fields != submitted_fields:
+            raise self._gateway_error(
+                status.HTTP_502_BAD_GATEWAY,
+                "idea_presentation_receipt_evidence_mismatch",
+                "Lotus Idea returned presentation-receipt evidence that does not match the "
+                "submitted visible-render event.",
+            )
+        return response
 
     def _validate_payload(
         self,

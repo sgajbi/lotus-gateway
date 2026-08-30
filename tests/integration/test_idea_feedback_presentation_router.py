@@ -350,6 +350,71 @@ def test_presentation_receipt_rejects_unexpected_success_status(
 
 
 @pytest.mark.parametrize(
+    ("source_status", "decision"),
+    ((201, "replayed"), (200, "accepted")),
+)
+def test_presentation_receipt_rejects_status_decision_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    source_status: int,
+    decision: str,
+) -> None:
+    async def _presentation(self, **kwargs):
+        payload = deepcopy(IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE)
+        payload["persistenceDecision"] = decision
+        return source_status, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_presentation_receipt",
+        _presentation,
+    )
+
+    response = TestClient(app).post(
+        _PRESENTATION_PATH, json=_presentation_payload(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == ("idea_presentation_receipt_decision_invalid")
+
+
+@pytest.mark.parametrize(
+    ("field", "changed_value"),
+    (
+        ("candidateId", "idea_high_cash_different_candidate"),
+        ("tenantId", "tenant-private-bank-hk"),
+        ("presentedAtUtc", "2026-06-21T10:17:00Z"),
+        ("rankAtPresentation", 2),
+        ("visibleCandidateCount", 8),
+        ("queueSnapshotDigest", f"sha256:{'b' * 64}"),
+        ("queuePolicyVersion", "idea-deterministic-ranking-v2"),
+        ("rankingPolicyVersion", "idle-liquidity-v2"),
+        ("candidateMaterialVersion", 2),
+        ("candidateEvidenceVersion", 2),
+    ),
+)
+def test_presentation_receipt_rejects_persisted_evidence_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    changed_value: object,
+) -> None:
+    async def _presentation(self, **kwargs):
+        payload = deepcopy(IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE)
+        payload["receipt"][field] = changed_value
+        return 201, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_presentation_receipt",
+        _presentation,
+    )
+
+    response = TestClient(app).post(
+        _PRESENTATION_PATH, json=_presentation_payload(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == ("idea_presentation_receipt_evidence_mismatch")
+
+
+@pytest.mark.parametrize(
     ("mutation", "expected_code"),
     (
         ("missing_receipt", "idea_contract_invalid"),
