@@ -28,7 +28,7 @@ sequenceDiagram
     Gateway-->>Workbench: source order and versions unchanged
     Note over Workbench,Idea: Retrieval and prefetch do not prove that an adviser saw a candidate
     Adviser->>Workbench: Visible queue render
-    Workbench->>Workbench: Compute ordered visible-set digest and rank
+    Workbench->>Workbench: Observe visible count and compute ordered visible-set digest
     Workbench->>Gateway: POST presentation receipt + Idempotency-Key
     Gateway->>Idea: Forward exact receipt and lineage
     Idea-->>Gateway: 201 accepted or 200 exact replay
@@ -64,7 +64,8 @@ historical outcome aliases are rejected rather than translated.
 | `candidateId` | Lotus Idea | Preserved in the route; never accepted as a competing body value. |
 | `tenantId` | Trusted Workbench context, verified by Idea | Forwarded unchanged. |
 | `presentedAtUtc` | Workbench visible-render event | Must be UTC; never derived from queue retrieval time. |
-| `rankAtPresentation`, `visibleCandidateCount` | Workbench visible ordered set | Validated for internal consistency and forwarded unchanged. |
+| `rankAtPresentation` | Lotus Idea ranked queue item | Forwarded unchanged as the positive global queue rank; never compared with visible-set size. |
+| `visibleCandidateCount` | Workbench observed visible set | Validated independently in the range 1..100 and forwarded unchanged. |
 | `queueSnapshotDigest` | Workbench canonical visible ordered set | Must be a SHA-256 digest; Gateway does not recalculate it. |
 | `queuePolicyVersion` | Lotus Idea queue response | Preserved by Workbench and forwarded unchanged. |
 | `rankingPolicyVersion` | Candidate ranking evidence | Preserved by Workbench and forwarded unchanged. |
@@ -100,7 +101,7 @@ The transport is implementation-backed, but presentation-effectiveness measureme
 
 1. a receipt is emitted only after the candidate is visibly rendered,
 2. the digest represents the exact ordered visible set,
-3. the rank and candidate versions came from the same rendered queue snapshot,
+3. the Idea global rank and candidate versions came from the same rendered queue snapshot without renumbering,
 4. accepted and replayed responses are handled without duplicate adviser telemetry, and
 5. the canonical cross-repository runtime journey passes.
 

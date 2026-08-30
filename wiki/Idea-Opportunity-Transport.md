@@ -24,7 +24,8 @@ flowchart LR
 ## Product rules
 
 - Gateway preserves Idea rank, policy version, material version, and evidence version.
-- Workbench owns the exact visible-set digest, visible count, rank at presentation, and render time.
+- Idea owns the global queue rank; Workbench preserves it from the rendered item and independently
+  owns the exact visible-set digest, visible count, and render time.
 - Gateway forwards those values and request lineage without deriving or translating them.
 - Idea owns candidate/version validation, feedback combination rules, immutable persistence,
   idempotency, audit evidence, and effectiveness methodology.

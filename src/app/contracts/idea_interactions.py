@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.contracts.ideas import IdeaCandidateActionRequest, IdeaCandidateActionResponse
 
@@ -91,8 +91,19 @@ class IdeaPresentationReceiptFields(BaseModel):
 
     tenant_id: str = Field(..., alias="tenantId", pattern=_GOVERNED_REFERENCE)
     presented_at_utc: datetime = Field(..., alias="presentedAtUtc")
-    rank_at_presentation: int = Field(..., alias="rankAtPresentation", ge=1)
-    visible_candidate_count: int = Field(..., alias="visibleCandidateCount", ge=1, le=100)
+    rank_at_presentation: int = Field(
+        ...,
+        alias="rankAtPresentation",
+        ge=1,
+        strict=True,
+    )
+    visible_candidate_count: int = Field(
+        ...,
+        alias="visibleCandidateCount",
+        ge=1,
+        le=100,
+        strict=True,
+    )
     queue_snapshot_digest: str = Field(..., alias="queueSnapshotDigest", pattern=_SHA256_DIGEST)
     queue_policy_version: str = Field(
         ...,
@@ -104,8 +115,18 @@ class IdeaPresentationReceiptFields(BaseModel):
         alias="rankingPolicyVersion",
         pattern=_GOVERNED_REFERENCE,
     )
-    candidate_material_version: int = Field(..., alias="candidateMaterialVersion", ge=1)
-    candidate_evidence_version: int = Field(..., alias="candidateEvidenceVersion", ge=1)
+    candidate_material_version: int = Field(
+        ...,
+        alias="candidateMaterialVersion",
+        ge=1,
+        strict=True,
+    )
+    candidate_evidence_version: int = Field(
+        ...,
+        alias="candidateEvidenceVersion",
+        ge=1,
+        strict=True,
+    )
 
     @field_validator("presented_at_utc")
     @classmethod
@@ -113,12 +134,6 @@ class IdeaPresentationReceiptFields(BaseModel):
         if value.utcoffset() != timedelta(0):
             raise ValueError("presentedAtUtc must be a UTC timestamp")
         return value
-
-    @model_validator(mode="after")
-    def _rank_must_be_visible(self) -> Self:
-        if self.rank_at_presentation > self.visible_candidate_count:
-            raise ValueError("rankAtPresentation cannot exceed visibleCandidateCount")
-        return self
 
 
 class IdeaCandidatePresentationReceiptRequest(IdeaPresentationReceiptFields):

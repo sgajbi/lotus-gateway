@@ -425,8 +425,9 @@ consumer migration remain tracked by parent issue #569.
   and may carry `X-Causation-Id`; Gateway preserves source-owned ranking, source signal identifiers,
   source refs, current candidate material/evidence versions, durable-storage posture,
   accepted/replayed outcomes, and `supportedFeaturePromoted=false`. Feedback preserves
-  `idea-feedback-taxonomy-v1` without aliases. Presentation receipt transport preserves exact
-  Workbench-authored rank/count/digest/policy/version/time facts and Idea `201`/`200` status;
+  `idea-feedback-taxonomy-v1` without aliases. Presentation receipt transport preserves the exact
+  Idea-owned global rank and policy/version facts independently from Workbench-authored visible
+  count/digest/time facts, together with Idea `201`/`200` status;
   queue retrieval produces no receipt. It does not generate, rank, enrich, certify, or promote Idea
   candidates, grant downstream authority, or create downstream delivery/execution records locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
@@ -1039,8 +1040,9 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf5
 The `feedback`, `presentation-receipts`, and `conversion-intents` routes use the same trusted
 caller-context and idempotency posture. Feedback uses the closed `idea-feedback-taxonomy-v1`
 vocabulary without compatibility aliases. A presentation receipt must be authored only after a
-visible Workbench render and carries the exact visible rank, ordered-set digest, queue/ranking
-policies, and current candidate material/evidence versions. Queue retrieval and prefetch emit no
+visible Workbench render and carries the Idea global rank independently from the Workbench visible
+count, together with the ordered-set digest, queue/ranking policies, and current candidate
+material/evidence versions. Queue retrieval and prefetch emit no
 receipt. These routes record only Lotus Idea-owned workflow facts; they do not initiate downstream
 submission, rebalance, execution, suitability approval, or client communication. See
 [Idea Opportunity Transport](Idea-Opportunity-Transport) for the ownership and certification

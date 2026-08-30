@@ -432,7 +432,8 @@ Important current parameter conventions:
    `X-Causation-Id`. Gateway preserves
    `supportedFeaturePromoted=false`; feedback uses `idea-feedback-taxonomy-v1` without legacy
    aliases, queue items preserve current material/evidence versions, and presentation receipts
-   preserve Idea accepted/replayed status without deriving visible-render facts. Gateway does not
+   preserve Idea global rank independently from Workbench visible-set facts as well as Idea
+   accepted/replayed status. Gateway does not
    rank, score, enrich, or certify idea candidates locally, grant downstream authority, or create
    downstream execution records. See
    [`docs/operations/idea-opportunity-action-transport.md`](docs/operations/idea-opportunity-action-transport.md)
