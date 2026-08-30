@@ -75,10 +75,10 @@ class ReportConfigurationField(ReportOrderingModel):
     field_id: str = Field(alias="fieldId")
     business_label: str = Field(alias="businessLabel")
     description: str
-    input_type: Literal["business_date", "currency", "benchmark", "multi_select"] = Field(
+    input_type: Literal["business_date", "currency", "benchmark", "multi_select", "text"] = Field(
         alias="inputType"
     )
-    requirement: Literal["required", "optional"]
+    requirement: Literal["required", "optional", "conditional"]
     defaulting_policy: str = Field(alias="defaultingPolicy")
     value_source: Literal[
         "caller",
