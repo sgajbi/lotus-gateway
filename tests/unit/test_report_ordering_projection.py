@@ -138,3 +138,64 @@ def test_unavailable_response_is_typed_and_contains_no_source_payload() -> None:
     assert response.catalogue_availability.state == "unavailable"
     assert response.scope_eligibility.state == "ready"
     assert response.report_families == []
+
+
+def test_projection_carries_advisor_commentary_vocabulary() -> None:
+    """lotus-report's catalogue now publishes the ADVISOR_COMMENTARY section
+    with its conditional advisor_brief_run_id text field (report PR #204).
+    The source and workbench contracts must both accept the extended
+    vocabulary and pass it through unchanged - a Literal miss here fails the
+    entire ordering surface closed as report_catalogue_contract_invalid."""
+
+    family = _family("portfolio_review", ["client_advisor"])
+    family["configuration_fields"] = [
+        {
+            "field_id": "advisor_brief_run_id",
+            "business_label": "Accepted Advisor Brief run",
+            "description": "Accepted brief run identity for the commentary section.",
+            "input_type": "text",
+            "requirement": "conditional",
+            "defaulting_policy": "caller_required",
+            "value_source": "caller",
+        }
+    ]
+    family["sections"] = [
+        {
+            "section_id": "ADVISOR_COMMENTARY",
+            "business_label": "Advisor commentary",
+            "description": "Reviewed advisor narrative from an accepted brief.",
+            "display_order": 25,
+            "selection_posture": "optional",
+            "default_selected": False,
+            "dependency_field_ids": ["advisor_brief_run_id"],
+        }
+    ]
+    source = SourceReportOrderingCatalogue.model_validate(
+        {
+            "source_service": "lotus-report",
+            "contract_version": "report-ordering-catalogue.v1",
+            "report_families": [family],
+            "supportability": {
+                "state": "ready",
+                "reason_code": "report_catalogue_ready",
+                "message": "Available.",
+            },
+        }
+    )
+
+    response = project_report_ordering_catalogue(
+        source=source,
+        selection=None,
+        entitlements=_entitlements("client_advisor"),
+    )
+
+    projected = response.report_families[0]
+    field = next(
+        item for item in projected.configuration_fields if item.field_id == "advisor_brief_run_id"
+    )
+    assert field.input_type == "text"
+    assert field.requirement == "conditional"
+    section = next(item for item in projected.sections if item.section_id == "ADVISOR_COMMENTARY")
+    assert section.selection_posture == "optional"
+    assert section.default_selected is False
+    assert section.dependency_field_ids == ["advisor_brief_run_id"]

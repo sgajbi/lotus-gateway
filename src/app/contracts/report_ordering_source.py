@@ -16,8 +16,8 @@ class SourceReportConfigurationField(ReportOrderingSourceModel):
     field_id: str
     business_label: str
     description: str
-    input_type: Literal["business_date", "currency", "benchmark", "multi_select"]
-    requirement: Literal["required", "optional"]
+    input_type: Literal["business_date", "currency", "benchmark", "multi_select", "text"]
+    requirement: Literal["required", "optional", "conditional"]
     defaulting_policy: str
     value_source: Literal[
         "caller",
