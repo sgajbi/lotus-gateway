@@ -1,8 +1,13 @@
+from collections.abc import Mapping
 from typing import Any, Literal, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 
+from app.contracts.idea_interactions import (
+    IdeaCandidatePresentationReceiptRequest,
+    IdeaCandidatePresentationReceiptResponse,
+)
 from app.contracts.ideas import (
     IdeaCandidateActionRequest,
     IdeaCandidateActionResponse,
@@ -17,6 +22,77 @@ IdeaCandidateActionMethod = Literal[
     "record_candidate_feedback",
     "record_candidate_conversion_intent",
 ]
+SourceErrorMessages = Mapping[int, Mapping[str, str]]
+
+_STANDARD_IDEA_ERROR_MESSAGES: Mapping[int, tuple[str, str]] = {
+    status.HTTP_400_BAD_REQUEST: ("idea_invalid_request", "Lotus Idea rejected the request."),
+    status.HTTP_403_FORBIDDEN: (
+        "idea_permission_denied",
+        "Caller is not permitted to use the requested Idea capability.",
+    ),
+    status.HTTP_404_NOT_FOUND: (
+        "idea_resource_not_found",
+        "The requested Idea resource was not found.",
+    ),
+    status.HTTP_409_CONFLICT: (
+        "idea_conflict",
+        "The requested Idea action conflicts with current source state or replay evidence.",
+    ),
+    status.HTTP_422_UNPROCESSABLE_CONTENT: (
+        "idea_validation_failed",
+        "Lotus Idea could not validate the action request.",
+    ),
+}
+
+_FEEDBACK_SOURCE_ERROR_MESSAGES: SourceErrorMessages = {
+    status.HTTP_400_BAD_REQUEST: {
+        "feedback_taxonomy_combination_invalid": (
+            "The feedback outcome and reason are not allowed by the governed taxonomy."
+        ),
+    },
+    status.HTTP_409_CONFLICT: {
+        "idempotency_conflict": "The idempotency key conflicts with existing feedback evidence.",
+        "review_identity_conflict": (
+            "The feedback identity conflicts with existing immutable evidence."
+        ),
+    },
+}
+
+_PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES: SourceErrorMessages = {
+    status.HTTP_400_BAD_REQUEST: {
+        "invalid_request": "Lotus Idea rejected the bounded presentation receipt request.",
+    },
+    status.HTTP_403_FORBIDDEN: {
+        "permission_denied": "Caller is not permitted to record presentation evidence.",
+    },
+    status.HTTP_404_NOT_FOUND: {
+        "candidate_not_found": "The requested Idea candidate was not found.",
+    },
+    status.HTTP_409_CONFLICT: {
+        "presentation_receipt_identity_conflict": (
+            "The idempotency key conflicts with immutable presentation evidence."
+        ),
+        "presentation_receipt_candidate_state_conflict": (
+            "The receipt conflicts with current candidate tenant, version, or chronology."
+        ),
+    },
+    status.HTTP_503_SERVICE_UNAVAILABLE: {
+        "durable_repository_not_configured": (
+            "Lotus Idea durable presentation-receipt storage is not configured."
+        ),
+        "durable_repository_unavailable": (
+            "Lotus Idea durable presentation-receipt storage is unavailable."
+        ),
+        "service_restoring": "Lotus Idea is restoring and cannot accept presentation evidence.",
+        "service_recovery_degraded": (
+            "Lotus Idea recovery posture cannot accept presentation evidence."
+        ),
+        "service_draining": "Lotus Idea is draining and cannot accept presentation evidence.",
+        "presentation_receipt_unavailable": (
+            "Lotus Idea presentation-receipt persistence is unavailable."
+        ),
+    },
+}
 
 
 class IdeaService:
@@ -82,7 +158,12 @@ class IdeaService:
             causation_id=causation_id,
         )
         self._raise_on_idea_error(
-            status_code, payload, missing_code="idea_candidate_action_unavailable"
+            status_code,
+            payload,
+            missing_code="idea_candidate_action_unavailable",
+            source_error_messages=(
+                _FEEDBACK_SOURCE_ERROR_MESSAGES if action == "record_candidate_feedback" else None
+            ),
         )
         response = self._validate_payload(response_model, payload)
         if isinstance(response, IdeaCandidateActionResponse) and (
@@ -94,6 +175,41 @@ class IdeaService:
                 "Lotus Idea returned an unsupported feature-promotion claim.",
             )
         return response
+
+    async def record_candidate_presentation_receipt(
+        self,
+        *,
+        candidate_id: str,
+        request: IdeaCandidatePresentationReceiptRequest,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        idempotency_key: str,
+        causation_id: str | None,
+    ) -> tuple[int, IdeaCandidatePresentationReceiptResponse]:
+        status_code, payload = await self._idea_client.record_candidate_presentation_receipt(
+            candidate_id=candidate_id,
+            body=request.model_dump(by_alias=True, mode="json"),
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            causation_id=causation_id,
+        )
+        self._raise_on_idea_error(
+            status_code,
+            payload,
+            missing_code="idea_presentation_receipt_unavailable",
+            source_error_messages=_PRESENTATION_RECEIPT_SOURCE_ERROR_MESSAGES,
+        )
+        if status_code not in {status.HTTP_200_OK, status.HTTP_201_CREATED}:
+            raise self._gateway_error(
+                status.HTTP_502_BAD_GATEWAY,
+                "idea_presentation_receipt_status_invalid",
+                "Lotus Idea returned an invalid presentation-receipt success status.",
+            )
+        return status_code, self._validate_payload(
+            IdeaCandidatePresentationReceiptResponse,
+            payload,
+        )
 
     def _validate_payload(
         self,
@@ -122,39 +238,19 @@ class IdeaService:
         payload: dict[str, Any],
         *,
         missing_code: str,
+        source_error_messages: SourceErrorMessages | None = None,
     ) -> None:
         if status_code < status.HTTP_400_BAD_REQUEST:
             return
-        if status_code == status.HTTP_400_BAD_REQUEST:
-            raise self._gateway_error(
-                status.HTTP_400_BAD_REQUEST,
-                "idea_invalid_request",
-                "Lotus Idea rejected the request.",
-            )
-        if status_code == status.HTTP_403_FORBIDDEN:
-            raise self._gateway_error(
-                status.HTTP_403_FORBIDDEN,
-                "idea_permission_denied",
-                "Caller is not permitted to use the requested Idea capability.",
-            )
-        if status_code == status.HTTP_404_NOT_FOUND:
-            raise self._gateway_error(
-                status.HTTP_404_NOT_FOUND,
-                "idea_resource_not_found",
-                "The requested Idea resource was not found.",
-            )
-        if status_code == status.HTTP_409_CONFLICT:
-            raise self._gateway_error(
-                status.HTTP_409_CONFLICT,
-                "idea_conflict",
-                "The requested Idea action conflicts with current source state or replay evidence.",
-            )
-        if status_code == status.HTTP_422_UNPROCESSABLE_CONTENT:
-            raise self._gateway_error(
-                status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "idea_validation_failed",
-                "Lotus Idea could not validate the action request.",
-            )
+        source_code = payload.get("code")
+        if isinstance(source_code, str) and source_error_messages is not None:
+            safe_message = source_error_messages.get(status_code, {}).get(source_code)
+            if safe_message is not None:
+                raise self._gateway_error(status_code, source_code, safe_message)
+        standard_error = _STANDARD_IDEA_ERROR_MESSAGES.get(status_code)
+        if standard_error is not None:
+            code, message = standard_error
+            raise self._gateway_error(status_code, code, message)
         raise self._gateway_error(
             status.HTTP_502_BAD_GATEWAY,
             missing_code,

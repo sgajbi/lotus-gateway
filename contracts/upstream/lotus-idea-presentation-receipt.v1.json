@@ -1,0 +1,46 @@
+{
+  "contractId": "lotus-idea-presentation-receipt",
+  "version": "1.0.0",
+  "sourceAuthority": "lotus-idea",
+  "sourceSchema": "lotus-idea.candidate-presentation-receipt.v1",
+  "sourcePath": "src/app/api/presentation_receipt_models.py",
+  "bffPath": "/api/v1/ideas/candidates/{candidate_id}/presentation-receipts",
+  "requiredRequestFields": [
+    "tenantId",
+    "presentedAtUtc",
+    "rankAtPresentation",
+    "visibleCandidateCount",
+    "queueSnapshotDigest",
+    "queuePolicyVersion",
+    "rankingPolicyVersion",
+    "candidateMaterialVersion",
+    "candidateEvidenceVersion"
+  ],
+  "successStatuses": [
+    200,
+    201
+  ],
+  "safeProblemCodesByStatus": {
+    "400": [
+      "invalid_request"
+    ],
+    "403": [
+      "permission_denied"
+    ],
+    "404": [
+      "candidate_not_found"
+    ],
+    "409": [
+      "presentation_receipt_identity_conflict",
+      "presentation_receipt_candidate_state_conflict"
+    ],
+    "503": [
+      "durable_repository_not_configured",
+      "durable_repository_unavailable",
+      "service_restoring",
+      "service_recovery_degraded",
+      "service_draining",
+      "presentation_receipt_unavailable"
+    ]
+  }
+}

@@ -69,6 +69,8 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/documents/{document_id}/download`
 - `GET /api/v1/ideas/review-queues/advisor`
 - `GET /api/v1/ideas/candidates/{candidate_id}`
+- `POST /api/v1/ideas/candidates/{candidate_id}/feedback`
+- `POST /api/v1/ideas/candidates/{candidate_id}/presentation-receipts`
 - `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -413,15 +415,19 @@ consumer migration remain tracked by parent issue #569.
   metadata before returning metadata or streaming binary content. Broader portfolio, client, and
   advisor entitlement remains upstream authorization truth; Gateway must not claim fuller document
   entitlement enforcement until that source is wired and tested.
-- idea review queue/detail reads and candidate review-action, feedback, and conversion-intent
+- idea review queue/detail reads and candidate review-action, governed feedback, conversion-intent,
+  and visible-render presentation-receipt
   recordings are gateway-first under `/api/v1/ideas/*`;
   Gateway forwards `X-Caller-Subject`, `X-Caller-Roles`, `X-Caller-Capabilities`,
   `X-Caller-Tenant-Ids`, `X-Caller-Book-Ids`, `X-Caller-Portfolio-Ids`,
   `X-Caller-Client-Ids`, optional `X-Lotus-Trusted-Caller-Context`, and correlation/trace context
   to `lotus-idea` for entitlement-scope enforcement. Mutation requests require `Idempotency-Key`
   and may carry `X-Causation-Id`; Gateway preserves source-owned ranking, source signal identifiers,
-  source refs, durable-storage posture, accepted/replayed outcomes, and
-  `supportedFeaturePromoted=false`. It does not generate, rank, enrich, certify, or promote Idea
+  source refs, current candidate material/evidence versions, durable-storage posture,
+  accepted/replayed outcomes, and `supportedFeaturePromoted=false`. Feedback preserves
+  `idea-feedback-taxonomy-v1` without aliases. Presentation receipt transport preserves exact
+  Workbench-authored rank/count/digest/policy/version/time facts and Idea `201`/`200` status;
+  queue retrieval produces no receipt. It does not generate, rank, enrich, certify, or promote Idea
   candidates, grant downstream authority, or create downstream delivery/execution records locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
   routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
@@ -1030,9 +1036,15 @@ curl -X POST "$GATEWAY_BASE_URL/api/v1/ideas/candidates/idea_high_cash_8d57adbf5
   -d "{\"reviewId\":\"review-001\",\"action\":\"approve_for_conversion\",\"reasonCodes\":[\"review_required\"],\"decidedAtUtc\":\"2026-06-21T10:15:00Z\"}"
 ```
 
-The `feedback` and `conversion-intents` routes use the same caller-context and idempotency posture.
-They record only Lotus Idea-owned workflow facts; a conversion intent does not initiate downstream
-submission, rebalance, execution, suitability approval, or client communication.
+The `feedback`, `presentation-receipts`, and `conversion-intents` routes use the same trusted
+caller-context and idempotency posture. Feedback uses the closed `idea-feedback-taxonomy-v1`
+vocabulary without compatibility aliases. A presentation receipt must be authored only after a
+visible Workbench render and carries the exact visible rank, ordered-set digest, queue/ranking
+policies, and current candidate material/evidence versions. Queue retrieval and prefetch emit no
+receipt. These routes record only Lotus Idea-owned workflow facts; they do not initiate downstream
+submission, rebalance, execution, suitability approval, or client communication. See
+[Idea Opportunity Transport](Idea-Opportunity-Transport) for the ownership and certification
+boundary.
 
 ### Analytics diagnostics protected lookup
 

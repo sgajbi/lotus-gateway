@@ -6,6 +6,7 @@
 - [Overview](Overview)
 - [Architecture](Architecture)
 - [API Surface](API-Surface)
+- [Idea Opportunity Transport](Idea-Opportunity-Transport)
 - [Supported Features](Supported-Features)
 - [Getting Started](Getting-Started)
 

@@ -306,7 +306,9 @@ was last evaluated.
    `/api/v1/ideas/candidates/{candidate_id}/review-actions`,
 4. candidate-scoped feedback recording through `/api/v1/ideas/candidates/{candidate_id}/feedback`,
 5. candidate-scoped conversion-intent recording through
-   `/api/v1/ideas/candidates/{candidate_id}/conversion-intents`.
+   `/api/v1/ideas/candidates/{candidate_id}/conversion-intents`,
+6. exact candidate-presentation receipt forwarding through
+   `/api/v1/ideas/candidates/{candidate_id}/presentation-receipts`.
 
 These are implementation-backed Gateway BFF routes over `lotus-idea`; they do not promote an Idea
 supported feature or claim Workbench, runtime, data-product, suitability, execution, or client
@@ -314,10 +316,16 @@ communication readiness. Gateway preserves `lotus-idea` ranking, source signal i
 references, durable-storage posture, accepted/replayed mutation outcomes, and
 `supportedFeaturePromoted=false`. For mutations it forwards trusted caller context, entitlement
 scope, `Idempotency-Key`, correlation and trace context, and optional `X-Causation-Id` without
-deriving lifecycle, authorization, audit, or downstream authority locally. All three candidate
-action contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI; unknown
-reason values are rejected with `422` at Gateway before any source call. The versioned
-reconciliation snapshot is `contracts/upstream/lotus-idea-reason-codes.v1.json`.
+deriving lifecycle, authorization, audit, or downstream authority locally. The review-action and
+conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
+feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
+legacy aliases. Queue items must include Idea-owned material/evidence versions. Presentation
+receipts forward only Workbench-authored visible-render facts and preserve Idea `201` accepted,
+`200` replayed, and allowlisted stable problem codes. Queue retrieval emits no receipt. The
+versioned reconciliation snapshots are `contracts/upstream/lotus-idea-reason-codes.v1.json`,
+`contracts/upstream/lotus-idea-feedback-taxonomy.v1.json`, and
+`contracts/upstream/lotus-idea-presentation-receipt.v1.json`. Presentation measurement remains
+uncertified until Workbench visible-render production is independently proven.
 
 ## Boundaries
 

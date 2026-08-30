@@ -208,14 +208,19 @@ under parent issue #586.
    product-facing boundary over `lotus-archive`,
 8. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-9. idea review queue/detail reads and candidate review-action, feedback, and conversion-intent
-   recordings are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
+9. idea review queue/detail reads and candidate review-action, feedback, conversion-intent, and
+   visible-render presentation-receipt recordings are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
    trusted context, correlation/trace context, and for mutations `Idempotency-Key` plus optional
    causation. It preserves `lotus-idea` ranking, source refs, durable-storage posture, accepted or
-   replayed source outcomes, and `supportedFeaturePromoted=false`. Candidate action requests use
-   the closed `IdeaReasonCode` vocabulary reconciled through
-   `contracts/upstream/lotus-idea-reason-codes.v1.json`; unknown values fail at Gateway validation
-   before source fan-out. Gateway does not generate, rank, enrich, certify, authorize, or promote
+   replayed source outcomes, and `supportedFeaturePromoted=false`. Review and conversion requests
+   use the closed `IdeaReasonCode` vocabulary reconciled through
+   `contracts/upstream/lotus-idea-reason-codes.v1.json`; feedback uses the separate governed
+   `idea-feedback-taxonomy-v1` contract with no legacy aliases. Queue candidates require
+   Idea-owned material/evidence versions so Workbench can bind visible-render receipts without
+   reconstructing source state. Presentation receipt transport preserves Idea `201` accepted,
+   `200` replayed, and allowlisted product-safe failure codes; it never derives rank, count,
+   digest, policy, version, or presentation time and queue reads never synthesize receipts.
+   Gateway does not generate, rank, enrich, certify, authorize, or promote
    ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client
    communication readiness,

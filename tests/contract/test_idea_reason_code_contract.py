@@ -21,13 +21,12 @@ def test_gateway_reason_enum_matches_versioned_lotus_idea_contract() -> None:
     assert "advisor_feedback" not in _contract_values()
 
 
-def test_openapi_publishes_reason_enum_for_every_idea_action_request() -> None:
+def test_openapi_publishes_reason_enum_for_review_and_conversion_requests() -> None:
     schemas = app.openapi()["components"]["schemas"]
     assert schemas["IdeaReasonCode"]["enum"] == _contract_values()
 
     for request_schema_name in (
         "IdeaCandidateReviewActionRequest",
-        "IdeaCandidateFeedbackRequest",
         "IdeaCandidateConversionIntentRequest",
     ):
         reason_items = schemas[request_schema_name]["properties"]["reasonCodes"]["items"]
