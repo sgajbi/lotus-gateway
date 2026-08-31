@@ -89,6 +89,44 @@ class ReportConfigurationField(ReportOrderingModel):
     options: list[ReportConfigurationOption] = Field(default_factory=list)
 
 
+class ReportSectionAcceptedBrief(ReportOrderingModel):
+    run_id: str = Field(
+        alias="runId",
+        description=(
+            "Accepted advisor-brief run the order must carry as options.advisor_brief_run_id."
+        ),
+    )
+    reviewed_by: str = Field(
+        alias="reviewedBy",
+        description="Actor recorded on the accepting review transition.",
+    )
+    reviewed_at: str = Field(
+        alias="reviewedAt",
+        description="Instant of the accepting review transition (UTC).",
+    )
+
+
+class ReportSectionAvailability(ReportOrderingModel):
+    state: Literal["ready", "unavailable"] = Field(
+        description="Source-backed availability of this section for the selected scope."
+    )
+    reason_code: str = Field(
+        alias="reasonCode",
+        description=(
+            "Stable reason passed through from Reporting untranslated: "
+            "advisor_brief_accepted, advisor_brief_not_reviewed, "
+            "advisor_brief_context_mismatch, or advisor_brief_availability_unknown "
+            "(the lookup could not answer - NOT proof that no accepted brief exists)."
+        ),
+    )
+    message: str = Field(description="Business-facing explanation of the availability state.")
+    accepted_brief: ReportSectionAcceptedBrief | None = Field(
+        default=None,
+        alias="acceptedBrief",
+        description="Present exactly when state is ready: the brief the order would compose.",
+    )
+
+
 class ReportSection(ReportOrderingModel):
     section_id: str = Field(alias="sectionId")
     business_label: str = Field(alias="businessLabel")
@@ -97,6 +135,14 @@ class ReportSection(ReportOrderingModel):
     selection_posture: Literal["required", "optional"] = Field(alias="selectionPosture")
     default_selected: bool = Field(alias="defaultSelected")
     dependency_field_ids: list[str] = Field(alias="dependencyFieldIds", default_factory=list)
+    availability: ReportSectionAvailability | None = Field(
+        default=None,
+        description=(
+            "Scope-specific section availability, populated only when it was evaluated - "
+            "today for ADVISOR_COMMENTARY under a single-portfolio scope selection. Absent "
+            "means not evaluated (for example a client or book scope), never unavailable."
+        ),
+    )
 
 
 class ReportOutputFormat(ReportOrderingModel):

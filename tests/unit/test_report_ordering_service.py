@@ -155,3 +155,210 @@ async def test_service_maps_transport_exception_without_exposing_exception_text(
     serialized = response.model_dump(by_alias=True, mode="json")
     assert response.catalogue_availability.reason_code == "report_catalogue_unavailable"
     assert "secret-shaped" not in str(serialized)
+
+
+class StubAvailabilityReportingClient(StubReportingCatalogueClient):
+    def __init__(
+        self,
+        *,
+        availability_status: int = 200,
+        availability_payload: dict[str, Any] | None = None,
+        availability_error: Exception | None = None,
+    ) -> None:
+        super().__init__(payload=_source_payload_with_commentary_section())
+        self.availability_status = availability_status
+        self.availability_payload = availability_payload or {}
+        self.availability_error = availability_error
+        self.availability_calls: list[dict[str, Any]] = []
+
+    async def get_advisor_commentary_availability(
+        self,
+        **kwargs: Any,
+    ) -> tuple[int, dict[str, Any]]:
+        self.availability_calls.append(kwargs)
+        if self.availability_error is not None:
+            raise self.availability_error
+        return self.availability_status, self.availability_payload
+
+
+def _source_payload_with_commentary_section() -> dict[str, Any]:
+    payload = _source_payload()
+    payload["report_families"][0]["sections"] = [
+        {
+            "section_id": "OVERVIEW",
+            "business_label": "Overview",
+            "description": "Portfolio overview.",
+            "display_order": 20,
+            "selection_posture": "optional",
+            "default_selected": True,
+        },
+        {
+            "section_id": "ADVISOR_COMMENTARY",
+            "business_label": "Advisor commentary",
+            "description": "Reviewed advisor narrative.",
+            "display_order": 25,
+            "selection_posture": "optional",
+            "default_selected": False,
+            "dependency_field_ids": ["advisor_brief_run_id"],
+        },
+    ]
+    return payload
+
+
+def _ready_availability_payload() -> dict[str, Any]:
+    return {
+        "source_service": "lotus-report",
+        "contract_version": "advisor-commentary-availability.v1",
+        "section_id": "ADVISOR_COMMENTARY",
+        "state": "ready",
+        "reason_code": "advisor_brief_accepted",
+        "message": "An accepted brief exists.",
+        "accepted_brief": {
+            "run_id": "wfr-accepted-001",
+            "reviewed_by": "banker.sg.301",
+            "reviewed_at": "2026-08-30T09:05:00Z",
+            "content_hash": "c" * 64,
+            "as_of_date": "2026-04-22",
+            "reporting_currency": "USD",
+        },
+    }
+
+
+def _tenant_caller_headers() -> dict[str, str]:
+    return {**_caller_headers(), "X-Tenant-Id": "tenant-sg-001"}
+
+
+def _commentary_section(response: Any) -> Any:
+    family = response.report_families[0]
+    return next(
+        section for section in family.sections if section.section_id == "ADVISOR_COMMENTARY"
+    )
+
+
+@pytest.mark.asyncio
+async def test_portfolio_scope_composes_ready_section_availability() -> None:
+    """Issue #688 (rescoped): a portfolio scope with an accepted brief marks
+    the ADVISOR_COMMENTARY section ready and hands Workbench the run id the
+    order must carry; other sections are untouched."""
+
+    client = StubAvailabilityReportingClient(availability_payload=_ready_availability_payload())
+    service = ReportOrderingService(reporting_client=client)
+
+    response = await service.get_ordering_options(
+        selection=ReportScopeSelection(scope_type="portfolio", scope_id="portfolio-1"),
+        caller_headers=_tenant_caller_headers(),
+        correlation_id="corr-availability",
+        as_of_date="2026-04-22",
+        reporting_currency="USD",
+    )
+
+    section = _commentary_section(response)
+    assert section.availability is not None
+    assert section.availability.state == "ready"
+    assert section.availability.reason_code == "advisor_brief_accepted"
+    assert section.availability.accepted_brief is not None
+    assert section.availability.accepted_brief.run_id == "wfr-accepted-001"
+    assert section.availability.accepted_brief.reviewed_by == "banker.sg.301"
+    overview = next(
+        item for item in response.report_families[0].sections if item.section_id == "OVERVIEW"
+    )
+    assert overview.availability is None
+    assert client.availability_calls == [
+        {
+            "portfolio_id": "portfolio-1",
+            "tenant_id": "tenant-sg-001",
+            "correlation_id": "corr-availability",
+            "as_of_date": "2026-04-22",
+            "reporting_currency": "USD",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_portfolio_scope_passes_unavailable_reasons_through_untranslated() -> None:
+    for reason in ("advisor_brief_not_reviewed", "advisor_brief_context_mismatch"):
+        client = StubAvailabilityReportingClient(
+            availability_payload={
+                "source_service": "lotus-report",
+                "contract_version": "advisor-commentary-availability.v1",
+                "section_id": "ADVISOR_COMMENTARY",
+                "state": "unavailable",
+                "reason_code": reason,
+                "message": "Not orderable yet.",
+                "accepted_brief": None,
+            }
+        )
+        service = ReportOrderingService(reporting_client=client)
+
+        response = await service.get_ordering_options(
+            selection=ReportScopeSelection(scope_type="portfolio", scope_id="portfolio-1"),
+            caller_headers=_tenant_caller_headers(),
+            correlation_id="corr-availability",
+        )
+
+        section = _commentary_section(response)
+        assert section.availability is not None
+        assert section.availability.state == "unavailable"
+        assert section.availability.reason_code == reason
+        assert section.availability.accepted_brief is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "client_kwargs",
+    [
+        {"availability_error": RuntimeError("connection reset")},
+        {"availability_status": 503, "availability_payload": {"detail": "down"}},
+        {"availability_status": 200, "availability_payload": {"unexpected": "shape"}},
+    ],
+)
+async def test_unanswerable_lookups_become_availability_unknown_not_not_reviewed(
+    client_kwargs: dict[str, Any],
+) -> None:
+    """A failed or unrecognisable lookup proves nothing: it must surface as
+    advisor_brief_availability_unknown, never as not_reviewed, and must not
+    fail the whole options response."""
+
+    client = StubAvailabilityReportingClient(**client_kwargs)
+    service = ReportOrderingService(reporting_client=client)
+
+    response = await service.get_ordering_options(
+        selection=ReportScopeSelection(scope_type="portfolio", scope_id="portfolio-1"),
+        caller_headers=_tenant_caller_headers(),
+        correlation_id="corr-availability",
+    )
+
+    assert response.catalogue_availability.state == "ready"
+    section = _commentary_section(response)
+    assert section.availability is not None
+    assert section.availability.state == "unavailable"
+    assert section.availability.reason_code == "advisor_brief_availability_unknown"
+    assert "does not mean no accepted brief exists" in section.availability.message
+
+
+@pytest.mark.asyncio
+async def test_non_portfolio_scopes_do_not_evaluate_section_availability() -> None:
+    """Client/book scopes and tenantless callers leave availability absent
+    (not evaluated) and never call the lookup - absent is distinct from
+    unavailable."""
+
+    for selection, headers in [
+        (ReportScopeSelection(scope_type="client", scope_id="client-1"), _tenant_caller_headers()),
+        (None, _tenant_caller_headers()),
+        (
+            ReportScopeSelection(scope_type="portfolio", scope_id="portfolio-1"),
+            _caller_headers(),
+        ),
+    ]:
+        client = StubAvailabilityReportingClient(availability_payload=_ready_availability_payload())
+        service = ReportOrderingService(reporting_client=client)
+
+        response = await service.get_ordering_options(
+            selection=selection,
+            caller_headers=headers,
+            correlation_id="corr-availability",
+        )
+
+        section = _commentary_section(response)
+        assert section.availability is None
+        assert client.availability_calls == []

@@ -4,6 +4,7 @@ from app.contracts.report_ordering import (
     ReportOrderingEligibility,
     ReportOrderingMode,
     ReportScopeSelection,
+    ReportSectionAvailability,
     WorkbenchReportOrderingResponse,
 )
 from app.contracts.report_ordering_source import (
@@ -26,6 +27,7 @@ def project_report_ordering_catalogue(
     source: SourceReportOrderingCatalogue,
     selection: ReportScopeSelection | None,
     entitlements: ReportOrderingEntitlements,
+    advisor_commentary_availability: ReportSectionAvailability | None = None,
 ) -> WorkbenchReportOrderingResponse:
     selected_scope_eligibility = scope_eligibility(
         selection=selection,
@@ -52,6 +54,7 @@ def project_report_ordering_catalogue(
                 selection=selection,
                 entitlements=entitlements,
                 selected_scope_eligibility=selected_scope_eligibility,
+                advisor_commentary_availability=advisor_commentary_availability,
             )
             for family in visible_families
         ],
@@ -86,6 +89,7 @@ def _project_family(
     selection: ReportScopeSelection | None,
     entitlements: ReportOrderingEntitlements,
     selected_scope_eligibility: ReportOrderingEligibility,
+    advisor_commentary_availability: ReportSectionAvailability | None = None,
 ) -> ReportFamilyOrderingOption:
     eligible_family = family_eligibility(
         family=family,
@@ -101,12 +105,20 @@ def _project_family(
         )
         for mode in family.ordering_modes
     ]
+    sections = [section.model_dump(mode="json") for section in family.sections]
+    if advisor_commentary_availability is not None:
+        for section in sections:
+            if section.get("section_id") == "ADVISOR_COMMENTARY":
+                section["availability"] = advisor_commentary_availability.model_dump(
+                    mode="json", by_alias=True
+                )
     return ReportFamilyOrderingOption.model_validate(
         {
             **family.model_dump(
-                exclude={"ordering_modes", "supportability"},
+                exclude={"ordering_modes", "supportability", "sections"},
                 mode="json",
             ),
+            "sections": sections,
             "ordering_modes": ordering_modes,
             "availability": _availability(family.supportability),
             "eligibility": eligible_family,

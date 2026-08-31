@@ -84,7 +84,32 @@ REPORT_ORDERING_RESPONSE_EXAMPLE: dict[str, Any] = {
                     "selectionPosture": "required",
                     "defaultSelected": True,
                     "dependencyFieldIds": [],
-                }
+                    "availability": None,
+                },
+                {
+                    "sectionId": "ADVISOR_COMMENTARY",
+                    "businessLabel": "Advisor commentary",
+                    "description": (
+                        "Reviewed advisor narrative from an accepted Performance Advisor Brief."
+                    ),
+                    "displayOrder": 25,
+                    "selectionPosture": "optional",
+                    "defaultSelected": False,
+                    "dependencyFieldIds": ["advisor_brief_run_id"],
+                    "availability": {
+                        "state": "ready",
+                        "reasonCode": "advisor_brief_accepted",
+                        "message": (
+                            "An accepted Performance Advisor Brief exists for this portfolio "
+                            "and context."
+                        ),
+                        "acceptedBrief": {
+                            "runId": "wfr_8422bf7e2f0a4bd3",
+                            "reviewedBy": "banker.sg.301",
+                            "reviewedAt": "2026-08-30T09:05:00Z",
+                        },
+                    },
+                },
             ],
             "availability": {
                 "state": "partial",
