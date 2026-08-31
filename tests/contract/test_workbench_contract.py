@@ -134,6 +134,9 @@ def test_workbench_openapi_contract_registered() -> None:
     top_change_schema = spec["components"]["schemas"]["WorkbenchTopChange"]
     risk_summary_schema = spec["components"]["schemas"]["WorkbenchRiskSummaryResponse"]
     risk_concentration_schema = spec["components"]["schemas"]["WorkbenchRiskConcentrationResponse"]
+    risk_drawdown_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownResponse"]
+    risk_rolling_schema = spec["components"]["schemas"]["WorkbenchRiskRollingResponse"]
+    risk_attribution_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionResponse"]
     create_request_schema = spec["components"]["schemas"]["WorkbenchSandboxSessionCreateRequest"]
     change_input_schema = spec["components"]["schemas"]["WorkbenchSandboxChangeInput"]
     apply_request_schema = spec["components"]["schemas"]["WorkbenchSandboxApplyChangesRequest"]
@@ -498,6 +501,14 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_schema["properties"]["contract_version"]["default"] == "risk-workspace.v1"
     assert risk_summary_schema["properties"]["portfolio_id"]["description"]
     assert risk_summary_schema["properties"]["period"]["description"]
+    assert risk_summary_schema["properties"]["detail_basis"]["examples"] == ["NET"]
+    assert risk_drawdown_schema["properties"]["detail_basis"]["examples"] == ["NET"]
+    assert risk_rolling_schema["properties"]["detail_basis"]["examples"] == ["NET"]
+    assert risk_attribution_schema["properties"]["detail_basis"]["examples"] == ["NET"]
+    assert risk_summary_schema["example"]["detail_basis"] == "NET"
+    assert risk_drawdown_schema["example"]["detail_basis"] == "NET"
+    assert risk_rolling_schema["example"]["detail_basis"] == "NET"
+    assert risk_attribution_schema["example"]["detail_basis"] == "NET"
     assert risk_summary_schema["properties"]["as_of_date"]["description"]
     assert risk_summary_schema["properties"]["benchmark_code"]["description"]
     assert risk_summary_schema["properties"]["source_service"]["description"]

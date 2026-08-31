@@ -6,12 +6,14 @@ def test_map_summary_response_maps_metrics_and_source_supportability() -> None:
         correlation_id="corr-summary",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         upstream_payload=_summary_payload(),
     )
 
     assert response.state == "ready"
+    assert response.detail_basis == "NET"
     assert response.payload is not None
     period = response.payload.periods[0]
     assert period.key == "YTD"
@@ -38,12 +40,14 @@ def test_map_summary_response_reports_partial_metric_dependencies() -> None:
         correlation_id="corr-summary",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="GROSS",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         upstream_payload=payload,
     )
 
     assert response.state == "partial"
+    assert response.detail_basis == "GROSS"
     assert response.payload is not None
     tracking_error = [
         metric for metric in response.payload.periods[0].metrics if metric.key == "TRACKING_ERROR"
@@ -59,6 +63,7 @@ def test_map_summary_response_returns_empty_envelope_for_missing_periods() -> No
         correlation_id="corr-summary",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         upstream_payload={"results": {}},
@@ -80,6 +85,7 @@ def test_unavailable_summary_preserves_product_safe_failure_detail() -> None:
         correlation_id="corr-summary",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="GROSS",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         upstream_status=503,
@@ -87,6 +93,7 @@ def test_unavailable_summary_preserves_product_safe_failure_detail() -> None:
     )
 
     assert response.state == "unavailable"
+    assert response.detail_basis == "GROSS"
     assert response.payload is None
     assert response.warnings == ["RISK_SUMMARY_UNAVAILABLE"]
     assert response.supportability[0].key == "risk_service"
