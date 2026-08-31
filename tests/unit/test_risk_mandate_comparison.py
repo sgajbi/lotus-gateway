@@ -95,6 +95,7 @@ def _summary(
         correlation_id="corr-1",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         period="YTD",
+        detail_basis="NET",
         as_of_date=as_of_date,
         benchmark_code="BMK_1",
         state="ready",

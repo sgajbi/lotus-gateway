@@ -105,6 +105,7 @@ def test_risk_drawdown_response_accepts_extracted_payload_models() -> None:
         correlation_id="corr-risk-drawdown",
         portfolio_id="PF_RISK_DRAWDOWN",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         state="partial",

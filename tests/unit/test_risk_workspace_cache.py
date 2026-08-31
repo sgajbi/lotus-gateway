@@ -40,6 +40,7 @@ def test_with_cache_status_updates_correlation_without_mutating_cached_response(
         correlation_id="corr-original",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         state="ready",
