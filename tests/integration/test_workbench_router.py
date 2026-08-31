@@ -758,6 +758,7 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["correlation_id"] == "corr-risk-summary"
+    assert body["detail_basis"] == "NET"
     assert body["source_service"] == "lotus-risk"
     assert body["state"] == "ready"
     assert body["payload"]["periods"][0]["portfolio_observation_count"] == 0
@@ -1208,6 +1209,7 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["correlation_id"] == "corr-risk-drawdown"
+    assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "drawdown.v1"
     assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
@@ -1344,6 +1346,7 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["correlation_id"] == "corr-risk-rolling"
+    assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
     assert body["warnings"] == ["RISK_ROLLING_QUALITY_FLAGS"]
@@ -1462,6 +1465,7 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["correlation_id"] == "corr-risk-attribution"
+    assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
     assert body["warnings"] == ["RISK_ATTRIBUTION_PERIOD_PARTIAL"]

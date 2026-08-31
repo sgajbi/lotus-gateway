@@ -10,6 +10,7 @@ def test_map_attribution_response_preserves_upstream_methodology_and_period_erro
         correlation_id="corr-1",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         attribution_type="TOTAL_RISK",
@@ -45,6 +46,7 @@ def test_map_attribution_response_preserves_upstream_methodology_and_period_erro
     )
 
     assert response.state == "ready"
+    assert response.detail_basis == "NET"
     assert response.metadata.methodology_version == "historical_attribution.v1"
     assert response.payload is not None
     attribution_set = response.payload.periods[0].attribution_sets[0]
@@ -60,6 +62,7 @@ def test_map_attribution_response_returns_unavailable_when_periods_are_missing()
         correlation_id="corr-1",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="GROSS",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         attribution_type="TOTAL_RISK",
@@ -68,6 +71,7 @@ def test_map_attribution_response_returns_unavailable_when_periods_are_missing()
     )
 
     assert response.state == "unavailable"
+    assert response.detail_basis == "GROSS"
     assert response.payload is None
     assert response.partial_failures[0].error_code == "EMPTY_RISK_ATTRIBUTION"
     assert response.warnings == ["RISK_ATTRIBUTION_EMPTY"]
@@ -78,6 +82,7 @@ def test_blocked_attribution_response_bypasses_active_risk_without_benchmark() -
         correlation_id="corr-1",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="NET",
         as_of_date="2026-04-04",
         benchmark_code=None,
         attribution_type="ACTIVE_RISK",
@@ -86,6 +91,7 @@ def test_blocked_attribution_response_bypasses_active_risk_without_benchmark() -
 
     assert response is not None
     assert response.state == "blocked"
+    assert response.detail_basis == "NET"
     assert response.metadata.cache_status == "bypass"
     assert response.warnings == ["RISK_ATTRIBUTION_BLOCKED"]
 
@@ -95,6 +101,7 @@ def test_unavailable_attribution_preserves_product_safe_upstream_failure() -> No
         correlation_id="corr-1",
         portfolio_id="PF_1",
         period="YTD",
+        detail_basis="GROSS",
         as_of_date="2026-04-04",
         benchmark_code="BMK_1",
         attribution_type="TOTAL_RISK",
@@ -104,6 +111,7 @@ def test_unavailable_attribution_preserves_product_safe_upstream_failure() -> No
     )
 
     assert response.state == "unavailable"
+    assert response.detail_basis == "GROSS"
     assert response.payload is not None
     assert response.partial_failures[0].error_code == "HTTP_503"
     assert response.partial_failures[0].source_service == "lotus-risk"
