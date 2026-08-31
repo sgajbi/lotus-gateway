@@ -72,6 +72,33 @@ class ReportingClient(ReportingBatchClientMixin):
             headers=headers,
         )
 
+    async def get_advisor_commentary_availability(
+        self,
+        *,
+        portfolio_id: str,
+        tenant_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        url = (
+            f"{self._base_url}/integration/report-ordering-catalogue"
+            "/advisor-commentary-availability"
+        )
+        optional = {"as_of_date": as_of_date, "reporting_currency": reporting_currency}
+        params = {"portfolio_id": portfolio_id, **{k: v for k, v in optional.items() if v}}
+        headers = build_upstream_headers(
+            correlation_id,
+            extras={"X-Tenant-Id": tenant_id},
+        )
+        return await self._request(
+            operation="report.integration.advisor-commentary-availability",
+            method="GET",
+            url=url,
+            params=params,
+            headers=headers,
+        )
+
     async def post_portfolio_summary(
         self,
         portfolio_id: str,

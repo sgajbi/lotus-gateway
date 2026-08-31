@@ -104,3 +104,45 @@ def test_report_ordering_openapi_is_business_safe_and_executable() -> None:
         "$ref": "#/components/schemas/WorkbenchReportOrderingResponse"
     }
     assert WorkbenchReportOrderingResponse.model_validate(example)
+
+
+def test_report_ordering_route_forwards_availability_context(monkeypatch) -> None:
+    """asOfDate/reportingCurrency reach the service (for the advisor-commentary
+    availability evaluation) normalised: stripped, empty treated as absent."""
+
+    service = StubReportOrderingService()
+    monkeypatch.setattr(
+        "app.routers.reporting_ordering.report_ordering_service",
+        lambda: service,
+    )
+
+    response = client.get(
+        "/api/v1/report-ordering/options",
+        params={
+            "scopeType": "portfolio",
+            "scopeId": "PB_SG_GLOBAL_BAL_001",
+            "asOfDate": " 2026-04-22 ",
+            "reportingCurrency": "USD",
+        },
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200
+    call = service.calls[0]
+    assert call["as_of_date"] == "2026-04-22"
+    assert call["reporting_currency"] == "USD"
+
+    response = client.get(
+        "/api/v1/report-ordering/options",
+        params={
+            "scopeType": "portfolio",
+            "scopeId": "PB_SG_GLOBAL_BAL_001",
+            "asOfDate": "   ",
+        },
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200
+    call = service.calls[1]
+    assert call["as_of_date"] is None
+    assert call["reporting_currency"] is None

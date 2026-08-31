@@ -8,6 +8,16 @@ class ReportingCatalogueClient(Protocol):
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
+    async def get_advisor_commentary_availability(
+        self,
+        *,
+        portfolio_id: str,
+        tenant_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
 
 class ReportingJobSubmissionClient(Protocol):
     async def submit_portfolio_review_job(

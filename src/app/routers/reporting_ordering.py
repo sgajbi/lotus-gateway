@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
 from app.contracts.report_ordering import (
     ReportScopeSelection,
@@ -12,6 +12,34 @@ from app.routers.reporting_context import ReportingCallerHeaderInputs
 from app.services.reporting_service_provider import report_ordering_service
 
 router = APIRouter(prefix="/api/v1/report-ordering", tags=["Reports"])
+
+
+def _availability_context(
+    as_of_date: Annotated[
+        str | None,
+        Query(
+            alias="asOfDate",
+            description=(
+                "Optional report date used only to evaluate scope-specific section "
+                "availability (advisor commentary context match)."
+            ),
+        ),
+    ] = None,
+    reporting_currency: Annotated[
+        str | None,
+        Query(
+            alias="reportingCurrency",
+            description=(
+                "Optional reporting currency used only to evaluate scope-specific "
+                "section availability (advisor commentary context match)."
+            ),
+        ),
+    ] = None,
+) -> tuple[str | None, str | None]:
+    def _normalized(value: str | None) -> str | None:
+        return value.strip() if value and value.strip() else None
+
+    return _normalized(as_of_date), _normalized(reporting_currency)
 
 
 def _build_report_scope_selection(
@@ -35,11 +63,15 @@ async def _get_report_ordering_options(
     *,
     selection: ReportScopeSelection | None,
     caller_headers: ReportingCallerHeaderInputs,
+    availability_context: tuple[str | None, str | None] = (None, None),
 ) -> WorkbenchReportOrderingResponse:
+    as_of_date, reporting_currency = availability_context
     return await report_ordering_service().get_ordering_options(
         selection=selection,
         caller_headers=caller_headers.as_headers(),
         correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -87,9 +119,13 @@ async def get_report_ordering_options(
     portfolio_ids: Annotated[str | None, Header(alias="X-Caller-Portfolio-Ids")] = None,
     client_ids: Annotated[str | None, Header(alias="X-Caller-Client-Ids")] = None,
     book_ids: Annotated[str | None, Header(alias="X-Caller-Book-Ids")] = None,
+    availability_context: Annotated[
+        tuple[str | None, str | None], Depends(_availability_context)
+    ] = (None, None),
 ) -> WorkbenchReportOrderingResponse:
     return await _get_report_ordering_options(
         selection=_build_report_scope_selection(scope_type, scope_id),
+        availability_context=availability_context,
         caller_headers=ReportingCallerHeaderInputs(
             actor_id=actor_id,
             caller_application=caller_application,

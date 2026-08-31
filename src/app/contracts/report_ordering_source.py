@@ -82,6 +82,26 @@ class SourceReportFamily(ReportOrderingSourceModel):
     supportability: SourceReportSupportability
 
 
+class SourceAdvisorCommentaryAcceptedBrief(ReportOrderingSourceModel):
+    run_id: str
+    reviewed_by: str
+    reviewed_at: str
+    content_hash: str
+    period: str | None = None
+    as_of_date: str | None = None
+    reporting_currency: str | None = None
+
+
+class SourceAdvisorCommentaryAvailability(ReportOrderingSourceModel):
+    source_service: Literal["lotus-report"]
+    contract_version: Literal["advisor-commentary-availability.v1"]
+    section_id: Literal["ADVISOR_COMMENTARY"]
+    state: Literal["ready", "unavailable"]
+    reason_code: str
+    message: str
+    accepted_brief: SourceAdvisorCommentaryAcceptedBrief | None = None
+
+
 class SourceReportOrderingCatalogue(ReportOrderingSourceModel):
     source_service: Literal["lotus-report"]
     contract_version: Literal["report-ordering-catalogue.v1"]
