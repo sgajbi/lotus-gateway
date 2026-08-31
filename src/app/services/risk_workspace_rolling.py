@@ -9,6 +9,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskRollingResponse,
     WorkbenchRiskSupportabilityItem,
 )
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
 from app.contracts.risk_workspace_rolling import (
     WorkbenchRiskRollingPayload,
     WorkbenchRiskRollingPeriodResult,
@@ -44,6 +45,7 @@ def map_rolling_response(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     include_time_series: bool,
@@ -71,6 +73,7 @@ def map_rolling_response(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=response_parts.state,
@@ -102,6 +105,7 @@ def unavailable_rolling(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     include_time_series: bool,
@@ -117,6 +121,7 @@ def unavailable_rolling(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state="unavailable",

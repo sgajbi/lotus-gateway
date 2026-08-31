@@ -18,6 +18,7 @@ _RISK_SUMMARY_RESPONSE_EXAMPLE: dict[str, Any] = {
     "contract_version": "risk-workspace.v1",
     "portfolio_id": "PF_1001",
     "period": "YTD",
+    "detail_basis": "NET",
     "as_of_date": "2026-02-24",
     "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
     "source_service": "lotus-risk",
@@ -149,13 +150,17 @@ _RISK_CONCENTRATION_RESPONSE_EXAMPLE: dict[str, Any] = {
     },
 }
 
-_RISK_DRAWDOWN_RESPONSE_EXAMPLE = RISK_DRAWDOWN_RESPONSE_EXAMPLE
+_RISK_DRAWDOWN_RESPONSE_EXAMPLE = {
+    **RISK_DRAWDOWN_RESPONSE_EXAMPLE,
+    "detail_basis": "NET",
+}
 
 _RISK_ROLLING_RESPONSE_EXAMPLE: dict[str, Any] = {
     "correlation_id": "corr-risk-rolling-1",
     "contract_version": "risk-workspace.v1",
     "portfolio_id": "PF_RISK_ROLLING",
     "period": "YTD",
+    "detail_basis": "NET",
     "as_of_date": "2026-04-04",
     "benchmark_code": "BMK_1",
     "source_service": "lotus-risk",
@@ -221,6 +226,7 @@ _RISK_ATTRIBUTION_RESPONSE_EXAMPLE: dict[str, Any] = {
     "contract_version": "risk-workspace.v1",
     "portfolio_id": "PF_RISK_ATTRIBUTION",
     "period": "YTD",
+    "detail_basis": "NET",
     "as_of_date": "2026-04-04",
     "benchmark_code": "BMK_1",
     "source_service": "lotus-risk",

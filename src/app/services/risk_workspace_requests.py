@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
 from app.services.risk_workspace_request_payloads import (
     SUMMARY_METRICS,
     build_attribution_request,
@@ -47,7 +48,7 @@ class RiskRollingRequestContext:
     portfolio_id: str
     correlation_id: str
     period: str
-    detail_basis: str
+    detail_basis: RiskDetailBasis
     benchmark_code: str | None
     as_of_date: str
     report_start_date: str | None
@@ -61,7 +62,7 @@ class RiskDrawdownRequestContext:
     portfolio_id: str
     correlation_id: str
     period: str
-    detail_basis: str
+    detail_basis: RiskDetailBasis
     benchmark_code: str | None
     as_of_date: str
     report_start_date: str | None
@@ -75,7 +76,7 @@ class RiskAttributionRequestContext:
     portfolio_id: str
     correlation_id: str
     period: str
-    detail_basis: str
+    detail_basis: RiskDetailBasis
     benchmark_code: str | None
     as_of_date: str
     report_start_date: str | None
@@ -90,7 +91,7 @@ class RiskSummaryRequestContext:
     portfolio_id: str
     correlation_id: str
     period: str
-    detail_basis: str
+    detail_basis: RiskDetailBasis
     benchmark_code: str | None
     as_of_date: str
     report_start_date: str | None
@@ -139,7 +140,7 @@ def build_summary_request_context(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         period=period,
-        detail_basis=detail_basis,
+        detail_basis=normalize_detail_basis(detail_basis),
         benchmark_code=benchmark_code,
         as_of_date=resolve_as_of_date(as_of_date),
         report_start_date=report_start_date,
@@ -188,7 +189,7 @@ def build_drawdown_request_context(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         period=period,
-        detail_basis=detail_basis,
+        detail_basis=normalize_detail_basis(detail_basis),
         benchmark_code=benchmark_code,
         as_of_date=resolve_as_of_date(as_of_date),
         report_start_date=report_start_date,
@@ -215,7 +216,7 @@ def build_rolling_request_context(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         period=period,
-        detail_basis=detail_basis,
+        detail_basis=normalize_detail_basis(detail_basis),
         benchmark_code=benchmark_code,
         as_of_date=resolve_as_of_date(as_of_date),
         report_start_date=report_start_date,
@@ -243,7 +244,7 @@ def build_attribution_request_context(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         period=period,
-        detail_basis=detail_basis,
+        detail_basis=normalize_detail_basis(detail_basis),
         benchmark_code=benchmark_code,
         as_of_date=resolve_as_of_date(as_of_date),
         report_start_date=report_start_date,

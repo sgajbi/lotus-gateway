@@ -12,6 +12,7 @@ from app.contracts.risk_workspace_attribution import (
     WorkbenchRiskAttributionPayload,
     WorkbenchRiskAttributionPeriodResult,
 )
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_attribution_controls import (
     RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS,
@@ -60,6 +61,7 @@ def map_attribution_response(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     attribution_type: str,
@@ -76,6 +78,7 @@ def map_attribution_response(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=parts.state,
@@ -98,6 +101,7 @@ def blocked_attribution_response(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     attribution_type: str,
@@ -119,6 +123,7 @@ def blocked_attribution_response(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state="blocked",
@@ -139,6 +144,7 @@ def unavailable_attribution(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     attribution_type: str,
@@ -150,6 +156,7 @@ def unavailable_attribution(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state="unavailable",
