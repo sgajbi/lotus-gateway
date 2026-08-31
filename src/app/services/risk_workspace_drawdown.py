@@ -27,7 +27,9 @@ from app.services.risk_workspace_drawdown_supportability import (
 )
 from app.services.risk_workspace_envelopes import (
     RISK_SOURCE_SERVICE,
+    ready_risk_response,
     risk_metadata,
+    risk_response_identity,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
 )
@@ -81,26 +83,23 @@ def map_drawdown_response(
         supportability=supportability,
         upstream_payload=upstream_payload,
     )
-
-    upstream_metadata = upstream_payload.get("metadata")
     response_parts = _build_drawdown_response_parts(
         mapping=mapping,
         supportability=supportability,
-        upstream_metadata=upstream_metadata,
+        upstream_metadata=upstream_payload.get("metadata"),
     )
-    return WorkbenchRiskDrawdownResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state=response_parts.state,
-        payload=response_parts.payload,
+    return ready_risk_response(
+        WorkbenchRiskDrawdownResponse,
+        identity=risk_response_identity(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            period=period,
+            detail_basis=detail_basis,
+            as_of_date=as_of_date,
+            benchmark_code=benchmark_code,
+        ),
+        parts=response_parts,
         supportability=supportability,
-        warnings=response_parts.warnings,
-        partial_failures=response_parts.partial_failures,
-        metadata=response_parts.metadata,
     )
 
 
@@ -122,12 +121,14 @@ def unavailable_drawdown(
         else "lotus-risk drawdown detail endpoint is unavailable."
     )
     return WorkbenchRiskDrawdownResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
+        **risk_response_identity(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            period=period,
+            detail_basis=detail_basis,
+            as_of_date=as_of_date,
+            benchmark_code=benchmark_code,
+        ),
         state="unavailable",
         payload=None,
         supportability=unavailable_risk_service_supportability(reason=reason),

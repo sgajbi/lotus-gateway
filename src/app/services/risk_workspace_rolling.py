@@ -18,7 +18,9 @@ from app.contracts.risk_workspace_rolling import (
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
     RISK_SOURCE_SERVICE,
+    ready_risk_response,
     risk_metadata,
+    risk_response_identity,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
 )
@@ -69,19 +71,18 @@ def map_rolling_response(
         upstream_metadata=upstream_metadata,
     )
 
-    return WorkbenchRiskRollingResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state=response_parts.state,
-        payload=response_parts.payload,
+    return ready_risk_response(
+        WorkbenchRiskRollingResponse,
+        identity=risk_response_identity(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            period=period,
+            detail_basis=detail_basis,
+            as_of_date=as_of_date,
+            benchmark_code=benchmark_code,
+        ),
+        parts=response_parts,
         supportability=supportability,
-        warnings=response_parts.warnings,
-        partial_failures=response_parts.partial_failures,
-        metadata=response_parts.metadata,
     )
 
 
@@ -118,12 +119,14 @@ def unavailable_rolling(
         else "lotus-risk rolling detail endpoint is unavailable."
     )
     return WorkbenchRiskRollingResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
+        **risk_response_identity(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            period=period,
+            detail_basis=detail_basis,
+            as_of_date=as_of_date,
+            benchmark_code=benchmark_code,
+        ),
         state="unavailable",
         payload=None,
         supportability=unavailable_risk_service_supportability(reason=reason),

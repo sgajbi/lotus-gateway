@@ -1,14 +1,84 @@
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Protocol, TypedDict, TypeVar, cast
+
+from pydantic import BaseModel
 
 from app.contracts.risk_workspace import (
+    RiskModuleState,
     WorkbenchRiskMetadata,
     WorkbenchRiskSupportabilityItem,
 )
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.upstream_envelope import safe_upstream_detail
 
 RISK_SOURCE_SERVICE = "lotus-risk"
+
+
+class RiskResponseIdentity(TypedDict):
+    correlation_id: str
+    portfolio_id: str
+    period: str
+    detail_basis: RiskDetailBasis
+    as_of_date: str
+    benchmark_code: str | None
+
+
+class ReadyRiskResponseParts(Protocol):
+    @property
+    def state(self) -> RiskModuleState: ...
+
+    @property
+    def payload(self) -> Any: ...
+
+    @property
+    def warnings(self) -> list[str]: ...
+
+    @property
+    def partial_failures(self) -> list[WorkbenchPartialFailure]: ...
+
+    @property
+    def metadata(self) -> WorkbenchRiskMetadata: ...
+
+
+RiskResponseT = TypeVar("RiskResponseT", bound=BaseModel)
+
+
+def risk_response_identity(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    detail_basis: RiskDetailBasis,
+    as_of_date: str,
+    benchmark_code: str | None,
+) -> RiskResponseIdentity:
+    return {
+        "correlation_id": correlation_id,
+        "portfolio_id": portfolio_id,
+        "period": period,
+        "detail_basis": detail_basis,
+        "as_of_date": as_of_date,
+        "benchmark_code": benchmark_code,
+    }
+
+
+def ready_risk_response(
+    response_model: type[RiskResponseT],
+    *,
+    identity: RiskResponseIdentity,
+    parts: ReadyRiskResponseParts,
+    supportability: list[WorkbenchRiskSupportabilityItem],
+) -> RiskResponseT:
+    return response_model(
+        **identity,
+        state=parts.state,
+        payload=parts.payload,
+        supportability=supportability,
+        warnings=parts.warnings,
+        partial_failures=parts.partial_failures,
+        metadata=parts.metadata,
+    )
 
 
 def risk_upstream_failure(
