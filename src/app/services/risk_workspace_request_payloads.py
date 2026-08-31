@@ -1,5 +1,7 @@
 from typing import Any
 
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
+
 SUMMARY_METRICS = [
     "VOLATILITY",
     "SHARPE",
@@ -199,7 +201,7 @@ def resolve_reporting_currency(value: str | None) -> str:
     return DEFAULT_REPORTING_CURRENCY
 
 
-def normalize_detail_basis(value: str) -> str:
+def normalize_detail_basis(value: str) -> RiskDetailBasis:
     return "GROSS" if value.upper() == "GROSS" else "NET"
 
 

@@ -8,6 +8,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskSummaryResponse,
     WorkbenchRiskSupportabilityItem,
 )
+from app.contracts.risk_workspace_envelope import RiskDetailBasis
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
     RISK_SOURCE_SERVICE,
@@ -40,6 +41,7 @@ def map_summary_response(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     upstream_payload: dict[str, Any],
@@ -66,6 +68,7 @@ def map_summary_response(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=state,
@@ -82,6 +85,7 @@ def unavailable_summary(
     correlation_id: str,
     portfolio_id: str,
     period: str,
+    detail_basis: RiskDetailBasis,
     as_of_date: str,
     benchmark_code: str | None,
     upstream_status: int,
@@ -91,6 +95,7 @@ def unavailable_summary(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
+        detail_basis=detail_basis,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state="unavailable",

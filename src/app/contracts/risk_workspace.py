@@ -33,6 +33,12 @@ from app.contracts.risk_workspace_drawdown import (
     WorkbenchRiskRelativeDrawdownSummary,
     WorkbenchRiskUnderwaterPoint,
 )
+from app.contracts.risk_workspace_envelope import (
+    RiskSupportabilityState,
+    WorkbenchRiskDetailBasisEnvelope,
+    WorkbenchRiskMetadata,
+    WorkbenchRiskSupportabilityItem,
+)
 from app.contracts.risk_workspace_examples import (
     _RISK_ATTRIBUTION_RESPONSE_EXAMPLE,
     _RISK_CONCENTRATION_RESPONSE_EXAMPLE,
@@ -54,7 +60,6 @@ from app.contracts.risk_workspace_rolling import (
 from app.contracts.workbench import WorkbenchPartialFailure
 
 RiskModuleState = Literal["ready", "partial", "unavailable", "blocked"]
-RiskSupportabilityState = Literal["ready", "partial", "unavailable", "blocked"]
 
 __all__ = [
     "RiskModuleState",
@@ -104,41 +109,6 @@ __all__ = [
     "WorkbenchTopIssuerDriver",
     "WorkbenchTopPositionDriver",
 ]
-
-
-class WorkbenchRiskSupportabilityItem(BaseModel):
-    key: str = Field(
-        description="Machine-readable supportability key for the required risk dependency.",
-        examples=["portfolio_returns"],
-    )
-    label: str = Field(
-        description="Advisor-facing label for the risk dependency or evidence family.",
-        examples=["Portfolio returns"],
-    )
-    state: RiskSupportabilityState = Field(
-        description="Availability posture of the dependency for the selected risk request.",
-        examples=["ready"],
-    )
-    reason: str | None = Field(
-        default=None,
-        description="Optional explanation when the dependency is partial, blocked, or unavailable.",
-        examples=["Benchmark-relative metrics require benchmark context."],
-    )
-    source_service: str | None = Field(
-        default=None,
-        description="Upstream owner of the dependency posture when known.",
-        examples=["lotus-risk"],
-    )
-
-
-class WorkbenchRiskMetadata(BaseModel):
-    generated_at: str = Field(
-        description="UTC timestamp when gateway normalized the risk module response.",
-        examples=["2026-04-04T08:15:00Z"],
-    )
-    input_mode: Literal["stateful", "simulation"] = "stateful"
-    methodology_version: str | None = None
-    cache_status: Literal["hit", "miss", "bypass"] | None = None
 
 
 class WorkbenchRiskMetric(BaseModel):
@@ -283,7 +253,16 @@ class WorkbenchRiskModuleEnvelope(BaseModel):
     )
 
 
-class WorkbenchRiskSummaryResponse(WorkbenchMandateComparisonEnvelope, WorkbenchRiskModuleEnvelope):
+class WorkbenchRiskBasisModuleEnvelope(
+    WorkbenchRiskDetailBasisEnvelope, WorkbenchRiskModuleEnvelope
+):
+    pass
+
+
+class WorkbenchRiskSummaryResponse(
+    WorkbenchMandateComparisonEnvelope,
+    WorkbenchRiskBasisModuleEnvelope,
+):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_SUMMARY_RESPONSE_EXAMPLE})
     payload: WorkbenchRiskSummaryPayload | None = None
 
@@ -296,19 +275,19 @@ class WorkbenchRiskConcentrationResponse(
     payload: WorkbenchRiskConcentrationPayload | None = None
 
 
-class WorkbenchRiskDrawdownResponse(WorkbenchRiskModuleEnvelope):
+class WorkbenchRiskDrawdownResponse(WorkbenchRiskBasisModuleEnvelope):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_DRAWDOWN_RESPONSE_EXAMPLE})
 
     payload: WorkbenchRiskDrawdownPayload | None = None
 
 
-class WorkbenchRiskRollingResponse(WorkbenchRiskModuleEnvelope):
+class WorkbenchRiskRollingResponse(WorkbenchRiskBasisModuleEnvelope):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_ROLLING_RESPONSE_EXAMPLE})
 
     payload: WorkbenchRiskRollingPayload | None = None
 
 
-class WorkbenchRiskAttributionResponse(WorkbenchRiskModuleEnvelope):
+class WorkbenchRiskAttributionResponse(WorkbenchRiskBasisModuleEnvelope):
     model_config = ConfigDict(json_schema_extra={"example": _RISK_ATTRIBUTION_RESPONSE_EXAMPLE})
 
     payload: WorkbenchRiskAttributionPayload | None = None
