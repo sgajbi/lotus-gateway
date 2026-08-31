@@ -20,13 +20,22 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert "gh workflow run main-releasability.yml" in text
     assert "--ref main" not in text
     assert '--ref "$dispatch_ref"' in text
-    assert 'dispatch_ref="main-releasability-${MERGE_COMMIT_SHA}"' in text
+    assert 'dispatch_ref="main-releasability-${revision}"' in text
     assert 'gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$dispatch_ref"' in text
     assert '-f ref="refs/tags/$dispatch_ref"' in text
-    assert '-f sha="$MERGE_COMMIT_SHA"' in text
+    assert '-f sha="$revision"' in text
     assert "Dispatch ref $dispatch_ref points to $existing_ref_sha" in text
     assert "github.event.pull_request.merge_commit_sha" in text
-    assert '-f expected_sha="$MERGE_COMMIT_SHA"' in text
+    assert '-f expected_sha="$revision"' in text
+    # Every revision the PR put on main is gated, not only the merge SHA
+    # (36 of 45 commits over 28-31 Aug were ungated in lotus-report before
+    # the sibling fix this ports; rebase-only merging is what makes the
+    # enumeration correct, so its assertion must fail loudly on change).
+    assert "COMMIT_COUNT: ${{ github.event.pull_request.commits }}" in text
+    assert 'git rev-list -n "$COMMIT_COUNT" "$MERGE_COMMIT_SHA" | tac' in text
+    assert "for revision in $revisions; do" in text
+    assert "fetch-depth: 0" in text
+    assert '"$merge_methods" != "false,false,true"' in text
     assert '-f triggering_pr="$PR_NUMBER"' in text
     assert '-f source_branch="main"' in text
 
@@ -58,3 +67,12 @@ def test_operator_guidance_keeps_expected_sha_validation_only() -> None:
     assert "isolated by the checked-out GitHub SHA" in text
     assert "expected_sha` is validation-only" in text
     assert "isolated by the expected merge SHA" not in text
+
+
+def test_coverage_audit_workflow_runs_the_fail_closed_audit() -> None:
+    text = (WORKFLOW_DIR / "main-gate-coverage-audit.yml").read_text(encoding="utf-8")
+
+    assert "schedule:" in text
+    assert "workflow_dispatch" in text
+    assert "python scripts/audit_main_gate_coverage.py" in text
+    assert "--fail-on-gap" in text
