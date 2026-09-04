@@ -43,7 +43,7 @@ ADVISOR_BOOK_WORKSPACE_RESPONSE_EXAMPLE = AdvisorBookWorkspaceResponse.model_val
                     "valuation_as_of": "2026-04-10",
                     "snapshot_date": "2026-04-09",
                     "coverage_state": "CARRY_FORWARD",
-                    "coverage_reason": "carry_forward_within_tolerance",
+                    "coverage_reason": "carried_forward_from_latest_snapshot",
                     "state": "supported",
                 },
                 "action_items": {

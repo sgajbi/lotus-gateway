@@ -9,11 +9,19 @@ def test_advisor_book_summary_example_is_executable_contract_truth() -> None:
     response = AdvisorBookSummaryResponse.model_validate(ADVISOR_BOOK_SUMMARY_RESPONSE_EXAMPLE)
 
     assert response.contract_version == "v1"
-    assert response.summary.total_value == Decimal("2500000.75")
+    assert response.summary.total_value == Decimal("2500250.75")
     assert response.summary.cash_value == Decimal("200000.00")
-    assert response.summary.invested_value == Decimal("2300000.75")
+    assert response.summary.invested_value == Decimal("2300250.75")
     assert response.summary.coverage_state == "COMPLETE"
     assert response.summary.covered_portfolio_count == 2
+    # A fully covered example must be arithmetically coherent: Core's fail-closed
+    # aggregate over an all-members-covered cohort is the sum of its member rows.
+    for aggregate, member_values in (
+        (response.summary.total_value, [item.total_value for item in response.items]),
+        (response.summary.cash_value, [item.cash_value for item in response.items]),
+        (response.summary.invested_value, [item.invested_value for item in response.items]),
+    ):
+        assert aggregate == sum(value for value in member_values if value is not None)
     assert response.source.source_service == "lotus-core"
     assert response.source.source_route == "/reporting/portfolio-summary/bulk-query"
     assert response.source.source_contract_version == "portfolio-summary-bulk-v1"
