@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
 
 from app.contracts.advisor_book import AdvisorBookResponse
+from app.contracts.advisor_book_attention import AdvisorBookAttentionResponse
+from app.contracts.advisor_book_attention_examples import (
+    ADVISOR_BOOK_ATTENTION_RESPONSE_EXAMPLE,
+)
 from app.contracts.advisor_book_examples import ADVISOR_BOOK_RESPONSE_EXAMPLE
 from app.contracts.advisor_book_summary import AdvisorBookSummaryResponse
 from app.contracts.advisor_book_summary_examples import ADVISOR_BOOK_SUMMARY_RESPONSE_EXAMPLE
@@ -215,3 +219,71 @@ def test_advisor_book_summary_openapi_is_typed_and_explicit() -> None:
         "$ref": "#/components/schemas/AdvisorBookSummaryResponse"
     }
     assert AdvisorBookSummaryResponse.model_validate(example)
+
+
+class _AdvisorBookAttentionService:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    async def get_attention(self, **kwargs) -> AdvisorBookAttentionResponse:
+        self.calls.append(kwargs)
+        return AdvisorBookAttentionResponse.model_validate(ADVISOR_BOOK_ATTENTION_RESPONSE_EXAMPLE)
+
+
+def _attention_headers(**overrides: str) -> dict[str, str]:
+    headers = _headers(
+        **{
+            "X-Caller-Capabilities": "advisor.book.read,advisory.advisor_cockpit.read",
+            "X-Legal-Entity-Code": "SG01",
+            "X-Principal-Status": "ACTIVE",
+            "X-Authorized-Advisor-Id": "PM_SG_001",
+        }
+    )
+    headers.update(overrides)
+    return headers
+
+
+def test_advisor_book_attention_route_requires_both_admitted_scopes(monkeypatch) -> None:
+    service = _AdvisorBookAttentionService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
+        headers=_attention_headers(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"]["action_count"] == 2
+    assert body["source"]["source_service"] == "lotus-advise"
+    assert service.calls[0]["as_of_date"].isoformat() == "2026-04-10"
+    assert service.calls[0]["book_caller"].portfolio_manager_id == "PM_SG_001"
+    assert service.calls[0]["cockpit_caller"].authorized_advisor_id == "PM_SG_001"
+
+
+def test_advisor_book_attention_route_rejects_missing_cockpit_capability(monkeypatch) -> None:
+    service = _AdvisorBookAttentionService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
+        headers=_attention_headers(
+            **{"X-Caller-Capabilities": "advisor.book.read"},
+        ),
+    )
+
+    assert response.status_code == 403
+    assert service.calls == []
+
+
+def test_advisor_book_attention_route_rejects_missing_cockpit_context(monkeypatch) -> None:
+    service = _AdvisorBookAttentionService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
+        headers=_headers(),
+    )
+
+    assert response.status_code in (400, 403)
+    assert service.calls == []
