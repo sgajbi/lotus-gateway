@@ -15,6 +15,9 @@ services:
       - PORTFOLIO_DATA_INGESTION_BASE_URL=${PORTFOLIO_DATA_INGESTION_BASE_URL:-http://host.docker.internal:8200}
       - PERFORMANCE_ANALYTICS_BASE_URL=${PERFORMANCE_ANALYTICS_BASE_URL:-http://host.docker.internal:8002}
       - AI_SERVICE_BASE_URL=${AI_SERVICE_BASE_URL:-http://host.docker.internal:8140}
+      # Optional ops-issued credential for lotus-ai verified_service_jwt caller trust;
+      # empty in header-trust environments. Provision via the deployment's secret store.
+      - LOTUS_AI_CALLER_CREDENTIAL=${LOTUS_AI_CALLER_CREDENTIAL:-}
       - RISK_ANALYTICS_BASE_URL=${RISK_ANALYTICS_BASE_URL:-http://host.docker.internal:8130}
       - REPORTING_AGGREGATION_BASE_URL=${REPORTING_AGGREGATION_BASE_URL:-http://host.docker.internal:8300}
       - RENDER_SERVICE_BASE_URL=${RENDER_SERVICE_BASE_URL:-http://host.docker.internal:8310}
