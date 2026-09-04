@@ -2,6 +2,12 @@ from typing import Annotated, Literal, cast
 
 from fastapi import APIRouter, Depends, Header, Path
 
+from app.contracts.idea_actions import (
+    IdeaCandidateConversionIntentRequest,
+    IdeaCandidateConversionIntentResponse,
+    IdeaCandidateReviewActionRequest,
+    IdeaCandidateReviewActionResponse,
+)
 from app.contracts.idea_examples import (
     IDEA_CONVERSION_INTENT_EXAMPLE,
     IDEA_FEEDBACK_EXAMPLE,
@@ -10,12 +16,6 @@ from app.contracts.idea_examples import (
 from app.contracts.idea_interactions import (
     IdeaCandidateFeedbackRequest,
     IdeaCandidateFeedbackResponse,
-)
-from app.contracts.ideas import (
-    IdeaCandidateConversionIntentRequest,
-    IdeaCandidateConversionIntentResponse,
-    IdeaCandidateReviewActionRequest,
-    IdeaCandidateReviewActionResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.ideas_common import IdeaCallerHeaders, idea_caller_headers, idea_error_response
@@ -35,11 +35,6 @@ async def _record_idea_candidate_action(
     request: IdeaCandidateReviewActionRequest
     | IdeaCandidateFeedbackRequest
     | IdeaCandidateConversionIntentRequest,
-    response_model: type[
-        IdeaCandidateReviewActionResponse
-        | IdeaCandidateFeedbackResponse
-        | IdeaCandidateConversionIntentResponse
-    ],
     caller_headers: IdeaCallerHeaders,
     idempotency_key: str,
     causation_id: str | None,
@@ -48,15 +43,20 @@ async def _record_idea_candidate_action(
     | IdeaCandidateFeedbackResponse
     | IdeaCandidateConversionIntentResponse
 ):
-    return await idea_service().record_candidate_action(
+    response = await idea_service().record_candidate_action(
         action=action,
         candidate_id=candidate_id,
         request=request,
-        response_model=response_model,
         caller_headers=caller_headers.as_idea_context(),
         correlation_id=correlation_id_var.get(),
         idempotency_key=idempotency_key,
         causation_id=causation_id,
+    )
+    return cast(
+        IdeaCandidateReviewActionResponse
+        | IdeaCandidateFeedbackResponse
+        | IdeaCandidateConversionIntentResponse,
+        response,
     )
 
 
@@ -114,7 +114,6 @@ async def record_idea_candidate_review_action(
             action="record_candidate_review_action",
             candidate_id=candidate_id,
             request=request,
-            response_model=IdeaCandidateReviewActionResponse,
             caller_headers=caller_headers,
             idempotency_key=idempotency_key,
             causation_id=causation_id,
@@ -168,7 +167,6 @@ async def record_idea_candidate_feedback(
             action="record_candidate_feedback",
             candidate_id=candidate_id,
             request=request,
-            response_model=IdeaCandidateFeedbackResponse,
             caller_headers=caller_headers,
             idempotency_key=idempotency_key,
             causation_id=causation_id,
@@ -224,7 +222,6 @@ async def record_idea_candidate_conversion_intent(
             action="record_candidate_conversion_intent",
             candidate_id=candidate_id,
             request=request,
-            response_model=IdeaCandidateConversionIntentResponse,
             caller_headers=caller_headers,
             idempotency_key=idempotency_key,
             causation_id=causation_id,

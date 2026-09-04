@@ -1,8 +1,15 @@
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, NamedTuple, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 
+from app.contracts.idea_actions import (
+    IdeaCandidateActionRequest,
+    IdeaCandidateConversionIntentRequest,
+    IdeaCandidateConversionIntentResponse,
+    IdeaCandidateReviewActionRequest,
+    IdeaCandidateReviewActionResponse,
+)
 from app.contracts.idea_interactions import (
     IdeaCandidateFeedbackRequest,
     IdeaCandidateFeedbackResponse,
@@ -10,7 +17,6 @@ from app.contracts.idea_interactions import (
     IdeaCandidatePresentationReceiptResponse,
 )
 from app.contracts.ideas import (
-    IdeaCandidateActionRequest,
     IdeaGatewayCandidateDetailResponse,
     IdeaGatewayReviewQueueResponse,
 )
@@ -28,6 +34,52 @@ IdeaCandidateActionMethod = Literal[
     "record_candidate_feedback",
     "record_candidate_conversion_intent",
 ]
+
+
+class _ActionEvidenceBinding(NamedTuple):
+    """Binds one candidate action to the source evidence that must echo the submitted request."""
+
+    request_type: type[IdeaCandidateActionRequest]
+    response_type: type[BaseModel]
+    evidence_field: str
+    mismatch_code: str
+    mismatch_message: str
+    source_error_messages: SourceErrorMessages | None = None
+
+
+_ACTION_EVIDENCE_BINDINGS: dict[IdeaCandidateActionMethod, _ActionEvidenceBinding] = {
+    "record_candidate_review_action": _ActionEvidenceBinding(
+        request_type=IdeaCandidateReviewActionRequest,
+        response_type=IdeaCandidateReviewActionResponse,
+        evidence_field="review_decision",
+        mismatch_code="idea_review_evidence_mismatch",
+        mismatch_message=(
+            "Lotus Idea returned review-decision evidence that does not match the submitted "
+            "adviser review action."
+        ),
+    ),
+    "record_candidate_feedback": _ActionEvidenceBinding(
+        request_type=IdeaCandidateFeedbackRequest,
+        response_type=IdeaCandidateFeedbackResponse,
+        evidence_field="feedback_event",
+        mismatch_code="idea_feedback_evidence_mismatch",
+        mismatch_message=(
+            "Lotus Idea returned feedback evidence that does not match the submitted adviser "
+            "feedback event."
+        ),
+        source_error_messages=FEEDBACK_SOURCE_ERROR_MESSAGES,
+    ),
+    "record_candidate_conversion_intent": _ActionEvidenceBinding(
+        request_type=IdeaCandidateConversionIntentRequest,
+        response_type=IdeaCandidateConversionIntentResponse,
+        evidence_field="conversion_intent",
+        mismatch_code="idea_conversion_evidence_mismatch",
+        mismatch_message=(
+            "Lotus Idea returned conversion-intent evidence that does not match the submitted "
+            "adviser conversion intent."
+        ),
+    ),
+}
 
 
 class IdeaService:
@@ -70,20 +122,19 @@ class IdeaService:
         action: IdeaCandidateActionMethod,
         candidate_id: str,
         request: IdeaCandidateActionRequest,
-        response_model: type[ResponseModel],
         caller_headers: dict[str, str],
         correlation_id: str,
         idempotency_key: str,
         causation_id: str | None,
-    ) -> ResponseModel:
-        action_methods = {
-            "record_candidate_review_action": self._idea_client.record_candidate_review_action,
-            "record_candidate_feedback": self._idea_client.record_candidate_feedback,
-            "record_candidate_conversion_intent": (
-                self._idea_client.record_candidate_conversion_intent
-            ),
-        }
-        action_method = action_methods[action]
+    ) -> BaseModel:
+        binding = _ACTION_EVIDENCE_BINDINGS[action]
+        if not isinstance(request, binding.request_type):
+            raise self._gateway_error(
+                status.HTTP_502_BAD_GATEWAY,
+                "idea_contract_invalid",
+                "Lotus Idea candidate-action transport is not bound to the governed contract.",
+            )
+        action_method = getattr(self._idea_client, action)
         status_code, payload = await action_method(
             candidate_id=candidate_id,
             body=request.model_dump(by_alias=True, exclude_none=True, mode="json"),
@@ -96,48 +147,36 @@ class IdeaService:
             status_code,
             payload,
             missing_code="idea_candidate_action_unavailable",
-            source_error_messages=(
-                FEEDBACK_SOURCE_ERROR_MESSAGES if action == "record_candidate_feedback" else None
-            ),
+            source_error_messages=binding.source_error_messages,
         )
-        response = self._validate_payload(response_model, payload)
-        self._validate_candidate_action_response(
-            action=action,
+        response = self._validate_payload(binding.response_type, payload)
+        self._assert_evidence_echoes_request(
             candidate_id=candidate_id,
-            request=request,
-            response=response,
+            submitted_fields=request.expected_evidence_fields(),
+            evidence=getattr(response, binding.evidence_field),
+            mismatch_code=binding.mismatch_code,
+            mismatch_message=binding.mismatch_message,
         )
         return response
 
-    def _validate_candidate_action_response(
+    def _assert_evidence_echoes_request(
         self,
         *,
-        action: IdeaCandidateActionMethod,
         candidate_id: str,
-        request: IdeaCandidateActionRequest,
-        response: BaseModel,
+        submitted_fields: dict[str, Any],
+        evidence: BaseModel,
+        mismatch_code: str,
+        mismatch_message: str,
     ) -> None:
-        if action != "record_candidate_feedback":
-            return
-        if not isinstance(request, IdeaCandidateFeedbackRequest) or not isinstance(
-            response, IdeaCandidateFeedbackResponse
-        ):
-            raise self._gateway_error(
-                status.HTTP_502_BAD_GATEWAY,
-                "idea_contract_invalid",
-                "Lotus Idea feedback transport is not bound to the governed contract.",
-            )
-        submitted_fields = request.model_dump()
-        persisted_fields = response.feedback_event.model_dump(include=set(submitted_fields))
+        persisted_fields = evidence.model_dump(include=set(submitted_fields))
         if (
-            response.feedback_event.candidate_id != candidate_id
+            getattr(evidence, "candidate_id", None) != candidate_id
             or persisted_fields != submitted_fields
         ):
             raise self._gateway_error(
                 status.HTTP_502_BAD_GATEWAY,
-                "idea_feedback_evidence_mismatch",
-                "Lotus Idea returned feedback evidence that does not match the submitted adviser "
-                "feedback event.",
+                mismatch_code,
+                mismatch_message,
             )
 
     async def record_candidate_presentation_receipt(
@@ -196,15 +235,16 @@ class IdeaService:
                 "Lotus Idea returned presentation-receipt persistence evidence that contradicts "
                 "the source status.",
             )
-        submitted_fields = request.model_dump()
-        persisted_fields = response.receipt.model_dump(include=set(submitted_fields))
-        if response.receipt.candidate_id != candidate_id or persisted_fields != submitted_fields:
-            raise self._gateway_error(
-                status.HTTP_502_BAD_GATEWAY,
-                "idea_presentation_receipt_evidence_mismatch",
+        self._assert_evidence_echoes_request(
+            candidate_id=candidate_id,
+            submitted_fields=request.model_dump(),
+            evidence=response.receipt,
+            mismatch_code="idea_presentation_receipt_evidence_mismatch",
+            mismatch_message=(
                 "Lotus Idea returned presentation-receipt evidence that does not match the "
-                "submitted visible-render event.",
-            )
+                "submitted visible-render event."
+            ),
+        )
         return response
 
     def _validate_payload(
@@ -220,7 +260,7 @@ class IdeaService:
                 "idea_contract_invalid",
                 "Lotus Idea returned a response that does not match the gateway contract.",
             ) from exc
-        if response.model_dump(by_alias=True)["supportedFeaturePromoted"] is not False:
+        if getattr(response, "supported_feature_promoted", None) is not False:
             raise self._gateway_error(
                 status.HTTP_502_BAD_GATEWAY,
                 "idea_supported_feature_claim_invalid",
