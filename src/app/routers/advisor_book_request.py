@@ -3,7 +3,9 @@ from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import Header, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 
+from app.contracts.advisor_book import AdvisorBookErrorResponse
 from app.services.advisor_book_service import AdvisorBookQuery
 
 _AsOfDate = Annotated[
@@ -142,3 +144,14 @@ def _optional_filter(value: str | None) -> str | None:
 
 def advisor_book_attention_query(as_of_date: _AsOfDate) -> date:
     return as_of_date
+
+
+def advisor_book_error_response(
+    *, status_code: int, code: str, message: str, correlation_id: str
+) -> JSONResponse:
+    error = AdvisorBookErrorResponse(
+        code=code,
+        message=message,
+        correlation_id=correlation_id,
+    )
+    return JSONResponse(status_code=status_code, content=error.model_dump(mode="json"))

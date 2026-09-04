@@ -301,13 +301,27 @@ async def test_attention_propagates_the_source_action_failure() -> None:
 
 
 def test_attention_page_size_stays_within_the_typed_source_page_bound() -> None:
-    from annotated_types import MaxLen
-
     from app.services.advisor_book_attention_service import _ACTION_PAGE_SIZE
 
-    items_bound = next(
-        constraint.max_length
-        for constraint in AdvisorCockpitActionPage.model_fields["items"].metadata
-        if isinstance(constraint, MaxLen)
-    )
+    items_bound = AdvisorCockpitActionPage.model_json_schema()["properties"]["items"]["maxItems"]
     assert _ACTION_PAGE_SIZE <= items_bound
+
+
+@pytest.mark.asyncio
+async def test_attention_reports_partial_when_source_total_exceeds_collected() -> None:
+    cockpit = _StubCockpitService(
+        pages=[_page([_action("a1", portfolio_id="PB_001")], total_count=7)]
+    )
+    service = _service(_membership_payload("PB_001"), cockpit)
+
+    response = await service.get_attention(
+        book_caller=_book_caller(),
+        cockpit_caller=_cockpit_caller(),
+        as_of_date=date(2026, 4, 10),
+        correlation_id="corr-attention-total-mismatch",
+    )
+
+    assert response.summary.coverage_state == "partial"
+    assert response.summary.coverage_reason == "source_total_exceeds_collected"
+    assert response.summary.source_stated_total == 7
+    assert response.summary.action_count == 1

@@ -7,6 +7,7 @@ business meaning, and never maps the Core and Advise caller identities onto each
 """
 
 from datetime import date
+from typing import Literal
 
 from app.contracts.advisor_book import AdvisorBookScope
 from app.contracts.advisor_book_attention import (
@@ -29,6 +30,18 @@ _ACTION_PAGE_SIZE = 64
 # still not exhausted is reported as partial coverage, never silently truncated.
 _MAX_ACTION_PAGES = 5
 _MAX_ITEM_REASON_CODES = 3
+
+_ActionFeedCoverage = tuple[
+    Literal["complete", "partial"],
+    Literal[
+        "action_feed_fully_read",
+        "action_page_budget_reached",
+        "source_total_exceeds_collected",
+    ],
+]
+_COMPLETE: _ActionFeedCoverage = ("complete", "action_feed_fully_read")
+_PARTIAL_BUDGET: _ActionFeedCoverage = ("partial", "action_page_budget_reached")
+_PARTIAL_TOTAL_MISMATCH: _ActionFeedCoverage = ("partial", "source_total_exceeds_collected")
 
 
 class AdvisorBookAttentionService:
@@ -66,7 +79,7 @@ class AdvisorBookAttentionService:
                 correlation_id=correlation_id,
             )
 
-        actions, source_stated_total, fully_read = await self._load_actions(
+        actions, source_stated_total, coverage = await self._load_actions(
             cockpit_caller=cockpit_caller,
             correlation_id=correlation_id,
         )
@@ -77,7 +90,7 @@ class AdvisorBookAttentionService:
             cohort=cohort,
             actions=actions,
             source_stated_total=source_stated_total,
-            fully_read=fully_read,
+            coverage=coverage,
         )
 
     async def _load_actions(
@@ -85,7 +98,7 @@ class AdvisorBookAttentionService:
         *,
         cockpit_caller: AdvisorCockpitCallerContext,
         correlation_id: str,
-    ) -> tuple[list[AdvisorCockpitActionItem], int | None, bool]:
+    ) -> tuple[list[AdvisorCockpitActionItem], int | None, _ActionFeedCoverage]:
         actions: list[AdvisorCockpitActionItem] = []
         source_stated_total: int | None = None
         cursor: str | None = None
@@ -104,8 +117,12 @@ class AdvisorBookAttentionService:
                 source_stated_total = page.total_count
             cursor = page.next_cursor
             if cursor is None:
-                return actions, source_stated_total, True
-        return actions, source_stated_total, False
+                # A missing cursor alone is not proof of a fully read feed: a stated
+                # total above the collected count contradicts it, so stay partial.
+                if source_stated_total is not None and source_stated_total > len(actions):
+                    return actions, source_stated_total, _PARTIAL_TOTAL_MISMATCH
+                return actions, source_stated_total, _COMPLETE
+        return actions, source_stated_total, _PARTIAL_BUDGET
 
 
 def _count_actions(
@@ -148,9 +165,10 @@ def _response_from_sources(
     cohort: list[str],
     actions: list[AdvisorCockpitActionItem],
     source_stated_total: int | None,
-    fully_read: bool,
+    coverage: _ActionFeedCoverage,
 ) -> AdvisorBookAttentionResponse:
     items, unassigned, outside_book = _count_actions(cohort=cohort, actions=actions)
+    coverage_state, coverage_reason = coverage
     return AdvisorBookAttentionResponse(
         correlation_id=correlation_id,
         scope=_scope(book_caller=book_caller, as_of_date=as_of_date),
@@ -161,10 +179,8 @@ def _response_from_sources(
             unassigned_action_count=unassigned,
             outside_book_action_count=outside_book,
             source_stated_total=source_stated_total,
-            coverage_state="complete" if fully_read else "partial",
-            coverage_reason=(
-                "action_feed_fully_read" if fully_read else "action_page_budget_reached"
-            ),
+            coverage_state=coverage_state,
+            coverage_reason=coverage_reason,
             state="supported",
         ),
         items=items,
