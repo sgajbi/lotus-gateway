@@ -272,8 +272,10 @@ def run_demo_certification(output_path: Path) -> dict[str, Any]:
     evidence = CertificationEvidence()
     started_at = datetime.now(UTC).isoformat()
     try:
-        with _deterministic_upstream_clients():
-            client = TestClient(app)
+        with _deterministic_upstream_clients(), TestClient(app) as client:
+            # Entering the client runs the app lifespan, so certification exercises the
+            # same startup lifecycle as production instead of inheriting process state
+            # (e.g. a drained health flag) left behind by an earlier in-process run.
             _certify_health(client, evidence)
             _certify_workbench_overview(client, evidence)
             _certify_portfolio_360(client, evidence)

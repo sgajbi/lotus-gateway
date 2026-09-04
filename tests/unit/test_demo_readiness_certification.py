@@ -28,6 +28,24 @@ def test_demo_certification_writes_passing_machine_readable_evidence(tmp_path: P
     assert _assertion_value(result, "sandbox_apply.policy_feedback_status") == "PASS"
 
 
+def test_demo_certification_is_hermetic_against_leaked_process_state(tmp_path: Path) -> None:
+    """Certification must run the app's own startup lifecycle, not inherit process state.
+
+    A prior in-process app run (issue #689: the lifespan shutdown test) can leave the
+    shared app drained; certification must still certify a healthy build.
+    """
+    from app.main import app
+
+    app.state.is_draining = True
+    try:
+        result = run_demo_certification(tmp_path / "gateway-demo-certification.json")
+    finally:
+        app.state.is_draining = False
+
+    assert result["error"] is None
+    assert result["status"] == "passed"
+
+
 def _assertion_value(result: dict, name: str):
     for assertion in result["assertions"]:
         if assertion["name"] == name:
