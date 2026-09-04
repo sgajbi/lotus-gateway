@@ -3,7 +3,6 @@ from typing import Final, Literal
 
 from pydantic import ValidationError
 
-from app.contracts.advisor_book import AdvisorBookProvenance, AdvisorBookScope
 from app.contracts.advisor_book_summary import (
     AdvisorBookSummaryResponse,
     AdvisorBookValueItem,
@@ -12,6 +11,7 @@ from app.contracts.advisor_book_summary import (
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_client_protocols import AdvisorBookValueClient
+from app.services.advisor_book_provenance import membership_provenance, own_book_scope
 from app.services.advisor_book_service import AdvisorBookService
 from app.services.advisor_book_service_errors import (
     source_incomplete,
@@ -165,7 +165,10 @@ def _response_from_sources(
     reporting_currency = (value_source.reporting_currency or "").strip().upper()
     return AdvisorBookSummaryResponse(
         correlation_id=correlation_id,
-        scope=_scope(caller=caller, as_of_date=value_source.resolved_as_of_date),
+        scope=own_book_scope(
+            booking_center_code=caller.booking_center_code,
+            as_of_date=value_source.resolved_as_of_date,
+        ),
         summary=_value_summary(
             value_source=value_source,
             covered_count=covered_count,
@@ -178,7 +181,7 @@ def _response_from_sources(
             resolved_as_of_date=value_source.resolved_as_of_date,
             reporting_currency=reporting_currency,
         ),
-        membership_provenance=_membership_provenance(membership_source),
+        membership_provenance=membership_provenance(membership_source),
     )
 
 
@@ -248,7 +251,7 @@ def _empty_response(
 ) -> AdvisorBookSummaryResponse:
     return AdvisorBookSummaryResponse(
         correlation_id=correlation_id,
-        scope=_scope(caller=caller, as_of_date=as_of_date),
+        scope=own_book_scope(booking_center_code=caller.booking_center_code, as_of_date=as_of_date),
         summary=AdvisorBookValueSummary(
             resolved_as_of_date=as_of_date,
             reporting_currency=reporting_currency,
@@ -266,28 +269,4 @@ def _empty_response(
             resolved_as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         ),
-    )
-
-
-def _scope(*, caller: AdvisorBookCallerContext, as_of_date: date) -> AdvisorBookScope:
-    return AdvisorBookScope(
-        kind="own_book",
-        label="My book",
-        as_of_date=as_of_date,
-        booking_center_code=caller.booking_center_code,
-    )
-
-
-def _membership_provenance(source: SourceAdvisorBookResponse) -> AdvisorBookProvenance:
-    return AdvisorBookProvenance(
-        product_name=source.product_name,
-        product_version=source.product_version,
-        generated_at=source.generated_at,
-        latest_evidence_timestamp=source.latest_evidence_timestamp,
-        freshness_status=source.freshness_status,
-        data_quality_status=source.data_quality_status,
-        source_evidence_current=source.source_evidence_current,
-        snapshot_id=source.snapshot_id,
-        content_hash=source.content_hash,
-        lineage=source.lineage,
     )

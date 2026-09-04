@@ -14,7 +14,7 @@ explicit partial lower bound — a timeout never becomes zero action items.
 
 from datetime import date
 
-from app.contracts.advisor_book import AdvisorBookProvenance, AdvisorBookScope
+from app.contracts.advisor_book import AdvisorBookProvenance
 from app.contracts.advisor_book_action_items import (
     AdvisorBookActionItemCoverageReason,
     AdvisorBookActionItemCoverageState,
@@ -31,9 +31,9 @@ from app.services.advisor_book_action_items_read import (
     ActionFeedRead,
     count_actions,
 )
+from app.services.advisor_book_provenance import membership_provenance, own_book_scope
 from app.services.advisor_book_service import AdvisorBookService
 from app.services.advisor_book_service_errors import AdvisorBookServiceError, source_incomplete
-from app.services.advisor_book_source_contract import SourceAdvisorBookResponse
 from app.services.advisor_cockpit_access_policy import AdvisorCockpitCallerContext
 from app.services.advisor_cockpit_service import AdvisorCockpitService
 
@@ -90,7 +90,7 @@ class AdvisorBookActionItemsService:
             if membership.supportability.state == "INCOMPLETE":
                 raise source_incomplete()
             cohort = [member.portfolio_id for member in membership.members]
-            provenance = _membership_provenance(membership)
+            provenance = membership_provenance(membership)
         if not cohort:
             return _empty_response(
                 book_caller=book_caller,
@@ -189,7 +189,9 @@ def _response_from_sources(
     coverage_state, coverage_reason = coverage
     return AdvisorBookActionItemsResponse(
         correlation_id=correlation_id,
-        scope=_scope(book_caller=book_caller, as_of_date=as_of_date),
+        scope=own_book_scope(
+            booking_center_code=book_caller.booking_center_code, as_of_date=as_of_date
+        ),
         summary=AdvisorBookActionItemsSummary(
             portfolio_count=len(cohort),
             portfolios_with_action_items=sum(1 for item in items if item.action_item_count),
@@ -216,7 +218,9 @@ def _empty_response(
 ) -> AdvisorBookActionItemsResponse:
     return AdvisorBookActionItemsResponse(
         correlation_id=correlation_id,
-        scope=_scope(book_caller=book_caller, as_of_date=as_of_date),
+        scope=own_book_scope(
+            booking_center_code=book_caller.booking_center_code, as_of_date=as_of_date
+        ),
         summary=AdvisorBookActionItemsSummary(
             portfolio_count=0,
             portfolios_with_action_items=0,
@@ -234,33 +238,9 @@ def _empty_response(
     )
 
 
-def _scope(*, book_caller: AdvisorBookCallerContext, as_of_date: date) -> AdvisorBookScope:
-    return AdvisorBookScope(
-        kind="own_book",
-        label="My book",
-        as_of_date=as_of_date,
-        booking_center_code=book_caller.booking_center_code,
-    )
-
-
 def _source(*, as_of_date: date) -> AdvisorBookActionItemsSource:
     return AdvisorBookActionItemsSource(
         source_service="lotus-advise",
         source_route="/advisory/cockpit/actions",
         membership_as_of_date=as_of_date,
-    )
-
-
-def _membership_provenance(source: SourceAdvisorBookResponse) -> AdvisorBookProvenance:
-    return AdvisorBookProvenance(
-        product_name=source.product_name,
-        product_version=source.product_version,
-        generated_at=source.generated_at,
-        latest_evidence_timestamp=source.latest_evidence_timestamp,
-        freshness_status=source.freshness_status,
-        data_quality_status=source.data_quality_status,
-        source_evidence_current=source.source_evidence_current,
-        snapshot_id=source.snapshot_id,
-        content_hash=source.content_hash,
-        lineage=source.lineage,
     )
