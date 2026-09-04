@@ -3,6 +3,7 @@ from typing import Any
 
 from app.clients.lotus_core_lookup_client import LotusCoreLookupClientMixin
 from app.clients.lotus_core_portfolio_query_client import LotusCorePortfolioQueryClientMixin
+from app.clients.lotus_core_reporting_summary_client import LotusCoreReportingSummaryClientMixin
 from app.clients.lotus_core_simulation_client import LotusCoreSimulationClientMixin
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
@@ -13,6 +14,7 @@ LOGGER = logging.getLogger("analytics_ui.gateway")
 class LotusCoreQueryClient(
     LotusCoreLookupClientMixin,
     LotusCorePortfolioQueryClientMixin,
+    LotusCoreReportingSummaryClientMixin,
     LotusCoreSimulationClientMixin,
 ):
     def __init__(
