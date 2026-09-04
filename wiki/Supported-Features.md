@@ -219,6 +219,7 @@ Supported route:
 
 1. `GET /api/v1/advisor-book/portfolios`
 2. `GET /api/v1/advisor-book/summary`
+3. `GET /api/v1/advisor-book/action-items`
 
 Authority and boundary:
 
@@ -233,16 +234,31 @@ Authority and boundary:
 5. the portfolio-discovery route does not claim team, delegate, supervisor, household,
    assets-under-management, attention, suitability, recommendation, client communication, order,
    or execution coverage,
-6. the value-summary route reads Core-owned AUM facts for the trusted active cohort only, requires
-   explicit `asOfDate` and `reportingCurrency`, preserves per-portfolio coverage, and publishes
-   the Core aggregate only when every entitled portfolio is covered. Core's current AUM contract
-   does not expose per-portfolio snapshot freshness, so this route does not certify every value
-   fact as current on the requested date; Gateway does not value holdings, sum partial rows, or
-   substitute zero. When Core returns the exact pair `aum_reporting_currency == 0` and
-   `position_count == 0`, Gateway fails closed for that item, excludes it from covered count and
-   aggregate calculation, and publishes the named ambiguous-coverage reason rather than claiming
-   an empty snapshot. The source-owned contract gap is tracked by `lotus-core#1034`; Gateway's
-   bounded interim handling is tracked by `#632` under parent issue `#616`.
+6. the value-summary route reads Core's versioned bulk portfolio-summary contract once for the
+   trusted active cohort, requires explicit `asOfDate` and `reportingCurrency`, and preserves
+   the source-owned per-member coverage state and reason. A measured zero is a supported zero
+   (an empty portfolio is a business fact), a carried-forward valuation is supported with its
+   snapshot date visible next to the valuation date, and value, cash, and invested facts are
+   published only from member totals the source states as trustworthy. Book totals come from
+   Core's fail-closed cohort aggregate with its own coverage state; Gateway never values
+   holdings, sums rows, substitutes zero, or infers coverage, and a source response whose
+   totals contradict its coverage state or whose cohort echo drifts from the requested identity
+   fails closed,
+7. the action-items route composes Advise-owned cockpit action items for the trusted cohort
+   under two independently admitted scopes intersected on portfolio identity only: Core owns
+   the membership cohort (resolved for the requested business date) and lotus-advise owns the
+   action feed under the caller's advisor scope (`advisory.advisor_cockpit.read` enforced; a
+   portfolio-scoped Advise entitlement is rejected because it cannot state coverage for the
+   whole book). Gateway counts the items the source returns, whatever their source status, with
+   their own reason codes — actionable meaning stays with lotus-advise — and reports unassigned
+   and outside-book items as explicit counts. Action items are current-state workflow evidence:
+   a historical membership date never implies historical action evidence. One elapsed
+   composition deadline bounds membership and every action page; a stopped read, a page budget,
+   a stated total that contradicts the delivered items, or self-contradicting pagination
+   (repeated identities, non-advancing cursors, drifting totals) is explicit partial coverage
+   with every count a stated lower bound. lotus-advise does not guarantee snapshot-stable
+   pagination; Gateway states that limitation instead of constructing an atomic workflow
+   snapshot.
 
 ## Portfolio Position Tax-Lot Drill-Down
 
