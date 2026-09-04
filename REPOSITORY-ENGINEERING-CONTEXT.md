@@ -108,9 +108,10 @@ Current repository posture:
 4. source-backed report ordering configuration and selected-scope eligibility are active under
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
    only implemented submission paths, and client/book scopes do not imply portfolio membership,
-5. authenticated advisor own-book discovery, bounded own-book value summary, and Advise-backed
-   own-book action items are active under `/api/v1/advisor-book/portfolios`,
-   `/api/v1/advisor-book/summary`, and `/api/v1/advisor-book/action-items`; Gateway derives the
+5. authenticated advisor own-book discovery, bounded own-book value summary, Advise-backed
+   own-book action items, and the primary own-book workspace composition are active under
+   `/api/v1/advisor-book/portfolios`, `/api/v1/advisor-book/summary`,
+   `/api/v1/advisor-book/action-items`, and `/api/v1/advisor-book/workspace`; Gateway derives the
    manager only from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`,
    preserves assignment basis and provenance, and rejects cross-scope evidence. The summary makes
    an explicit as-of date and reporting currency mandatory and reads Core's
@@ -129,8 +130,18 @@ Current repository posture:
    under one elapsed composition deadline, and surfaces a stopped read, page budget, stated-total
    contradiction, or self-contradicting pagination as explicit partial coverage; action evidence
    is current-state (a historical membership date never implies historical action evidence), and
-   an empty book does not read the feed and says so (`not_read`). Gateway does not fall back to
-   the global portfolio catalogue or infer team, delegate, supervisor, household, performance,
+   an empty book does not read the feed and says so (`not_read`). The workspace route is the
+   primary Advisor Book composition for the Workbench landing experience: membership is resolved
+   exactly once, the cohort and its provenance are frozen, and the bulk value read plus the
+   action-feed read are composed concurrently against exactly that cohort under one elapsed
+   composition deadline; every cohort member is a row with per-fact truth, a degraded enrichment
+   degrades only its own typed fact block (`value_facts`/`action_facts`) with a bounded reason
+   and never removes a row or substitutes zero, the Advise scope is optional there (absent,
+   invalid, portfolio-scoped, or unscoped context leaves the action fact explicitly unavailable
+   while value facts still stand), and only an unresolvable membership cohort is fatal. All
+   three fact-bearing routes share single-owner fact builders (`advisor_book_value_facts`,
+   `advisor_book_action_items_read`) so their semantics cannot drift. Gateway does not fall back
+   to the global portfolio catalogue or infer team, delegate, supervisor, household, performance,
    risk, suitability, communication, or execution truth, and does not reinterpret Advise action
    status, priority, or business meaning.
    current source-backed portfolio position tax-lot drill-down is active at
