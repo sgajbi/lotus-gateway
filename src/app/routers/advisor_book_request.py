@@ -155,3 +155,31 @@ def advisor_book_error_response(
         correlation_id=correlation_id,
     )
     return JSONResponse(status_code=status_code, content=error.model_dump(mode="json"))
+
+
+def advisor_book_source_error_response(
+    exc: HTTPException,
+    *,
+    correlation_id: str,
+    outage_code: str,
+    outage_message: str,
+) -> JSONResponse:
+    # Source reads and cockpit authorization raise HTTPException; keep the calling
+    # route's advertised AdvisorBookErrorResponse envelope for all of them. Upstream
+    # outages (5xx, e.g. a source communication failure surfaced as 503) map to the
+    # documented 502 source-failure contract; locally generated authorization statuses
+    # (4xx) pass through unchanged.
+    detail: dict[str, object] = exc.detail if isinstance(exc.detail, dict) else {}
+    if exc.status_code >= 500 and exc.status_code != 502:
+        return advisor_book_error_response(
+            status_code=502,
+            code=outage_code,
+            message=outage_message,
+            correlation_id=correlation_id,
+        )
+    return advisor_book_error_response(
+        status_code=exc.status_code,
+        code=str(detail.get("code", outage_code)),
+        message=str(detail.get("message", outage_message)),
+        correlation_id=correlation_id,
+    )
