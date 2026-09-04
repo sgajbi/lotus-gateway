@@ -38,6 +38,20 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert '"$merge_methods" != "false,false,true"' in text
     assert '-f triggering_pr="$PR_NUMBER"' in text
     assert '-f source_branch="main"' in text
+    # Ancestry is judged against the freshly fetched main, and a revision that
+    # is not main history is refused BEFORE any tag is created or gate
+    # dispatched: the guard must sit inside the loop, after the detach onto
+    # FETCH_HEAD and ahead of both the tag write and the workflow dispatch.
+    assert "git checkout --quiet --detach FETCH_HEAD" in text
+    guard = 'if ! git merge-base --is-ancestor "$revision" HEAD; then'
+    assert guard in text
+    assert text.index("git fetch origin main --quiet") < text.index(
+        "git checkout --quiet --detach FETCH_HEAD"
+    )
+    assert text.index("for revision in $revisions; do") < text.index(guard)
+    assert text.index(guard) < text.index('dispatch_ref="main-releasability-${revision}"')
+    assert text.index(guard) < text.index('-f ref="refs/tags/$dispatch_ref"')
+    assert text.index(guard) < text.index("gh workflow run main-releasability.yml")
 
 
 def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
