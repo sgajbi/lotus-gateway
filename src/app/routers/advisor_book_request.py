@@ -138,3 +138,7 @@ def _optional_filter(value: str | None) -> str | None:
             },
         )
     return cleaned
+
+
+def advisor_book_attention_query(as_of_date: _AsOfDate) -> date:
+    return as_of_date
