@@ -16,7 +16,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.contracts.advisor_book import AdvisorBookScope
+from app.contracts.advisor_book import AdvisorBookProvenance, AdvisorBookScope
 
 AdvisorBookActionItemCoverageState = Literal["complete", "partial", "not_read"]
 AdvisorBookActionItemCoverageReason = Literal[
@@ -24,6 +24,7 @@ AdvisorBookActionItemCoverageReason = Literal[
     "action_page_budget_reached",
     "composition_deadline_reached",
     "source_total_mismatch",
+    "source_total_not_stated",
     "source_pagination_inconsistent",
     "empty_book_feed_not_read",
 ]
@@ -165,3 +166,11 @@ class AdvisorBookActionItemsResponse(BaseModel):
         ),
     )
     source: AdvisorBookActionItemsSource
+    membership_provenance: AdvisorBookProvenance | None = Field(
+        default=None,
+        description=(
+            "Core membership provenance (freshness, evidence currency, lineage) retained "
+            "so consumers can assess whether counts were computed over a trustworthy "
+            "cohort."
+        ),
+    )

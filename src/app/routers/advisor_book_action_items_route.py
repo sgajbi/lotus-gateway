@@ -152,16 +152,22 @@ def _reject_non_advisor_advise_scope(
         capability=ADVISOR_COCKPIT_READ_CAPABILITY,
         portfolio_id=None,
     )
-    if cockpit_caller.authorized_portfolio_id is None:
+    if (
+        cockpit_caller.authorized_portfolio_id is None
+        and cockpit_caller.authorized_advisor_id is not None
+    ):
         return None
-    # A portfolio-scoped Advise entitlement cannot cover the whole book; zero counts
-    # for the other members would be false claims, so fail closed.
+    # The advertised scope basis is one advisor's Advise feed. A portfolio-scoped
+    # entitlement cannot cover the whole book, and an unscoped principal (for example
+    # a supervisory role without X-Authorized-Advisor-Id) could receive a feed wider
+    # than one advisor's book. Both fail closed before any source read.
     return advisor_book_error_response(
         status_code=403,
         code="advisor_book_action_items_requires_advisor_scope",
         message=(
-            "Book-wide action items require an advisor-scoped Advise entitlement; a "
-            "portfolio-scoped caller cannot state coverage for the whole book."
+            "Book-wide action items require exactly one advisor-scoped Advise "
+            "entitlement; portfolio-scoped or unscoped callers cannot state coverage "
+            "for the whole book."
         ),
         correlation_id=correlation_id,
     )

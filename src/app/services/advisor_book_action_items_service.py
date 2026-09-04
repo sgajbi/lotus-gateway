@@ -14,23 +14,26 @@ explicit partial lower bound — a timeout never becomes zero action items.
 
 from datetime import date
 
-from app.contracts.advisor_book import AdvisorBookScope
+from app.contracts.advisor_book import AdvisorBookProvenance, AdvisorBookScope
 from app.contracts.advisor_book_action_items import (
     AdvisorBookActionItemCoverageReason,
     AdvisorBookActionItemCoverageState,
     AdvisorBookActionItemsResponse,
     AdvisorBookActionItemsSource,
     AdvisorBookActionItemsSummary,
-    AdvisorBookPortfolioActionItems,
 )
-from app.contracts.advisor_cockpit_action_models import AdvisorCockpitActionItem
 from app.execution_budget import (
     AnalyticsPollBudget,
     AnalyticsRequestDeadlineExceeded,
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
+from app.services.advisor_book_action_items_read import (
+    ActionFeedRead,
+    count_actions,
+)
 from app.services.advisor_book_service import AdvisorBookService
 from app.services.advisor_book_service_errors import AdvisorBookServiceError, source_incomplete
+from app.services.advisor_book_source_contract import SourceAdvisorBookResponse
 from app.services.advisor_cockpit_access_policy import AdvisorCockpitCallerContext
 from app.services.advisor_cockpit_service import AdvisorCockpitService
 
@@ -40,7 +43,6 @@ _ACTION_PAGE_SIZE = 64
 # Bounded fan-in: at most this many source pages are read per request. A feed that is
 # still not exhausted is reported as partial coverage, never silently truncated.
 _MAX_ACTION_PAGES = 5
-_MAX_ITEM_REASON_CODES = 3
 
 _Coverage = tuple[AdvisorBookActionItemCoverageState, AdvisorBookActionItemCoverageReason]
 _COMPLETE: _Coverage = ("complete", "action_feed_fully_read")
@@ -48,30 +50,7 @@ _PARTIAL_BUDGET: _Coverage = ("partial", "action_page_budget_reached")
 _PARTIAL_DEADLINE: _Coverage = ("partial", "composition_deadline_reached")
 _PARTIAL_TOTAL_MISMATCH: _Coverage = ("partial", "source_total_mismatch")
 _PARTIAL_INCONSISTENT: _Coverage = ("partial", "source_pagination_inconsistent")
-
-
-class _ActionFeedRead:
-    """Accumulated source evidence from one bounded, budgeted feed read."""
-
-    def __init__(self) -> None:
-        self.actions: list[AdvisorCockpitActionItem] = []
-        self.seen_action_ids: set[str] = set()
-        self.source_stated_total: int | None = None
-        self.inconsistent = False
-
-    def absorb(self, items: list[AdvisorCockpitActionItem], total_count: int | None) -> None:
-        for item in items:
-            if item.action_item_id in self.seen_action_ids:
-                # The same immutable action identity on two pages means the mutable
-                # feed shifted underneath the read; keep one copy, stay partial.
-                self.inconsistent = True
-                continue
-            self.seen_action_ids.add(item.action_item_id)
-            self.actions.append(item)
-        if total_count is not None:
-            if self.source_stated_total is not None and self.source_stated_total != total_count:
-                self.inconsistent = True
-            self.source_stated_total = total_count
+_PARTIAL_TOTAL_NOT_STATED: _Coverage = ("partial", "source_total_not_stated")
 
 
 class AdvisorBookActionItemsService:
@@ -106,15 +85,18 @@ class AdvisorBookActionItemsService:
         except AnalyticsRequestDeadlineExceeded as exc:
             raise _composition_deadline_exhausted() from exc
         cohort: list[str] = []
+        provenance: AdvisorBookProvenance | None = None
         if membership is not None:
             if membership.supportability.state == "INCOMPLETE":
                 raise source_incomplete()
             cohort = [member.portfolio_id for member in membership.members]
+            provenance = _membership_provenance(membership)
         if not cohort:
             return _empty_response(
                 book_caller=book_caller,
                 as_of_date=as_of_date,
                 correlation_id=correlation_id,
+                membership_provenance=provenance,
             )
 
         read, coverage = await self._read_action_feed(
@@ -129,6 +111,7 @@ class AdvisorBookActionItemsService:
             cohort=cohort,
             read=read,
             coverage=coverage,
+            membership_provenance=provenance,
         )
 
     async def _read_action_feed(
@@ -137,8 +120,8 @@ class AdvisorBookActionItemsService:
         cockpit_caller: AdvisorCockpitCallerContext,
         correlation_id: str,
         budget: AnalyticsPollBudget,
-    ) -> tuple[_ActionFeedRead, _Coverage]:
-        read = _ActionFeedRead()
+    ) -> tuple[ActionFeedRead, _Coverage]:
+        read = ActionFeedRead()
         cursor: str | None = None
         for _ in range(_MAX_ACTION_PAGES):
             if budget.is_expired:
@@ -169,12 +152,14 @@ class AdvisorBookActionItemsService:
         return read, (_PARTIAL_INCONSISTENT if read.inconsistent else _PARTIAL_BUDGET)
 
 
-def _final_coverage(read: _ActionFeedRead) -> _Coverage:
+def _final_coverage(read: ActionFeedRead) -> _Coverage:
     if read.inconsistent:
         return _PARTIAL_INCONSISTENT
     # A missing cursor alone is not proof of a fully read feed: complete coverage
-    # requires the source-stated total to match the delivered items exactly.
-    if read.source_stated_total is not None and read.source_stated_total != len(read.actions):
+    # requires a source-stated total that matches the delivered items exactly.
+    if read.source_stated_total is None:
+        return _PARTIAL_TOTAL_NOT_STATED
+    if read.source_stated_total != len(read.actions):
         return _PARTIAL_TOTAL_MISMATCH
     return _COMPLETE
 
@@ -190,48 +175,17 @@ def _composition_deadline_exhausted() -> AdvisorBookServiceError:
     )
 
 
-def _count_actions(
-    *,
-    cohort: list[str],
-    actions: list[AdvisorCockpitActionItem],
-) -> tuple[list[AdvisorBookPortfolioActionItems], int, int]:
-    counts: dict[str, int] = {portfolio_id: 0 for portfolio_id in cohort}
-    reason_codes: dict[str, list[str]] = {portfolio_id: [] for portfolio_id in cohort}
-    unassigned = 0
-    outside_book = 0
-    for action in actions:
-        portfolio_id = action.portfolio_id
-        if portfolio_id is None:
-            unassigned += 1
-        elif portfolio_id in counts:
-            counts[portfolio_id] += 1
-            codes = reason_codes[portfolio_id]
-            for code in action.reason_codes:
-                if code not in codes and len(codes) < _MAX_ITEM_REASON_CODES:
-                    codes.append(code)
-        else:
-            outside_book += 1
-    items = [
-        AdvisorBookPortfolioActionItems(
-            portfolio_id=portfolio_id,
-            action_item_count=counts[portfolio_id],
-            reason_codes=reason_codes[portfolio_id],
-        )
-        for portfolio_id in cohort
-    ]
-    return items, unassigned, outside_book
-
-
 def _response_from_sources(
     *,
     book_caller: AdvisorBookCallerContext,
     as_of_date: date,
     correlation_id: str,
     cohort: list[str],
-    read: _ActionFeedRead,
+    read: ActionFeedRead,
     coverage: _Coverage,
+    membership_provenance: AdvisorBookProvenance | None,
 ) -> AdvisorBookActionItemsResponse:
-    items, unassigned, outside_book = _count_actions(cohort=cohort, actions=read.actions)
+    items, unassigned, outside_book = count_actions(cohort=cohort, actions=read.actions)
     coverage_state, coverage_reason = coverage
     return AdvisorBookActionItemsResponse(
         correlation_id=correlation_id,
@@ -249,6 +203,7 @@ def _response_from_sources(
         ),
         items=items,
         source=_source(as_of_date=as_of_date),
+        membership_provenance=membership_provenance,
     )
 
 
@@ -257,6 +212,7 @@ def _empty_response(
     book_caller: AdvisorBookCallerContext,
     as_of_date: date,
     correlation_id: str,
+    membership_provenance: AdvisorBookProvenance | None,
 ) -> AdvisorBookActionItemsResponse:
     return AdvisorBookActionItemsResponse(
         correlation_id=correlation_id,
@@ -274,6 +230,7 @@ def _empty_response(
         ),
         items=[],
         source=_source(as_of_date=as_of_date),
+        membership_provenance=membership_provenance,
     )
 
 
@@ -291,4 +248,19 @@ def _source(*, as_of_date: date) -> AdvisorBookActionItemsSource:
         source_service="lotus-advise",
         source_route="/advisory/cockpit/actions",
         membership_as_of_date=as_of_date,
+    )
+
+
+def _membership_provenance(source: SourceAdvisorBookResponse) -> AdvisorBookProvenance:
+    return AdvisorBookProvenance(
+        product_name=source.product_name,
+        product_version=source.product_version,
+        generated_at=source.generated_at,
+        latest_evidence_timestamp=source.latest_evidence_timestamp,
+        freshness_status=source.freshness_status,
+        data_quality_status=source.data_quality_status,
+        source_evidence_current=source.source_evidence_current,
+        snapshot_id=source.snapshot_id,
+        content_hash=source.content_hash,
+        lineage=source.lineage,
     )
