@@ -109,8 +109,8 @@ Current repository posture:
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
    only implemented submission paths, and client/book scopes do not imply portfolio membership,
 5. authenticated advisor own-book discovery, bounded own-book value summary, and Advise-backed
-   own-book attention are active under `/api/v1/advisor-book/portfolios`,
-   `/api/v1/advisor-book/summary`, and `/api/v1/advisor-book/attention`; Gateway derives the
+   own-book action items are active under `/api/v1/advisor-book/portfolios`,
+   `/api/v1/advisor-book/summary`, and `/api/v1/advisor-book/action-items`; Gateway derives the
    manager only from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`,
    preserves assignment basis and provenance, and rejects cross-scope evidence. The summary makes
    an explicit as-of date and reporting currency mandatory and reads Core's
@@ -119,12 +119,16 @@ Current repository posture:
    CARRY_FORWARD is supported with its snapshot date visible), publishes total, cash, and invested
    value only from member totals the source states as trustworthy, and takes book totals from
    Core's fail-closed cohort aggregate — Gateway never sums rows, substitutes zero, or infers
-   coverage. The attention route intersects two independently admitted scopes on portfolio
-   identity only: the Core membership cohort and the caller's advisor-scoped Advise cockpit action
-   feed (cockpit read capability enforced; a portfolio-scoped Advise entitlement is rejected
-   because it cannot state coverage for the whole book). Gateway counts source-owned action items
-   with their own reason codes, reports unassigned and outside-book items as explicit counts, and
-   surfaces its bounded page budget as partial coverage with the source-stated total preserved;
+   coverage. The action-items route intersects two independently admitted scopes on
+   portfolio identity only: the Core membership cohort (resolved for the requested business
+   date) and the caller's advisor-scoped Advise cockpit action feed (cockpit read capability
+   enforced; a portfolio-scoped Advise entitlement is rejected because it cannot state coverage
+   for the whole book). Gateway counts the items the source returns, whatever their source
+   status — actionable meaning stays with lotus-advise — with their own reason codes, reports
+   unassigned and outside-book items as explicit counts, runs membership and every action page
+   under one elapsed composition deadline, and surfaces a stopped read, page budget, stated-total
+   contradiction, or self-contradicting pagination as explicit partial coverage; action evidence
+   is current-state (a historical membership date never implies historical action evidence), and
    an empty book does not read the feed and says so (`not_read`). Gateway does not fall back to
    the global portfolio catalogue or infer team, delegate, supervisor, household, performance,
    risk, suitability, communication, or execution truth, and does not reinterpret Advise action

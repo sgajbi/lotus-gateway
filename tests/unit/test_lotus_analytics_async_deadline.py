@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from app.clients.analytics_poll_budget import AnalyticsPollBudget
 from app.clients.http_json_resilience import JsonRequestOutcome, RequestFailureKind
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.execution_budget import AnalyticsPollBudget
 
 
 class _Clock:
@@ -69,7 +69,7 @@ def _install_transport(
 
 
 def _install_clock(monkeypatch: pytest.MonkeyPatch, clock: _Clock) -> None:
-    monkeypatch.setattr("app.clients.analytics_poll_budget.time.monotonic", clock.monotonic)
+    monkeypatch.setattr("app.execution_budget.time.monotonic", clock.monotonic)
     monkeypatch.setattr("app.clients.lotus_analytics_async_polling.asyncio.sleep", clock.sleep)
 
 

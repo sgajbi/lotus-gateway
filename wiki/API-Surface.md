@@ -31,6 +31,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET` and `POST /api/v1/advisory-copilot/*`
 - `GET /api/v1/advisor-book/portfolios`
 - `GET /api/v1/advisor-book/summary`
+- `GET /api/v1/advisor-book/action-items`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -157,12 +158,23 @@ consumer migration remain tracked by parent issue #569.
   advisor-id query override. Optional `clientId`, `mandateType`, `sortBy`, `sortOrder`, `offset`,
   and `limit` inputs only narrow or order the source cohort.
 - advisor-book value summary requires camelCase `asOfDate` and `reportingCurrency` plus the same
-  trusted caller headers. Gateway resolves active own-book membership, performs one Core AUM scope
-  read, preserves source-reported value facts and coverage, and returns a null aggregate when any
-  entitled portfolio is not covered. It does not calculate valuation or claim performance, risk,
-  cash, attention, mandate, suitability, or recommendation truth. Core's current AUM contract does
-  not expose per-portfolio snapshot freshness, so the response does not certify every value fact
-  as current on the requested date.
+  trusted caller headers. Gateway resolves active own-book membership and performs one bounded
+  read of Core's versioned bulk portfolio-summary contract: per member it preserves the
+  source-owned coverage state and reason (a measured zero is a supported business fact; a
+  carried-forward valuation is supported with its snapshot date visible) with total, cash, and
+  invested value only from source-trustworthy member totals, and book totals come from Core's
+  fail-closed cohort aggregate. Gateway never sums rows, substitutes zero, or infers coverage,
+  and does not claim performance, risk, mandate, suitability, or recommendation truth.
+- advisor-book action items require camelCase `asOfDate`, the trusted book caller headers, and
+  the full Advise cockpit caller context (including `advisory.advisor_cockpit.read`). Gateway
+  intersects two independently admitted scopes on portfolio identity only — the Core membership
+  cohort (resolved for the requested business date) and the caller's advisor-scoped Advise
+  action feed (a portfolio-scoped Advise entitlement is rejected). Gateway counts the items the
+  source returns, whatever their source status, with their own reason codes: actionable meaning
+  stays with lotus-advise. Action items are current-state workflow evidence — a historical
+  membership date never implies historical action evidence — and the whole composition runs
+  under one elapsed deadline: a stopped or self-contradicting read is explicit partial coverage
+  with every count a stated lower bound, and an empty book does not read the feed and says so.
 - When Core returns the exact pair `aum_reporting_currency == 0` and `position_count == 0`, Gateway
   treats the portfolio coverage as ambiguous and fail-closed: the item value and position count are
   null, it is excluded from covered count and aggregate calculation, and the response carries

@@ -146,14 +146,16 @@ async def get_advisor_book(
     response_model=AdvisorBookSummaryResponse,
     summary="Get source-backed advisor-book value summary",
     description=(
-        "Returns Core-owned total value facts for the authenticated advisor's active own-book "
+        "Returns source-owned value facts for the authenticated advisor's active own-book "
         "membership cohort. The caller must provide an explicit business date and reporting "
         "currency because a book may contain portfolios with different base currencies. Gateway "
-        "resolves membership from trusted caller context and performs one bounded Core AUM scope "
-        "read; it does not value holdings, sum partial rows, or claim performance, cash, risk, "
-        "attention, mandate, suitability, or recommendation truth. Core's current AUM contract "
-        "does not expose per-portfolio snapshot freshness, so the response does not certify every "
-        "value fact as current on the requested date."
+        "resolves membership from trusted caller context and performs one bounded read of Core's "
+        "versioned bulk portfolio-summary contract: per member it preserves the source-owned "
+        "coverage state and reason with total, cash, and invested value only from member totals "
+        "the source states as trustworthy, and book totals come from Core's fail-closed cohort "
+        "aggregate. Gateway never values holdings, sums rows, substitutes zero, or infers "
+        "coverage, and does not claim performance, risk, mandate, suitability, or recommendation "
+        "truth."
     ),
     responses={
         200: {

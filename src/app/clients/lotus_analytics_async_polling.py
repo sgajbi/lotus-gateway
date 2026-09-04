@@ -5,10 +5,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from app.clients.analytics_poll_budget import (
-    AnalyticsPollBudget,
-    AnalyticsRequestDeadlineExceeded,
-)
 from app.clients.http_json_resilience import (
     JsonRequestOutcome,
     request_with_retry_outcome,
@@ -17,6 +13,10 @@ from app.clients.upstream_headers import build_upstream_headers
 from app.contracts.analytics_async import (
     ASYNC_POLL_DEADLINE_EXHAUSTED_REASON,
     ASYNC_RESULT_DEADLINE_EXHAUSTED,
+)
+from app.execution_budget import (
+    AnalyticsPollBudget,
+    AnalyticsRequestDeadlineExceeded,
 )
 from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
