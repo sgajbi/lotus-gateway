@@ -93,3 +93,8 @@ exclude = ["tests", "output", ".venv", ".venv-codex"]
 known_first_party = ["app", "tests"]
 exclude = [".venv", ".venv-codex", "output"]
 
+[tool.deptry.per_rule_ignores]
+# anyio is a constraint-only dependency: never imported, declared solely to pin the
+# transitive resolution below the release that breaks the TestClient import guard.
+DEP002 = ["anyio"]
+
