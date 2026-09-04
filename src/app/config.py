@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     performance_analytics_timeout_seconds: float = Field(default=15.0)
     performance_summary_deadline_seconds: float = Field(default=30.0, gt=0.0, le=30.0)
     ai_service_timeout_seconds: float = Field(default=45.0)
+    lotus_ai_caller_credential: str | None = Field(
+        default=None,
+        description=(
+            "Ops-issued platform credential (compact EdDSA JWS) attached as a Bearer token to "
+            "every lotus-ai request when lotus-ai runs verified_service_jwt caller trust. "
+            "Absent in header-trust environments; lotus-ai owns verification and rotation."
+        ),
+    )
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
