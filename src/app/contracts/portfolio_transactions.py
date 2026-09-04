@@ -188,3 +188,37 @@ class PortfolioTransactionLedgerResponse(BaseModel):
             ]
         ],
     )
+
+
+class PortfolioTransactionRecordResponse(BaseModel):
+    """Exactly one source-owned transaction record for URL rehydration and drill-down."""
+
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the transaction-record response envelope.",
+        examples=["corr-portfolio-transaction-record"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway transaction-record response contract.",
+        examples=["v1"],
+    )
+    portfolio_id: str = Field(
+        description="Portfolio boundary that owns the returned transaction.",
+        examples=["PF_1001"],
+    )
+    reporting_currency: str | None = Field(
+        default=None,
+        description=(
+            "Source-resolved reporting currency for optional restated monetary fields; null "
+            "for the raw source record."
+        ),
+        examples=["SGD"],
+    )
+    transaction: PortfolioTransactionView = Field(
+        description="The exact source-owned transaction record, preserved without inference.",
+    )
+    reason_codes: list[str] = Field(
+        default_factory=list,
+        description="Source-owned supportability reason codes for this transaction record.",
+        examples=[["TRANSACTION_LEDGER_READY"]],
+    )

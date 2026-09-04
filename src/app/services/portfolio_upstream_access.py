@@ -1,16 +1,11 @@
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any
 
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
     PortfolioPerformanceClient,
-)
-from app.services.portfolio_transaction_requests import (
-    PortfolioTransactionsRequestContext,
-    portfolio_transactions_cache_key,
-    portfolio_transactions_client_kwargs,
 )
 from app.services.portfolio_upstream_payloads import optional_payload
 from app.services.portfolio_workspace_payloads import optional_text
@@ -177,26 +172,6 @@ class PortfolioUpstreamAccessMixin:
                 portfolio_id=portfolio_id,
                 security_id=security_id,
                 correlation_id=correlation_id,
-            ),
-        )
-
-    async def _get_portfolio_transactions_result_for_context(
-        self,
-        context: PortfolioTransactionsRequestContext,
-    ) -> UpstreamResult:
-        return await self._get_cached_upstream_result(
-            portfolio_transactions_cache_key(context),
-            lambda: self._fetch_portfolio_transactions(context),
-        )
-
-    async def _fetch_portfolio_transactions(
-        self,
-        context: PortfolioTransactionsRequestContext,
-    ) -> UpstreamResult:
-        return cast(
-            UpstreamResult,
-            await self._lotus_core_query_client.get_portfolio_transactions(
-                **portfolio_transactions_client_kwargs(context),
             ),
         )
 
