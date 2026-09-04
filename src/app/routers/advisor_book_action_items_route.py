@@ -175,8 +175,18 @@ def _reject_non_advisor_advise_scope(
 
 def _source_http_error_response(exc: HTTPException, correlation_id: str) -> JSONResponse:
     # Cockpit authorization and Advise source failures raise HTTPException; keep this
-    # route's advertised AdvisorBookErrorResponse envelope for all of them.
+    # route's advertised AdvisorBookErrorResponse envelope for all of them. Upstream
+    # outages (5xx, e.g. an Advise communication failure surfaced as 503) map to the
+    # documented 502 source-failure contract; locally generated authorization statuses
+    # (4xx) pass through unchanged.
     detail: dict[str, object] = exc.detail if isinstance(exc.detail, dict) else {}
+    if exc.status_code >= 500 and exc.status_code != 502:
+        return advisor_book_error_response(
+            status_code=502,
+            code="advisor_book_action_items_source_unavailable",
+            message="The Advise action feed is unavailable or could not be safely verified.",
+            correlation_id=correlation_id,
+        )
     return advisor_book_error_response(
         status_code=exc.status_code,
         code=str(detail.get("code", "advisor_book_action_items_source_unavailable")),
