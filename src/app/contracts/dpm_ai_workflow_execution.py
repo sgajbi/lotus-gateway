@@ -4,6 +4,10 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.contracts.ai_output_validation import (
+    WITHHOLDING_VALIDATION_STATES,
+    AiOutputValidation,
+)
 from app.contracts.dpm_ai_execution_audit import (
     DpmAiExecutionEvidenceBundle,
     DpmAiTaskAudit,
@@ -33,6 +37,12 @@ class DpmAiTaskExecution(BaseModel):
     category: str = Field(min_length=1, description="Task category selected for execution.")
     output_label: str = Field(min_length=1, description="Governed output-use label.")
     result: DpmAiTaskResult = Field(description="Governed structured task result.")
+    output_validation: AiOutputValidation = Field(
+        description=(
+            "lotus-ai's deterministic output-validation verdict, preserved so Workbench "
+            "can distinguish validated output without backend knowledge."
+        ),
+    )
     audit: DpmAiTaskAudit = Field(description="Execution audit and provider posture.")
     evidence: DpmAiExecutionEvidenceBundle = Field(
         description="Evidence explaining how the task result was produced."
@@ -48,6 +58,14 @@ class DpmAiTaskExecution(BaseModel):
             raise ValueError("execution and safety output labels must match")
         if self.audit.authorization.task_id != self.task_id:
             raise ValueError("execution and authorization task ids must match")
+        if (
+            self.status == "COMPLETED"
+            and self.output_validation.validation_state in WITHHOLDING_VALIDATION_STATES
+        ):
+            # lotus-ai withholds a rejected/unavailable-validation output whole and
+            # forces a non-COMPLETED status; a completed execution claiming one is
+            # source-contract contradiction, not displayable content.
+            raise ValueError("a completed execution cannot carry a withholding verdict")
         return self
 
 

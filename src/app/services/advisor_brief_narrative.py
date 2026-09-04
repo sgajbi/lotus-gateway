@@ -9,14 +9,20 @@ from app.contracts.advisor_brief import (
     AdvisorBriefStatus,
     AdvisorBriefTone,
 )
+from app.contracts.ai_output_validation import ai_output_displayable
 from app.contracts.ai_provider_posture import is_valid_ai_provider_posture
 from app.services.advisor_brief_ai_output import (
+    ADVISOR_BRIEF_OUTPUT_LABEL,
+    ADVISOR_BRIEF_TASK_ID,
     extract_ai_recommended_actions,
     extract_ai_risks,
     extract_ai_summary,
     extract_ai_talking_points,
+    normalize_ai_audit,
+    parse_output_validation,
     safe_dict,
     safe_execution_detail,
+    unavailable_provider_audit,
 )
 from app.services.advisor_brief_source import (
     AdvisorBriefSourceContext,
@@ -24,9 +30,6 @@ from app.services.advisor_brief_source import (
     build_advisor_brief_source_route,
     build_advisor_brief_summary_evidence_ref,
 )
-
-_TASK_ID = "explain.v1"
-_EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"
 
 
 @dataclass(frozen=True)
@@ -47,7 +50,7 @@ def build_advisor_brief_ai_task_request(
 ) -> dict[str, Any]:
     workspace = source_context.workspace
     return {
-        "task_id": _TASK_ID,
+        "task_id": ADVISOR_BRIEF_TASK_ID,
         "input_mode": "STRUCTURED_CONTEXT",
         "caller": {
             "caller_app": "lotus-gateway",
@@ -63,7 +66,7 @@ def build_advisor_brief_ai_task_request(
             ),
             "source_refs": source_context.source_refs,
         },
-        "expected_output_label": _EXPECTED_OUTPUT_LABEL,
+        "expected_output_label": ADVISOR_BRIEF_OUTPUT_LABEL,
     }
 
 
@@ -77,7 +80,7 @@ def build_source_advisor_brief_narrative_state(
         talking_points=source_context.talking_points,
         recommended_actions=source_context.recommended_actions,
         risks_and_exceptions=source_context.risks_and_exceptions,
-        ai_audit=_normalize_ai_audit({}),
+        ai_audit=normalize_ai_audit({}),
         ai_evidence={"descriptors": []},
     )
 
@@ -98,18 +101,17 @@ def build_ai_advisor_brief_narrative_state(
 
     execution_payload = safe_dict(ai_payload.get("execution"))
     raw_ai_audit = safe_dict(execution_payload.get("audit"))
-    ai_audit = _normalize_ai_audit(raw_ai_audit)
+    ai_audit = normalize_ai_audit(raw_ai_audit)
     ai_evidence = safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
     if execution_payload.get("status") == "COMPLETED":
-        if not is_valid_ai_provider_posture(
-            provider_mode=raw_ai_audit.get("provider_mode"),
-            stubbed=raw_ai_audit.get("stubbed"),
-        ):
-            return _build_invalid_ai_provider_posture_narrative_state(
-                source_context=source_context,
-                narrative_state=narrative_state,
-            )
-        return _build_completed_ai_advisor_brief_narrative_state(
+        return _withheld_completed_narrative_state(
+            source_context=source_context,
+            narrative_state=narrative_state,
+            execution_payload=execution_payload,
+            raw_ai_audit=raw_ai_audit,
+            ai_audit=ai_audit,
+            ai_evidence=ai_evidence,
+        ) or _build_completed_ai_advisor_brief_narrative_state(
             source_context=source_context,
             narrative_state=narrative_state,
             execution_payload=execution_payload,
@@ -126,6 +128,36 @@ def build_ai_advisor_brief_narrative_state(
     )
 
 
+def _withheld_completed_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    execution_payload: dict[str, Any],
+    raw_ai_audit: dict[str, Any],
+    ai_audit: dict[str, Any],
+    ai_evidence: dict[str, Any],
+) -> AdvisorBriefNarrativeState | None:
+    """The withheld posture for a completed execution Gateway must not display."""
+
+    if not is_valid_ai_provider_posture(
+        provider_mode=raw_ai_audit.get("provider_mode"),
+        stubbed=raw_ai_audit.get("stubbed"),
+    ):
+        return _build_invalid_ai_provider_posture_narrative_state(
+            source_context=source_context,
+            narrative_state=narrative_state,
+        )
+    if not ai_output_displayable(parse_output_validation(execution_payload)):
+        return _with_ai_unavailable_risk(
+            source_context=source_context,
+            narrative_state=narrative_state,
+            detail="AI output was not validated by lotus-ai for display.",
+            ai_audit=ai_audit,
+            ai_evidence=ai_evidence,
+        )
+    return None
+
+
 def _build_invalid_ai_provider_posture_narrative_state(
     *,
     source_context: AdvisorBriefSourceContext,
@@ -135,7 +167,7 @@ def _build_invalid_ai_provider_posture_narrative_state(
         source_context=source_context,
         narrative_state=narrative_state,
         detail="AI provider provenance could not be verified.",
-        ai_audit=_unavailable_provider_audit(),
+        ai_audit=unavailable_provider_audit(),
         ai_evidence={"descriptors": []},
     )
 
@@ -212,10 +244,10 @@ def _build_ai_http_unavailable_narrative_state(
     narrative_state: AdvisorBriefNarrativeState,
     ai_payload: dict[str, Any],
 ) -> AdvisorBriefNarrativeState:
-    ai_audit = _normalize_ai_audit(
+    ai_audit = normalize_ai_audit(
         {
-            "task_id": _TASK_ID,
-            "output_label": _EXPECTED_OUTPUT_LABEL,
+            "task_id": ADVISOR_BRIEF_TASK_ID,
+            "output_label": ADVISOR_BRIEF_OUTPUT_LABEL,
             "provider_mode": "unavailable",
             "detail": safe_advisor_brief_error_detail(ai_payload),
         }
@@ -265,33 +297,4 @@ def _build_ai_unavailable_risk(
                 source_context=source_context,
             )
         ],
-    )
-
-
-def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
-    normalized = dict(audit)
-    normalized.setdefault("task_id", _TASK_ID)
-    normalized.setdefault("output_label", _EXPECTED_OUTPUT_LABEL)
-    normalized.setdefault("provider_mode", "unknown")
-    normalized.setdefault("provider_id", None)
-    normalized.setdefault("adapter_kind", None)
-    normalized.setdefault("model_id", None)
-    normalized.setdefault("generated_at", None)
-    normalized.setdefault("stubbed", True)
-    normalized.setdefault("source_refs", [])
-    return normalized
-
-
-def _unavailable_provider_audit() -> dict[str, Any]:
-    return _normalize_ai_audit(
-        {
-            "provider_mode": "unavailable",
-            "provider_id": None,
-            "adapter_kind": None,
-            "model_id": None,
-            "generated_at": None,
-            "stubbed": True,
-            "detail": "AI provider provenance could not be verified.",
-            "source_refs": [],
-        }
     )

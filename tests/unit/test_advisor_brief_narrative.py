@@ -83,6 +83,13 @@ def test_build_ai_advisor_brief_narrative_state_preserves_completed_ai_narrative
         ai_payload={
             "execution": {
                 "status": "COMPLETED",
+                "output_validation": {
+                    "validation_state": "VALIDATED",
+                    "authority": "non_authoritative_ai_output",
+                    "ruleset_version": "output-validation.v4",
+                    "failed_rule_ids": [],
+                    "findings": [],
+                },
                 "result": {
                     "message": "Fallback AI message.",
                     "structured_output": {
@@ -243,4 +250,72 @@ def test_safe_advisor_brief_error_detail_uses_governed_default() -> None:
     assert safe_advisor_brief_error_detail({"detail": " review failed "}) == "review failed"
     assert safe_advisor_brief_error_detail({"detail": ""}) == (
         "lotus-ai task execution did not return a completed advisor brief."
+    )
+
+
+@pytest.mark.parametrize(
+    "output_validation",
+    (
+        pytest.param(None, id="missing-verdict"),
+        pytest.param(
+            {
+                "validation_state": "UNVALIDATED_LOCAL_ONLY",
+                "authority": "non_authoritative_ai_output",
+                "ruleset_version": "output-validation.v4",
+            },
+            id="unvalidated-local-only",
+        ),
+        pytest.param(
+            {
+                "validation_state": "VALIDATED",
+                "authority": "authoritative_financial_truth",
+                "ruleset_version": "output-validation.v4",
+            },
+            id="wrong-authority-marking",
+        ),
+        pytest.param("VALIDATED", id="untyped-verdict"),
+    ),
+)
+def test_build_ai_advisor_brief_narrative_state_withholds_unvalidated_completed_ai_output(
+    output_validation: object,
+) -> None:
+    source_context = build_advisor_brief_source_context(
+        workspace=build_advisor_brief_workspace(),
+        detail_basis="NET",
+    )
+    source_state = build_source_advisor_brief_narrative_state(source_context=source_context)
+    execution: dict[str, object] = {
+        "status": "COMPLETED",
+        "result": {
+            "structured_output": {
+                "grounded_summary": "UNSAFE AI SUMMARY",
+                "talking_points": [],
+            }
+        },
+        "audit": {
+            "request_id": "req-unvalidated-output",
+            "provider_mode": "openai",
+            "stubbed": False,
+        },
+        "evidence": {"descriptors": []},
+    }
+    if output_validation is not None:
+        execution["output_validation"] = output_validation
+
+    narrative_state = build_ai_advisor_brief_narrative_state(
+        source_context=source_context,
+        narrative_state=source_state,
+        ai_status=200,
+        ai_payload={"execution": execution},
+    )
+
+    assert narrative_state.status is AdvisorBriefStatus.PARTIAL
+    assert narrative_state.summary == source_state.summary
+    assert "UNSAFE AI SUMMARY" not in narrative_state.summary
+    assert narrative_state.ai_audit["provider_mode"] == "openai"
+    assert narrative_state.risks_and_exceptions[-1].headline == (
+        "AI narrative generation is unavailable."
+    )
+    assert narrative_state.risks_and_exceptions[-1].detail == (
+        "AI output was not validated by lotus-ai for display."
     )
