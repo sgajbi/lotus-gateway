@@ -24,6 +24,7 @@ def lotus_ai_client_signature() -> tuple[object, ...]:
         settings.ai_service_timeout_seconds,
         settings.upstream_max_retries,
         settings.upstream_retry_backoff_seconds,
+        settings.lotus_ai_caller_credential,
     )
 
 
@@ -49,6 +50,7 @@ def build_lotus_ai_client() -> LotusAiClient:
         timeout_seconds=settings.ai_service_timeout_seconds,
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        caller_credential=settings.lotus_ai_caller_credential,
     )
 
 

@@ -4883,3 +4883,62 @@ async def test_lotus_analytics_client_capabilities_omits_query_params_when_contr
     assert payload["sourceService"] == "risk"
     assert _FakeAsyncClient.calls[0]["url"] == "http://risk/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {}
+
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_attaches_configured_caller_credential_everywhere(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAiClient(
+        base_url="http://ai",
+        timeout_seconds=3.0,
+        caller_credential="eyJhbGciOiJFZERTQSJ9.credential.signature",
+    )
+    _FakeAsyncClient.queue_json(200, {"execution": {}})
+    _FakeAsyncClient.queue_json(200, {"status": "COMPLETED"})
+
+    await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={},
+        correlation_id="corr-ai-credential",
+    )
+    await client.execute_task(
+        task_id="explain.v1",
+        caller_app="lotus-gateway",
+        correlation_id="corr-ai-credential",
+        context_summary="ctx",
+        context_payload={},
+        source_refs=[],
+    )
+
+    pack_headers = _FakeAsyncClient.calls[-2]["headers"]
+    task_headers = _FakeAsyncClient.calls[-1]["headers"]
+    assert pack_headers["Authorization"] == "Bearer eyJhbGciOiJFZERTQSJ9.credential.signature"
+    assert pack_headers["X-Caller-App"] == "lotus-gateway"
+    assert task_headers["Authorization"] == "Bearer eyJhbGciOiJFZERTQSJ9.credential.signature"
+    assert "X-Caller-App" not in task_headers
+    # The secret must never reach fan-out logs.
+    assert "credential.signature" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_sends_no_authorization_header_without_credential():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(200, {"execution": {}})
+
+    await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={},
+        correlation_id="corr-ai-header-trust",
+    )
+
+    headers = _FakeAsyncClient.calls[-1]["headers"]
+    assert "Authorization" not in headers
+    assert headers["X-Caller-App"] == "lotus-gateway"

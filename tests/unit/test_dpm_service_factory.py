@@ -35,6 +35,10 @@ def test_dpm_service_factory_builds_governed_manage_and_ai_clients(monkeypatch) 
         "app.services.dpm_service_factory.settings.upstream_retry_backoff_seconds",
         0.75,
     )
+    monkeypatch.setattr(
+        "app.services.dpm_service_factory.settings.lotus_ai_caller_credential",
+        "eyJhbGciOiJFZERTQSJ9.ops-issued.credential",
+    )
 
     manage_client = build_manage_client()
     ai_client = build_lotus_ai_client()
@@ -47,8 +51,15 @@ def test_dpm_service_factory_builds_governed_manage_and_ai_clients(monkeypatch) 
     assert ai_client._timeout == 55.0
     assert ai_client._max_retries == 4
     assert ai_client._retry_backoff_seconds == 0.75
+    assert ai_client._caller_credential == "eyJhbGciOiJFZERTQSJ9.ops-issued.credential"
     assert manage_client_signature() == ("http://manage:8000", 6.5, 4, 0.75)
-    assert lotus_ai_client_signature() == ("http://ai:8000", 55.0, 4, 0.75)
+    assert lotus_ai_client_signature() == (
+        "http://ai:8000",
+        55.0,
+        4,
+        0.75,
+        "eyJhbGciOiJFZERTQSJ9.ops-issued.credential",
+    )
 
 
 def test_dpm_service_factory_wires_all_dpm_route_services(monkeypatch) -> None:

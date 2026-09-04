@@ -11,13 +11,6 @@ logger = logging.getLogger("analytics_ui.gateway")
 _GATEWAY_CALLER_APP = "lotus-gateway"
 
 
-def _workflow_pack_headers(correlation_id: str) -> dict[str, str]:
-    return build_upstream_headers(
-        correlation_id,
-        extras={"X-Caller-App": _GATEWAY_CALLER_APP},
-    )
-
-
 class LotusAiClient:
     def __init__(
         self,
@@ -25,11 +18,24 @@ class LotusAiClient:
         timeout_seconds: float,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
+        caller_credential: str | None = None,
     ):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
+        # Ops-issued platform credential for lotus-ai's verified_service_jwt caller trust
+        # mode. When configured it is attached to every lotus-ai request; lotus-ai owns
+        # verification, key distribution, and the subject/X-Caller-App binding.
+        self._caller_credential = caller_credential or None
+
+    def _client_headers(self, correlation_id: str, *, caller_app: bool) -> dict[str, str]:
+        extras: dict[str, str] = {}
+        if caller_app:
+            extras["X-Caller-App"] = _GATEWAY_CALLER_APP
+        if self._caller_credential:
+            extras["Authorization"] = f"Bearer {self._caller_credential}"
+        return build_upstream_headers(correlation_id, extras=extras or None)
 
     async def execute_task(
         self,
@@ -62,7 +68,7 @@ class LotusAiClient:
             operation="ai.tasks.execute",
             method="POST",
             json_body=request_payload,
-            headers=build_upstream_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=False),
             retry_timeout_exceptions=False,
             path="/ai/tasks/execute",
         )
@@ -89,7 +95,7 @@ class LotusAiClient:
                 "workflow_surface": workflow_surface,
                 "task_request": task_request,
             },
-            headers=_workflow_pack_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/execute",
         )
@@ -103,7 +109,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.consumer-view",
             method="GET",
-            headers=_workflow_pack_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/consumer-view",
         )
@@ -117,7 +123,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.operator-profile",
             method="GET",
-            headers=_workflow_pack_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/operator-profile",
         )
@@ -142,7 +148,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.task-flows.list",
             method="GET",
             params=params,
-            headers=_workflow_pack_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/task-flows",
         )
@@ -158,7 +164,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.runs.review-actions",
             method="POST",
             json_body=request_payload,
-            headers=_workflow_pack_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
         )
@@ -171,7 +177,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.observability.runtime-status",
             method="GET",
-            headers=build_upstream_headers(correlation_id),
+            headers=self._client_headers(correlation_id, caller_app=False),
             retry_timeout_exceptions=False,
             path="/platform/observability/runtime-status",
         )
