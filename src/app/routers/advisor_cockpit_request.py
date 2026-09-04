@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -9,6 +10,76 @@ from app.services.advisor_cockpit_access_policy import (
     require_advisor_cockpit_capability,
     require_advisor_cockpit_portfolio_scope,
 )
+
+
+@dataclass(frozen=True)
+class AdvisorCockpitCallerHeaders:
+    """Raw Advise caller headers captured without validation.
+
+    Routes that must translate access failures into their own error envelope (instead
+    of the dependency-raised HTTPException) capture the raw values and build the
+    caller context inside the handler.
+    """
+
+    actor_id: str | None
+    caller_application: str | None
+    tenant_id: str | None
+    region: str | None
+    booking_center_code: str | None
+    legal_entity_code: str | None
+    role: str | None
+    capabilities: str | None
+    principal_status: str | None
+    authorized_advisor_id: str | None
+    authorized_portfolio_id: str | None
+
+
+def advisor_cockpit_caller_headers(
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
+    principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
+    authorized_advisor_id: Annotated[str | None, Header(alias="X-Authorized-Advisor-Id")] = None,
+    authorized_portfolio_id: Annotated[
+        str | None, Header(alias="X-Authorized-Portfolio-Id")
+    ] = None,
+) -> AdvisorCockpitCallerHeaders:
+    return AdvisorCockpitCallerHeaders(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        legal_entity_code=legal_entity_code,
+        role=role,
+        capabilities=capabilities,
+        principal_status=principal_status,
+        authorized_advisor_id=authorized_advisor_id,
+        authorized_portfolio_id=authorized_portfolio_id,
+    )
+
+
+def build_advisor_cockpit_caller(
+    headers: AdvisorCockpitCallerHeaders,
+) -> AdvisorCockpitCallerContext:
+    return require_advisor_cockpit_caller_context(
+        actor_id=headers.actor_id,
+        caller_application=headers.caller_application,
+        tenant_id=headers.tenant_id,
+        region=headers.region,
+        booking_center_code=headers.booking_center_code,
+        legal_entity_code=headers.legal_entity_code,
+        role=headers.role,
+        capabilities=headers.capabilities,
+        principal_status=headers.principal_status,
+        authorized_advisor_id=headers.authorized_advisor_id,
+        authorized_portfolio_id=headers.authorized_portfolio_id,
+    )
 
 
 def advisor_cockpit_caller_context(

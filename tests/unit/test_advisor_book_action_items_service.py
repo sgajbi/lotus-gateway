@@ -460,10 +460,10 @@ async def test_action_items_propagate_the_source_action_failure() -> None:
 
 
 def test_action_items_page_size_stays_within_the_typed_source_page_bound() -> None:
-    from app.services.advisor_book_action_items_service import _ACTION_PAGE_SIZE
+    from app.services.advisor_book_action_items_read import ACTION_PAGE_SIZE
 
     items_bound = AdvisorCockpitActionPage.model_json_schema()["properties"]["items"]["maxItems"]
-    assert _ACTION_PAGE_SIZE <= items_bound
+    assert ACTION_PAGE_SIZE <= items_bound
 
 
 @pytest.mark.asyncio

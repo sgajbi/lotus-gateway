@@ -1,10 +1,9 @@
 """Advisor-book action-items route: Advise-owned action counts for the trusted book."""
 
-from dataclasses import dataclass
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.contracts.advisor_book import AdvisorBookErrorResponse
@@ -18,8 +17,14 @@ from app.routers.advisor_book_request import (
     advisor_book_attention_query,
     advisor_book_caller_headers,
     advisor_book_error_response,
+    advisor_book_source_error_response,
 )
-from app.routers.advisor_cockpit_request import authorize_advisor_cockpit_request
+from app.routers.advisor_cockpit_request import (
+    AdvisorCockpitCallerHeaders,
+    advisor_cockpit_caller_headers,
+    authorize_advisor_cockpit_request,
+    build_advisor_cockpit_caller,
+)
 from app.services.advisor_book_access_policy import (
     AdvisorBookCallerContextError,
     require_advisor_book_caller_context,
@@ -32,84 +37,26 @@ from app.services.advisor_cockpit_access_policy import (
     ADVISOR_COCKPIT_READ_CAPABILITY,
     AdvisorCockpitAccessError,
     AdvisorCockpitCallerContext,
-    require_advisor_cockpit_caller_context,
 )
 
 router = APIRouter(prefix="/api/v1/advisor-book", tags=["advisor-book"])
 
-
-@dataclass(frozen=True)
-class _CockpitCallerHeaders:
-    actor_id: str | None
-    caller_application: str | None
-    tenant_id: str | None
-    region: str | None
-    booking_center_code: str | None
-    legal_entity_code: str | None
-    role: str | None
-    capabilities: str | None
-    principal_status: str | None
-    authorized_advisor_id: str | None
-    authorized_portfolio_id: str | None
-
-
-def _cockpit_caller_headers(
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
-    capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
-    principal_status: Annotated[str | None, Header(alias="X-Principal-Status")] = None,
-    authorized_advisor_id: Annotated[str | None, Header(alias="X-Authorized-Advisor-Id")] = None,
-    authorized_portfolio_id: Annotated[
-        str | None, Header(alias="X-Authorized-Portfolio-Id")
-    ] = None,
-) -> _CockpitCallerHeaders:
-    return _CockpitCallerHeaders(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        legal_entity_code=legal_entity_code,
-        role=role,
-        capabilities=capabilities,
-        principal_status=principal_status,
-        authorized_advisor_id=authorized_advisor_id,
-        authorized_portfolio_id=authorized_portfolio_id,
-    )
-
-
-def _build_cockpit_caller(headers: _CockpitCallerHeaders) -> AdvisorCockpitCallerContext:
-    # Built inside the handler (not a dependency) so access failures are translated
-    # into this route's advertised AdvisorBookErrorResponse envelope.
-    return require_advisor_cockpit_caller_context(
-        actor_id=headers.actor_id,
-        caller_application=headers.caller_application,
-        tenant_id=headers.tenant_id,
-        region=headers.region,
-        booking_center_code=headers.booking_center_code,
-        legal_entity_code=headers.legal_entity_code,
-        role=headers.role,
-        capabilities=headers.capabilities,
-        principal_status=headers.principal_status,
-        authorized_advisor_id=headers.authorized_advisor_id,
-        authorized_portfolio_id=headers.authorized_portfolio_id,
-    )
+_SOURCE_UNAVAILABLE_MESSAGE = (
+    "The Advise action feed is unavailable or could not be safely verified."
+)
 
 
 async def _get_advisor_book_action_items(
     *,
     as_of_date: date,
     caller_headers: AdvisorBookCallerHeaders,
-    cockpit_headers: _CockpitCallerHeaders,
+    cockpit_headers: AdvisorCockpitCallerHeaders,
 ) -> AdvisorBookActionItemsResponse | JSONResponse:
     correlation_id = correlation_id_var.get()
     try:
-        cockpit_caller = _build_cockpit_caller(cockpit_headers)
+        # Built inside the handler (not a dependency) so access failures are translated
+        # into this route's advertised AdvisorBookErrorResponse envelope.
+        cockpit_caller = build_advisor_cockpit_caller(cockpit_headers)
         rejection = _reject_non_advisor_advise_scope(cockpit_caller, correlation_id)
         if rejection is not None:
             return rejection
@@ -129,7 +76,12 @@ async def _get_advisor_book_action_items(
             correlation_id=correlation_id,
         )
     except HTTPException as exc:
-        return _source_http_error_response(exc, correlation_id)
+        return advisor_book_source_error_response(
+            exc,
+            correlation_id=correlation_id,
+            outage_code="advisor_book_action_items_source_unavailable",
+            outage_message=_SOURCE_UNAVAILABLE_MESSAGE,
+        )
     except (
         AdvisorCockpitAccessError,
         AdvisorBookCallerContextError,
@@ -168,33 +120,6 @@ def _reject_non_advisor_advise_scope(
             "Book-wide action items require exactly one advisor-scoped Advise "
             "entitlement; portfolio-scoped or unscoped callers cannot state coverage "
             "for the whole book."
-        ),
-        correlation_id=correlation_id,
-    )
-
-
-def _source_http_error_response(exc: HTTPException, correlation_id: str) -> JSONResponse:
-    # Cockpit authorization and Advise source failures raise HTTPException; keep this
-    # route's advertised AdvisorBookErrorResponse envelope for all of them. Upstream
-    # outages (5xx, e.g. an Advise communication failure surfaced as 503) map to the
-    # documented 502 source-failure contract; locally generated authorization statuses
-    # (4xx) pass through unchanged.
-    detail: dict[str, object] = exc.detail if isinstance(exc.detail, dict) else {}
-    if exc.status_code >= 500 and exc.status_code != 502:
-        return advisor_book_error_response(
-            status_code=502,
-            code="advisor_book_action_items_source_unavailable",
-            message="The Advise action feed is unavailable or could not be safely verified.",
-            correlation_id=correlation_id,
-        )
-    return advisor_book_error_response(
-        status_code=exc.status_code,
-        code=str(detail.get("code", "advisor_book_action_items_source_unavailable")),
-        message=str(
-            detail.get(
-                "message",
-                "The Advise action feed is unavailable or could not be safely verified.",
-            )
         ),
         correlation_id=correlation_id,
     )
@@ -251,7 +176,9 @@ def _source_http_error_response(exc: HTTPException, correlation_id: str) -> JSON
 async def get_advisor_book_action_items(
     as_of_date: Annotated[date, Depends(advisor_book_attention_query)],
     caller_headers: Annotated[AdvisorBookCallerHeaders, Depends(advisor_book_caller_headers)],
-    cockpit_headers: Annotated[_CockpitCallerHeaders, Depends(_cockpit_caller_headers)],
+    cockpit_headers: Annotated[
+        AdvisorCockpitCallerHeaders, Depends(advisor_cockpit_caller_headers)
+    ],
 ) -> AdvisorBookActionItemsResponse | JSONResponse:
     return await _get_advisor_book_action_items(
         as_of_date=as_of_date,
