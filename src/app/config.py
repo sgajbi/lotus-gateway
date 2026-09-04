@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
     advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
     advisor_book_action_items_deadline_seconds: float = Field(default=10.0, gt=0.0, le=30.0)
+    advisor_book_workspace_deadline_seconds: float = Field(default=10.0, gt=0.0, le=30.0)
     risk_bff_cache_ttl_seconds: int = Field(default=15)
     domain_product_catalog_path: str = Field(
         default_factory=lambda: _default_platform_generated_path("domain-product-catalog.json")

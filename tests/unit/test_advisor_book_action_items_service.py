@@ -9,22 +9,15 @@ from app.contracts.advisor_cockpit_action_envelopes import (
     AdvisorCockpitActionPageEnvelopeResponse,
 )
 from app.contracts.advisor_cockpit_action_models import AdvisorCockpitActionPage
-from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_action_items_service import AdvisorBookActionItemsService
 from app.services.advisor_book_service import AdvisorBookService, AdvisorBookServiceError
-from app.services.advisor_cockpit_access_policy import AdvisorCockpitCallerContext
+from tests.support.advisor_book_fixtures import (
+    MembershipClient,
+    book_caller,
+    cockpit_caller,
+    membership_payload,
+)
 from tests.support.advisor_cockpit_fixtures import advisor_action_item_payload
-
-
-class _MembershipClient:
-    def __init__(self, payload: dict[str, Any] | None = None, delay_seconds: float = 0.0) -> None:
-        self.payload = payload or {}
-        self.delay_seconds = delay_seconds
-
-    async def get_portfolio_manager_book_memberships(self, **kwargs: Any):
-        if self.delay_seconds:
-            await asyncio.sleep(self.delay_seconds)
-        return 200, self.payload
 
 
 class _StubCockpitService:
@@ -60,76 +53,6 @@ class _StubCockpitService:
             contract_version="v1",
             data=page,
         )
-
-
-def _book_caller() -> AdvisorBookCallerContext:
-    return AdvisorBookCallerContext(
-        portfolio_manager_id="PM_SG_001",
-        tenant_id="tenant-sg",
-        region="APAC",
-        booking_center_code="Singapore",
-        role="ADVISOR",
-        caller_application="lotus-workbench",
-    )
-
-
-def _cockpit_caller() -> AdvisorCockpitCallerContext:
-    return AdvisorCockpitCallerContext(
-        actor_id="advisor_sg_001",
-        caller_application="lotus-workbench",
-        tenant_id="tenant-sg",
-        region="APAC",
-        booking_center_code="Singapore",
-        legal_entity_code="SG01",
-        role="ADVISOR",
-        capabilities=frozenset({"advisory.advisor_cockpit.read"}),
-        principal_status="ACTIVE",
-        authorized_advisor_id="advisor_sg_001",
-        authorized_portfolio_id=None,
-    )
-
-
-def _member(portfolio_id: str) -> dict[str, object]:
-    return {
-        "portfolio_id": portfolio_id,
-        "client_id": f"CIF_{portfolio_id}",
-        "booking_center_code": "Singapore",
-        "portfolio_type": "ADVISORY",
-        "status": "ACTIVE",
-        "open_date": "2025-03-31",
-        "close_date": None,
-        "base_currency": "USD",
-        "source_record_id": f"portfolio:{portfolio_id}",
-        "membership_source": "party_role_assignment",
-        "role_type": "ADVISOR",
-    }
-
-
-def _membership_payload(*portfolio_ids: str) -> dict[str, object]:
-    members = [_member(portfolio_id) for portfolio_id in portfolio_ids]
-    return {
-        "product_name": "PortfolioManagerBookMembership",
-        "product_version": "v1",
-        "portfolio_manager_id": "PM_SG_001",
-        "tenant_id": "tenant-sg",
-        "generated_at": "2026-04-10T02:00:00Z",
-        "as_of_date": "2026-04-10",
-        "latest_evidence_timestamp": "2026-04-10T01:59:00Z",
-        "snapshot_id": "pm_book_membership:2e7dfe0c",
-        "content_hash": "sha256:0123456789abcdef",
-        "data_quality_status": "ACCEPTED",
-        "source_evidence_current": True,
-        "freshness_status": "CURRENT",
-        "booking_center_code": "Singapore",
-        "members": members,
-        "supportability": {
-            "state": "READY",
-            "reason": "PM_BOOK_MEMBERSHIP_READY",
-            "returned_portfolio_count": len(members),
-            "filters_applied": ["portfolio_manager_id", "as_of_date"],
-        },
-        "lineage": {"source_system": "lotus-core"},
-    }
 
 
 def _action(
@@ -173,7 +96,7 @@ def _service(
 ) -> AdvisorBookActionItemsService:
     return AdvisorBookActionItemsService(
         membership_service=AdvisorBookService(
-            membership_client=_MembershipClient(
+            membership_client=MembershipClient(
                 payload=membership_payload,
                 delay_seconds=membership_delay_seconds,
             )
@@ -185,8 +108,8 @@ def _service(
 
 async def _get(service: AdvisorBookActionItemsService, correlation_id: str):
     return await service.get_action_items(
-        book_caller=_book_caller(),
-        cockpit_caller=_cockpit_caller(),
+        book_caller=book_caller(),
+        cockpit_caller=cockpit_caller(),
         as_of_date=date(2026, 4, 10),
         correlation_id=correlation_id,
     )
@@ -207,7 +130,7 @@ async def test_action_items_count_source_items_per_cohort_member() -> None:
             )
         ]
     )
-    service = _service(_membership_payload("PB_001", "PB_002"), cockpit)
+    service = _service(membership_payload("PB_001", "PB_002"), cockpit)
 
     response = await _get(service, "corr-action-items")
 
@@ -243,7 +166,7 @@ async def test_action_items_do_not_define_which_source_statuses_count() -> None:
             )
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-status-faithful")
 
@@ -260,7 +183,7 @@ async def test_action_items_follow_source_cursors_until_the_feed_ends() -> None:
             _page([_action("a2", portfolio_id="PB_001")], total_count=2),
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-pages")
 
@@ -282,7 +205,7 @@ async def test_action_items_report_partial_at_the_page_budget() -> None:
             for index in range(6)
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-budget")
 
@@ -302,7 +225,7 @@ async def test_action_items_preserve_verified_items_when_the_deadline_stops_pagi
         ],
         page_delays={1: 0.5},
     )
-    service = _service(_membership_payload("PB_001"), cockpit, deadline_seconds=0.3)
+    service = _service(membership_payload("PB_001"), cockpit, deadline_seconds=0.3)
 
     response = await _get(service, "corr-deadline-adversarial")
 
@@ -318,7 +241,7 @@ async def test_action_items_preserve_verified_items_when_the_deadline_stops_pagi
 async def test_action_items_fail_closed_when_membership_exhausts_the_deadline() -> None:
     cockpit = _StubCockpitService()
     service = _service(
-        _membership_payload("PB_001"),
+        membership_payload("PB_001"),
         cockpit,
         deadline_seconds=0.05,
         membership_delay_seconds=0.5,
@@ -337,7 +260,7 @@ async def test_action_items_report_partial_when_source_total_exceeds_collected()
     cockpit = _StubCockpitService(
         pages=[_page([_action("a1", portfolio_id="PB_001")], total_count=7)]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-total-over")
 
@@ -359,7 +282,7 @@ async def test_action_items_report_partial_when_source_total_undercounts_collect
             )
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-total-under")
 
@@ -376,7 +299,7 @@ async def test_action_items_report_inconsistent_when_the_stated_total_drifts() -
             _page([_action("a2", portfolio_id="PB_001")], total_count=5),
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-total-drift")
 
@@ -392,7 +315,7 @@ async def test_action_items_deduplicate_repeated_identities_and_stay_partial() -
             _page([_action("a1", portfolio_id="PB_001")], total_count=2),
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-duplicate-identity")
 
@@ -409,7 +332,7 @@ async def test_action_items_stop_on_a_cursor_that_does_not_advance() -> None:
             _page([_action("a2", portfolio_id="PB_001")], next_cursor="stuck", total_count=9),
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-stuck-cursor")
 
@@ -421,7 +344,7 @@ async def test_action_items_stop_on_a_cursor_that_does_not_advance() -> None:
 @pytest.mark.asyncio
 async def test_action_items_empty_book_never_reads_the_action_feed() -> None:
     cockpit = _StubCockpitService()
-    service = _service(_membership_payload(), cockpit)
+    service = _service(membership_payload(), cockpit)
 
     response = await _get(service, "corr-empty")
 
@@ -434,7 +357,7 @@ async def test_action_items_empty_book_never_reads_the_action_feed() -> None:
 
 @pytest.mark.asyncio
 async def test_action_items_fail_closed_on_incomplete_membership() -> None:
-    payload = _membership_payload("PB_001")
+    payload = membership_payload("PB_001")
     payload["supportability"] = {
         "state": "INCOMPLETE",
         "reason": "PM_BOOK_MEMBERSHIP_INCOMPLETE",
@@ -451,7 +374,7 @@ async def test_action_items_fail_closed_on_incomplete_membership() -> None:
 async def test_action_items_propagate_the_source_action_failure() -> None:
     cockpit = _StubCockpitService()
     cockpit.error = HTTPException(status_code=502, detail={"code": "advise_unavailable"})
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     with pytest.raises(HTTPException) as raised:
         await _get(service, "corr-source-down")
@@ -480,7 +403,7 @@ async def test_action_items_report_partial_when_the_source_states_no_total() -> 
             )
         ]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-total-not-stated")
 
@@ -495,7 +418,7 @@ async def test_action_items_preserve_core_membership_provenance() -> None:
     cockpit = _StubCockpitService(
         pages=[_page([_action("a1", portfolio_id="PB_001")], total_count=1)]
     )
-    service = _service(_membership_payload("PB_001"), cockpit)
+    service = _service(membership_payload("PB_001"), cockpit)
 
     response = await _get(service, "corr-provenance")
 

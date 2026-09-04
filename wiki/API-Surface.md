@@ -32,6 +32,7 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/advisor-book/portfolios`
 - `GET /api/v1/advisor-book/summary`
 - `GET /api/v1/advisor-book/action-items`
+- `GET /api/v1/advisor-book/workspace`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -175,6 +176,17 @@ consumer migration remain tracked by parent issue #569.
   membership date never implies historical action evidence — and the whole composition runs
   under one elapsed deadline: a stopped or self-contradicting read is explicit partial coverage
   with every count a stated lower bound, and an empty book does not read the feed and says so.
+- advisor-book workspace is the primary Advisor Book composition. It requires camelCase
+  `asOfDate` and `reportingCurrency` plus the trusted book caller headers; the Advise cockpit
+  caller context is optional. Membership is resolved exactly once from Core, the cohort and its
+  provenance are frozen, and the bulk value read plus the Advise action-feed read are composed
+  concurrently against exactly that cohort under one elapsed composition deadline. Every cohort
+  member is a row; a degraded enrichment source degrades only its own typed fact block
+  (`value_facts` / `action_facts`) with a bounded reason and never removes a row. An absent,
+  invalid, portfolio-scoped, or unscoped Advise context leaves the action fact explicitly
+  unavailable instead of failing the request — unlike the narrow action-items route, which
+  rejects a non-advisor Advise scope because its entire contract is the action read. Only an
+  unresolvable membership cohort is fatal.
 - portfolio position tax-lot drill-down returns a typed, closed envelope of the current Core BUY
   lots for one exact portfolio/security pair. It preserves source lot identity, acquisition date,
   original/open quantity, local/base cost, accrued interest, and optional source lineage fields;

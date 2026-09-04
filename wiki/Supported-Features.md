@@ -220,6 +220,7 @@ Supported route:
 1. `GET /api/v1/advisor-book/portfolios`
 2. `GET /api/v1/advisor-book/summary`
 3. `GET /api/v1/advisor-book/action-items`
+4. `GET /api/v1/advisor-book/workspace`
 
 Authority and boundary:
 
@@ -258,7 +259,20 @@ Authority and boundary:
    (repeated identities, non-advancing cursors, drifting totals) is explicit partial coverage
    with every count a stated lower bound. lotus-advise does not guarantee snapshot-stable
    pagination; Gateway states that limitation instead of constructing an atomic workflow
-   snapshot.
+   snapshot,
+8. the workspace route is the primary Advisor Book composition and the one Workbench is expected
+   to consume for the book landing experience: membership is resolved exactly once, the cohort
+   and its provenance are frozen, and the bulk value read plus the action-feed read are composed
+   concurrently against exactly that cohort under one elapsed composition deadline. Every cohort
+   member is a row with per-fact truth (`value` and `action_items` entries); a degraded
+   enrichment source degrades only its own typed fact block with a bounded reason
+   (`value_source_unavailable`, `advise_scope_not_presented`, `composition_deadline_reached`,
+   and peers) and never removes a row or substitutes zero. The Advise scope is optional here —
+   absent, invalid, portfolio-scoped, or unscoped Advise context leaves the action fact
+   explicitly unavailable while value facts still stand — and only an unresolvable membership
+   cohort is fatal. The narrow `/summary` and `/action-items` routes remain for consumers that
+   need exactly one fact family; all three routes share single-owner fact builders so their
+   semantics cannot drift.
 
 ## Portfolio Position Tax-Lot Drill-Down
 
