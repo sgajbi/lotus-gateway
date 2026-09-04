@@ -116,9 +116,13 @@ the `X-Caller-App` header. Gateway supports this through one setting:
 - `LOTUS_AI_CALLER_CREDENTIAL` — an ops-issued compact EdDSA JWS for subject `lotus-gateway`.
   When set, Gateway attaches it as `Authorization: Bearer <credential>` on every lotus-ai
   request. Provision it from the deployment's secret store (it is passed through
-  `docker-compose.yml`; never commit it), rotate it on the platform issuer's short-lived
-  schedule, and leave it **unset** in header-trust environments — an empty value sends no
-  Authorization header.
+  `docker-compose.yml`; never commit it), and leave it **unset** in header-trust
+  environments — an empty value sends no Authorization header.
+- **Rotation model**: Gateway reads the credential once at process start and performs no
+  runtime refetch or re-mint. The supported model is platform-managed secret rotation plus a
+  governed rolling Gateway restart **before** credential expiry. A rejected or expired
+  credential fails closed at lotus-ai (`401 CALLER_CREDENTIAL_INVALID`); Gateway surfaces
+  that failure on exactly one request and never downgrades to bare caller headers.
 - Symptom of a missing/expired credential against a verified-trust lotus-ai: every AI route
   returns `401` problem-details with `error_code=CALLER_CREDENTIAL_INVALID`; a subject mismatch
   with `X-Caller-App` returns `403`.
