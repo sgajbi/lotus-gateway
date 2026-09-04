@@ -197,7 +197,7 @@ async def test_attention_counts_source_actions_per_cohort_member() -> None:
     assert response.items[0].reason_codes == ["PROPOSAL_READY", "X1", "X2"]
     assert response.items[1].action_count == 0
     assert response.items[1].reason_codes == []
-    assert cockpit.calls[0]["params"] == {"limit": 100}
+    assert cockpit.calls[0]["params"] == {"limit": 64}
     assert cockpit.calls[0]["caller_headers"]["X-Authorized-Advisor-Id"] == "advisor_sg_001"
 
 
@@ -221,7 +221,7 @@ async def test_attention_follows_source_cursors_until_the_feed_ends() -> None:
     assert response.summary.action_count == 2
     assert response.summary.coverage_state == "complete"
     assert len(cockpit.calls) == 2
-    assert cockpit.calls[1]["params"] == {"limit": 100, "cursor": "a1"}
+    assert cockpit.calls[1]["params"] == {"limit": 64, "cursor": "a1"}
 
 
 @pytest.mark.asyncio
@@ -257,6 +257,8 @@ async def test_attention_empty_book_never_reads_the_action_feed() -> None:
     )
 
     assert response.summary.state == "empty"
+    assert response.summary.coverage_state == "not_read"
+    assert response.summary.coverage_reason == "empty_book_feed_not_read"
     assert response.items == []
     assert cockpit.calls == []
 
@@ -296,3 +298,16 @@ async def test_attention_propagates_the_source_action_failure() -> None:
         )
 
     assert raised.value.status_code == 502
+
+
+def test_attention_page_size_stays_within_the_typed_source_page_bound() -> None:
+    from annotated_types import MaxLen
+
+    from app.services.advisor_book_attention_service import _ACTION_PAGE_SIZE
+
+    items_bound = next(
+        constraint.max_length
+        for constraint in AdvisorCockpitActionPage.model_fields["items"].metadata
+        if isinstance(constraint, MaxLen)
+    )
+    assert _ACTION_PAGE_SIZE <= items_bound

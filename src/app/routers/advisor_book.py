@@ -209,6 +209,18 @@ async def _get_advisor_book_attention(
         capability=ADVISOR_COCKPIT_READ_CAPABILITY,
         portfolio_id=None,
     )
+    if cockpit_caller.authorized_portfolio_id is not None:
+        # A portfolio-scoped Advise entitlement cannot cover the whole book; zero
+        # counts for the other members would be false claims, so fail closed.
+        return _error_response(
+            status_code=403,
+            code="advisor_book_attention_requires_advisor_scope",
+            message=(
+                "Book-wide attention requires an advisor-scoped Advise entitlement; a "
+                "portfolio-scoped caller cannot state coverage for the whole book."
+            ),
+            correlation_id=correlation_id,
+        )
     try:
         book_caller = require_advisor_book_caller_context(
             actor_id=caller_headers.actor_id,

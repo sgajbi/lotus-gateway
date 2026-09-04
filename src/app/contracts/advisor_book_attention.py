@@ -77,16 +77,19 @@ class AdvisorBookAttentionSummary(BaseModel):
         description="Total action count stated by lotus-advise for the caller's scope.",
         examples=[4],
     )
-    coverage_state: Literal["complete", "partial"] = Field(
+    coverage_state: Literal["complete", "partial", "not_read"] = Field(
         description=(
             "complete: every source action page was read. partial: the bounded page budget "
-            "was reached before the source feed ended, so every count is a lower bound."
+            "was reached before the source feed ended, so every count is a lower bound. "
+            "not_read: the action feed was not read at all (empty book), so the zero "
+            "unassigned/outside counts are not statements about the feed."
         ),
         examples=["complete"],
     )
     coverage_reason: Literal[
         "action_feed_fully_read",
         "action_page_budget_reached",
+        "empty_book_feed_not_read",
     ] = Field(
         description="Why the coverage state holds.",
         examples=["action_feed_fully_read"],

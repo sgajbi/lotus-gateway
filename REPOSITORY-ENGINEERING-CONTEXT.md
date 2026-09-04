@@ -108,21 +108,27 @@ Current repository posture:
 4. source-backed report ordering configuration and selected-scope eligibility are active under
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
    only implemented submission paths, and client/book scopes do not imply portfolio membership,
-5. authenticated advisor own-book discovery and bounded own-book value summary are active under
-   `/api/v1/advisor-book/portfolios` and `/api/v1/advisor-book/summary`; Gateway derives the
+5. authenticated advisor own-book discovery, bounded own-book value summary, and Advise-backed
+   own-book attention are active under `/api/v1/advisor-book/portfolios`,
+   `/api/v1/advisor-book/summary`, and `/api/v1/advisor-book/attention`; Gateway derives the
    manager only from trusted caller context, consumes Core `PortfolioManagerBookMembership:v1`,
    preserves assignment basis and provenance, and rejects cross-scope evidence. The summary makes
-   an explicit as-of date and reporting currency mandatory, reads Core's source-owned AUM contract
-   once for the trusted cohort, never computes valuation or publishes a partial aggregate, and does
-   not certify per-portfolio freshness because Core's current AUM response does not expose it.
-   Gateway does not fall back to the global portfolio catalogue or infer team, delegate, supervisor,
-   household, performance, risk, attention, suitability, communication, or execution truth. Its
-   interim handling is fail-closed for the exact Core response pair
-   `aum_reporting_currency == 0` and `position_count == 0`: Gateway marks that portfolio's value
-   coverage unavailable, excludes it from the covered count and aggregate, and does not claim the
-   row is an empty snapshot. Core's current DTO cannot distinguish no snapshot from measured zero;
-   source-owned evidence is tracked by lotus-core#1034 and the bounded Gateway implementation by
-   #632 under parent issue #616.
+   an explicit as-of date and reporting currency mandatory and reads Core's
+   `portfolio-summary-bulk-v1` contract once for the trusted cohort: per member it preserves the
+   source-owned coverage state and reason (MEASURED_ZERO is a supported zero — a business fact;
+   CARRY_FORWARD is supported with its snapshot date visible), publishes total, cash, and invested
+   value only from member totals the source states as trustworthy, and takes book totals from
+   Core's fail-closed cohort aggregate — Gateway never sums rows, substitutes zero, or infers
+   coverage. The attention route intersects two independently admitted scopes on portfolio
+   identity only: the Core membership cohort and the caller's advisor-scoped Advise cockpit action
+   feed (cockpit read capability enforced; a portfolio-scoped Advise entitlement is rejected
+   because it cannot state coverage for the whole book). Gateway counts source-owned action items
+   with their own reason codes, reports unassigned and outside-book items as explicit counts, and
+   surfaces its bounded page budget as partial coverage with the source-stated total preserved;
+   an empty book does not read the feed and says so (`not_read`). Gateway does not fall back to
+   the global portfolio catalogue or infer team, delegate, supervisor, household, performance,
+   risk, suitability, communication, or execution truth, and does not reinterpret Advise action
+   status, priority, or business meaning.
    current source-backed portfolio position tax-lot drill-down is active at
    `/api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`; Gateway publishes
    only Core's current BUY-lot identity, acquisition, quantity, cost, and lineage fields. It does

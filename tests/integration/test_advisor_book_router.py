@@ -287,3 +287,21 @@ def test_advisor_book_attention_route_rejects_missing_cockpit_context(monkeypatc
 
     assert response.status_code in (400, 403)
     assert service.calls == []
+
+
+def test_advisor_book_attention_route_rejects_portfolio_scoped_advise_entitlement(
+    monkeypatch,
+) -> None:
+    service = _AdvisorBookAttentionService()
+    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+
+    response = client.get(
+        "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
+        headers=_attention_headers(
+            **{"X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001"},
+        ),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "advisor_book_attention_requires_advisor_scope"
+    assert service.calls == []

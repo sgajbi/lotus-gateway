@@ -22,7 +22,9 @@ from app.services.advisor_book_service_errors import source_incomplete
 from app.services.advisor_cockpit_access_policy import AdvisorCockpitCallerContext
 from app.services.advisor_cockpit_service import AdvisorCockpitService
 
-_ACTION_PAGE_SIZE = 100
+# Matches the typed AdvisorCockpitActionPage items bound; a larger request could make
+# a legitimate source page fail projection.
+_ACTION_PAGE_SIZE = 64
 # Bounded fan-in: at most this many source pages are read per request. A feed that is
 # still not exhausted is reported as partial coverage, never silently truncated.
 _MAX_ACTION_PAGES = 5
@@ -186,8 +188,8 @@ def _empty_response(
             unassigned_action_count=0,
             outside_book_action_count=0,
             source_stated_total=None,
-            coverage_state="complete",
-            coverage_reason="action_feed_fully_read",
+            coverage_state="not_read",
+            coverage_reason="empty_book_feed_not_read",
             state="empty",
         ),
         items=[],
