@@ -4942,3 +4942,39 @@ async def test_lotus_ai_client_sends_no_authorization_header_without_credential(
     headers = _FakeAsyncClient.calls[-1]["headers"]
     assert "Authorization" not in headers
     assert headers["X-Caller-App"] == "lotus-gateway"
+
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_never_downgrades_verified_identity_on_rejection(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAiClient(
+        base_url="http://ai",
+        timeout_seconds=3.0,
+        caller_credential="eyJhbGciOiJFZERTQSJ9.rotating.secret",
+    )
+    _FakeAsyncClient.queue_json(
+        401,
+        {"error_code": "CALLER_CREDENTIAL_INVALID", "detail": "credential expired"},
+    )
+
+    status, payload = await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="PRODUCTION",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={},
+        correlation_id="corr-ai-credential-rejected",
+    )
+
+    # The rejection is surfaced as-is: exactly one upstream request, still carrying
+    # the verified identity - no retry, and no downgrade to bare caller headers.
+    assert status == 401
+    assert payload["error_code"] == "CALLER_CREDENTIAL_INVALID"
+    rejected_calls = [
+        call for call in _FakeAsyncClient.calls if call["url"].endswith("/workflow-packs/execute")
+    ]
+    assert len(rejected_calls) == 1
+    assert rejected_calls[-1]["headers"]["Authorization"].startswith("Bearer ")
+    assert "rotating.secret" not in caplog.text
+    assert "rotating.secret" not in str(payload)
