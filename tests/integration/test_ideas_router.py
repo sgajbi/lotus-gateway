@@ -238,7 +238,7 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "action": "approve_for_conversion",
                 "resultingPosture": "approved_for_conversion",
                 "actorRole": "advisor",
-                "reasonCodes": ["review_required"],
+                "reasonCodes": ["review_approved_for_conversion", "review_required"],
                 "decidedAtUtc": "2026-06-21T10:15:00Z",
                 "suppressionReason": None,
                 "snoozedUntilUtc": None,

@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.contracts.ideas import IdeaCandidateActionRequest, IdeaCandidateActionResponse
+from app.contracts.idea_actions import IdeaCandidateActionRequest, IdeaCandidateActionResponse
 
 IDEA_FEEDBACK_TAXONOMY_VERSION = "idea-feedback-taxonomy-v1"
 _GOVERNED_REFERENCE = r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,255}$"
