@@ -464,3 +464,42 @@ def test_action_items_page_size_stays_within_the_typed_source_page_bound() -> No
 
     items_bound = AdvisorCockpitActionPage.model_json_schema()["properties"]["items"]["maxItems"]
     assert _ACTION_PAGE_SIZE <= items_bound
+
+
+@pytest.mark.asyncio
+async def test_action_items_report_partial_when_the_source_states_no_total() -> None:
+    cockpit = _StubCockpitService(
+        pages=[
+            AdvisorCockpitActionPage.model_validate(
+                {
+                    "items": [_action("a1", portfolio_id="PB_001")],
+                    "next_cursor": None,
+                    "page_size": 100,
+                    "total_count": None,
+                }
+            )
+        ]
+    )
+    service = _service(_membership_payload("PB_001"), cockpit)
+
+    response = await _get(service, "corr-total-not-stated")
+
+    assert response.summary.coverage_state == "partial"
+    assert response.summary.coverage_reason == "source_total_not_stated"
+    assert response.summary.source_stated_total is None
+    assert response.summary.action_item_count == 1
+
+
+@pytest.mark.asyncio
+async def test_action_items_preserve_core_membership_provenance() -> None:
+    cockpit = _StubCockpitService(
+        pages=[_page([_action("a1", portfolio_id="PB_001")], total_count=1)]
+    )
+    service = _service(_membership_payload("PB_001"), cockpit)
+
+    response = await _get(service, "corr-provenance")
+
+    assert response.membership_provenance is not None
+    assert response.membership_provenance.freshness_status == "CURRENT"
+    assert response.membership_provenance.source_evidence_current is True
+    assert response.membership_provenance.snapshot_id == "pm_book_membership:2e7dfe0c"

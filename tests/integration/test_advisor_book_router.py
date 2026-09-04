@@ -355,3 +355,24 @@ def test_advisor_book_action_items_route_wraps_source_failures_in_the_book_envel
     assert body["code"] == "advisor_cockpit_upstream_invalid"
     assert body["message"]
     assert body["correlation_id"]
+
+
+def test_advisor_book_action_items_route_rejects_an_unscoped_advise_principal(
+    monkeypatch,
+) -> None:
+    service = _AdvisorBookActionItemsService()
+    monkeypatch.setattr(
+        "app.routers.advisor_book_action_items_route.advisor_book_action_items_service",
+        lambda: service,
+    )
+
+    headers = _action_items_headers(**{"X-Role": "DESK_HEAD"})
+    headers.pop("X-Authorized-Advisor-Id")
+    response = client.get(
+        "/api/v1/advisor-book/action-items?asOfDate=2026-04-10",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "advisor_book_action_items_requires_advisor_scope"
+    assert service.calls == []
