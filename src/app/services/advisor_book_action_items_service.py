@@ -22,6 +22,8 @@ from app.execution_budget import (
 )
 from app.services.advisor_book_access_policy import AdvisorBookCallerContext
 from app.services.advisor_book_action_items_read import (
+    ActionFeedCoverage,
+    ActionFeedRead,
     action_items_source,
     empty_action_items_summary,
     read_action_feed,
@@ -86,17 +88,38 @@ class AdvisorBookActionItemsService:
             correlation_id=correlation_id,
             budget=budget,
         )
-        items, summary = summarize_action_read(cohort=cohort, read=read, coverage=coverage)
-        return AdvisorBookActionItemsResponse(
+        return _composed_response(
+            book_caller=book_caller,
+            as_of_date=as_of_date,
             correlation_id=correlation_id,
-            scope=own_book_scope(
-                booking_center_code=book_caller.booking_center_code, as_of_date=as_of_date
-            ),
-            summary=summary,
-            items=items,
-            source=action_items_source(membership_as_of_date=as_of_date),
+            cohort=cohort,
+            read=read,
+            coverage=coverage,
             membership_provenance=provenance,
         )
+
+
+def _composed_response(
+    *,
+    book_caller: AdvisorBookCallerContext,
+    as_of_date: date,
+    correlation_id: str,
+    cohort: list[str],
+    read: ActionFeedRead,
+    coverage: ActionFeedCoverage,
+    membership_provenance: AdvisorBookProvenance | None,
+) -> AdvisorBookActionItemsResponse:
+    items, summary = summarize_action_read(cohort=cohort, read=read, coverage=coverage)
+    return AdvisorBookActionItemsResponse(
+        correlation_id=correlation_id,
+        scope=own_book_scope(
+            booking_center_code=book_caller.booking_center_code, as_of_date=as_of_date
+        ),
+        summary=summary,
+        items=items,
+        source=action_items_source(membership_as_of_date=as_of_date),
+        membership_provenance=membership_provenance,
+    )
 
 
 def _composition_deadline_exhausted() -> AdvisorBookServiceError:
