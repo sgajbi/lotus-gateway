@@ -376,3 +376,34 @@ def test_advisor_book_action_items_route_rejects_an_unscoped_advise_principal(
     assert response.status_code == 403
     assert response.json()["code"] == "advisor_book_action_items_requires_advisor_scope"
     assert service.calls == []
+
+
+def test_advisor_book_action_items_route_maps_source_outage_to_documented_502(
+    monkeypatch,
+) -> None:
+    from fastapi import HTTPException
+
+    class _OutageActionItemsService:
+        async def get_action_items(self, **kwargs):
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "advisor_cockpit_upstream_unavailable",
+                    "message": "lotus-advise did not respond.",
+                },
+            )
+
+    monkeypatch.setattr(
+        "app.routers.advisor_book_action_items_route.advisor_book_action_items_service",
+        lambda: _OutageActionItemsService(),
+    )
+
+    response = client.get(
+        "/api/v1/advisor-book/action-items?asOfDate=2026-04-10",
+        headers=_action_items_headers(),
+    )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["code"] == "advisor_book_action_items_source_unavailable"
+    assert body["correlation_id"]
