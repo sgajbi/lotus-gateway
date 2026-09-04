@@ -245,7 +245,10 @@ def _attention_headers(**overrides: str) -> dict[str, str]:
 
 def test_advisor_book_attention_route_requires_both_admitted_scopes(monkeypatch) -> None:
     service = _AdvisorBookAttentionService()
-    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+    monkeypatch.setattr(
+        "app.routers.advisor_book_attention_route.advisor_book_attention_service",
+        lambda: service,
+    )
 
     response = client.get(
         "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
@@ -263,7 +266,10 @@ def test_advisor_book_attention_route_requires_both_admitted_scopes(monkeypatch)
 
 def test_advisor_book_attention_route_rejects_missing_cockpit_capability(monkeypatch) -> None:
     service = _AdvisorBookAttentionService()
-    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+    monkeypatch.setattr(
+        "app.routers.advisor_book_attention_route.advisor_book_attention_service",
+        lambda: service,
+    )
 
     response = client.get(
         "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
@@ -273,12 +279,17 @@ def test_advisor_book_attention_route_rejects_missing_cockpit_capability(monkeyp
     )
 
     assert response.status_code == 403
+    assert response.json()["code"] == "advisor_cockpit_access_denied"
+    assert response.json()["correlation_id"]
     assert service.calls == []
 
 
 def test_advisor_book_attention_route_rejects_missing_cockpit_context(monkeypatch) -> None:
     service = _AdvisorBookAttentionService()
-    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+    monkeypatch.setattr(
+        "app.routers.advisor_book_attention_route.advisor_book_attention_service",
+        lambda: service,
+    )
 
     response = client.get(
         "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
@@ -293,7 +304,10 @@ def test_advisor_book_attention_route_rejects_portfolio_scoped_advise_entitlemen
     monkeypatch,
 ) -> None:
     service = _AdvisorBookAttentionService()
-    monkeypatch.setattr("app.routers.advisor_book.advisor_book_attention_service", lambda: service)
+    monkeypatch.setattr(
+        "app.routers.advisor_book_attention_route.advisor_book_attention_service",
+        lambda: service,
+    )
 
     response = client.get(
         "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
@@ -305,3 +319,35 @@ def test_advisor_book_attention_route_rejects_portfolio_scoped_advise_entitlemen
     assert response.status_code == 403
     assert response.json()["code"] == "advisor_book_attention_requires_advisor_scope"
     assert service.calls == []
+
+
+def test_advisor_book_attention_route_wraps_source_failures_in_the_book_envelope(
+    monkeypatch,
+) -> None:
+    from fastapi import HTTPException
+
+    class _FailingAttentionService:
+        async def get_attention(self, **kwargs):
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "code": "advisor_cockpit_upstream_invalid",
+                    "message": "lotus-advise returned an unsafe cockpit payload.",
+                },
+            )
+
+    monkeypatch.setattr(
+        "app.routers.advisor_book_attention_route.advisor_book_attention_service",
+        lambda: _FailingAttentionService(),
+    )
+
+    response = client.get(
+        "/api/v1/advisor-book/attention?asOfDate=2026-04-10",
+        headers=_attention_headers(),
+    )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["code"] == "advisor_cockpit_upstream_invalid"
+    assert body["message"]
+    assert body["correlation_id"]

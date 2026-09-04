@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
 from app.routers.advisor_book import router as advisor_book_router
+from app.routers.advisor_book_attention_route import (
+    router as advisor_book_attention_router,
+)
 from app.routers.advisor_cockpit import router as advisor_cockpit_router
 from app.routers.advisor_cockpit_acknowledgements import (
     router as advisor_cockpit_acknowledgements_router,
@@ -161,7 +164,7 @@ from app.routers.proposals import router as proposals_router
 
 RouterGroup = tuple[APIRouter, ...]
 
-ADVISOR_BOOK_ROUTERS: RouterGroup = (advisor_book_router,)
+ADVISOR_BOOK_ROUTERS: RouterGroup = (advisor_book_router, advisor_book_attention_router)
 
 ADVISOR_COCKPIT_ROUTERS: RouterGroup = (
     advisor_cockpit_router,
