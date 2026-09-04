@@ -15,11 +15,11 @@ class AdvisorBookMembershipClient(Protocol):
 
 
 class AdvisorBookValueClient(Protocol):
-    async def query_assets_under_management(
+    async def query_bulk_portfolio_summary(
         self,
         *,
         correlation_id: str,
         portfolio_ids: list[str],
-        as_of_date: str,
-        reporting_currency: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...

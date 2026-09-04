@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Final, Literal
 
 from pydantic import ValidationError
 
@@ -19,8 +20,12 @@ from app.services.advisor_book_service_errors import (
 )
 from app.services.advisor_book_source_contract import SourceAdvisorBookResponse
 from app.services.advisor_book_value_source_contract import (
-    SourceAdvisorBookValuePortfolio,
-    SourceAdvisorBookValueResponse,
+    SourceBulkSummaryMember,
+    SourceBulkSummaryResponse,
+)
+
+_SOURCE_ROUTE: Final[Literal["/reporting/portfolio-summary/bulk-query"]] = (
+    "/reporting/portfolio-summary/bulk-query"
 )
 
 
@@ -83,22 +88,18 @@ class AdvisorBookSummaryService:
 
 def _validate_value_source(
     *,
-    source: SourceAdvisorBookValueResponse,
+    source: SourceBulkSummaryResponse,
     requested_portfolio_ids: list[str],
     requested_as_of_date: date,
     requested_reporting_currency: str,
 ) -> None:
+    returned_ids = [member.portfolio_id for member in source.portfolios]
     if (
-        source.resolved_as_of_date != requested_as_of_date
-        or source.reporting_currency.strip().upper() != requested_reporting_currency.strip().upper()
-        or source.scope_type != "portfolio_list"
-        or source.scope.portfolio_ids != requested_portfolio_ids
-        or source.totals.portfolio_count != len(source.portfolios)
-        or len({portfolio.portfolio_id for portfolio in source.portfolios})
-        != len(source.portfolios)
-        or any(
-            portfolio.portfolio_id not in requested_portfolio_ids for portfolio in source.portfolios
-        )
+        source.requested_portfolio_ids != requested_portfolio_ids
+        or returned_ids != requested_portfolio_ids
+        or source.resolved_as_of_date != requested_as_of_date
+        or (source.reporting_currency or "").strip().upper() != requested_reporting_currency
+        or source.aggregate.portfolio_count != len(requested_portfolio_ids)
     ):
         raise value_source_contract_invalid()
 
@@ -110,7 +111,7 @@ async def _load_and_validate_value_source(
     portfolio_ids: list[str],
     as_of_date: date,
     reporting_currency: str,
-) -> SourceAdvisorBookValueResponse:
+) -> SourceBulkSummaryResponse:
     value_source = await _load_value_source(
         value_client=value_client,
         correlation_id=correlation_id,
@@ -134,9 +135,9 @@ async def _load_value_source(
     portfolio_ids: list[str],
     as_of_date: date,
     reporting_currency: str,
-) -> SourceAdvisorBookValueResponse:
+) -> SourceBulkSummaryResponse:
     try:
-        status_code, payload = await value_client.query_assets_under_management(
+        status_code, payload = await value_client.query_bulk_portfolio_summary(
             correlation_id=correlation_id,
             portfolio_ids=portfolio_ids,
             as_of_date=as_of_date.isoformat(),
@@ -147,7 +148,7 @@ async def _load_value_source(
     if status_code != 200 or not isinstance(payload, dict):
         raise value_source_unavailable()
     try:
-        return SourceAdvisorBookValueResponse.model_validate(payload)
+        return SourceBulkSummaryResponse.model_validate(payload)
     except ValidationError as exc:
         raise value_source_contract_invalid() from exc
 
@@ -156,79 +157,86 @@ def _response_from_sources(
     *,
     caller: AdvisorBookCallerContext,
     membership_source: SourceAdvisorBookResponse,
-    value_source: SourceAdvisorBookValueResponse,
+    value_source: SourceBulkSummaryResponse,
     correlation_id: str,
 ) -> AdvisorBookSummaryResponse:
-    value_by_id = {portfolio.portfolio_id: portfolio for portfolio in value_source.portfolios}
-    items = _value_items(membership_source=membership_source, value_by_id=value_by_id)
+    items = [_value_item(member) for member in value_source.portfolios]
     covered_count = sum(item.state == "supported" for item in items)
-    all_covered = covered_count == len(membership_source.members)
+    reporting_currency = (value_source.reporting_currency or "").strip().upper()
     return AdvisorBookSummaryResponse(
         correlation_id=correlation_id,
         scope=_scope(caller=caller, as_of_date=value_source.resolved_as_of_date),
-        summary=AdvisorBookValueSummary(
-            resolved_as_of_date=value_source.resolved_as_of_date,
-            reporting_currency=value_source.reporting_currency,
-            requested_portfolio_count=len(membership_source.members),
-            covered_portfolio_count=covered_count,
-            total_value=value_source.totals.aum_reporting_currency if all_covered else None,
-            state="supported" if all_covered else "partial",
-            reason_code=(
-                "advisor_book_value_ready" if all_covered else "advisor_book_value_partial"
-            ),
+        summary=_value_summary(
+            value_source=value_source,
+            covered_count=covered_count,
+            reporting_currency=reporting_currency,
         ),
         items=items,
         source=AdvisorBookValueSource(
             source_service="lotus-core",
-            source_route="/reporting/assets-under-management/query",
+            source_route=_SOURCE_ROUTE,
             resolved_as_of_date=value_source.resolved_as_of_date,
-            reporting_currency=value_source.reporting_currency,
+            reporting_currency=reporting_currency,
         ),
         membership_provenance=_membership_provenance(membership_source),
     )
 
 
-def _value_items(
+def _value_summary(
     *,
-    membership_source: SourceAdvisorBookResponse,
-    value_by_id: dict[str, SourceAdvisorBookValuePortfolio],
-) -> list[AdvisorBookValueItem]:
-    items: list[AdvisorBookValueItem] = []
-    for member in membership_source.members:
-        value = value_by_id.get(member.portfolio_id)
-        if value is None:
-            items.append(
-                AdvisorBookValueItem(
-                    portfolio_id=member.portfolio_id,
-                    state="unavailable",
-                    reason_code="advisor_book_value_not_covered",
-                )
-            )
-        elif _is_ambiguous_zero(value):
-            items.append(
-                AdvisorBookValueItem(
-                    portfolio_id=value.portfolio_id,
-                    state="unavailable",
-                    reason_code="advisor_book_value_coverage_ambiguous",
-                )
-            )
-        else:
-            items.append(
-                AdvisorBookValueItem(
-                    portfolio_id=value.portfolio_id,
-                    total_value=value.aum_reporting_currency,
-                    position_count=value.position_count,
-                    state="supported",
-                    reason_code="advisor_book_value_ready",
-                )
-            )
-    return items
+    value_source: SourceBulkSummaryResponse,
+    covered_count: int,
+    reporting_currency: str,
+) -> AdvisorBookValueSummary:
+    aggregate = value_source.aggregate
+    postures: dict[
+        str,
+        tuple[
+            Literal["supported", "partial", "unavailable"],
+            Literal[
+                "advisor_book_value_ready",
+                "advisor_book_value_partial",
+                "advisor_book_value_unavailable",
+            ],
+        ],
+    ] = {
+        "COMPLETE": ("supported", "advisor_book_value_ready"),
+        "PARTIAL": ("partial", "advisor_book_value_partial"),
+        "UNAVAILABLE": ("unavailable", "advisor_book_value_unavailable"),
+    }
+    state, reason_code = postures[aggregate.coverage_state]
+    return AdvisorBookValueSummary(
+        resolved_as_of_date=value_source.resolved_as_of_date,
+        reporting_currency=reporting_currency,
+        requested_portfolio_count=aggregate.portfolio_count,
+        covered_portfolio_count=covered_count,
+        total_value=(
+            aggregate.totals.total_market_value_reporting_currency if aggregate.totals else None
+        ),
+        cash_value=(aggregate.totals.cash_balance_reporting_currency if aggregate.totals else None),
+        invested_value=(
+            aggregate.totals.invested_market_value_reporting_currency if aggregate.totals else None
+        ),
+        coverage_state=aggregate.coverage_state,
+        coverage_reason=aggregate.coverage_reason,
+        state=state,
+        reason_code=reason_code,
+    )
 
 
-def _is_ambiguous_zero(value: SourceAdvisorBookValuePortfolio) -> bool:
-    """Keep Core's indistinguishable no-snapshot zero out of confident coverage."""
-
-    return value.aum_reporting_currency == 0 and value.position_count == 0
+def _value_item(member: SourceBulkSummaryMember) -> AdvisorBookValueItem:
+    totals = member.totals
+    return AdvisorBookValueItem(
+        portfolio_id=member.portfolio_id,
+        total_value=totals.total_market_value_reporting_currency if totals else None,
+        cash_value=totals.cash_balance_reporting_currency if totals else None,
+        invested_value=totals.invested_market_value_reporting_currency if totals else None,
+        valuation_as_of=member.resolved_as_of_date,
+        snapshot_date=member.snapshot_date,
+        coverage_state=member.coverage_state,
+        coverage_reason=member.coverage_reason,
+        state="supported" if totals is not None else "unavailable",
+    )
 
 
 def _empty_response(
@@ -246,13 +254,15 @@ def _empty_response(
             reporting_currency=reporting_currency,
             requested_portfolio_count=0,
             covered_portfolio_count=0,
+            coverage_state="COMPLETE",
+            coverage_reason="empty_book_has_no_members_to_cover",
             state="empty",
             reason_code="advisor_book_empty",
         ),
         items=[],
         source=AdvisorBookValueSource(
             source_service="lotus-core",
-            source_route="/reporting/assets-under-management/query",
+            source_route=_SOURCE_ROUTE,
             resolved_as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         ),

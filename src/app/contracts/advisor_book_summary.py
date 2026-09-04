@@ -6,6 +6,18 @@ from pydantic import BaseModel, Field
 
 from app.contracts.advisor_book import AdvisorBookProvenance, AdvisorBookScope
 
+AdvisorBookMemberCoverageState = Literal[
+    "COMPLETE",
+    "MEASURED_ZERO",
+    "CARRY_FORWARD",
+    "LOADED_EMPTY",
+    "NO_SNAPSHOT",
+    "PARTIAL",
+    "FX_UNAVAILABLE",
+    "INVALID_PORTFOLIO",
+]
+AdvisorBookAggregateCoverageState = Literal["COMPLETE", "PARTIAL", "UNAVAILABLE"]
+
 
 class AdvisorBookValueItem(BaseModel):
     portfolio_id: str = Field(
@@ -15,42 +27,64 @@ class AdvisorBookValueItem(BaseModel):
     total_value: Decimal | None = Field(
         default=None,
         description=(
-            "Core-reported total portfolio value in the requested reporting currency. Null when "
-            "the source did not return a value or its coverage is ambiguous for this entitled "
-            "portfolio."
+            "Core-reported total portfolio value in the requested reporting currency. Null "
+            "whenever the source coverage state is not trustworthy; Gateway never substitutes "
+            "zero."
         ),
         examples=[1250000.50],
     )
-    position_count: int | None = Field(
+    cash_value: Decimal | None = Field(
         default=None,
-        ge=0,
         description=(
-            "Core-reported non-zero position count when the value fact has unambiguous source "
-            "coverage."
+            "Core-reported cash balance in the requested reporting currency; null whenever the "
+            "source coverage state is not trustworthy."
         ),
-        examples=[12],
+        examples=[100000.00],
+    )
+    invested_value: Decimal | None = Field(
+        default=None,
+        description=(
+            "Core-reported invested market value in the requested reporting currency; null "
+            "whenever the source coverage state is not trustworthy."
+        ),
+        examples=[1150000.50],
+    )
+    valuation_as_of: date | None = Field(
+        default=None,
+        description="Effective as-of date Core resolved for this member's value facts.",
+        examples=["2026-04-10"],
+    )
+    snapshot_date: date | None = Field(
+        default=None,
+        description=(
+            "Latest source snapshot date Core used or observed for this member. Earlier than "
+            "valuation_as_of for carried-forward coverage."
+        ),
+        examples=["2026-04-10"],
+    )
+    coverage_state: AdvisorBookMemberCoverageState = Field(
+        description=(
+            "Source-owned coverage state preserved from lotus-core. Value facts are populated "
+            "only for COMPLETE, MEASURED_ZERO, and CARRY_FORWARD members."
+        ),
+        examples=["COMPLETE"],
+    )
+    coverage_reason: str = Field(
+        description="Source-owned machine-readable explanation for the coverage state.",
+        examples=["snapshot_rows_complete"],
     )
     state: Literal["supported", "unavailable"] = Field(
-        description="Whether Core returned a complete value fact for this portfolio.",
+        description=(
+            "Whether Core stated trustworthy value facts for this portfolio. MEASURED_ZERO is "
+            "supported: an empty portfolio is a business fact, not missing data."
+        ),
         examples=["supported"],
-    )
-    reason_code: Literal[
-        "advisor_book_value_ready",
-        "advisor_book_value_not_covered",
-        "advisor_book_value_coverage_ambiguous",
-    ] = Field(
-        description="Bounded reason for the per-portfolio value state.",
-        examples=["advisor_book_value_ready"],
     )
 
 
 class AdvisorBookValueSummary(BaseModel):
     resolved_as_of_date: date = Field(
-        description=(
-            "Business date returned by Core for the bounded value query. Core's current AUM "
-            "contract does not expose per-portfolio snapshot freshness, so this is not a "
-            "currentness certification for every value fact."
-        ),
+        description="Effective as-of date Core resolved for the bounded cohort read.",
         examples=["2026-04-10"],
     )
     reporting_currency: str = Field(
@@ -64,24 +98,49 @@ class AdvisorBookValueSummary(BaseModel):
     )
     covered_portfolio_count: int = Field(
         ge=0,
-        description="Number of trusted portfolios with a returned Core value fact.",
+        description="Number of trusted portfolios with trustworthy Core value facts.",
         examples=[2],
     )
     total_value: Decimal | None = Field(
         default=None,
         description=(
-            "Core-reported aggregate value when every trusted portfolio is covered. Null for "
-            "partial or unavailable coverage; Gateway never sums partial rows or substitutes zero."
+            "Core's fail-closed cohort total in the reporting currency. Null unless every "
+            "trusted portfolio is covered; Gateway never sums partial rows or substitutes zero."
         ),
         examples=[2500000.75],
     )
-    state: Literal["supported", "partial", "empty"] = Field(
+    cash_value: Decimal | None = Field(
+        default=None,
+        description=(
+            "Core's fail-closed cohort cash total in the reporting currency; null unless every "
+            "trusted portfolio is covered."
+        ),
+        examples=[200000.00],
+    )
+    invested_value: Decimal | None = Field(
+        default=None,
+        description=(
+            "Core's fail-closed cohort invested total in the reporting currency; null unless "
+            "every trusted portfolio is covered."
+        ),
+        examples=[2300000.75],
+    )
+    coverage_state: AdvisorBookAggregateCoverageState = Field(
+        description="Source-owned aggregate coverage posture across the requested cohort.",
+        examples=["COMPLETE"],
+    )
+    coverage_reason: str = Field(
+        description="Source-owned explanation for the aggregate coverage posture.",
+        examples=["all_members_covered"],
+    )
+    state: Literal["supported", "partial", "unavailable", "empty"] = Field(
         description="Book-level value coverage posture.",
         examples=["supported"],
     )
     reason_code: Literal[
         "advisor_book_value_ready",
         "advisor_book_value_partial",
+        "advisor_book_value_unavailable",
         "advisor_book_empty",
     ] = Field(
         description="Bounded reason for the book-level value coverage posture.",
@@ -94,19 +153,23 @@ class AdvisorBookValueSource(BaseModel):
         description="Service that owns the value facts.",
         examples=["lotus-core"],
     )
-    source_route: Literal["/reporting/assets-under-management/query"] = Field(
-        description="Core route family that owns the bounded multi-portfolio value contract.",
-        examples=["/reporting/assets-under-management/query"],
+    source_route: Literal["/reporting/portfolio-summary/bulk-query"] = Field(
+        description=(
+            "Core route that owns the bounded cohort value contract (portfolio-summary-bulk-v1)."
+        ),
+        examples=["/reporting/portfolio-summary/bulk-query"],
+    )
+    source_contract_version: Literal["portfolio-summary-bulk-v1"] = Field(
+        default="portfolio-summary-bulk-v1",
+        description="Versioned source contract this summary preserves.",
+        examples=["portfolio-summary-bulk-v1"],
     )
     resolved_as_of_date: date = Field(
-        description=(
-            "Business date returned by Core for the value read; per-portfolio snapshot freshness "
-            "is not exposed by the current source contract."
-        ),
+        description="Effective as-of date Core resolved for the cohort read.",
         examples=["2026-04-10"],
     )
     reporting_currency: str = Field(
-        description="Reporting currency resolved by Core for the value read.",
+        description="Reporting currency resolved by Core for the cohort read.",
         examples=["USD"],
     )
 
