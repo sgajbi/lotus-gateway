@@ -33,6 +33,13 @@ from app.services.advisor_brief_service import AdvisorBriefService
 _LIVE_EXECUTION_UNAVAILABLE_DETAIL = (
     "LIVE_EXECUTION_NOT_ENABLED: Local OpenAI-compatible endpoint is not reachable from lotus-ai."
 )
+_VALIDATED_OUTPUT_VALIDATION = {
+    "validation_state": "VALIDATED",
+    "authority": "non_authoritative_ai_output",
+    "ruleset_version": "output-validation.v4",
+    "failed_rule_ids": [],
+    "findings": [],
+}
 
 
 class _StubPerformanceWorkspaceService:
@@ -51,6 +58,7 @@ class _StubLotusAiClient:
         self.payload = payload or {
             "status": "COMPLETED",
             "task_id": "explain.v1",
+            "output_validation": _VALIDATED_OUTPUT_VALIDATION,
             "result": {
                 "message": (
                     "AI summary: portfolio return exceeded benchmark over the selected period."
@@ -1030,6 +1038,7 @@ async def test_advisor_brief_service_normalizes_raw_position_ids_in_fallback_cop
             payload={
                 "status": "COMPLETED",
                 "task_id": "explain.v1",
+                "output_validation": _VALIDATED_OUTPUT_VALIDATION,
                 "result": {
                     "message": "Fallback summary only.",
                     "structured_output": {

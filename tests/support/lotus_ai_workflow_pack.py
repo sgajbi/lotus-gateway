@@ -21,6 +21,7 @@ def lotus_ai_workflow_pack_execution_v1(
     superseded_by_run_id: str | None = None,
     replacement_run_id: str | None = None,
     recovery_lineage: dict[str, object] | None = None,
+    output_validation: dict[str, object] | None = None,
 ) -> dict[str, Any]:
     """Build the bounded peer-service success shape published by lotus-ai."""
 
@@ -68,6 +69,17 @@ def lotus_ai_workflow_pack_execution_v1(
                 "message": UNSAFE_UPSTREAM_MARKER,
                 "structured_output": output,
             },
+            "output_validation": (
+                output_validation
+                if output_validation is not None
+                else {
+                    "validation_state": "VALIDATED",
+                    "authority": "non_authoritative_ai_output",
+                    "ruleset_version": "output-validation.v4",
+                    "failed_rule_ids": [],
+                    "findings": [],
+                }
+            ),
             "audit": {
                 "request_id": request_id,
                 "workflow_pack_run_id": run_id,

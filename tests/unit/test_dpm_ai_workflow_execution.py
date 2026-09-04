@@ -424,6 +424,28 @@ def test_validate_dpm_ai_execution_preserves_superseded_replacement_posture() ->
             ),
             id="caller-identity-unbound",
         ),
+        pytest.param(
+            lambda payload: payload["execution"].pop("output_validation"),
+            id="missing-output-validation",
+        ),
+        pytest.param(
+            lambda payload: payload["execution"]["output_validation"].update(
+                {"authority": "authoritative_financial_truth"}
+            ),
+            id="unexpected-validation-authority",
+        ),
+        pytest.param(
+            lambda payload: payload["execution"]["output_validation"].update(
+                {"validation_state": "REJECTED"}
+            ),
+            id="completed-with-rejected-verdict",
+        ),
+        pytest.param(
+            lambda payload: payload["execution"]["output_validation"].update(
+                {"validation_state": "VALIDATION_UNAVAILABLE"}
+            ),
+            id="completed-with-unavailable-validation",
+        ),
     ),
 )
 def test_validate_dpm_ai_execution_fails_closed_without_leaking_source_payload(mutation) -> None:
@@ -451,3 +473,31 @@ def test_validate_dpm_ai_execution_fails_closed_without_leaking_source_payload(m
         "detail": "AI workflow output could not be safely verified.",
     }
     assert UNSAFE_UPSTREAM_MARKER not in str(raised.value.detail)
+
+
+def test_validate_dpm_ai_execution_preserves_the_source_validation_verdict() -> None:
+    payload = lotus_ai_workflow_pack_execution_v1(
+        pack_id=DPM_EXCEPTION_SUMMARY_EXECUTION.pack_id,
+        workflow_surface=DPM_EXCEPTION_SUMMARY_EXECUTION.workflow_surface,
+        correlation_id="corr-validation-preserved",
+        output_validation={
+            "validation_state": "UNVALIDATED_LOCAL_ONLY",
+            "authority": "non_authoritative_ai_output",
+            "ruleset_version": "output-validation.v4",
+            "failed_rule_ids": [],
+            "findings": ["output_schema: accepted locally; promoted profiles reject."],
+        },
+    )
+
+    execution = validate_dpm_ai_workflow_execution(
+        payload,
+        upstream_status=200,
+        correlation_id="corr-validation-preserved",
+        expectation=DPM_EXCEPTION_SUMMARY_EXECUTION,
+    )
+
+    verdict = execution.execution.output_validation
+    assert verdict.validation_state == "UNVALIDATED_LOCAL_ONLY"
+    assert verdict.authority == "non_authoritative_ai_output"
+    assert verdict.ruleset_version == "output-validation.v4"
+    assert verdict.findings == ("output_schema: accepted locally; promoted profiles reject.",)

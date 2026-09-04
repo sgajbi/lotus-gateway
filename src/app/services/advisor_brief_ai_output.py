@@ -1,11 +1,33 @@
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
     AdvisorBriefEvidenceRef,
     AdvisorBriefNarrativeItem,
     AdvisorBriefTone,
 )
+from app.contracts.ai_output_validation import AiOutputValidation
+
+ADVISOR_BRIEF_TASK_ID = "explain.v1"
+ADVISOR_BRIEF_OUTPUT_LABEL = "EXPLANATION_ONLY"
+
+
+def parse_output_validation(execution_payload: dict[str, Any]) -> AiOutputValidation | None:
+    """Typed verdict from the source execution, or None when absent/undecodable.
+
+    None fails closed in ai_output_displayable: an execution without a provable
+    verdict never becomes displayable narrative content.
+    """
+
+    raw = execution_payload.get("output_validation")
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return AiOutputValidation.model_validate(raw)
+    except ValidationError:
+        return None
 
 
 def extract_ai_summary(
@@ -203,3 +225,32 @@ def _safe_str(value: Any) -> str | None:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
+
+
+def normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(audit)
+    normalized.setdefault("task_id", ADVISOR_BRIEF_TASK_ID)
+    normalized.setdefault("output_label", ADVISOR_BRIEF_OUTPUT_LABEL)
+    normalized.setdefault("provider_mode", "unknown")
+    normalized.setdefault("provider_id", None)
+    normalized.setdefault("adapter_kind", None)
+    normalized.setdefault("model_id", None)
+    normalized.setdefault("generated_at", None)
+    normalized.setdefault("stubbed", True)
+    normalized.setdefault("source_refs", [])
+    return normalized
+
+
+def unavailable_provider_audit() -> dict[str, Any]:
+    return normalize_ai_audit(
+        {
+            "provider_mode": "unavailable",
+            "provider_id": None,
+            "adapter_kind": None,
+            "model_id": None,
+            "generated_at": None,
+            "stubbed": True,
+            "detail": "AI provider provenance could not be verified.",
+            "source_refs": [],
+        }
+    )
