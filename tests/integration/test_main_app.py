@@ -40,9 +40,11 @@ def test_health_live_concurrency():
 
 def test_health_ready_returns_503_when_draining():
     app.state.is_draining = True
-    client = TestClient(app)
-    response = client.get("/health/ready")
-    app.state.is_draining = False
+    try:
+        client = TestClient(app)
+        response = client.get("/health/ready")
+    finally:
+        app.state.is_draining = False
 
     assert response.status_code == 503
     assert response.json() == {"status": "draining"}
@@ -50,10 +52,15 @@ def test_health_ready_returns_503_when_draining():
 
 def test_lifespan_marks_draining_on_shutdown():
     app.state.is_draining = True
-    with TestClient(app) as client:
-        response = client.get("/health/ready")
-        assert response.status_code == 200
-        assert response.json() == {"status": "ready"}
-        assert app.state.is_draining is False
+    try:
+        with TestClient(app) as client:
+            response = client.get("/health/ready")
+            assert response.status_code == 200
+            assert response.json() == {"status": "ready"}
+            assert app.state.is_draining is False
 
-    assert app.state.is_draining is True
+        assert app.state.is_draining is True
+    finally:
+        # The shared app outlives this test; later in-process consumers must not
+        # inherit the drained flag this assertion deliberately produced.
+        app.state.is_draining = False
