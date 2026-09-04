@@ -1,12 +1,16 @@
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from app.contracts.portfolio_transactions import (
     PortfolioTransactionLedgerResponse,
+    PortfolioTransactionRecordResponse,
     PortfolioTransactionView,
 )
 from app.precision_policy import quantize_money, quantize_price, quantize_quantity
 from app.services.portfolio_transaction_requests import PortfolioTransactionsRequestContext
 from app.services.portfolio_transaction_temporal import parse_transaction_timestamp
+from app.services.portfolio_upstream_payloads import build_safe_upstream_error_detail
 
 
 def build_transaction_ledger_response(
@@ -88,3 +92,94 @@ def optional_str(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def require_transaction_record_payload(
+    *,
+    status_code: int,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Map the source record read to distinct caller-visible failure states."""
+
+    if status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "portfolio_transaction_access_denied",
+                "message": "lotus-core denied access to the requested portfolio transaction.",
+            },
+        )
+    if status_code == status.HTTP_404_NOT_FOUND:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "portfolio_transaction_not_found",
+                "message": (
+                    "No transaction with this identifier is visible within the requested portfolio."
+                ),
+            },
+        )
+    if status_code in (status.HTTP_400_BAD_REQUEST, 422):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "portfolio_transaction_request_invalid",
+                "message": build_safe_upstream_error_detail(
+                    "lotus-core rejected the transaction-record request",
+                    payload,
+                ),
+            },
+        )
+    if status_code >= status.HTTP_400_BAD_REQUEST or not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "portfolio_transaction_source_unavailable",
+                "message": "lotus-core could not return the requested transaction record.",
+            },
+        )
+    return payload
+
+
+def build_transaction_record_response(
+    *,
+    portfolio_id: str,
+    transaction_id: str,
+    correlation_id: str,
+    contract_version: str,
+    result_payload: dict[str, Any],
+) -> PortfolioTransactionRecordResponse:
+    record_payload = result_payload.get("transaction")
+    if not isinstance(record_payload, dict):
+        raise _transaction_record_identity_mismatch()
+    transaction = parse_transaction_view(record_payload)
+    if (
+        optional_str(result_payload.get("portfolio_id")) != portfolio_id
+        or transaction.transaction_id != transaction_id
+    ):
+        # A shape-valid record for another portfolio or transaction must never be
+        # acknowledged as the caller's record; Workbench must not detect the mismatch.
+        raise _transaction_record_identity_mismatch()
+    return PortfolioTransactionRecordResponse(
+        correlation_id=correlation_id,
+        contract_version=contract_version,
+        portfolio_id=portfolio_id,
+        reporting_currency=optional_str(result_payload.get("reporting_currency")),
+        transaction=transaction,
+        reason_codes=[
+            code for code in result_payload.get("reason_codes", []) if isinstance(code, str)
+        ],
+    )
+
+
+def _transaction_record_identity_mismatch() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail={
+            "code": "portfolio_transaction_record_identity_mismatch",
+            "message": (
+                "lotus-core returned a transaction record that does not match the requested "
+                "portfolio and transaction identity."
+            ),
+        },
+    )

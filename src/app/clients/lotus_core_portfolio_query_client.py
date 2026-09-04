@@ -170,6 +170,32 @@ class LotusCorePortfolioQueryClientMixin:
             ),
         )
 
+    async def get_portfolio_transaction_record(
+        self,
+        *,
+        portfolio_id: str,
+        transaction_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        include_projected: bool = False,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        portfolio_path = quote(portfolio_id, safe="")
+        transaction_path = quote(transaction_id, safe="")
+        params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
+        params.update(
+            self._optional_params(
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
+            )
+        )
+        return await self._get_query_resource(
+            operation="core.portfolios.transactions.record",
+            path=f"/portfolios/{portfolio_path}/transactions/{transaction_path}",
+            correlation_id=correlation_id,
+            params=params,
+        )
+
     async def get_cashflow_projection(
         self,
         portfolio_id: str,

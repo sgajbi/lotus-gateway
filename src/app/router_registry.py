@@ -52,6 +52,9 @@ from app.routers.portfolio_projected_cashflow import (
     router as portfolio_projected_cashflow_router,
 )
 from app.routers.portfolio_readiness import router as portfolio_readiness_router
+from app.routers.portfolio_transaction_record import (
+    router as portfolio_transaction_record_router,
+)
 from app.routers.portfolio_transactions import router as portfolio_transactions_router
 from app.routers.portfolio_workflow import router as portfolio_workflow_router
 from app.routers.portfolio_workspace import router as portfolio_workspace_router
@@ -156,6 +159,7 @@ PORTFOLIO_ROUTERS: RouterGroup = (
     portfolio_insights_router,
     portfolio_income_summary_router,
     portfolio_activity_router,
+    portfolio_transaction_record_router,
     portfolio_transactions_router,
     portfolio_book_router,
     portfolio_liquidity_router,

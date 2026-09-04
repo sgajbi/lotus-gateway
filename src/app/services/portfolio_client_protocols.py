@@ -102,6 +102,17 @@ class PortfolioCoreClient(Protocol):
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
+    async def get_portfolio_transaction_record(
+        self,
+        *,
+        portfolio_id: str,
+        transaction_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        include_projected: bool = False,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
     async def get_portfolio_readiness(
         self,
         *,

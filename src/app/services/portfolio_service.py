@@ -32,11 +32,12 @@ from app.services.portfolio_readiness_insight_sources import (
     load_portfolio_insight_sources,
     load_portfolio_readiness_sources,
 )
-from app.services.portfolio_readiness_response import (
-    build_portfolio_readiness_response,
-)
+from app.services.portfolio_readiness_response import build_portfolio_readiness_response
 from app.services.portfolio_tax_lot_service import PortfolioTaxLotServiceMixin
 from app.services.portfolio_transaction_service import PortfolioTransactionServiceMixin
+from app.services.portfolio_transaction_upstream_access import (
+    PortfolioTransactionUpstreamAccessMixin,
+)
 from app.services.portfolio_upstream_access import PortfolioUpstreamAccessMixin
 from app.services.portfolio_upstream_payloads import (
     optional_payload,
@@ -48,9 +49,7 @@ from app.services.portfolio_workspace_components import (
     build_portfolio_workspace_assembly_state,
     build_portfolio_workspace_response_parts,
 )
-from app.services.portfolio_workspace_response import (
-    assemble_portfolio_workspace_response,
-)
+from app.services.portfolio_workspace_response import assemble_portfolio_workspace_response
 from app.services.portfolio_workspace_sources import (
     PortfolioWorkspaceAnalyticsLoaders,
     PortfolioWorkspaceAnalyticsLoadRequest,
@@ -70,6 +69,7 @@ class PortfolioService(
     PortfolioTaxLotServiceMixin,
     PortfolioWorkflowServiceMixin,
     PortfolioTransactionServiceMixin,
+    PortfolioTransactionUpstreamAccessMixin,
     PortfolioUpstreamAccessMixin,
 ):
     def __init__(

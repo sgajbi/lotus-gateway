@@ -7,9 +7,16 @@ from app.contracts.portfolio_activity_income import (
     PortfolioActivitySummaryResponse,
     PortfolioIncomeSummaryResponse,
 )
-from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
+from app.contracts.portfolio_transactions import (
+    PortfolioTransactionLedgerResponse,
+    PortfolioTransactionRecordResponse,
+)
 from app.services.portfolio_transaction_activity_summary import build_activity_summary_response
-from app.services.portfolio_transaction_ledger import build_transaction_ledger_response
+from app.services.portfolio_transaction_ledger import (
+    build_transaction_ledger_response,
+    build_transaction_record_response,
+    require_transaction_record_payload,
+)
 from app.services.portfolio_transaction_requests import (
     PortfolioTransactionsRequestContext,
     build_portfolio_transactions_request_context,
@@ -35,6 +42,17 @@ class _PortfolioTransactionUpstreamAccess(Protocol):
     async def _get_portfolio_transactions_result_for_context(
         self,
         context: PortfolioTransactionsRequestContext,
+    ) -> UpstreamResult: ...
+
+    async def _get_portfolio_transaction_record_result(
+        self,
+        *,
+        portfolio_id: str,
+        transaction_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        reporting_currency: str | None,
     ) -> UpstreamResult: ...
 
 
@@ -116,6 +134,43 @@ class PortfolioTransactionServiceMixin:
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
+
+    async def get_transaction_record(
+        self,
+        *,
+        portfolio_id: str,
+        transaction_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        include_projected: bool = False,
+        reporting_currency: str | None = None,
+    ) -> PortfolioTransactionRecordResponse:
+        """Return exactly one source-owned transaction record bound to the requested identity."""
+
+        status_code, payload = await _transaction_upstream_access(
+            self
+        )._get_portfolio_transaction_record_result(
+            portfolio_id=portfolio_id,
+            transaction_id=transaction_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            reporting_currency=reporting_currency,
+        )
+        result_payload = require_transaction_record_payload(
+            status_code=status_code,
+            payload=payload,
+        )
+        try:
+            return build_transaction_record_response(
+                portfolio_id=portfolio_id,
+                transaction_id=transaction_id,
+                correlation_id=correlation_id,
+                contract_version=settings.contract_version,
+                result_payload=result_payload,
+            )
+        except PortfolioTransactionTemporalContractError as exc:
+            raise _invalid_transaction_timestamp_contract() from exc
 
     async def get_income_summary(
         self,
