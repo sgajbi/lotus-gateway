@@ -18,6 +18,17 @@ _RESERVED_AUTHORITY_EXTRA_KEYS = (
     "supported_feature_promoted",
 )
 
+# Lotus Idea's executed-class provenance postures (AIExecutionProvenancePosture
+# minus not_applicable_fallback, which accompanies fallback evaluation only):
+# a served result was produced by a runtime execution and must carry one.
+_SERVED_EXECUTED_PROVENANCE_POSTURES = frozenset(
+    {
+        "lotus_ai_attestation_verified",
+        "pre_attestation_unverifiable",
+        "unattested_local_test_fixture",
+    }
+)
+
 
 class IdeaAIExplanationService(IdeaService):
     """Transport-only fan-out for governed Idea AI explanations.
@@ -86,14 +97,15 @@ class IdeaAIExplanationService(IdeaService):
         response: IdeaCandidateAIExplanationResponse,
     ) -> None:
         explanation = response.explanation
-        if response.status == "EXPLANATION_SERVED" and (
-            response.evaluation_verdict != "accepted" or not explanation.explanation_text.strip()
-        ):
-            raise self._gateway_error(
-                status.HTTP_502_BAD_GATEWAY,
-                "idea_ai_explanation_unsafe",
-                "Lotus Idea served an explanation without an accepted verdict and usable text.",
-            )
+        if response.status == "EXPLANATION_SERVED":
+            contradictions = _served_state_contradictions(response)
+            if contradictions:
+                raise self._gateway_error(
+                    status.HTTP_502_BAD_GATEWAY,
+                    "idea_ai_explanation_unsafe",
+                    "Lotus Idea served an explanation whose proof fields contradict the "
+                    "served state: " + ", ".join(contradictions) + ".",
+                )
         if explanation.request_id != request.request_id or explanation.candidate_id != candidate_id:
             raise self._gateway_error(
                 status.HTTP_502_BAD_GATEWAY,
@@ -127,3 +139,34 @@ class IdeaAIExplanationService(IdeaService):
             "idea_ai_explanation_authority_escalation",
             "Lotus Idea explanation transport attempted an authority escalation.",
         )
+
+
+def _served_state_contradictions(response: IdeaCandidateAIExplanationResponse) -> list[str]:
+    """Name the served-proof fields a SERVED status contradicts, if any.
+
+    Lotus Idea serves a result only for an executed, accepted, verified,
+    non-fallback evaluation with recorded lineage and a confirmed runtime
+    execution; a 200 that claims SERVED while any of these say otherwise is
+    contradictory source evidence, not a publishable explanation. The
+    degraded EXPLANATION_UNAVAILABLE shape is never inspected here.
+    """
+    explanation = response.explanation
+    checks: list[tuple[str, bool]] = [
+        ("disposition", response.disposition == "executed"),
+        ("evaluationVerdict", response.evaluation_verdict == "accepted"),
+        (
+            "lotusAiRuntimeExecutionConfirmed",
+            response.lotus_ai_runtime_execution_confirmed is True,
+        ),
+        ("lotusAiRunId", bool((response.lotus_ai_run_id or "").strip())),
+        ("posture", explanation.posture == "ready_for_advisor_review"),
+        ("verifierOutcome", explanation.verifier_outcome == "passed"),
+        ("fallbackUsed", explanation.fallback_used is False),
+        (
+            "executionProvenancePosture",
+            explanation.execution_provenance_posture in _SERVED_EXECUTED_PROVENANCE_POSTURES,
+        ),
+        ("aiLineageRecorded", explanation.ai_lineage_recorded is True),
+        ("explanationText", bool(explanation.explanation_text.strip())),
+    ]
+    return [name for name, ok in checks if not ok]
