@@ -415,14 +415,18 @@ def test_intake_writes_fail_closed_without_trusted_caller_context(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.ingest_portfolio_bundle", _fake_ingest)
 
     client = TestClient(app)
+    # No headers at all: the context diagnostic must come first, so legacy
+    # callers learn exactly which headers are missing before any capability
+    # verdict.
     response = client.post(
         "/api/v1/intake/portfolio-bundle",
         json={"body": {"sourceSystem": "UI", "portfolios": []}},
-        headers={"X-Caller-Capabilities": "core.intake.write"},
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"]["code"] == "missing_caller_context"
+    body = response.json()["detail"]
+    assert body["code"] == "missing_caller_context"
+    assert set(body["missing_headers"]) == {"X-Actor-Id", "X-Tenant-Id", "X-Region"}
     assert called == []
 
 
