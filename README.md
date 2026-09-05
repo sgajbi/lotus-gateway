@@ -83,8 +83,11 @@ curl http://127.0.0.1:8111/health
 
 Two local addresses with different purposes:
 
-- `http://gateway.dev.lotus` — canonical identity for cross-app product validation
-- `http://127.0.0.1:8111` — direct process debugging only
+- `http://gateway.dev.lotus` — canonical identity for cross-app product validation, served only
+  when the optional platform ingress is active (`make run-canonical` does not provision it; see
+  [wiki/Getting-Started.md](wiki/Getting-Started.md))
+- `http://127.0.0.1:8111` — the address `make run-canonical` actually serves; direct process
+  debugging only
 
 On Windows, canonical startup depends on `--app-dir src` (already part of `make run-canonical`);
 see [wiki/Getting-Started.md](wiki/Getting-Started.md) if health is green but product routes 404.
