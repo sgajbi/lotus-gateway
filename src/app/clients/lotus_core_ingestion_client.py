@@ -25,16 +25,17 @@ class LotusCoreIngestionClient:
         body: dict[str, Any],
         correlation_id: str,
         idempotency_key: str | None = None,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/ingest/portfolio-bundle"
         # Ingestion is a Core WRITE: the ambient caller-presented fence must not
         # scope a mutation (a caller could select another tenant's write
-        # partition), so these calls carry no ambient tenant. Core's fail-closed
-        # ingress refuses the unadmitted write until the intake routes admit
-        # tenant authority explicitly (tracked on the tenant-propagation issue).
+        # partition), so these calls carry ONLY the caller context the intake
+        # route explicitly admitted.
         headers = build_upstream_headers(
             correlation_id,
             extras={"X-Idempotency-Key": idempotency_key} if idempotency_key else None,
+            caller_headers=caller_headers,
         )
         return await request_observed_fanout(
             logger=LOGGER,
@@ -56,6 +57,7 @@ class LotusCoreIngestionClient:
         content: bytes,
         sample_size: int,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._upload(
             "/ingest/uploads/preview",
@@ -64,6 +66,7 @@ class LotusCoreIngestionClient:
             content=content,
             extra_data={"sample_size": str(sample_size)},
             correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
 
     async def commit_upload(
@@ -73,6 +76,7 @@ class LotusCoreIngestionClient:
         content: bytes,
         allow_partial: bool,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._upload(
             "/ingest/uploads/commit",
@@ -81,6 +85,7 @@ class LotusCoreIngestionClient:
             content=content,
             extra_data={"allow_partial": "true" if allow_partial else "false"},
             correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
 
     async def _upload(
@@ -91,8 +96,9 @@ class LotusCoreIngestionClient:
         content: bytes,
         extra_data: dict[str, str],
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        headers = build_upstream_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
         operation = (

@@ -5,15 +5,21 @@ from app.services.intake_service import IntakeService
 
 
 class _PasIngestionStub:
-    async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+    async def ingest_portfolio_bundle(
+        self, body, correlation_id, idempotency_key=None, caller_headers=None
+    ):  # noqa: ANN001, E501
         _ = body, correlation_id, idempotency_key
         return 202, {"message": "ok"}
 
-    async def preview_upload(self, entity_type, filename, content, sample_size, correlation_id):  # noqa: ANN001
+    async def preview_upload(
+        self, entity_type, filename, content, sample_size, correlation_id, caller_headers=None
+    ):  # noqa: ANN001, E501
         _ = entity_type, filename, content, sample_size, correlation_id
         return 200, {"entity_type": "portfolios", "valid_rows": 1}
 
-    async def commit_upload(self, entity_type, filename, content, allow_partial, correlation_id):  # noqa: ANN001
+    async def commit_upload(
+        self, entity_type, filename, content, allow_partial, correlation_id, caller_headers=None
+    ):  # noqa: ANN001, E501
         _ = entity_type, filename, content, allow_partial, correlation_id
         return 202, {"entity_type": "portfolios", "published_rows": 1}
 
@@ -120,7 +126,9 @@ async def test_intake_service_happy_paths():
 @pytest.mark.asyncio
 async def test_intake_service_raises_upstream_error():
     class _ErrorPasIngestionStub(_PasIngestionStub):
-        async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+        async def ingest_portfolio_bundle(
+            self, body, correlation_id, idempotency_key=None, caller_headers=None
+        ):  # noqa: ANN001, E501
             _ = body, correlation_id, idempotency_key
             return 400, {
                 "detail": "bad request",
@@ -153,7 +161,9 @@ async def test_intake_service_forwards_idempotency_key_to_pas_ingestion():
         def __init__(self) -> None:
             self.calls: list[dict[str, object | None]] = []
 
-        async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+        async def ingest_portfolio_bundle(
+            self, body, correlation_id, idempotency_key=None, caller_headers=None
+        ):  # noqa: ANN001, E501
             self.calls.append(
                 {
                     "body": body,

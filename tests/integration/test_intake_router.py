@@ -6,6 +6,12 @@ from app.main import app
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 LOTUS_CORE_INGESTION_CLIENT = "app.clients.lotus_core_ingestion_client.LotusCoreIngestionClient"
 
+_TRUSTED_HEADERS = {
+    "X-Actor-Id": "OPS_SG_001",
+    "X-Tenant-Id": "tenant-sg",
+    "X-Region": "APAC",
+}
+
 
 def test_ingest_portfolio_bundle_success(monkeypatch):
     captured: dict[str, object] = {}
@@ -23,7 +29,7 @@ def test_ingest_portfolio_bundle_success(monkeypatch):
     response = client.post(
         "/api/v1/intake/portfolio-bundle",
         json={"body": {"sourceSystem": "UI", "portfolios": []}},
-        headers={"X-Idempotency-Key": "bundle-idem-1001"},
+        headers={"X-Idempotency-Key": "bundle-idem-1001", **_TRUSTED_HEADERS},
     )
 
     assert response.status_code == 200
@@ -49,12 +55,14 @@ def test_ingest_portfolio_bundle_allows_missing_idempotency_header(monkeypatch):
     response = client.post(
         "/api/v1/intake/portfolio-bundle",
         json={"body": {"sourceSystem": "UI", "portfolios": []}},
+        headers=_TRUSTED_HEADERS,
     )
 
     assert response.status_code == 200
     assert captured["body"] == {"sourceSystem": "UI", "portfolios": []}
     assert isinstance(captured["correlation_id"], str)
     assert captured["idempotency_key"] is None
+    assert captured["caller_headers"]["X-Tenant-Id"] == "tenant-sg"
 
 
 def test_preview_upload_success(monkeypatch):
@@ -74,6 +82,7 @@ def test_preview_upload_success(monkeypatch):
         "/api/v1/intake/uploads/preview",
         data={"entityType": "portfolios", "sampleSize": "20"},
         files={"file": ("sample.csv", b"portfolio_id\nPF1\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
 
     assert response.status_code == 200
@@ -102,6 +111,7 @@ def test_commit_upload_success(monkeypatch):
         "/api/v1/intake/uploads/commit",
         data={"entityType": "portfolios", "allowPartial": "true"},
         files={"file": ("sample.csv", b"portfolio_id\nPF1\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
 
     assert response.status_code == 200
@@ -116,7 +126,9 @@ def test_commit_upload_success(monkeypatch):
 def test_upload_routes_apply_default_form_options(monkeypatch):
     captured: dict[str, object] = {}
 
-    async def _fake_preview(self, entity_type, filename, content, sample_size, correlation_id):
+    async def _fake_preview(
+        self, entity_type, filename, content, sample_size, correlation_id, caller_headers=None
+    ):
         captured["preview"] = {
             "entity_type": entity_type,
             "filename": filename,
@@ -126,7 +138,9 @@ def test_upload_routes_apply_default_form_options(monkeypatch):
         }
         return 200, {"entity_type": entity_type, "valid_rows": 1}
 
-    async def _fake_commit(self, entity_type, filename, content, allow_partial, correlation_id):
+    async def _fake_commit(
+        self, entity_type, filename, content, allow_partial, correlation_id, caller_headers=None
+    ):
         captured["commit"] = {
             "entity_type": entity_type,
             "filename": filename,
@@ -145,11 +159,13 @@ def test_upload_routes_apply_default_form_options(monkeypatch):
         "/api/v1/intake/uploads/preview",
         data={"entityType": "transactions"},
         files={"file": ("transactions.csv", b"id,qty\n1,10\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
     commit_response = client.post(
         "/api/v1/intake/uploads/commit",
         data={"entityType": "transactions"},
         files={"file": ("transactions.csv", b"id,qty\n1,10\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
 
     assert preview_response.status_code == 200
@@ -324,7 +340,9 @@ def test_lookup_routes_apply_default_query_options(monkeypatch):
 def test_upload_routes_preserve_form_payload_and_correlation_context(monkeypatch):
     captured: dict[str, object] = {}
 
-    async def _fake_preview(self, entity_type, filename, content, sample_size, correlation_id):
+    async def _fake_preview(
+        self, entity_type, filename, content, sample_size, correlation_id, caller_headers=None
+    ):
         captured["preview"] = {
             "entity_type": entity_type,
             "filename": filename,
@@ -334,7 +352,9 @@ def test_upload_routes_preserve_form_payload_and_correlation_context(monkeypatch
         }
         return 200, {"entity_type": entity_type, "valid_rows": 1}
 
-    async def _fake_commit(self, entity_type, filename, content, allow_partial, correlation_id):
+    async def _fake_commit(
+        self, entity_type, filename, content, allow_partial, correlation_id, caller_headers=None
+    ):
         captured["commit"] = {
             "entity_type": entity_type,
             "filename": filename,
@@ -353,11 +373,13 @@ def test_upload_routes_preserve_form_payload_and_correlation_context(monkeypatch
         "/api/v1/intake/uploads/preview",
         data={"entityType": "portfolios", "sampleSize": "15"},
         files={"file": ("sample.csv", b"portfolio_id\nPF1\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
     commit_response = client.post(
         "/api/v1/intake/uploads/commit",
         data={"entityType": "portfolios", "allowPartial": "true"},
         files={"file": ("sample.csv", b"portfolio_id\nPF1\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
     )
 
     assert preview_response.status_code == 200
@@ -380,3 +402,45 @@ def test_upload_routes_preserve_form_payload_and_correlation_context(monkeypatch
         "allow_partial": True,
         "correlation_id": commit_body.correlation_id,
     }
+
+
+def test_intake_writes_fail_closed_without_trusted_caller_context(monkeypatch):
+    called: list[str] = []
+
+    async def _fake_ingest(*args, **kwargs):
+        called.append("ingest")
+        return 202, {"message": "queued"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.ingest_portfolio_bundle", _fake_ingest)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/intake/portfolio-bundle",
+        json={"body": {"sourceSystem": "UI", "portfolios": []}},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "missing_caller_context"
+    assert called == []
+
+
+def test_intake_upload_writes_forward_the_admitted_tenant(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_commit(*args, **kwargs):
+        captured.update(kwargs)
+        return 200, {"message": "committed"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.commit_upload", _fake_commit)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/intake/uploads/commit",
+        data={"entityType": "portfolios", "allowPartial": "false"},
+        files={"file": ("sample.csv", b"portfolio_id\nPF1\n", "text/csv")},
+        headers=_TRUSTED_HEADERS,
+    )
+
+    assert response.status_code == 200
+    assert captured["caller_headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert captured["caller_headers"]["X-Actor-Id"] == "OPS_SG_001"

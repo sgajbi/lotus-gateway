@@ -63,6 +63,7 @@ class IntakeIngestionClient(Protocol):
         body: dict[str, Any],
         correlation_id: str,
         idempotency_key: str | None = None,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def preview_upload(
@@ -73,6 +74,7 @@ class IntakeIngestionClient(Protocol):
         content: bytes,
         sample_size: int,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def commit_upload(
@@ -83,6 +85,7 @@ class IntakeIngestionClient(Protocol):
         content: bytes,
         allow_partial: bool,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
 
