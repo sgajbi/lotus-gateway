@@ -3,7 +3,6 @@ from typing import Any
 
 import httpx
 
-from app.clients.http_json_resilience import request_with_retry_outcome
 from app.clients.http_response_payloads import (
     binary_communication_failure_result,
     response_payload,
@@ -17,41 +16,6 @@ from app.clients.http_retry_policy import (
 )
 
 _BINARY_REQUEST_METHODS = frozenset({"GET", "POST"})
-
-
-async def request_with_retry(
-    *,
-    method: str,
-    url: str,
-    timeout_seconds: float,
-    max_retries: int = 2,
-    backoff_seconds: float = 0.2,
-    retry_status_codes: set[int] | None = None,
-    params: dict[str, Any] | None = None,
-    headers: dict[str, str] | None = None,
-    json_body: dict[str, Any] | None = None,
-    data: dict[str, Any] | None = None,
-    files: dict[str, Any] | None = None,
-    retry_timeout_exceptions: bool = True,
-    retry_ambiguous_request_errors: bool = True,
-) -> tuple[int, dict[str, Any]]:
-    """Preserve the stable tuple API while the typed outcome API serves policy-aware callers."""
-    outcome = await request_with_retry_outcome(
-        method=method,
-        url=url,
-        timeout_seconds=timeout_seconds,
-        max_retries=max_retries,
-        backoff_seconds=backoff_seconds,
-        retry_status_codes=retry_status_codes,
-        params=params,
-        headers=headers,
-        json_body=json_body,
-        data=data,
-        files=files,
-        retry_timeout_exceptions=retry_timeout_exceptions,
-        retry_ambiguous_request_errors=retry_ambiguous_request_errors,
-    )
-    return outcome.as_result()
 
 
 async def _send_binary_request_once(

@@ -9,7 +9,7 @@ from app.clients.http_json_resilience import (
     RequestFailureKind,
     request_with_retry_outcome,
 )
-from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.clients.http_resilience import request_binary_with_retry
 from app.clients.http_response_payloads import (
     binary_communication_failure_result,
     communication_failure_result,
@@ -25,6 +25,11 @@ from app.clients.http_retry_policy import (
     should_retry_status,
 )
 from app.services.upstream_envelope import safe_upstream_detail
+
+
+async def _tuple_request(**kwargs):
+    outcome = await request_with_retry_outcome(**kwargs)
+    return outcome.as_result()
 
 
 def test_http_resilience_delegates_retry_policy() -> None:
@@ -100,7 +105,7 @@ async def test_non_replayable_mutations_do_not_follow_redirects(monkeypatch):
     # A post-commit redirect whose target fails raises ConnectError, which the
     # classifier reads as pre-send; a non-replayable mutation therefore must
     # not follow redirects at all.
-    await request_with_retry(
+    await _tuple_request(
         method="POST",
         url="http://test/review-actions",
         timeout_seconds=1.0,
@@ -108,7 +113,7 @@ async def test_non_replayable_mutations_do_not_follow_redirects(monkeypatch):
     )
     assert _PostParamsAsyncClient.follow_redirects is False
 
-    await request_with_retry(
+    await _tuple_request(
         method="POST",
         url="http://test/review-actions",
         timeout_seconds=1.0,
@@ -455,7 +460,7 @@ async def test_request_with_retry_retries_on_timeout(monkeypatch):
     _FlakyAsyncClient.calls = 0
     monkeypatch.setattr("httpx.AsyncClient", _FlakyAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="GET",
         url="http://service/health",
         timeout_seconds=1.0,
@@ -474,7 +479,7 @@ async def test_request_with_retry_can_disable_timeout_retries(monkeypatch):
     _FlakyAsyncClient.calls = 0
     monkeypatch.setattr("httpx.AsyncClient", _FlakyAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="POST",
         url="http://service/workspace-summary",
         timeout_seconds=1.0,
@@ -494,7 +499,7 @@ async def test_request_with_retry_retries_on_status_code(monkeypatch):
     _RetryStatusAsyncClient.calls = 0
     monkeypatch.setattr("httpx.AsyncClient", _RetryStatusAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="GET",
         url="http://service/health",
         timeout_seconds=1.0,
@@ -512,7 +517,7 @@ async def test_request_with_retry_retries_on_status_code(monkeypatch):
 async def test_request_with_retry_returns_503_after_network_error(monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", _NetworkErrorAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="GET",
         url="http://service/health",
         timeout_seconds=1.0,
@@ -613,7 +618,7 @@ async def test_request_outcome_keeps_source_503_distinct_from_transport_failure(
 async def test_request_with_retry_returns_503_after_protocol_disconnect(monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", _ProtocolErrorAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="POST",
         url="http://service/workflow-packs/execute",
         timeout_seconds=1.0,
@@ -630,7 +635,7 @@ async def test_request_with_retry_returns_503_after_protocol_disconnect(monkeypa
 async def test_request_with_retry_wraps_non_json_payload(monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", _TextPayloadAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="POST",
         url="http://service/workbench",
         timeout_seconds=1.0,
@@ -652,7 +657,7 @@ async def test_request_with_retry_forwards_post_query_params(monkeypatch):
     _PostParamsAsyncClient.calls = []
     monkeypatch.setattr("httpx.AsyncClient", _PostParamsAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="POST",
         url="http://service/advisory/cockpit/actions/action-1/acknowledgements",
         timeout_seconds=1.0,
@@ -678,7 +683,7 @@ async def test_request_with_retry_clamps_negative_retry_configuration(monkeypatc
     _RedirectAwareAsyncClient.requested_urls = []
     monkeypatch.setattr("httpx.AsyncClient", _RedirectAwareAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="GET",
         url="http://service/health",
         timeout_seconds=1.0,
@@ -695,7 +700,7 @@ async def test_request_with_retry_clamps_negative_retry_configuration(monkeypatc
 async def test_request_with_retry_rejects_unsupported_method(monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", _UnexpectedAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="PATCH",
         url="http://service/health",
         timeout_seconds=1.0,
@@ -730,7 +735,7 @@ async def test_request_with_retry_enables_redirect_following(monkeypatch):
     _RedirectAwareAsyncClient.requested_urls = []
     monkeypatch.setattr("httpx.AsyncClient", _RedirectAwareAsyncClient)
 
-    status, payload = await request_with_retry(
+    status, payload = await _tuple_request(
         method="GET",
         url="http://service/portfolios",
         timeout_seconds=1.0,

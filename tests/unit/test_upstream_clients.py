@@ -4578,7 +4578,7 @@ async def test_archive_client_preflight_enforces_elapsed_deadline_and_safe_fanou
             request_cancelled = True
             raise
 
-    monkeypatch.setattr("app.clients.observed_fanout.request_with_retry", _slow_request)
+    monkeypatch.setattr("app.clients.observed_fanout.request_with_retry_outcome", _slow_request)
     client = ArchiveClient(
         base_url="http://archive",
         timeout_seconds=8.0,
