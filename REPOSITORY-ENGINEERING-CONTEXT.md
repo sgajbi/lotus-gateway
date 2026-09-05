@@ -769,6 +769,39 @@ reporting unit from portfolio base currency.
     Workbench browser proof, screenshot readiness, RFP/security completion, external client
     communication, OMS/order/fill/settlement posture, or proof semantics locally.
 
+Scope, admission, cache, and retry invariants delivered by the 2026-09-05 completion campaign
+(gateway PRs #724–#728). Preserve these when touching their owners:
+
+1. Report-job search is fenced by the admitted caller scope in
+   `services/reporting_search_scope.py`: the admitted `X-Tenant-Id`/`X-Region` are always sent
+   upstream, a conflicting supplied `tenantId`/`region` filter is a bounded `400` before any
+   source call, and the applied-filter echo plus every returned row is validated before
+   publication (`502` on violation). Cross-tenant reads need a separately authorized contract,
+   never a filter value. The producer-side half is lotus-report#292; gateway#718 tracks it.
+2. Reporting source successes are admitted semantically by
+   `services/reporting_response_admission.py`: each query and submission consumer binds exactly
+   the identities its source contract exposes — requested job or snapshot, per-row event and
+   lineage identities, echoed submission idempotency key, and the handle↔status-URL job
+   relationship. A well-shaped answer for a different identity is
+   `502 report_job_source_identity_mismatch`; a malformed success is
+   `502 report_job_source_contract_invalid`, never an escaping validation error.
+3. `services/async_ttl_cache.py` fills own their completion through a synchronous done-callback:
+   waiters await a shielded view, so one waiter's cancellation never cancels shared work; a
+   failed or cancelled fill leaves its key recoverable; `clear`/`discard`/`set` detach in-flight
+   fills so a stale fill can never refill an invalidated generation or overwrite a newer value.
+4. AI mutations obey producer replay contracts (`clients/http_retry_policy.py`): ambiguous
+   response losses (read/write/close failures, remote-protocol errors, read/write timeouts) are
+   never retried automatically without a replay identity. `execute_workflow_pack` mints one
+   `idempotency_key` per logical execution and reuses it across transport attempts; review
+   actions stop on ambiguous loss and do not follow redirects. Correlation ids are tracing,
+   never replay identity. The inbound seam — a consumer retrying the Gateway request mints a new
+   key — is recorded on gateway#726 and stays open pending an inbound idempotency contract.
+5. Advisor Book value evidence must be internally consistent
+   (`services/advisor_book_value_facts.py`): a member resolved off the cohort as-of basis, or a
+   `COMPLETE` aggregate over an untrustworthy member, degrades the value block through the typed
+   contract-invalid refusal while rows and action facts survive; carry-forward `snapshot_date`
+   and `MEASURED_ZERO` facts are preserved, and Gateway never recomputes Core's totals.
+
 ## Context Maintenance Rule
 
 Update this document when:
