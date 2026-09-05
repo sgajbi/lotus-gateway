@@ -11,7 +11,11 @@ Add lotus-gateway endpoint `GET /api/v1/platform/capabilities` to aggregate lotu
 
 Inputs:
 - `consumerSystem`
-- `tenantId`
+- `tenantId` (optional query selector) and/or trusted `X-Tenant-Id` caller context: the route
+  admits exactly one tenant scope — both must agree when both are presented (disagreement is a
+  bounded `400 platform_tenant_scope_ambiguous`), and the governed default tenant applies only
+  when neither is given. The resolved tenant is forwarded as the single scope on every upstream
+  capability call and echoed as `data.tenantId`.
 
 Output envelope:
 - `data.contractVersion`

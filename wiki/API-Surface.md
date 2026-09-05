@@ -195,7 +195,12 @@ consumer migration remain tracked by parent issue #569.
   The route does not calculate holding periods, current lot valuation, unrealized P&L, disposal
   lineage, as-of semantics, or reporting-currency restatement. Core-owned evidence for those
   semantics remains tracked by `lotus-core#1033`, `#788`, and `#481`.
-- platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
+- platform capabilities admits exactly one tenant scope: the camelCase `tenantId` query
+  selector and the trusted `X-Tenant-Id` caller context must agree when both are presented
+  (disagreement is a bounded `400 platform_tenant_scope_ambiguous` with no upstream call),
+  the governed default tenant applies only when neither is given, and the resolved tenant is
+  the one scope every upstream capability call carries and the aggregate is labeled with;
+  `consumerSystem` remains a camelCase query parameter
 - platform capabilities publishes `normalized.navigation.command_center=true` only when the
   `lotus_manage` source publishes governed Manage support capability such as
   `dpm.support.run_apis` or `lotus_manage.support.run_apis`
