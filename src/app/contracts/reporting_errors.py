@@ -7,6 +7,24 @@ REPORT_JOB_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
             "message": "Idempotency-Key is required.",
         }
     },
+    "report_job_tenant_scope_ambiguous": {
+        "detail": {
+            "code": "report_job_tenant_scope_ambiguous",
+            "message": (
+                "The tenantId filter disagrees with the admitted caller tenant scope; "
+                "a search filter cannot enlarge admitted scope."
+            ),
+        }
+    },
+    "report_job_source_scope_violation": {
+        "detail": {
+            "code": "report_job_source_scope_violation",
+            "message": (
+                "lotus-report returned a job search whose returned row is outside the "
+                "admitted tenant scope; the result is refused rather than published."
+            ),
+        }
+    },
     "missing_caller_context": {
         "detail": {
             "code": "missing_caller_context",

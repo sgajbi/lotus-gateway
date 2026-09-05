@@ -11,6 +11,10 @@ from app.contracts.reporting_query import (
 )
 from app.services.reporting_client_protocols import ReportingJobQueryClient
 from app.services.reporting_error_mapping import raise_report_job_error
+from app.services.reporting_search_scope import (
+    assert_search_result_within_scope,
+    resolve_search_scope_params,
+)
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
@@ -26,12 +30,18 @@ class ReportingJobQueryService:
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> ReportJobListResponse:
+        fenced_filters = resolve_search_scope_params(
+            caller_headers=caller_headers,
+            query_params=filters,
+        )
         status_code, payload = await self._reporting_client.list_report_jobs(
-            filters=filters,
+            filters=fenced_filters,
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportJobListResponse, status_code, payload)
+        response = self._validate_response(ReportJobListResponse, status_code, payload)
+        assert_search_result_within_scope(response, caller_headers=caller_headers)
+        return response
 
     async def get_report_job_status(
         self,

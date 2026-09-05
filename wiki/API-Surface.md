@@ -242,6 +242,10 @@ consumer migration remain tracked by parent issue #569.
 - outcome-review report job initiation uses manage-owned `DpmOutcomeReportInput` through
   `/api/v1/reports/outcome-reviews`; Gateway forwards the payload to `lotus-report` and does not
   recompute outcome truth, render artifacts, or archive documents
+- report job search is fenced by the admitted caller scope: the effective tenant and region are
+  the admitted `X-Tenant-Id`/`X-Region`, a conflicting `tenantId`/`region` filter is a bounded
+  `400` before any source call, and a source result whose applied-filter echo or rows leave the
+  fence is refused as `report_job_source_scope_violation` (502) rather than published
 - report job search, status, append-only event history, and cancellation are gateway-first under
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
 - report batch materialization, status, pause, resume, cancel, retry-failed,
