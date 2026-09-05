@@ -49,6 +49,7 @@ jobs:
 
       - name: Enforce Refactored Source Thresholds
         run: |
+          set -o pipefail
           mkdir -p output/quality-baseline
           python scripts/check_refactor_quality_thresholds.py \
             --max-source-file-lines 315 \
@@ -57,26 +58,24 @@ jobs:
 
       - name: Enforce Workflow Governance
         run: |
+          set -o pipefail
           mkdir -p output/quality-baseline
           python scripts/check_workflow_action_runtime.py \
             2>&1 | tee output/quality-baseline/workflow-governance.txt
 
       - name: Enforce Agent Quality Evidence
         run: |
+          set -o pipefail
           mkdir -p output/quality-baseline
           python scripts/check_agent_quality_evidence.py \
             2>&1 | tee output/quality-baseline/agent-quality-evidence.txt
 
-      - name: Enforce Branch Protection Policy
-        env:
-          # github.token cannot carry administration:read, which the branch
-          # protection endpoint requires; the automerge PAT can. A missing or
-          # unauthorized token fails the gate rather than passing it silently.
-          GH_TOKEN: ${{ secrets.LOTUS_AUTOMERGE_TOKEN }}
-        run: |
-          mkdir -p output/quality-baseline
-          python scripts/check_branch_protection_policy.py \
-            2>&1 | tee output/quality-baseline/branch-protection-policy.txt
+      - name: Enforce Branch Protection Policy Document
+        # Document-shape checks need no token, so they belong in the blocking
+        # lane. The live comparison runs in Main Gate Coverage Audit until an
+        # administration:read PAT is provisioned. Invoked bare: piping through
+        # tee reports tee's exit code and makes a gate incapable of failing.
+        run: python scripts/check_branch_protection_policy.py --offline
 
       - name: Ruff
         continue-on-error: true

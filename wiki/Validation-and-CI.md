@@ -120,11 +120,17 @@ accepted reviewer identity exists — then the approval count rises to 1, `CODEO
 and the policy updates in the same change.
 
 The complete field-by-field policy lives in
-[`quality/branch_protection_policy.v1.json`](../blob/main/quality/branch_protection_policy.v1.json),
-and the Quality Baseline lane's Enforce Branch Protection Policy step compares live `main`
-protection against it on every run — failing when protection weakens **and** when the documented
-exception is removed without the configuration strengthening, so the document and the
-configuration cannot drift apart in either direction.
+[`quality/branch_protection_policy.v1.json`](../blob/main/quality/branch_protection_policy.v1.json).
+Two lanes enforce it. The Quality Baseline lane validates the policy document's shape on every
+PR, which needs no credentials. The live field-by-field comparison — failing when protection
+weakens **and** when the documented exception is removed without the configuration
+strengthening — runs daily in Main Gate Coverage Audit.
+
+The live comparison is scheduled rather than blocking because it authenticates with a PAT
+carrying `administration: read` (the workflow token cannot), and that secret is not yet
+provisioned: the step fails closed daily until an operator creates it. A blocking step before
+then would deadlock every pull request on an operator action. Restoring the blocking lane is
+tracked in issue #738.
 
 ## PR auto-merge posture
 

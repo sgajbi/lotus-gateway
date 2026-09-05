@@ -71,6 +71,20 @@ def fetch_live_protection(repository: str, branch: str) -> dict[str, Any]:
     return json.loads(result.stdout)
 
 
+def resolve_effective_codeowners(repo_root: Path) -> Path | None:
+    """Return the CODEOWNERS file GitHub would apply, or None if there is none.
+
+    GitHub does not merge the recognized locations: it uses the first file it
+    finds, in this order. A stale or empty file in an earlier location shadows a
+    valid one later, so presence-anywhere is not the posture GitHub enforces.
+    """
+    for location in (".github", "", "docs"):
+        candidate = repo_root / location / "CODEOWNERS" if location else repo_root / "CODEOWNERS"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _enabled(node: Any) -> Any:
     return node.get("enabled") if isinstance(node, dict) else node
 
@@ -134,10 +148,8 @@ def compare_live_to_policy(policy: dict[str, Any], live: dict[str, Any]) -> list
                 f"live={actual_bypass!r} policy={expected_bypass!r}"
             )
 
-    repo_root = Path(__file__).resolve().parents[1]
-    codeowners = any(
-        (repo_root / location / "CODEOWNERS").exists() for location in ("", ".github", "docs")
-    )
+    effective_codeowners = resolve_effective_codeowners(Path(__file__).resolve().parents[1])
+    codeowners = effective_codeowners is not None
     if codeowners != expected["codeowners_present"]:
         issues.append(
             f"CODEOWNERS presence: live={codeowners} policy={expected['codeowners_present']}"

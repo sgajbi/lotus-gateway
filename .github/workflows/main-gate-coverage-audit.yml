@@ -28,3 +28,10 @@ jobs:
           set -euo pipefail
           git fetch origin main --quiet
           python scripts/audit_main_gate_coverage.py --limit 60 --fail-on-gap
+      - name: Compare live branch protection against policy (fail closed)
+        env:
+          # github.token cannot carry administration:read, which the branch
+          # protection endpoint requires. No Lotus repository holds this
+          # secret yet, so this step fails closed until one is provisioned.
+          GH_TOKEN: ${{ secrets.LOTUS_AUTOMERGE_TOKEN }}
+        run: python scripts/check_branch_protection_policy.py
