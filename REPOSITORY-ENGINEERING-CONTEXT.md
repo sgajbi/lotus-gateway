@@ -825,11 +825,13 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    contract-invalid refusal while rows and action facts survive; carry-forward `snapshot_date`
    and `MEASURED_ZERO` facts are preserved, and Gateway never recomputes Core's totals.
 6. Mutation idempotency and caller-context admission are route-declared, never universal: a
-   retry replays only when the request carries an `Idempotency-Key`, which is required on some
-   mutation families, accepted optionally on others (execution handoff/update, memo review and
-   AI commentary, report-package request/event, narrative review), and absent on a few
-   (proposal report requests take none and are not replay-safe to retry). The generated OpenAPI
-   is each route's authoritative declaration.
+   retry replays only when the request carries the replay-identity header its route declares —
+   `Idempotency-Key` on most mutation families (required on some, accepted optionally on others:
+   execution handoff/update, memo review and AI commentary, report-package request/event,
+   narrative review), the nonstandard optional `X-Idempotency-Key` on the intake
+   portfolio-bundle route, and none at all on a few (proposal report requests take no key and
+   are not replay-safe to retry). The generated OpenAPI is each route's authoritative
+   declaration.
 7. Canonical `gateway.dev.lotus` addressing exists only while the optional platform ingress is
    active; `make run-canonical` binds Uvicorn to `0.0.0.0:8111` (reachable on all local
    interfaces — `127.0.0.1:8111` is the conventional debugging URL, not the bind scope) and
