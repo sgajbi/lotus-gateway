@@ -56,8 +56,9 @@ proof packs, outcome reviews, portfolio memory, PM operating quality); report or
 queues with governed candidate actions; and AI-assisted summaries through governed workflow-pack
 seams.
 
-- Full route catalogue with copy-paste examples:
-  [wiki/API-Surface.md](wiki/API-Surface.md)
+- Route-family summary with copy-paste examples:
+  [wiki/API-Surface.md](wiki/API-Surface.md); the generated OpenAPI at `/docs` on a running
+  Gateway is the exhaustive per-route contract
 - Implementation-backed capability claims:
   [wiki/Supported-Features.md](wiki/Supported-Features.md)
 
