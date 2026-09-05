@@ -57,11 +57,15 @@ def is_ambiguous_response_loss_error(exc: httpx.RequestError) -> bool:
     """Return whether the request may have reached the producer already.
 
     After these failures the operation's outcome is unknown, so an automatic
-    retry can re-execute a mutation the producer committed. Connection
-    establishment failures are not ambiguous: the request never left the
-    caller.
+    retry can re-execute a mutation the producer committed. Read and write
+    timeouts are ambiguous for the same reason a lost response is. Failures
+    before a connection was available are not ambiguous: the request never
+    left the caller.
     """
 
-    if isinstance(exc, httpx.ConnectError):
+    if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
         return False
-    return isinstance(exc, (httpx.NetworkError, httpx.RemoteProtocolError))
+    return isinstance(
+        exc,
+        (httpx.NetworkError, httpx.TimeoutException, httpx.RemoteProtocolError),
+    )
