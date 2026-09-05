@@ -85,7 +85,7 @@ def test_build_archive_caller_headers_defaults_actor_type() -> None:
     assert "X-Booking-Center-Code" not in headers
 
 
-def test_build_upstream_headers_propagates_the_caller_presented_identity() -> None:
+def test_build_upstream_headers_propagates_only_the_caller_presented_tenant() -> None:
     from app.middleware.caller_identity import (
         capture_caller_identity,
         release_caller_identity,
@@ -94,12 +94,14 @@ def test_build_upstream_headers_propagates_the_caller_presented_identity() -> No
     token = capture_caller_identity(
         {
             "X-Tenant-Id": "tenant-sg",
+            # Authority-bearing identity, entitlement claims, and credentials
+            # must never propagate ambiently — upstream boundaries treat some
+            # of these as Gateway-vetted authority.
             "X-Actor-Id": "PM_SG_001",
             "X-Caller-Application": "lotus-workbench",
             "X-Region": "APAC",
             "X-Booking-Center-Code": "Singapore",
             "X-Role": "ADVISOR",
-            # Never propagated ambiently: credentials and entitlement claims.
             "Authorization": "Bearer secret",
             "X-Caller-Capabilities": "advisor.book.read",
             "X-Authorized-Advisor-Id": "PM_SG_001",
@@ -111,17 +113,20 @@ def test_build_upstream_headers_propagates_the_caller_presented_identity() -> No
         release_caller_identity(token)
 
     assert headers["X-Tenant-Id"] == "tenant-sg"
-    assert headers["X-Actor-Id"] == "PM_SG_001"
-    assert headers["X-Caller-Application"] == "lotus-workbench"
-    assert headers["X-Region"] == "APAC"
-    assert headers["X-Booking-Center-Code"] == "Singapore"
-    assert headers["X-Role"] == "ADVISOR"
-    assert "Authorization" not in headers
-    assert "X-Caller-Capabilities" not in headers
-    assert "X-Authorized-Advisor-Id" not in headers
+    for never_ambient in (
+        "X-Actor-Id",
+        "X-Caller-Application",
+        "X-Region",
+        "X-Booking-Center-Code",
+        "X-Role",
+        "Authorization",
+        "X-Caller-Capabilities",
+        "X-Authorized-Advisor-Id",
+    ):
+        assert never_ambient not in headers
 
 
-def test_explicitly_admitted_caller_headers_win_over_the_ambient_identity() -> None:
+def test_explicitly_admitted_caller_headers_win_over_the_ambient_tenant() -> None:
     from app.middleware.caller_identity import (
         capture_caller_identity,
         release_caller_identity,
@@ -139,8 +144,7 @@ def test_explicitly_admitted_caller_headers_win_over_the_ambient_identity() -> N
     assert headers["X-Tenant-Id"] == "tenant-admitted"
 
 
-def test_a_request_that_presented_no_identity_propagates_none() -> None:
+def test_a_request_that_presented_no_tenant_propagates_none() -> None:
     headers = build_upstream_headers("corr-anonymous")
 
     assert "X-Tenant-Id" not in headers
-    assert "X-Actor-Id" not in headers

@@ -1,7 +1,7 @@
-"""The correlation middleware captures the caller-presented identity for the
-request's lifetime so every upstream call built during it propagates that
-identity verbatim — and releases it afterwards so nothing leaks across
-requests."""
+"""The correlation middleware captures the caller-presented tenant fence for
+the request's lifetime so every upstream call built during it carries it — and
+releases it afterwards so nothing leaks across requests. Authority-bearing
+identity never propagates ambiently."""
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -34,8 +34,8 @@ def test_identity_presented_to_the_request_reaches_upstream_headers() -> None:
 
     payload = response.json()
     assert payload["X-Tenant-Id"] == "tenant-sg"
-    assert payload["X-Actor-Id"] == "PM_SG_001"
-    assert payload["X-Role"] == "ADVISOR"
+    assert "X-Actor-Id" not in payload
+    assert "X-Role" not in payload
     assert "Authorization" not in payload
 
 
@@ -54,9 +54,8 @@ def test_identity_does_not_leak_into_the_next_request() -> None:
 def test_blank_identity_headers_are_not_propagated() -> None:
     response = client.get(
         "/probe-upstream-headers",
-        headers={"X-Tenant-Id": "   ", "X-Actor-Id": "PM_SG_001"},
+        headers={"X-Tenant-Id": "   "},
     )
 
     payload = response.json()
     assert "X-Tenant-Id" not in payload
-    assert payload["X-Actor-Id"] == "PM_SG_001"

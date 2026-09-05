@@ -9,10 +9,11 @@ def build_upstream_headers(
     caller_headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
     headers = propagation_headers(correlation_id)
-    # Upstream Lotus services fence requests by the caller's presented identity
-    # (lotus-core rejects any protected call without X-Tenant-Id). Propagate the
-    # identity headers the caller presented for this request verbatim; a route's
-    # explicitly admitted caller_headers always win over the ambient capture.
+    # Upstream Lotus services fence requests by tenant (lotus-core rejects any
+    # protected call without X-Tenant-Id). Propagate ONLY the caller-presented
+    # tenant fence ambiently — it narrows, never grants; authority-bearing
+    # identity flows solely through a route's explicitly admitted
+    # caller_headers, which always win over this ambient capture.
     headers.update(propagated_caller_identity())
     if extras:
         headers.update(extras)
