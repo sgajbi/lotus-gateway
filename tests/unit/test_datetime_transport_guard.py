@@ -83,3 +83,13 @@ def test_presentation_receipt_refuses_numeric_presented_at() -> None:
 def test_iso_strings_still_parse_with_timezone_validation() -> None:
     request = IdeaCandidateReviewActionRequest.model_validate(_REVIEW_BASE)
     assert request.decided_at_utc.utcoffset() is not None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [1782036720, 1782036720.5, "1782036720", " 1782036720.5 ", "-1782036720"],
+)
+def test_numeric_shapes_are_refused_in_both_json_types(value) -> None:
+    with pytest.raises(ValidationError) as raised:
+        IdeaCandidateReviewActionRequest.model_validate({**_REVIEW_BASE, "decidedAtUtc": value})
+    assert "ISO-8601 date-time string" in str(raised.value)
