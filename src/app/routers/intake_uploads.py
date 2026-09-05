@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 
 from app.contracts.intake import EnvelopeResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.trusted_caller_context import TrustedCallerContext
+from app.routers.trusted_caller_context import IntakeWriteCallerContext
 from app.services.gateway_service_provider import intake_service
 
 router = APIRouter(prefix="/api/v1/intake/uploads", tags=["intake"])
@@ -42,7 +42,7 @@ async def _preview_upload(
     ),
 )
 async def preview_upload(
-    caller_headers: TrustedCallerContext,
+    caller_headers: IntakeWriteCallerContext,
     entity_type: str = Form(
         ...,
         alias="entityType",

@@ -473,10 +473,12 @@ consumer migration remain tracked by parent issue #569.
   legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
-- intake writes (portfolio-bundle, upload preview/commit) require the trusted caller context
-  headers `X-Actor-Id`, `X-Tenant-Id`, and `X-Region` (400 `missing_caller_context` otherwise);
-  the admitted tenant scopes the lotus-core write, which Core's fail-closed tenant ingress would
-  otherwise refuse — Gateway never forwards an unadmitted tenant on a mutation
+- intake writes (portfolio-bundle, upload preview/commit) require the governed
+  `core.intake.write` capability claim (403 `intake_write_capability_required` otherwise) plus
+  the trusted caller context headers `X-Actor-Id`, `X-Tenant-Id`, and `X-Region` (400
+  `missing_caller_context`); the admitted tenant scopes the lotus-core write, which Core's
+  fail-closed tenant ingress would otherwise refuse. Gateway never forwards an unadmitted
+  tenant on a mutation; tenant-authority verification itself is owned by lotus-core's ingress
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
   and `instrument_page_limit`
 - proposal writes require `Idempotency-Key`

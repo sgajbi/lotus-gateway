@@ -14,6 +14,7 @@ from typing import Annotated
 from fastapi import Depends, Header
 
 from app.services.caller_context import caller_context_headers
+from app.services.intake_access_policy import require_intake_write_capability
 
 
 def require_trusted_caller_context(
@@ -54,3 +55,33 @@ def trusted_caller_context_dependency(
 
 
 TrustedCallerContext = Annotated[dict[str, str], Depends(trusted_caller_context_dependency)]
+
+
+def intake_write_caller_context_dependency(
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
+) -> dict[str, str]:
+    """Admission for Core-mutating intake routes: the trusted context trio plus
+    the governed intake write capability claim, refused before any upstream
+    call otherwise. Tenant-authority verification itself is owned by lotus-core
+    on its ingress; Gateway forwards only what this admission returned."""
+
+    require_intake_write_capability(capabilities)
+    return require_trusted_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+
+
+IntakeWriteCallerContext = Annotated[
+    dict[str, str], Depends(intake_write_caller_context_dependency)
+]
