@@ -110,3 +110,22 @@ def test_codeowners_resolution_follows_github_precedence(tmp_path):
 
 def test_codeowners_resolution_reports_absence(tmp_path):
     assert resolve_effective_codeowners(tmp_path) is None
+
+
+def test_offline_validation_rejects_a_policy_missing_expected_fields():
+    """--offline is the only PR-time gate; it must not accept a gutted policy."""
+    policy = load_policy()
+    for field in ("enforce_admins", "required_status_checks", "required_pull_request_reviews"):
+        incomplete = copy.deepcopy(policy)
+        del incomplete["expected"][field]
+        issues = validate_policy_document(incomplete)
+        assert any(f"expected.{field} must be declared" in issue for issue in issues), (
+            f"removing expected.{field} passed the offline gate"
+        )
+
+
+def test_offline_validation_rejects_an_empty_required_context_list():
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["contexts"] = []
+    issues = validate_policy_document(policy)
+    assert any("contexts is empty" in issue for issue in issues)
