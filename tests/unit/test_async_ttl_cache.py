@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 
@@ -106,3 +107,148 @@ async def test_async_ttl_cache_accepts_future_factory_result() -> None:
 
     assert await pending == 9
     assert await cache.get_or_set(("portfolio", "P1"), factory) == 9
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_one_waiter_cancellation_keeps_shared_work_alive() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    started = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+
+    async def factory() -> int:
+        nonlocal calls
+        calls += 1
+        started.set()
+        await release.wait()
+        return 42
+
+    first = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await started.wait()
+    second = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await asyncio.sleep(0)
+
+    first.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await first
+    release.set()
+
+    assert await second == 42
+    value, was_cached = await cache.get_or_set_with_status(("tenant-sg", "P1"), factory)
+    assert value == 42
+    assert was_cached is True
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_cancelled_fill_leaves_key_recoverable() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    started = asyncio.Event()
+    release = asyncio.Event()
+    fill_tasks: list[asyncio.Task[Any]] = []
+    calls = 0
+
+    async def factory() -> int:
+        nonlocal calls
+        calls += 1
+        current = asyncio.current_task()
+        assert current is not None
+        fill_tasks.append(current)
+        started.set()
+        await release.wait()
+        return calls
+
+    waiter = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await started.wait()
+    fill_tasks[0].cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiter
+
+    release.set()
+    recovered = await cache.get_or_set(("tenant-sg", "P1"), factory)
+
+    assert recovered == 2
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_fill_started_before_clear_cannot_refill_the_new_generation() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    first_started = asyncio.Event()
+    first_release = asyncio.Event()
+    second_started = asyncio.Event()
+    second_release = asyncio.Event()
+    calls = 0
+
+    async def factory() -> int:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            first_started.set()
+            await first_release.wait()
+            return 1
+        second_started.set()
+        await second_release.wait()
+        return 2
+
+    stale = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await first_started.wait()
+    cache.clear()
+
+    fresh = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await second_started.wait()
+
+    first_release.set()
+    assert await stale == 1
+    second_release.set()
+    assert await fresh == 2
+
+    value, was_cached = await cache.get_or_set_with_status(("tenant-sg", "P1"), factory)
+    assert value == 2
+    assert was_cached is True
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_fill_started_before_discard_cannot_overwrite_a_newer_set() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def factory() -> int:
+        started.set()
+        await release.wait()
+        return 1
+
+    stale = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await started.wait()
+    cache.discard(("tenant-sg", "P1"))
+    cache.set(("tenant-sg", "P1"), 99)
+    release.set()
+
+    assert await stale == 1
+    value, was_cached = await cache.get_or_set_with_status(("tenant-sg", "P1"), factory)
+    assert value == 99
+    assert was_cached is True
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_fill_completion_cannot_overwrite_a_newer_direct_set() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def factory() -> int:
+        started.set()
+        await release.wait()
+        return 1
+
+    stale = asyncio.create_task(cache.get_or_set(("tenant-sg", "P1"), factory))
+    await started.wait()
+    cache.set(("tenant-sg", "P1"), 99)
+    release.set()
+
+    assert await stale == 1
+    value, was_cached = await cache.get_or_set_with_status(("tenant-sg", "P1"), factory)
+    assert value == 99
+    assert was_cached is True

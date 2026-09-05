@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from fastapi import HTTPException
 
@@ -1519,3 +1521,62 @@ def _build_workspace(
             )
         ],
     )
+
+
+class _GatedPerformanceWorkspaceService(_StubPerformanceWorkspaceService):
+    def __init__(
+        self,
+        workspace: PerformanceWorkspaceResponse,
+        *,
+        started: asyncio.Event,
+        release: asyncio.Event,
+    ):
+        super().__init__(workspace)
+        self._started = started
+        self._release = release
+
+    async def get_performance_workspace(self, **kwargs):
+        self._started.set()
+        await self._release.wait()
+        return await super().get_performance_workspace(**kwargs)
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_review_invalidation_survives_a_stale_inflight_fill():
+    started = asyncio.Event()
+    release = asyncio.Event()
+    workspace_service = _GatedPerformanceWorkspaceService(
+        _build_workspace(),
+        started=started,
+        release=release,
+    )
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=_StubLotusAiClient(),
+    )
+
+    def request_brief():
+        return service.get_performance_advisor_brief(
+            portfolio_id="PF_1001",
+            correlation_id="corr-stale-fill",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        )
+
+    stale = asyncio.create_task(request_brief())
+    await started.wait()
+    # A review action invalidates the brief cache while this fill is in flight.
+    service.clear_cache()
+    release.set()
+    assert (await stale).status == "ready"
+
+    # The post-invalidation request must rebuild instead of serving the stale
+    # fill's publication.
+    calls_before = len(workspace_service.calls)
+    fresh = await request_brief()
+    assert fresh.status == "ready"
+    assert len(workspace_service.calls) == calls_before + 1
