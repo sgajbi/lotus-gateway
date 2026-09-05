@@ -56,8 +56,12 @@ def test_ambiguous_response_loss_classification_separates_pre_send_failures() ->
     assert is_ambiguous_response_loss_error(httpx.WriteError("send interrupted")) is True
     assert is_ambiguous_response_loss_error(httpx.NetworkError("disconnected")) is True
     assert is_ambiguous_response_loss_error(httpx.RemoteProtocolError("no response")) is True
+    assert is_ambiguous_response_loss_error(httpx.ReadTimeout("no response in time")) is True
+    assert is_ambiguous_response_loss_error(httpx.WriteTimeout("send stalled")) is True
     # The request never left the caller.
     assert is_ambiguous_response_loss_error(httpx.ConnectError("refused")) is False
+    assert is_ambiguous_response_loss_error(httpx.ConnectTimeout("no connection")) is False
+    assert is_ambiguous_response_loss_error(httpx.PoolTimeout("no free connection")) is False
 
 
 def test_should_retry_request_error_can_stop_ambiguous_replays() -> None:
@@ -83,6 +87,29 @@ def test_should_retry_request_error_can_stop_ambiguous_replays() -> None:
         should_retry_request_error(
             exc=httpx.ReadError("response lost"),
             retry_ambiguous_request_errors=True,
+            **common,
+        )
+        is True
+    )
+
+
+def test_ambiguous_gate_blocks_read_timeouts_even_when_timeout_retries_are_enabled() -> None:
+    # The two flags are independently settable: a caller that re-enables
+    # timeout retries must still not replay an ambiguous read timeout.
+    common = {"retry_timeout_exceptions": True, "attempt": 0, "max_retries": 2}
+
+    assert (
+        should_retry_request_error(
+            exc=httpx.ReadTimeout("no response in time"),
+            retry_ambiguous_request_errors=False,
+            **common,
+        )
+        is False
+    )
+    assert (
+        should_retry_request_error(
+            exc=httpx.ConnectTimeout("no connection"),
+            retry_ambiguous_request_errors=False,
             **common,
         )
         is True
