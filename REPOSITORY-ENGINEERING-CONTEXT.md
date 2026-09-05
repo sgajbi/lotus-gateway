@@ -31,19 +31,24 @@ Current repository posture:
 
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
-3. performance, proposal, advisory-workspace, advisory-policy, advisory-copilot,
-   advisor-cockpit, bank-demo proof, reporting, and capability aggregation
-   routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, typed
+3. proposal, advisory-workspace, advisory-policy, advisor-cockpit, advisory-copilot, bank-demo
+   proof, proposal-memo, and Manage-consumption route families are active, each preserving
+   source authority (performance, reporting, and capability-aggregation families are recorded
+   in their own items below):
+   - proposal routes, with proposal simulation/lifecycle/workflow/approval/lineage, typed
    selected-proposal risk-and-impact, implementation-status, and discussion-pack-review evidence,
    async operation support,
    idempotency lookup, replay evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
-   routes routed to `lotus-advise` `/advisory/proposals/*`; advisory workspace create/draft/save,
+   routes routed to `lotus-advise` `/advisory/proposals/*`;
+   - advisory workspace create/draft/save,
    saved-version replay, resume, compare, rationale request/review, and handoff routes are routed
-   to `lotus-advise` `/advisory/workspaces/*`; advisory policy-pack, policy-evaluation,
+   to `lotus-advise` `/advisory/workspaces/*`;
+   - advisory policy-pack, policy-evaluation,
    review-queue, workflow, sign-off package, sign-off decision, report-package, lineage, replay,
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
-   `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, preparation-packet,
+   `/advisory/proposals/*/policy-evaluations`;
+   - advisor-cockpit action, preparation-packet,
    single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
    `/advisory/cockpit/*`. Those Cockpit reads and acknowledgements derive advisor identity, role,
    capability, and portfolio scope from trusted server-side caller context: query `advisor_id` and
@@ -54,12 +59,13 @@ Current repository posture:
    capability. Action list and single-action reads are exposed through typed, closed Gateway
    contracts that validate source shape and fail closed on successful payload drift; Gateway does
    not derive action posture or apply this contract to the other Cockpit response families.
-   Advisory-copilot evidence-packet, action-run, review, supportability,
+   - advisory-copilot evidence-packet, action-run, review, supportability,
    and proposal-version run-lineage routes are routed to `lotus-advise`
-   `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`; bank-demo proof
-   scenario-contract, supported-claim register, and
+   `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`;
+   - bank-demo proof scenario-contract, supported-claim register, and
    proof-pack capture routes are routed to `lotus-advise`
-   `/advisory/bank-demo-proof/*`. Gateway preserves source-hash, review,
+   `/advisory/bank-demo-proof/*`;
+   - across all of these, Gateway preserves source-hash, review,
    report-package, workspace replay, execution handoff, policy supportability, degraded/blocked
    posture, maker-checker state, sign-off posture, AI-evidence posture, cockpit action status,
    owner role, reason codes, preparation-packet posture, copilot action-run posture, evidence
@@ -74,7 +80,7 @@ Current repository posture:
    recomputing advisory delivery truth, generating copilot
    recommendations, or turning support output into
    client-ready advice;
-   proposal memo detail, audience projection, review, report-package event/request, AI commentary,
+   - proposal memo detail, audience projection, review, report-package event/request, AI commentary,
    lineage, and replay-evidence routes publish typed source-faithful response envelopes. The typed
    boundary preserves Advise memo identity, immutable version, hashes, append-only events,
    replay posture, report handles, archive refs, and non-authoritative commentary without moving
@@ -97,7 +103,7 @@ Current repository posture:
    references rather than an opaque memo-family `data` object. The OpenAPI fitness gate also
    rejects recursively reachable `additionalProperties: true` objects while allowing bounded
    scalar maps;
-   `lotus-manage` consumption is through versioned `/api/v1` APIs for
+   - `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
    generate/read/Markdown/report-input/AI-evidence/AI PM memo route families,
@@ -144,14 +150,14 @@ Current repository posture:
    to the global portfolio catalogue or infer team, delegate, supervisor, household, performance,
    risk, suitability, communication, or execution truth, and does not reinterpret Advise action
    status, priority, or business meaning.
-   current source-backed portfolio position tax-lot drill-down is active at
+6. Current source-backed portfolio position tax-lot drill-down is active at
    `/api/v1/portfolio/portfolios/{portfolio_id}/positions/{security_id}/lots`; Gateway publishes
    only Core's current BUY-lot identity, acquisition, quantity, cost, and lineage fields. It does
    not invent as-of valuation, holding-period, unrealized-P&L, disposal, or reporting-currency
 semantics. Core follow-up evidence for those semantics is tracked by #1033, with valuation and
 disposal ownership remaining in Core issues #788 and #481; Gateway delivery is tracked by #630
 under parent issue #586.
-   current source-backed allocation reads are active at
+7. Current source-backed allocation reads are active at
    `/api/v1/portfolio/portfolios/{portfolio_id}/allocations`. Core owns allocation calculation,
    classification, look-through eligibility, contributor ordering, source lineage, bucket totals,
    and bounded residuals. Gateway validates the Core contributor contract and publishes typed
@@ -166,7 +172,7 @@ under parent issue #586.
    source-contract history remains tracked by lotus-core#801 and is not closed by Gateway. The
    Gateway-owned `PortfolioAllocation*` response graph is closed in OpenAPI and recursively
    fitness-checked; Core source-reader models remain tolerant of additive fields.
-   repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
+8. Repo-native RFC-0084 consumer declaration records five direct Core dependencies with required
    trust metadata and protected validation lanes: `PortfolioManagerBookMembership:v1` is
    fail-closed for entitlement, `PortfolioAnalyticsReference:v1` is fail-closed by default with
    bounded partial overrides for ordinary reference loss and fail-closed typed since-inception
@@ -197,10 +203,10 @@ under parent issue #586.
    caller-supplied segment; aliases, other imports, local definitions, and rebindings fail closed.
    Capabilities, effective policy, and core-snapshot
    remain explicitly classified control-plane/snapshot operations,
-5. report job initiation/search/status/event-history/cancellation routes are active for
+9. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
-6. RFC-0104 report batch materialization/status/control/retry/recovery/bounded operator-run routes
+10. RFC-0104 report batch materialization/status/control/retry/recovery/bounded operator-run routes
    are active under `/api/v1/report-batches` and `/api/v1/report-batches/*`; config-backed
    scheduler list/run-due routes are active under `/api/v1/report-batch-schedules`. Explicit batch
    creation accepts portfolio identifiers only, derives the advisor's own-book authority from
@@ -224,12 +230,12 @@ under parent issue #586.
    `permission_blocked`, or `unavailable` posture plus separate membership/configuration
    supportability. It is non-authoritative and never creates a batch or report job; mutation
    repeats all scope and configuration checks,
-7. archived generated-document metadata and controlled download routes are active under
+11. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,
-8. domain-product catalog, dependency-graph, and live trust certification discovery routes are
+12. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-9. idea review queue/detail reads, candidate review-action, feedback, conversion-intent, and
+13. idea review queue/detail reads, candidate review-action, feedback, conversion-intent, and
    visible-render presentation-receipt recordings, plus governed AI-explanation generation
    passthrough and readiness reads (transport-only over the Lotus Idea generation surface:
    the explicit `EXPLANATION_UNAVAILABLE` degraded shape passes through verbatim, and a served
@@ -250,8 +256,8 @@ under parent issue #586.
    ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client
    communication readiness,
-10. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
-10a. lotus-core enforces fail-closed tenant admission at ingress: every protected Core call
+14. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
+15. lotus-core enforces fail-closed tenant admission at ingress: every protected Core call
    must carry `X-Tenant-Id` or Core rejects it 401 `TENANT_CONTEXT_REQUIRED`. Gateway
    satisfies this through one request-scoped mechanism: the correlation middleware captures
    the caller-presented `X-Tenant-Id` (only that header — never actor, role, application,
@@ -274,30 +280,30 @@ under parent issue #586.
    resolved value via `admit_caller_tenant` so its Core calls and its response label carry
    one identical scope. A route's explicitly admitted `caller_headers` always override the
    ambient tenant,
-9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority. When a deployment's lotus-ai runs `verified_service_jwt` caller trust, operators provision the ops-issued platform credential through `LOTUS_AI_CALLER_CREDENTIAL` (a secret; passed through `docker-compose.yml`, empty in header-trust environments) and Gateway attaches it as a Bearer token on every lotus-ai request — Gateway mints nothing and lotus-ai owns verification. The credential is read once at process start with no runtime refetch: rotation is platform-managed secret rotation plus a governed rolling Gateway restart before expiry, a rejected or expired credential fails closed at lotus-ai on exactly one request, and Gateway never downgrades from verified identity to bare caller headers,
-10. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
+16. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority. When a deployment's lotus-ai runs `verified_service_jwt` caller trust, operators provision the ops-issued platform credential through `LOTUS_AI_CALLER_CREDENTIAL` (a secret; passed through `docker-compose.yml`, empty in header-trust environments) and Gateway attaches it as a Bearer token on every lotus-ai request — Gateway mints nothing and lotus-ai owns verification. The credential is read once at process start with no runtime refetch: rotation is platform-managed secret rotation plus a governed rolling Gateway restart before expiry, a rejected or expired credential fails closed at lotus-ai on exactly one request, and Gateway never downgrades from verified identity to bare caller headers,
+17. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
     `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as
     `lotus-gateway`; manage remains outcome evidence and workflow authority, Gateway preserves
     Manage-owned `client_communication_boundary` posture when present, and Gateway does not
     generate narrative or client communication truth locally,
-11. RFC-0038 DPM exception-summary AI handoff now reads manage-owned monitoring-exception evidence
+18. RFC-0038 DPM exception-summary AI handoff now reads manage-owned monitoring-exception evidence
     from the command-center exception queue and executes `lotus-ai`
     `dpm_exception_summary.pack@v1` as `lotus-gateway`; manage remains exception evidence
     authority, `lotus-ai` remains workflow-pack execution authority, and Gateway does not generate
     exception summaries locally, score PMs, approve trades, contact clients, route orders, or
     invent evidence,
-12. RFC-0041 operations-handoff summary now reads manage-owned `DpmWaveReportInput` handoff
+19. RFC-0041 operations-handoff summary now reads manage-owned `DpmWaveReportInput` handoff
     evidence and executes `lotus-ai` `dpm_operations_handoff_summary.pack@v1` as
     `lotus-gateway`; manage remains wave and handoff evidence authority, `lotus-ai` remains
     workflow-pack execution authority, and Gateway does not generate handoff summaries locally,
     score PMs, approve trades, contact clients, route orders, claim external execution, or invent
     evidence,
-13. RFC-0040 proof-pack AI PM memo handoff now reads manage-owned
+20. RFC-0040 proof-pack AI PM memo handoff now reads manage-owned
     `DpmProofPackAiEvidenceInput` and executes `lotus-ai` `dpm_pm_memo.pack@v1` as
     `lotus-gateway`; manage remains proof-pack evidence authority, `lotus-ai` remains workflow-pack
     execution authority, and Gateway does not generate memos, score PMs, approve trades, contact
     clients, place orders, or invent evidence,
-14. the six DPM AI handoff families publish one typed, product-safe
+21. the six DPM AI handoff families publish one typed, product-safe
     `DpmAiWorkflowExecution` boundary. Gateway validates lotus-ai service, pack, version, caller,
     correlation, workflow-surface, authorization, eligibility, task, run, provider, and authority
     identities before returning source-owned runtime, review, supportability, evidence, artifact,
@@ -313,9 +319,9 @@ under parent issue #586.
     at the typed DPM boundary. Advisor Brief applies the same policy before publishing completed
     AI narrative output and downgrades unverifiable completion to source-backed partial posture
     without returning the unverified AI payload,
-15. canonical local startup now depends on environment-scoped service identity and `--app-dir src`
+22. canonical local startup now depends on environment-scoped service identity and `--app-dir src`
     to avoid misleading Windows import-path failures.
-16. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+23. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
     fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
@@ -344,7 +350,7 @@ under parent issue #586.
     latest review event time, transition count, and history flag. Consumers must fail closed when
     that evidence is absent or malformed; terminal `review_state` is not sufficient evidence of a
     recorded human decision.
-17. performance workspace-summary orchestration uses
+24. performance workspace-summary orchestration uses
     `PERFORMANCE_SUMMARY_DEADLINE_SECONDS=30` as an end-to-end monotonic budget across submission
     and polling, while `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS=15` remains a per-call ceiling.
     Submission and result reads are limited to the remaining budget both through HTTPX
@@ -358,17 +364,17 @@ under parent issue #586.
     partial-readiness response and suppresses follow-on execution or lineage evidence reads; it is
     not masked by a replacement calculation or treated as successful because a later warm retry
     completes.
-18. performance `evidence_view` responses carry the inclusive `report_start_date` and
+25. performance `evidence_view` responses carry the inclusive `report_start_date` and
     `report_end_date` from the same Gateway-resolved workspace request context used for analytics.
     These boundaries are required across supported, partial, and unavailable evidence postures so
     Workbench can fail closed when calculation evidence does not match the advisor's review window;
     Workbench must not infer or reconstruct them.
-19. the portfolio performance-snapshot route uses `report_start_date` and `report_end_date` as
+26. the portfolio performance-snapshot route uses `report_start_date` and `report_end_date` as
     its canonical explicit-window query names, matching the summary, details, attribution-trend,
     and advisor-brief family. It retains `explicit_start_date` and `explicit_end_date` as
     deprecated one-release aliases; for each boundary, the canonical name wins when both are
     supplied.
-20. selected proposal Risk and Impact evidence is a typed anti-corruption projection over one
+27. selected proposal Risk and Impact evidence is a typed anti-corruption projection over one
     Advise detail read. Gateway centrally validates decision-status/top-level/action relationships,
     the gate-to-next-step matrix, compatible decision/workflow gates, and blocking-evidence
     posture. Contradictions fail closed; partial decision evidence cannot publish an executable
