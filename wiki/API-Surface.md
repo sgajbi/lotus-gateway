@@ -1105,7 +1105,9 @@ material/evidence versions. Queue retrieval and prefetch emit no
 receipt. The `ai-explanations` route forwards a bounded generation request (request id, one of
 three generation purposes, timezone-aware request time) and preserves the Lotus Idea outcome
 verbatim, including the explicit `EXPLANATION_UNAVAILABLE` degraded shape; a served explanation
-without an accepted evaluation verdict, mismatched evidence identity, or any transit authority
+contradicted by its own proof fields (disposition, verdict, runtime confirmation and run id,
+posture, verifier outcome, fallback flags, execution provenance class, AI lineage, text),
+carrying mismatched evidence identity, or attempting any transit authority
 escalation fails closed as a bounded 502, and `ai-explanations/readiness` forwards the source
 readiness posture without local interpretation. These routes record only Lotus Idea-owned
 workflow facts; they do not initiate downstream

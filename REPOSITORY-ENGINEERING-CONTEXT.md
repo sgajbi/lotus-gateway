@@ -239,8 +239,11 @@ under parent issue #586.
    visible-render presentation-receipt recordings, plus governed AI-explanation generation
    passthrough and readiness reads (transport-only over the Lotus Idea generation surface:
    the explicit `EXPLANATION_UNAVAILABLE` degraded shape passes through verbatim, and a served
-   explanation without an accepted evaluation verdict, mismatched evidence identity, or transit
-   authority escalation fails closed as a bounded 502) are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
+   explanation contradicted by its own proof — a disposition other than executed, an
+   unaccepted verdict, an unconfirmed runtime execution or missing run id, a posture other
+   than ready-for-advisor-review, an unpassed verifier, fallback use or a populated fallback
+   reason, a fallback-only execution provenance, unrecorded AI lineage, blank text, mismatched
+   evidence identity, or transit authority escalation — fails closed as a bounded 502) are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
    trusted context, correlation/trace context, and for mutations `Idempotency-Key` plus optional
    causation. It preserves `lotus-idea` ranking, source refs, durable-storage posture, accepted or
    replayed source outcomes, and `supportedFeaturePromoted=false`. Review and conversion requests
