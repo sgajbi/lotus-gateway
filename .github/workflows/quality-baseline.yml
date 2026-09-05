@@ -67,6 +67,14 @@ jobs:
           python scripts/check_agent_quality_evidence.py \
             2>&1 | tee output/quality-baseline/agent-quality-evidence.txt
 
+      - name: Enforce Branch Protection Policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p output/quality-baseline
+          python scripts/check_branch_protection_policy.py \
+            2>&1 | tee output/quality-baseline/branch-protection-policy.txt
+
       - name: Ruff
         continue-on-error: true
         run: |

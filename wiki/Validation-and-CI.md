@@ -103,6 +103,29 @@ Its `ARCHIVE_ACCESS_PREFLIGHT_TIMEOUT_SECONDS` setting is capped at three second
 unavailable Archive dependency from multiplying downstream calls or delaying a Report-owned status
 response; it does not define a total endpoint SLO.
 
+## Review authority and branch protection policy
+
+Merge review authority is held by the lotus-gateway review lead working with the
+`chatgpt-codex-connector` inline review bot: an exact-head `VERDICT: mergeable` means every
+required context is green on the current head and every review thread on that head is resolved.
+Unresolved disagreements escalate to the repository owner, who is the sole accepted collaborator.
+
+`main` protection deliberately sets `required_approving_review_count` to 0: with a single
+accepted collaborator, requiring a non-author approval would hard-lock the branch rather than
+strengthen it, and naming that collaborator in `CODEOWNERS` would record an independent-review
+control that does not exist. The compensating controls apply to every merge including the
+administrator's: seven required green contexts, `enforce_admins`, strict up-to-date branches,
+required conversation resolution, and linear history. The exception retires when a second
+accepted reviewer identity exists — then the approval count rises to 1, `CODEOWNERS` is added,
+and the policy updates in the same change.
+
+The complete field-by-field policy lives in
+[`quality/branch_protection_policy.v1.json`](../blob/main/quality/branch_protection_policy.v1.json),
+and the Quality Baseline lane's Enforce Branch Protection Policy step compares live `main`
+protection against it on every run — failing when protection weakens **and** when the documented
+exception is removed without the configuration strengthening, so the document and the
+configuration cannot drift apart in either direction.
+
 ## PR auto-merge posture
 
 PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses
