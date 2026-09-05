@@ -55,6 +55,13 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert text.index(guard) < text.index('dispatch_ref="main-releasability-${revision}"')
     assert text.index(guard) < text.index('-f ref="refs/tags/$dispatch_ref"')
     assert text.index(guard) < text.index("gh workflow run main-releasability.yml")
+    # The guard, tag write, and dispatch must all sit INSIDE the loop body:
+    # everything ordered above must come before the loop's closing done.
+    loop_end = text.index("
+          done", text.index("for revision in $revisions; do"))
+    assert text.index(guard) < loop_end
+    assert text.index('-f ref="refs/tags/$dispatch_ref"') < loop_end
+    assert text.index("gh workflow run main-releasability.yml") < loop_end
 
 
 def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
