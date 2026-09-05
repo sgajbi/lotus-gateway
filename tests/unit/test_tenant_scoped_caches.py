@@ -109,3 +109,26 @@ def test_risk_and_brief_response_cache_keys_are_partitioned_by_admitted_tenant()
     assert "tenant-a" in summary_a
     assert "tenant-b" in summary_b
     assert concentration_cache_key is not None
+
+
+@pytest.mark.asyncio
+async def test_core_writes_never_take_the_ambient_tenant_fence(monkeypatch) -> None:
+    from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
+
+    captured: dict[str, dict[str, str]] = {}
+
+    async def _fanout(**kwargs):
+        captured["headers"] = kwargs["headers"]
+        return 200, {}
+
+    monkeypatch.setattr("app.clients.lotus_core_ingestion_client.request_observed_fanout", _fanout)
+    client = LotusCoreIngestionClient(base_url="http://core", timeout_seconds=1.0)
+
+    token = _under_tenant("tenant-attacker")
+    try:
+        await client.ingest_portfolio_bundle(body={}, correlation_id="corr-write")
+    finally:
+        release_caller_identity(token)
+
+    # A caller-selected fence must never scope a Core mutation.
+    assert "X-Tenant-Id" not in captured["headers"]

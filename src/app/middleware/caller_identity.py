@@ -4,7 +4,9 @@ lotus-core's fail-closed ingress rejects any protected call without
 X-Tenant-Id, and Gateway's composed reads must carry the tenant the caller
 presented. The tenant is fencing context: forwarding it can only narrow what a
 source returns. It is therefore the ONLY header this ambient mechanism
-propagates, and only the Core-bound header builder consumes it: other
+propagates, and only the Core READ (query) client consumes it — never Core
+writes, where a caller-selected fence would scope a mutation into another
+tenant's partition: other
 upstream boundaries (for example the DPM/Manage read-authority forwarding)
 classify X-Tenant-Id itself as trusted authority.
 

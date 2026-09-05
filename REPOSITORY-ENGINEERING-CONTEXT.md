@@ -252,8 +252,11 @@ under parent issue #586.
    satisfies this through one request-scoped mechanism: the correlation middleware captures
    the caller-presented `X-Tenant-Id` (only that header — never actor, role, application,
    entitlement claims, or credentials), and `build_core_upstream_headers` in
-   `app/clients/upstream_headers.py` merges it EXCLUSIVELY on lotus-core query and
-   ingestion client calls. The generic `build_upstream_headers` propagates nothing
+   `app/clients/upstream_headers.py` merges it EXCLUSIVELY on lotus-core query (READ)
+   client calls. Core WRITES (the ingestion client behind the intake routes) never take
+   the ambient fence — a caller-selected tenant must not scope a mutation into another
+   tenant's partition; those writes stay unadmitted and are refused by Core's fail-closed
+   ingress until the intake routes admit tenant authority explicitly. The generic `build_upstream_headers` propagates nothing
    ambiently, deliberately: other upstream boundaries (for example the DPM/Manage
    read-authority forwarding) classify `X-Tenant-Id` itself as trusted authority, so an
    ambient merge there would turn an unadmitted request header into upstream scope. Never
