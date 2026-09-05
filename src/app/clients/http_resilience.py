@@ -33,6 +33,7 @@ async def request_with_retry(
     data: dict[str, Any] | None = None,
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
+    retry_ambiguous_request_errors: bool = True,
 ) -> tuple[int, dict[str, Any]]:
     """Preserve the stable tuple API while the typed outcome API serves policy-aware callers."""
     outcome = await request_with_retry_outcome(
@@ -48,6 +49,7 @@ async def request_with_retry(
         data=data,
         files=files,
         retry_timeout_exceptions=retry_timeout_exceptions,
+        retry_ambiguous_request_errors=retry_ambiguous_request_errors,
     )
     return outcome.as_result()
 

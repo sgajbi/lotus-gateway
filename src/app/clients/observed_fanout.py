@@ -43,6 +43,7 @@ async def request_observed_fanout(
     data: dict[str, Any] | None = None,
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
+    retry_ambiguous_request_errors: bool = True,
     total_deadline_seconds: float | None = None,
 ) -> tuple[int, dict[str, Any]]:
     started_at = gateway_analytics_fanout_timer()
@@ -59,6 +60,7 @@ async def request_observed_fanout(
         "data": data,
         "files": files,
         "retry_timeout_exceptions": retry_timeout_exceptions,
+        "retry_ambiguous_request_errors": retry_ambiguous_request_errors,
     }
     status_code, payload = await _request_with_optional_total_deadline(
         request_kwargs=request_kwargs,

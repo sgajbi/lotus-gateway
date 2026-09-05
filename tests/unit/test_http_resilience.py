@@ -17,9 +17,11 @@ from app.clients.http_response_payloads import (
     unsupported_method_payload,
 )
 from app.clients.http_retry_policy import (
+    is_ambiguous_response_loss_error,
     is_retryable_request_error,
     retry_attempts,
     retry_delay,
+    should_retry_request_error,
     should_retry_status,
 )
 from app.services.upstream_envelope import safe_upstream_detail
@@ -46,6 +48,45 @@ def test_http_resilience_delegates_retry_policy() -> None:
     assert "_retry_attempts" not in resilience_functions
     assert "_retry_delay" not in resilience_functions
     assert "_should_retry_status" not in resilience_functions
+
+
+def test_ambiguous_response_loss_classification_separates_pre_send_failures() -> None:
+    # The request may already have reached the producer.
+    assert is_ambiguous_response_loss_error(httpx.ReadError("response lost")) is True
+    assert is_ambiguous_response_loss_error(httpx.WriteError("send interrupted")) is True
+    assert is_ambiguous_response_loss_error(httpx.NetworkError("disconnected")) is True
+    assert is_ambiguous_response_loss_error(httpx.RemoteProtocolError("no response")) is True
+    # The request never left the caller.
+    assert is_ambiguous_response_loss_error(httpx.ConnectError("refused")) is False
+
+
+def test_should_retry_request_error_can_stop_ambiguous_replays() -> None:
+    common = {"retry_timeout_exceptions": False, "attempt": 0, "max_retries": 2}
+
+    assert (
+        should_retry_request_error(
+            exc=httpx.ReadError("response lost"),
+            retry_ambiguous_request_errors=False,
+            **common,
+        )
+        is False
+    )
+    assert (
+        should_retry_request_error(
+            exc=httpx.ConnectError("refused"),
+            retry_ambiguous_request_errors=False,
+            **common,
+        )
+        is True
+    )
+    assert (
+        should_retry_request_error(
+            exc=httpx.ReadError("response lost"),
+            retry_ambiguous_request_errors=True,
+            **common,
+        )
+        is True
+    )
 
 
 def test_http_response_payload_helpers_normalize_upstream_errors() -> None:

@@ -131,6 +131,7 @@ async def _retry_or_return_request_error(
     *,
     exc: httpx.RequestError,
     retry_timeout_exceptions: bool,
+    retry_ambiguous_request_errors: bool,
     attempt: int,
     max_retries: int,
     backoff_seconds: float,
@@ -138,6 +139,7 @@ async def _retry_or_return_request_error(
     if should_retry_request_error(
         exc=exc,
         retry_timeout_exceptions=retry_timeout_exceptions,
+        retry_ambiguous_request_errors=retry_ambiguous_request_errors,
         attempt=attempt,
         max_retries=max_retries,
     ):
@@ -156,6 +158,7 @@ async def _send_json_retry_attempt(
     request_kwargs: dict[str, Any],
     retry_status_codes: set[int] | None,
     retry_timeout_exceptions: bool,
+    retry_ambiguous_request_errors: bool,
     attempt: int,
     max_retries: int,
     backoff_seconds: float,
@@ -173,6 +176,7 @@ async def _send_json_retry_attempt(
         return await _retry_or_return_request_error(
             exc=exc,
             retry_timeout_exceptions=retry_timeout_exceptions,
+            retry_ambiguous_request_errors=retry_ambiguous_request_errors,
             attempt=attempt,
             max_retries=max_retries,
             backoff_seconds=backoff_seconds,
@@ -211,6 +215,7 @@ async def _execute_json_request(
     request_kwargs: dict[str, Any],
     retry_status_codes: set[int] | None,
     retry_timeout_exceptions: bool,
+    retry_ambiguous_request_errors: bool,
     max_retries: int,
     backoff_seconds: float,
 ) -> JsonRequestOutcome:
@@ -219,6 +224,7 @@ async def _execute_json_request(
             request_kwargs=request_kwargs,
             retry_status_codes=retry_status_codes,
             retry_timeout_exceptions=retry_timeout_exceptions,
+            retry_ambiguous_request_errors=retry_ambiguous_request_errors,
             attempt=attempt,
             max_retries=max_retries,
             backoff_seconds=backoff_seconds,
@@ -247,6 +253,7 @@ async def request_with_retry_outcome(
     data: dict[str, Any] | None = None,
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
+    retry_ambiguous_request_errors: bool = True,
 ) -> JsonRequestOutcome:
     request_method = method.upper()
     if request_method not in _JSON_REQUEST_METHODS:
@@ -269,6 +276,7 @@ async def request_with_retry_outcome(
         request_kwargs=request_kwargs,
         retry_status_codes=retry_status_codes,
         retry_timeout_exceptions=retry_timeout_exceptions,
+        retry_ambiguous_request_errors=retry_ambiguous_request_errors,
         max_retries=max_retries,
         backoff_seconds=backoff_seconds,
     )

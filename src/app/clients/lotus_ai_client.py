@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
@@ -37,42 +38,6 @@ class LotusAiClient:
             extras["Authorization"] = f"Bearer {self._caller_credential}"
         return build_upstream_headers(correlation_id, extras=extras or None)
 
-    async def execute_task(
-        self,
-        *,
-        task_id: str,
-        caller_app: str,
-        correlation_id: str,
-        context_summary: str,
-        context_payload: dict[str, Any],
-        source_refs: list[str],
-        expected_output_label: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        request_payload: dict[str, Any] = {
-            "task_id": task_id,
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": caller_app,
-                "correlation_id": correlation_id,
-            },
-            "context": {
-                "summary": context_summary,
-                "payload": context_payload,
-                "source_refs": source_refs,
-            },
-        }
-        if expected_output_label:
-            request_payload["expected_output_label"] = expected_output_label
-
-        return await self._request(
-            operation="ai.tasks.execute",
-            method="POST",
-            json_body=request_payload,
-            headers=self._client_headers(correlation_id, caller_app=False),
-            retry_timeout_exceptions=False,
-            path="/ai/tasks/execute",
-        )
-
     async def execute_workflow_pack(
         self,
         *,
@@ -83,7 +48,14 @@ class LotusAiClient:
         workflow_surface: str | None,
         task_request: dict[str, Any],
         correlation_id: str,
+        idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        # Replay identity for this logical execution: minted once per call and
+        # reused verbatim across transport retry attempts, so an ambiguous
+        # response loss replays lotus-ai's retained result instead of running
+        # a second execution. Correlation ids stay tracing-only and never
+        # serve as replay identity.
+        request_idempotency_key = idempotency_key or f"gw-pack-{uuid4()}"
         return await self._request(
             operation="ai.workflow-packs.execute",
             method="POST",
@@ -93,6 +65,7 @@ class LotusAiClient:
                 "environment": environment,
                 "caller_identity_class": caller_identity_class,
                 "workflow_surface": workflow_surface,
+                "idempotency_key": request_idempotency_key,
                 "task_request": task_request,
             },
             headers=self._client_headers(correlation_id, caller_app=True),
@@ -160,12 +133,17 @@ class LotusAiClient:
         correlation_id: str,
         request_payload: dict[str, Any],
     ) -> tuple[int, dict[str, Any]]:
+        # Review actions expose no producer replay identity: after an
+        # ambiguous response loss the transition may already be recorded, so
+        # an automatic retry could double-apply it. The indeterminate outcome
+        # is surfaced instead.
         return await self._request(
             operation="ai.workflow-packs.runs.review-actions",
             method="POST",
             json_body=request_payload,
             headers=self._client_headers(correlation_id, caller_app=True),
             retry_timeout_exceptions=False,
+            retry_ambiguous_request_errors=False,
             path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
         )
 
@@ -192,6 +170,7 @@ class LotusAiClient:
         headers: dict[str, str] | None = None,
         json_body: dict[str, Any] | None = None,
         retry_timeout_exceptions: bool = True,
+        retry_ambiguous_request_errors: bool = True,
     ) -> tuple[int, dict[str, Any]]:
         return await request_observed_fanout(
             logger=logger,
@@ -206,4 +185,5 @@ class LotusAiClient:
             headers=headers,
             json_body=json_body,
             retry_timeout_exceptions=retry_timeout_exceptions,
+            retry_ambiguous_request_errors=retry_ambiguous_request_errors,
         )

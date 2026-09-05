@@ -745,49 +745,36 @@ async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
 
 
 @pytest.mark.asyncio
-async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_headers():
-    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
-    _FakeAsyncClient.queue_json(
-        200,
-        {
-            "status": "COMPLETED",
-            "task_id": "explain.v1",
-            "category": "explain",
-            "output_label": "EXPLANATION_ONLY",
-            "result": {"message": "Advisor summary.", "structured_output": {}},
-            "audit": {"request_id": "req-1"},
-            "evidence": {"descriptors": []},
-        },
+async def test_lotus_ai_client_reuses_one_replay_identity_across_retry_attempts():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0, retry_backoff_seconds=0.0)
+    _FakeAsyncClient.queue_request_error(
+        httpx.RemoteProtocolError("Server disconnected without sending a response.")
     )
+    _FakeAsyncClient.queue_json(200, {"workflow_pack_run": {"run_id": "packrun_1"}})
 
-    status, payload = await client.execute_task(
-        task_id="explain.v1",
-        caller_app="lotus-gateway",
-        correlation_id="corr-ai-1",
-        context_summary="Advisor brief context",
-        context_payload={"portfolio_id": "PF_1001"},
-        source_refs=["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
-        expected_output_label="EXPLANATION_ONLY",
+    status, payload = await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={"task_id": "explain.v1"},
+        correlation_id="corr-ai-replay-1",
     )
 
     assert status == 200
-    assert payload["status"] == "COMPLETED"
-    assert _FakeAsyncClient.calls[-1]["url"] == "http://ai/ai/tasks/execute"
-    assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-1"
-    assert _FakeAsyncClient.calls[-1]["json"] == {
-        "task_id": "explain.v1",
-        "input_mode": "STRUCTURED_CONTEXT",
-        "caller": {
-            "caller_app": "lotus-gateway",
-            "correlation_id": "corr-ai-1",
-        },
-        "context": {
-            "summary": "Advisor brief context",
-            "payload": {"portfolio_id": "PF_1001"},
-            "source_refs": ["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
-        },
-        "expected_output_label": "EXPLANATION_ONLY",
-    }
+    assert payload["workflow_pack_run"]["run_id"] == "packrun_1"
+    attempts = [
+        call
+        for call in _FakeAsyncClient.calls
+        if call["url"] == "http://ai/platform/workflow-packs/execute"
+    ]
+    assert len(attempts) == 2
+    # The ambiguous response loss may have committed the execution: the retry
+    # must present the identical replay identity so lotus-ai replays the
+    # retained result rather than running a second execution.
+    assert attempts[0]["json"]["idempotency_key"].startswith("gw-pack-")
+    assert attempts[1]["json"] == attempts[0]["json"]
 
 
 @pytest.mark.asyncio
@@ -803,13 +790,14 @@ async def test_lotus_ai_client_emits_safe_fanout_metrics_without_prompt_content(
         },
     )
 
-    status, payload = await client.execute_task(
-        task_id="explain.v1",
-        caller_app="lotus-gateway",
+    status, payload = await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={"task_id": "explain.v1"},
         correlation_id="corr-ai-observed",
-        context_summary="Advisor brief context",
-        context_payload={"portfolio_id": "PF_1001"},
-        source_refs=["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
     )
 
     assert status == 503
@@ -817,7 +805,7 @@ async def test_lotus_ai_client_emits_safe_fanout_metrics_without_prompt_content(
     [record] = _fanout_records(caplog.records, service="lotus-ai")
     fields = record.extra_fields
     assert fields["event"] == "gateway.analytics.fanout.degraded"
-    assert fields["operation"] == "ai.tasks.execute"
+    assert fields["operation"] == "ai.workflow-packs.execute"
     assert fields["status_class"] == "5xx"
     assert fields["reason"] == "upstream_unavailable"
     assert "raw_prompt" not in fields
@@ -867,6 +855,52 @@ async def test_lotus_ai_client_posts_workflow_pack_review_actions():
 
 
 @pytest.mark.asyncio
+async def test_lotus_ai_client_does_not_replay_review_actions_after_ambiguous_response_loss():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0, retry_backoff_seconds=0.0)
+    _FakeAsyncClient.queue_request_error(httpx.ReadError("response lost mid-read"))
+    _FakeAsyncClient.queue_json(200, {"run": {"run_id": "packrun_1"}})
+
+    status, payload = await client.apply_workflow_pack_run_review_action(
+        run_id="packrun_1",
+        correlation_id="corr-ai-review-loss",
+        request_payload={"action_type": "ACCEPT"},
+    )
+
+    # Review actions carry no replay identity, so the transition may already
+    # be recorded: the outcome stays indeterminate instead of being re-sent.
+    assert status == 503
+    assert payload["detail"].startswith("upstream communication failure")
+    review_calls = [
+        call
+        for call in _FakeAsyncClient.calls
+        if call["url"].endswith("/runs/packrun_1/review-actions")
+    ]
+    assert len(review_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_retries_review_actions_when_the_request_never_left():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0, retry_backoff_seconds=0.0)
+    _FakeAsyncClient.queue_request_error(httpx.ConnectError("connection refused"))
+    _FakeAsyncClient.queue_json(200, {"run": {"run_id": "packrun_1", "review_state": "ACCEPTED"}})
+
+    status, payload = await client.apply_workflow_pack_run_review_action(
+        run_id="packrun_1",
+        correlation_id="corr-ai-review-retry",
+        request_payload={"action_type": "ACCEPT"},
+    )
+
+    assert status == 200
+    assert payload["run"]["review_state"] == "ACCEPTED"
+    review_calls = [
+        call
+        for call in _FakeAsyncClient.calls
+        if call["url"].endswith("/runs/packrun_1/review-actions")
+    ]
+    assert len(review_calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract():
     client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
     _FakeAsyncClient.queue_json(
@@ -913,6 +947,7 @@ async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract()
             "expected_output_label": "EXPLANATION_ONLY",
         },
         correlation_id="corr-ai-pack-1",
+        idempotency_key="gw-pack-brief-op-1",
     )
 
     assert status == 200
@@ -926,6 +961,7 @@ async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract()
         "environment": "DEVELOPMENT",
         "caller_identity_class": "BANKER_PRODUCT",
         "workflow_surface": "advisor-brief-workspace",
+        "idempotency_key": "gw-pack-brief-op-1",
         "task_request": {
             "task_id": "explain.v1",
             "input_mode": "STRUCTURED_CONTEXT",
@@ -4905,21 +4941,14 @@ async def test_lotus_ai_client_attaches_configured_caller_credential_everywhere(
         task_request={},
         correlation_id="corr-ai-credential",
     )
-    await client.execute_task(
-        task_id="explain.v1",
-        caller_app="lotus-gateway",
-        correlation_id="corr-ai-credential",
-        context_summary="ctx",
-        context_payload={},
-        source_refs=[],
-    )
+    await client.get_observability_runtime_status(correlation_id="corr-ai-credential")
 
     pack_headers = _FakeAsyncClient.calls[-2]["headers"]
-    task_headers = _FakeAsyncClient.calls[-1]["headers"]
+    runtime_headers = _FakeAsyncClient.calls[-1]["headers"]
     assert pack_headers["Authorization"] == "Bearer eyJhbGciOiJFZERTQSJ9.credential.signature"
     assert pack_headers["X-Caller-App"] == "lotus-gateway"
-    assert task_headers["Authorization"] == "Bearer eyJhbGciOiJFZERTQSJ9.credential.signature"
-    assert "X-Caller-App" not in task_headers
+    assert runtime_headers["Authorization"] == "Bearer eyJhbGciOiJFZERTQSJ9.credential.signature"
+    assert "X-Caller-App" not in runtime_headers
     # The secret must never reach fan-out logs.
     assert "credential.signature" not in caplog.text
 
