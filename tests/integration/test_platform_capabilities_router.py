@@ -493,3 +493,13 @@ def test_platform_capabilities_defaults_and_binds_when_no_tenant_is_presented(mo
     assert response.status_code == 200
     assert captured["tenant_id"] == "default"
     assert captured["ambient"] == {"X-Tenant-Id": "default"}
+
+
+def test_platform_capabilities_openapi_declares_the_tenant_admission_contract():
+    operation = app.openapi()["paths"]["/api/v1/platform/capabilities"]["get"]
+    parameters = {item["name"] for item in operation["parameters"]}
+
+    assert {"consumerSystem", "tenantId", "X-Tenant-Id"} <= parameters
+    assert "exactly one tenant scope" in operation["description"]
+    assert "400" in operation["responses"]
+    assert "platform_tenant_scope_ambiguous" in operation["responses"]["400"]["description"]

@@ -65,8 +65,20 @@ async def _get_platform_capabilities(
         "workflow negotiation. Gateway fans out to upstream capability and policy "
         "sources concurrently, applies a bounded per-source timeout, and returns "
         "partial-failure diagnostics instead of serially blocking the shell while "
-        "an optional source is degraded."
+        "an optional source is degraded. The route admits exactly one tenant scope: "
+        "the tenantId query selector and the X-Tenant-Id caller context must agree "
+        "when both are presented, and the governed default tenant applies only when "
+        "neither is given."
     ),
+    responses={
+        400: {
+            "description": (
+                "The tenantId query selector and the X-Tenant-Id caller context "
+                "disagree; the request is rejected before any upstream call with "
+                "code platform_tenant_scope_ambiguous."
+            ),
+        },
+    },
 )
 async def get_platform_capabilities(
     consumer_system: str = Query(
