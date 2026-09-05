@@ -18,6 +18,21 @@ from app.services.reporting_search_scope import (
 )
 
 
+def _assert_lineage_rows_match_snapshot(
+    response: ReportSnapshotLineageResponse,
+    *,
+    operation: str,
+) -> None:
+    # Append-only lineage rows each name their owning snapshot; a row for a
+    # different snapshot must not ride in on a correctly owned envelope.
+    for upstream_call in response.upstream_calls:
+        assert_report_response_identity(
+            operation=operation,
+            expected={"snapshot_id": response.snapshot.snapshot_id},
+            actual={"snapshot_id": upstream_call.snapshot_id},
+        )
+
+
 class ReportingJobQueryService:
     def __init__(self, *, reporting_client: ReportingJobQueryClient) -> None:
         self._reporting_client = reporting_client
@@ -80,6 +95,14 @@ class ReportingJobQueryService:
             expected={"report_job_id": job_id},
             actual={"report_job_id": response.report_job_id},
         )
+        # Every event row carries its own job identity; a well-formed event
+        # belonging to another job must not ride in on a correct envelope.
+        for event in response.events:
+            assert_report_response_identity(
+                operation="report job events",
+                expected={"report_job_id": job_id},
+                actual={"report_job_id": event.report_job_id},
+            )
         return response
 
     async def get_report_job_lineage(
@@ -100,6 +123,7 @@ class ReportingJobQueryService:
             expected={"report_job_id": job_id},
             actual={"report_job_id": response.snapshot.report_job_id},
         )
+        _assert_lineage_rows_match_snapshot(response, operation="report job lineage")
         return response
 
     async def cancel_report_job(
@@ -160,4 +184,5 @@ class ReportingJobQueryService:
             expected={"snapshot_id": snapshot_id},
             actual={"snapshot_id": response.snapshot.snapshot_id},
         )
+        _assert_lineage_rows_match_snapshot(response, operation="report snapshot lineage")
         return response
