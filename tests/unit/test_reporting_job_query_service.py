@@ -519,3 +519,48 @@ async def test_reporting_job_query_service_maps_a_malformed_list_success_to_a_bo
 
     assert exc_info.value.status_code == 502
     assert exc_info.value.detail["code"] == "report_job_source_contract_invalid"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_an_event_row_for_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    payload = _job_events_payload()
+    payload["events"][0]["report_job_id"] = "rjob_other"
+    reporting_client.events_response = (200, payload)
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_events(
+            job_id="rjob_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_a_lineage_row_for_a_different_snapshot() -> None:
+    reporting_client = _ReportingClient()
+    payload = _lineage_payload()
+    payload["upstream_calls"][0]["snapshot_id"] = "rsnap_other"
+    reporting_client.lineage_response = (200, payload)
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_lineage(
+            job_id="rjob_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_snapshot_lineage(
+            snapshot_id="rsnap_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
