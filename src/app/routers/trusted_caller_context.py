@@ -71,8 +71,9 @@ def intake_write_caller_context_dependency(
     call otherwise. Tenant-authority verification itself is owned by lotus-core
     on its ingress; Gateway forwards only what this admission returned."""
 
-    require_intake_write_capability(capabilities)
-    return require_trusted_caller_context(
+    # Context first so callers missing headers get the actionable
+    # missing_headers diagnostic (400) before the capability verdict (403).
+    admitted = require_trusted_caller_context(
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
@@ -80,6 +81,8 @@ def intake_write_caller_context_dependency(
         booking_center_code=booking_center_code,
         role=role,
     )
+    require_intake_write_capability(capabilities)
+    return admitted
 
 
 IntakeWriteCallerContext = Annotated[
