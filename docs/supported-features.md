@@ -322,8 +322,10 @@ scope, `Idempotency-Key`, correlation and trace context, and optional `X-Causati
 deriving lifecycle, authorization, audit, or downstream authority locally. The AI-explanation
 routes are pure transport over the Lotus Idea generation surface: the explicit
 `EXPLANATION_UNAVAILABLE` degraded shape and its disposition reason class pass through verbatim,
-and a served explanation without an accepted evaluation verdict, with mismatched evidence
-identity, or with any transit authority escalation fails closed as a bounded 502. The
+and a served explanation contradicted by its own proof fields (disposition, verdict, runtime
+confirmation and run id, posture, verifier outcome, fallback flags, execution provenance
+class, AI lineage, text), with mismatched evidence identity, or with any transit authority
+escalation fails closed as a bounded 502. The
 review-action and
 conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
 feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
