@@ -110,6 +110,52 @@ async def test_async_ttl_cache_accepts_future_factory_result() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_ttl_cache_publishes_an_already_completed_future_synchronously() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    loop = asyncio.get_running_loop()
+    calls = 0
+
+    def factory() -> asyncio.Future[int]:
+        nonlocal calls
+        calls += 1
+        future: asyncio.Future[int] = loop.create_future()
+        future.set_result(9)
+        return future
+
+    value, was_cached = await cache.get_or_set_with_status(("portfolio", "P1"), factory)
+    second, second_cached = await cache.get_or_set_with_status(("portfolio", "P1"), factory)
+
+    assert (value, was_cached) == (9, False)
+    assert (second, second_cached) == (9, True)
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_recovers_immediately_from_an_already_failed_future() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    loop = asyncio.get_running_loop()
+    calls = 0
+
+    def factory() -> asyncio.Future[int]:
+        nonlocal calls
+        calls += 1
+        future: asyncio.Future[int] = loop.create_future()
+        if calls == 1:
+            future.set_exception(RuntimeError("upstream failed"))
+        else:
+            future.set_result(7)
+        return future
+
+    with pytest.raises(RuntimeError, match="upstream failed"):
+        await cache.get_or_set(("portfolio", "P1"), factory)
+
+    recovered = await cache.get_or_set(("portfolio", "P1"), factory)
+
+    assert recovered == 7
+    assert calls == 2
+
+
+@pytest.mark.asyncio
 async def test_async_ttl_cache_one_waiter_cancellation_keeps_shared_work_alive() -> None:
     cache = AsyncTtlCache[int](ttl_seconds=60)
     started = asyncio.Event()

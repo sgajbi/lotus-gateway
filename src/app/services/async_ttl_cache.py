@@ -48,8 +48,15 @@ class AsyncTtlCache(Generic[T]):
             task = self._inflight.get(key)
             if task is None:
                 task = asyncio.ensure_future(factory())
-                task.add_done_callback(partial(self._publish_fill, key))
-                self._inflight[key] = task
+                if task.done():
+                    # An already-completed future must publish before this
+                    # call returns: its done-callback would only run on a
+                    # later loop turn, leaving a failed future joinable and a
+                    # successful one reported as a miss in the meantime.
+                    self._record_fill_result(key, task)
+                else:
+                    task.add_done_callback(partial(self._publish_fill, key))
+                    self._inflight[key] = task
 
         return await asyncio.shield(task), False
 
@@ -57,6 +64,9 @@ class AsyncTtlCache(Generic[T]):
         if self._inflight.get(key) is not task:
             return
         del self._inflight[key]
+        self._record_fill_result(key, task)
+
+    def _record_fill_result(self, key: tuple[object, ...], task: asyncio.Future[T]) -> None:
         if task.cancelled() or task.exception() is not None:
             return
         self._entries[key] = (monotonic() + self._ttl_seconds, task.result())
