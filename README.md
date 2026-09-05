@@ -13,7 +13,8 @@ For product teams building on Lotus, Gateway provides:
 - composed product views that preserve each source's authority, evidence and supportability
 - truthful availability states — partial, degraded, unavailable and permission-blocked —
   the UI can render without guessing
-- trusted caller-context admission and bounded product-safe errors at every route
+- trusted caller-context admission on the routes that declare it, and bounded product-safe
+  errors throughout
 
 Three availability and safety rules are worth knowing before integrating:
 
@@ -21,9 +22,10 @@ Three availability and safety rules are worth knowing before integrating:
   workspace keeps its cohort rows, for example
 - a failed required source — an unresolvable membership cohort, a missing core portfolio
   payload — fails that request explicitly instead of fabricating a partial answer
-- write idempotency and source-response admission are route-declared, not universal: retries
-  replay only where the contract requires an `Idempotency-Key`, and some proposal write
-  responses are deliberately opaque source envelopes
+- write idempotency and source-response admission are route-declared, not universal: a retry
+  replays only when the request carries an `Idempotency-Key` — required on some mutation
+  families, accepted optionally on others, absent on a few — and some proposal write responses
+  are deliberately opaque source envelopes
 
 ## Place In The Platform
 
