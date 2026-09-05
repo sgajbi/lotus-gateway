@@ -14,8 +14,10 @@ one of three bounded generation purposes, timezone-aware request time) and reads
 `GET /api/v1/ideas/ai-explanations/readiness`. Lotus Idea owns generation, governed acceptance,
 provenance, and lineage; Gateway preserves the outcome verbatim — including the explicit
 `EXPLANATION_UNAVAILABLE` degraded shape with its disposition reason class — and fails closed as
-a bounded 502 when a served explanation lacks an accepted evaluation verdict, its evidence
-identity mismatches the request, or transit attempts an authority escalation.
+a bounded 502 when a served explanation is contradicted by its own proof fields (disposition,
+verdict, runtime confirmation and run id, posture, verifier outcome, fallback flags,
+execution provenance class, AI lineage, text), its evidence identity mismatches the request,
+or transit attempts an authority escalation.
 
 ## Runtime flow
 
