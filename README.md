@@ -15,8 +15,9 @@ For product teams building on Lotus, Gateway provides:
   authority, evidence and supportability
 - explicit partial, degraded, unavailable and permission-blocked states the UI can render
   truthfully: a degraded source degrades only its own fact block and never removes delivered rows
-- trusted caller-context admission, idempotent writes, semantic validation of source responses,
-  and bounded product-safe errors at every route
+- trusted caller-context admission, replay-identified writes for the mutation families whose
+  contracts require an `Idempotency-Key`, semantic validation of source responses, and bounded
+  product-safe errors at every route
 
 ## Place In The Platform
 
@@ -34,7 +35,9 @@ owning services  lotus-core · lotus-performance · lotus-risk · lotus-advise �
 Domain authority stays with the owning services: Core owns portfolio facts, Performance and Risk
 own analytics, Advise/Manage/Idea own their workflows, Report owns report execution, Archive owns
 documents, and AI owns its execution and accepted-output contracts. Gateway composes, validates
-and publishes; it never recomputes domain truth, mints identity, or invents evidence.
+and publishes; it never recomputes domain truth, mints source-owned domain record identity, or
+invents evidence (transport identifiers such as correlation ids and replay keys are
+Gateway-generated plumbing, not domain records).
 
 ## Capability And Availability
 
