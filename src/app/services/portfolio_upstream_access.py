@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_client_protocols import (
     PortfolioCoreClient,
@@ -27,7 +28,12 @@ class PortfolioUpstreamAccessMixin:
         key: tuple[object, ...],
         loader: Callable[[], Awaitable[UpstreamResult]],
     ) -> UpstreamResult:
-        return await self._upstream_cache.get_or_set(key=key, factory=loader)
+        # Core answers under the admitted tenant fence, so every cached
+        # upstream result is partitioned by it — one tenant's response must
+        # never satisfy another tenant's read.
+        return await self._upstream_cache.get_or_set(
+            key=(admitted_tenant_cache_scope(), *key), factory=loader
+        )
 
     async def _get_portfolio_result(self, portfolio_id: str, correlation_id: str) -> UpstreamResult:
         return await self._get_cached_upstream_result(
