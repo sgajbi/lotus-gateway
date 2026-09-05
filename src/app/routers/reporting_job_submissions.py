@@ -8,7 +8,7 @@ from app.contracts.reporting import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import ReportingCallerHeaderInputs
-from app.routers.reporting_errors import report_job_error_response
+from app.routers.reporting_errors import report_job_submission_error_responses
 from app.routers.reporting_examples import PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES
 from app.services.reporting_links import gateway_report_job_status_url
 from app.services.reporting_service_provider import reporting_job_submission_service
@@ -47,27 +47,7 @@ async def _submit_portfolio_review_report_job(
         "generation with idempotency and supportable status tracking. The response is a job "
         "handle, not a rendered document."
     ),
-    responses={
-        **report_job_error_response(
-            400,
-            example_key="missing_idempotency_key",
-            description="Returned when idempotency or required caller context is missing.",
-        ),
-        **report_job_error_response(
-            409,
-            example_key="idempotency_conflict",
-            description="Returned when the idempotency key conflicts with a different request.",
-        ),
-        **report_job_error_response(
-            502,
-            example_key="report_job_upstream_unavailable",
-            description=(
-                "Returned when lotus-report is unavailable, returns an unsafe failure, or "
-                "answers with a malformed success or evidence for a different identity, "
-                "which is refused rather than published."
-            ),
-        ),
-    },
+    responses=report_job_submission_error_responses(),
 )
 async def submit_portfolio_review_report_job(
     request: Annotated[
