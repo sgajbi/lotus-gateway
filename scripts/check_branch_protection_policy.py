@@ -29,6 +29,21 @@ POLICY_PATH = Path(__file__).resolve().parents[1] / "quality" / "branch_protecti
 
 _REQUIRED_EXCEPTION_KEYS = {"field", "value", "reason", "compensating_controls", "retires_when"}
 
+# Every field the live comparison reads. Without this list an edit could drop a
+# field, pass --offline in the blocking lane, and only fail hours later in the
+# scheduled live run.
+_REQUIRED_EXPECTED_KEYS = (
+    "enforce_admins",
+    "required_linear_history",
+    "allow_force_pushes",
+    "allow_deletions",
+    "required_conversation_resolution",
+    "required_status_checks",
+    "required_pull_request_reviews",
+    "restrictions_present",
+    "codeowners_present",
+)
+
 
 def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -45,6 +60,14 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         if not str(authority.get(key, "")).strip():
             issues.append(f"review_authority.{key} must be documented")
     expected = policy.get("expected", {})
+    for key in _REQUIRED_EXPECTED_KEYS:
+        if key not in expected:
+            issues.append(f"expected.{key} must be declared")
+    contexts = expected.get("required_status_checks", {}).get("contexts")
+    if isinstance(contexts, list) and not contexts:
+        issues.append(
+            "expected.required_status_checks.contexts is empty: nothing would be required"
+        )
     reviews = expected.get("required_pull_request_reviews", {})
     for exception in policy.get("documented_exceptions", []):
         missing = _REQUIRED_EXCEPTION_KEYS - set(exception)
