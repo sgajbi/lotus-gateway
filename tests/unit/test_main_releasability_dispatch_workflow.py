@@ -48,6 +48,9 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert text.index("git fetch origin main --quiet") < text.index(
         "git checkout --quiet --detach FETCH_HEAD"
     )
+    assert text.index("git checkout --quiet --detach FETCH_HEAD") < text.index(
+        "for revision in $revisions; do"
+    )
     assert text.index("for revision in $revisions; do") < text.index(guard)
     assert text.index(guard) < text.index('dispatch_ref="main-releasability-${revision}"')
     assert text.index(guard) < text.index('-f ref="refs/tags/$dispatch_ref"')
