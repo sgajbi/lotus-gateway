@@ -824,6 +824,14 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    `COMPLETE` aggregate over an untrustworthy member, degrades the value block through the typed
    contract-invalid refusal while rows and action facts survive; carry-forward `snapshot_date`
    and `MEASURED_ZERO` facts are preserved, and Gateway never recomputes Core's totals.
+6. Mutation idempotency and caller-context admission are route-declared, never universal: a
+   retry replays only when the request carries an `Idempotency-Key`, which is required on some
+   mutation families, accepted optionally on others (execution handoff/update, memo review and
+   AI commentary, report-package request/event, narrative review), and absent on a few
+   (proposal report requests take none and are not replay-safe to retry). The generated OpenAPI
+   is each route's authoritative declaration.
+7. Canonical `gateway.dev.lotus` addressing exists only while the optional platform ingress is
+   active; `make run-canonical` serves `127.0.0.1:8111` and does not provision that hostname.
 
 ## Context Maintenance Rule
 
