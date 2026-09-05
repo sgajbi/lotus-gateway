@@ -16,6 +16,7 @@ from app.services.advisor_book_service_errors import (
     value_source_unavailable,
 )
 from app.services.advisor_book_value_source_contract import (
+    TRUSTWORTHY_MEMBER_COVERAGE_STATES,
     SourceBulkSummaryMember,
     SourceBulkSummaryResponse,
 )
@@ -35,6 +36,19 @@ def validate_value_source(
         or source.resolved_as_of_date != requested_as_of_date
         or (source.reporting_currency or "").strip().upper() != requested_reporting_currency
         or source.aggregate.portfolio_count != len(requested_portfolio_ids)
+    ):
+        raise value_source_contract_invalid()
+    # Core resolves every member on the cohort basis; an older carry-forward
+    # basis travels in snapshot_date, never in resolved_as_of_date. A member
+    # resolved on a different date contradicts the admitted cohort.
+    if any(member.resolved_as_of_date != requested_as_of_date for member in source.portfolios):
+        raise value_source_contract_invalid()
+    # Core's aggregate is fail-closed: COMPLETE asserts that every member is
+    # trustworthy, so a COMPLETE aggregate over an untrustworthy member
+    # contradicts its own member coverage evidence.
+    if source.aggregate.coverage_state == "COMPLETE" and any(
+        member.coverage_state not in TRUSTWORTHY_MEMBER_COVERAGE_STATES
+        for member in source.portfolios
     ):
         raise value_source_contract_invalid()
 

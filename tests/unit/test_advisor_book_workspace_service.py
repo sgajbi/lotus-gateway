@@ -394,3 +394,82 @@ async def test_workspace_incomplete_membership_is_fatal() -> None:
         await _get(service, "corr-incomplete")
 
     assert raised.value.code == "advisor_book_source_incomplete"
+
+
+@pytest.mark.asyncio
+async def test_workspace_refuses_a_member_resolved_off_the_cohort_date() -> None:
+    # Core resolves every member on the cohort basis; a member resolved on a
+    # different date is contradictory evidence, not a legitimate carry-forward.
+    drifted = covered_member("PB_001", "600.00", "100.00")
+    drifted["resolved_as_of_date"] = "2026-04-09"
+    service = _service(
+        membership_payload("PB_001"),
+        value_client=ValueClient(payload=bulk_payload(["PB_001"], [drifted])),
+        cockpit=_StubCockpitService(pages=[_action_page([_action("a1", portfolio_id="PB_001")])]),
+    )
+
+    response = await _get(service, "corr-member-date-drift")
+
+    assert response.value_facts.state == "unavailable"
+    assert response.value_facts.reason_code == "value_source_contract_invalid"
+    assert [row.portfolio_id for row in response.rows] == ["PB_001"]
+    assert response.rows[0].value is None
+    assert response.rows[0].action_items is not None
+    assert response.action_facts.state == "stated"
+
+
+@pytest.mark.asyncio
+async def test_workspace_refuses_a_complete_aggregate_contradicted_by_member_coverage() -> None:
+    # Core's aggregate is fail-closed: COMPLETE over an untrustworthy member
+    # contradicts its own member coverage evidence.
+    service = _service(
+        membership_payload("PB_001", "PB_002"),
+        value_client=ValueClient(
+            payload=bulk_payload(
+                ["PB_001", "PB_002"],
+                [
+                    covered_member("PB_001", "600.00", "100.00"),
+                    uncovered_member("PB_002", "NO_SNAPSHOT"),
+                ],
+                aggregate_state="COMPLETE",
+            )
+        ),
+        cockpit=_StubCockpitService(pages=[_action_page([])]),
+    )
+
+    response = await _get(service, "corr-aggregate-contradiction")
+
+    assert response.value_facts.state == "unavailable"
+    assert response.value_facts.reason_code == "value_source_contract_invalid"
+    assert [row.portfolio_id for row in response.rows] == ["PB_001", "PB_002"]
+    assert response.rows[0].value is None
+    assert response.action_facts.state == "stated"
+
+
+@pytest.mark.asyncio
+async def test_workspace_preserves_carry_forward_and_measured_zero_evidence() -> None:
+    carried = covered_member("PB_001", "600.00", "100.00")
+    carried["coverage_state"] = "CARRY_FORWARD"
+    carried["coverage_reason"] = "latest_source_snapshot_precedes_as_of_date"
+    carried["snapshot_date"] = "2026-04-05"
+    measured_zero = covered_member("PB_002", "0.00", "0.00")
+    measured_zero["coverage_state"] = "MEASURED_ZERO"
+    measured_zero["coverage_reason"] = "loaded_snapshot_measures_zero_value"
+    service = _service(
+        membership_payload("PB_001", "PB_002"),
+        value_client=ValueClient(
+            payload=bulk_payload(["PB_001", "PB_002"], [carried, measured_zero])
+        ),
+        cockpit=_StubCockpitService(pages=[_action_page([])]),
+    )
+
+    response = await _get(service, "corr-carry-forward")
+
+    assert response.value_facts.state == "stated"
+    assert response.rows[0].value is not None
+    assert response.rows[0].value.coverage_state == "CARRY_FORWARD"
+    assert response.rows[0].value.snapshot_date == date(2026, 4, 5)
+    assert response.rows[0].value.total_value == Decimal("600.00")
+    assert response.rows[1].value is not None
+    assert response.rows[1].value.coverage_state == "MEASURED_ZERO"
+    assert response.rows[1].value.total_value == Decimal("0.00")
