@@ -113,12 +113,12 @@ async def request_binary_with_retry(
     method: str,
     url: str,
     timeout_seconds: float,
+    retry_timeout_exceptions: bool = True,
     max_retries: int = 2,
     backoff_seconds: float = 0.2,
     retry_status_codes: set[int] | None = None,
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
-    retry_timeout_exceptions: bool = True,
 ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]:
     request_method = method.upper()
     if request_method not in _BINARY_REQUEST_METHODS:
