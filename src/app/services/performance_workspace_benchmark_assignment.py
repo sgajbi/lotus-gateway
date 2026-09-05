@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_failures import build_performance_failure
 from app.services.upstream_envelope import safe_upstream_detail
@@ -27,9 +28,10 @@ def benchmark_assignment_cache_key(
     portfolio_id: str,
     as_of_date: str,
     reporting_currency: str,
-) -> tuple[str, str, str, str]:
+) -> tuple[str, str, str, str, str]:
     return (
         "benchmark_assignment",
+        admitted_tenant_cache_scope(),
         portfolio_id,
         as_of_date,
         reporting_currency,
@@ -147,7 +149,7 @@ async def resolve_benchmark_code(
 async def _refresh_missing_benchmark_code(
     *,
     cache: AsyncTtlCache[Any],
-    cache_key: tuple[str, str, str, str],
+    cache_key: tuple[str, str, str, str, str],
     cache_hit: bool,
     core_client: PerformanceWorkspaceCoreClient,
     portfolio_id: str,

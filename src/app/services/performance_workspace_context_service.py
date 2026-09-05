@@ -5,6 +5,7 @@ from typing import Any, cast
 from fastapi import HTTPException, status
 
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_benchmarks import fetch_benchmark_context
@@ -74,7 +75,11 @@ class PerformanceWorkspaceContextServiceMixin:
         key: tuple[object, ...],
         loader: Any,
     ) -> Any:
-        return await self._upstream_cache.get_or_set(key=key, factory=loader)
+        # Core answers under the admitted tenant fence, so every cached
+        # upstream result is partitioned by it.
+        return await self._upstream_cache.get_or_set(
+            key=(admitted_tenant_cache_scope(), *key), factory=loader
+        )
 
     async def _get_cached_workspace_overview(
         self,

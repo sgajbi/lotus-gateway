@@ -52,3 +52,15 @@ def admit_caller_tenant(tenant: str) -> Token:
     every upstream call it makes."""
 
     return _caller_tenant_var.set(tenant.strip())
+
+
+def admitted_tenant_cache_scope() -> str:
+    """The captured tenant fence, for partitioning caches of Core-fenced results.
+
+    Core answers under the request's tenant fence, so any process-wide cache of
+    a Core-backed result must include this scope in its key — otherwise one
+    tenant's cached response can be served to another without a Core call under
+    that tenant's fence. Empty when no tenant was presented, which is itself a
+    distinct cache partition."""
+
+    return _caller_tenant_var.get()

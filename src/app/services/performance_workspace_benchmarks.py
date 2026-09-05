@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Sequence
 from typing import Any, TypeAlias, cast
 
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_benchmark_assignment import (
     fetch_assigned_benchmark_code,
@@ -32,8 +33,15 @@ def benchmark_catalog_cache_key(
     *,
     report_end_date: str,
     reporting_currency: str,
-) -> tuple[str, str, str]:
-    return ("benchmark_catalog", report_end_date, reporting_currency)
+) -> tuple[str, str, str, str]:
+    # Core answers under the admitted tenant fence; the catalog cache must
+    # never serve one tenant's result to another.
+    return (
+        "benchmark_catalog",
+        admitted_tenant_cache_scope(),
+        report_end_date,
+        reporting_currency,
+    )
 
 
 async def fetch_benchmark_context(
