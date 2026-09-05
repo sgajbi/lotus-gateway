@@ -121,10 +121,23 @@ def compare_live_to_policy(policy: dict[str, Any], live: dict[str, Any]) -> list
                     f"required_pull_request_reviews.{key}: "
                     f"live={reviews.get(key)!r} policy={expected_reviews[key]!r}"
                 )
+        live_bypass = reviews.get("bypass_pull_request_allowances") or {}
+        expected_bypass = expected_reviews["bypass_pull_request_allowances"]
+        actual_bypass = {
+            "users": sorted(u.get("login", "") for u in live_bypass.get("users", [])),
+            "teams": sorted(t.get("slug", "") for t in live_bypass.get("teams", [])),
+            "apps": sorted(a.get("slug", "") for a in live_bypass.get("apps", [])),
+        }
+        if actual_bypass != {k: sorted(v) for k, v in expected_bypass.items()}:
+            issues.append(
+                "required_pull_request_reviews.bypass_pull_request_allowances: "
+                f"live={actual_bypass!r} policy={expected_bypass!r}"
+            )
 
-    codeowners = (Path(__file__).resolve().parents[1] / "CODEOWNERS").exists() or (
-        Path(__file__).resolve().parents[1] / ".github" / "CODEOWNERS"
-    ).exists()
+    repo_root = Path(__file__).resolve().parents[1]
+    codeowners = any(
+        (repo_root / location / "CODEOWNERS").exists() for location in ("", ".github", "docs")
+    )
     if codeowners != expected["codeowners_present"]:
         issues.append(
             f"CODEOWNERS presence: live={codeowners} policy={expected['codeowners_present']}"
