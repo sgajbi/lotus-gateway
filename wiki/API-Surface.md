@@ -29,12 +29,13 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/proposals/{proposal_id}/risk-impact`
 - `GET /api/v1/proposals/{proposal_id}/execution-status`
 - `GET` and `POST /api/v1/advisory-copilot/*`
-- `GET` and `POST /api/v1/advisory-workspaces` and `/api/v1/advisory-workspaces/{workspace_id}`
-  plus its `draft-actions`, `evaluate`, `save`, `saved-versions`,
-  `saved-versions/{workspace_version_id}/replay-evidence`, `resume`, `compare`,
-  `assistant/rationale`, `assistant/rationale/review-actions`, and `handoff` sub-routes —
-  advisory workspace lifecycle routed to `lotus-advise` `/advisory/workspaces/*`, preserving
-  Advise-owned workspace, version, replay, rationale-review, and handoff truth
+- `POST /api/v1/advisory-workspaces`; `GET /api/v1/advisory-workspaces/{workspace_id}`;
+  `POST` on its `draft-actions`, `evaluate`, `save`, `resume`, `compare`,
+  `assistant/rationale`, `assistant/rationale/review-actions`, and `handoff` sub-routes; and
+  `GET` on `saved-versions` and
+  `saved-versions/{workspace_version_id}/replay-evidence` — advisory workspace lifecycle routed
+  to `lotus-advise` `/advisory/workspaces/*`, preserving Advise-owned workspace, version,
+  replay, rationale-review, and handoff truth
 - `GET /api/v1/advisor-book/portfolios`
 - `GET /api/v1/advisor-book/summary`
 - `GET /api/v1/advisor-book/action-items`
