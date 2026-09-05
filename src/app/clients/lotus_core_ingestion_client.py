@@ -2,9 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.clients.upstream_headers import (
-    build_core_upstream_headers,
-)
+from app.clients.upstream_headers import build_upstream_headers
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -29,7 +27,12 @@ class LotusCoreIngestionClient:
         idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/ingest/portfolio-bundle"
-        headers = build_core_upstream_headers(
+        # Ingestion is a Core WRITE: the ambient caller-presented fence must not
+        # scope a mutation (a caller could select another tenant's write
+        # partition), so these calls carry no ambient tenant. Core's fail-closed
+        # ingress refuses the unadmitted write until the intake routes admit
+        # tenant authority explicitly (tracked on the tenant-propagation issue).
+        headers = build_upstream_headers(
             correlation_id,
             extras={"X-Idempotency-Key": idempotency_key} if idempotency_key else None,
         )
@@ -89,7 +92,7 @@ class LotusCoreIngestionClient:
         extra_data: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = build_core_upstream_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
         operation = (
