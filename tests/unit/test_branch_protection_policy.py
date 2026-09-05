@@ -11,6 +11,7 @@ import copy
 from scripts.check_branch_protection_policy import (
     compare_live_to_policy,
     load_policy,
+    resolve_effective_codeowners,
     validate_policy_document,
 )
 
@@ -87,3 +88,25 @@ def test_absent_reviews_block_is_distinguished_from_zero_count() -> None:
     issues = compare_live_to_policy(policy, live)
 
     assert any("ABSENT" in issue for issue in issues)
+
+
+def test_codeowners_resolution_follows_github_precedence(tmp_path):
+    """A .github/ file wins over root and docs/, as GitHub resolves it."""
+    for location in (".github", "docs"):
+        (tmp_path / location).mkdir()
+    (tmp_path / "CODEOWNERS").write_text("* @root\n", encoding="utf-8")
+    (tmp_path / "docs" / "CODEOWNERS").write_text("* @docs\n", encoding="utf-8")
+
+    assert resolve_effective_codeowners(tmp_path) == tmp_path / "CODEOWNERS"
+
+    (tmp_path / ".github" / "CODEOWNERS").write_text("", encoding="utf-8")
+    effective = resolve_effective_codeowners(tmp_path)
+    assert effective == tmp_path / ".github" / "CODEOWNERS"
+    assert effective.read_text(encoding="utf-8") == "", (
+        "an empty higher-precedence file must shadow the valid lower ones, "
+        "because that is the posture GitHub applies"
+    )
+
+
+def test_codeowners_resolution_reports_absence(tmp_path):
+    assert resolve_effective_codeowners(tmp_path) is None

@@ -156,10 +156,12 @@ jobs:
           pip install -e ".[dev]"
       - name: Coverage
         run: |
+          set -o pipefail
           mkdir -p output/main-releasability
           make test-coverage 2>&1 | tee output/main-releasability/coverage.txt
       - name: Generate Main Release Evidence
         run: |
+          set -o pipefail
           mkdir -p output/main-releasability output/demo-certification
           python scripts/check_workflow_action_runtime.py \
             2>&1 | tee output/main-releasability/workflow-governance.txt
