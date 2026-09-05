@@ -352,3 +352,144 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     assert risk_workspace["enabled"] is False
     assert risk_workspace["supportability"]["state"] == "partial"
     assert risk_workspace["evidence"]["sourceErrorServices"] == ["lotus_risk"]
+
+
+def _minimal_capabilities_response(consumer_system: str, tenant_id: str):
+    return PlatformCapabilitiesResponse.model_validate(
+        {
+            "data": {
+                "consumerSystem": consumer_system,
+                "tenantId": tenant_id,
+                "contractVersion": "v1",
+                "sources": {},
+                "partialFailure": False,
+                "errors": [],
+                "normalized": {
+                    "navigation": {},
+                    "workflowFlags": {},
+                    "inputModesBySource": {},
+                    "inputModesUnion": [],
+                    "moduleHealth": {},
+                    "policyVersionsBySource": {},
+                    "lotusCorePolicyDiagnostics": {
+                        "available": False,
+                        "allowedSections": [],
+                        "warnings": [],
+                        "policyProvenance": {
+                            "policyVersion": "unknown",
+                            "policySource": "unknown",
+                            "matchedRuleId": "unknown",
+                            "strictMode": False,
+                        },
+                    },
+                    "shellBootstrap": {
+                        "contractVersion": "shell-bootstrap.v1",
+                        "supportability": {"state": "ready", "reasons": []},
+                        "freshness": {
+                            "state": "current",
+                            "freshnessClass": "shell_navigation",
+                            "evaluatedAt": "2026-04-16T00:00:00Z",
+                            "maxAgeSeconds": 60,
+                        },
+                        "evidence": {
+                            "state": "source_backed",
+                            "lineageSources": [],
+                            "partialFailure": False,
+                            "sourceErrorServices": [],
+                        },
+                        "versioning": {
+                            "shellContractVersion": "shell-bootstrap.v1",
+                            "capabilityContractVersion": "v1",
+                            "sourcePolicyVersion": None,
+                            "sourcePolicyVersions": {},
+                        },
+                        "caching": {
+                            "cacheMode": "request_scoped_composition",
+                            "invalidationOwner": "lotus_core",
+                            "staleReadTolerance": "bounded_navigation_refresh",
+                            "revalidateOnNavigation": True,
+                            "ttlSeconds": 60,
+                            "correctnessCritical": False,
+                        },
+                        "workspaces": [],
+                    },
+                },
+            }
+        }
+    )
+
+
+def test_platform_capabilities_rejects_disagreeing_tenant_scopes(monkeypatch):
+    called: list[str] = []
+
+    async def _service(self, consumer_system: str, tenant_id: str, correlation_id: str):
+        called.append(tenant_id)
+        return _minimal_capabilities_response(consumer_system, tenant_id)
+
+    monkeypatch.setattr(
+        "app.services.platform_capabilities_service.PlatformCapabilitiesService.get_platform_capabilities",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/platform/capabilities?tenantId=default",
+        headers={"X-Tenant-Id": "tenant-sg"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "platform_tenant_scope_ambiguous"
+    assert called == []
+
+
+def test_platform_capabilities_admits_the_header_tenant_and_binds_the_ambient_fence(
+    monkeypatch,
+):
+    captured: dict[str, object] = {}
+
+    async def _service(self, consumer_system: str, tenant_id: str, correlation_id: str):
+        from app.middleware.caller_identity import propagated_caller_identity
+
+        captured["tenant_id"] = tenant_id
+        captured["ambient"] = propagated_caller_identity()
+        return _minimal_capabilities_response(consumer_system, tenant_id)
+
+    monkeypatch.setattr(
+        "app.services.platform_capabilities_service.PlatformCapabilitiesService.get_platform_capabilities",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/platform/capabilities",
+        headers={"X-Tenant-Id": "tenant-sg"},
+    )
+
+    assert response.status_code == 200
+    assert captured["tenant_id"] == "tenant-sg"
+    # One admitted scope everywhere: the ambient fence upstream calls would
+    # carry equals the tenant the composition is labeled with.
+    assert captured["ambient"] == {"X-Tenant-Id": "tenant-sg"}
+
+
+def test_platform_capabilities_defaults_and_binds_when_no_tenant_is_presented(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(self, consumer_system: str, tenant_id: str, correlation_id: str):
+        from app.middleware.caller_identity import propagated_caller_identity
+
+        captured["tenant_id"] = tenant_id
+        captured["ambient"] = propagated_caller_identity()
+        return _minimal_capabilities_response(consumer_system, tenant_id)
+
+    monkeypatch.setattr(
+        "app.services.platform_capabilities_service.PlatformCapabilitiesService.get_platform_capabilities",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/platform/capabilities")
+
+    assert response.status_code == 200
+    assert captured["tenant_id"] == "default"
+    assert captured["ambient"] == {"X-Tenant-Id": "default"}
