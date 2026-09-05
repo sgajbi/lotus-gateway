@@ -23,6 +23,7 @@ class IntakeService:
         body: dict[str, Any],
         correlation_id: str,
         idempotency_key: str | None = None,
+        caller_headers: dict[str, str] | None = None,
     ) -> EnvelopeResponse:
         (
             upstream_status,
@@ -31,6 +32,7 @@ class IntakeService:
             body=body,
             correlation_id=correlation_id,
             idempotency_key=idempotency_key,
+            caller_headers=caller_headers,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
@@ -42,6 +44,7 @@ class IntakeService:
         content: bytes,
         sample_size: int,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> EnvelopeResponse:
         upstream_status, upstream_payload = await self._lotus_core_ingestion_client.preview_upload(
             entity_type=entity_type,
@@ -49,6 +52,7 @@ class IntakeService:
             content=content,
             sample_size=sample_size,
             correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
@@ -60,6 +64,7 @@ class IntakeService:
         content: bytes,
         allow_partial: bool,
         correlation_id: str,
+        caller_headers: dict[str, str] | None = None,
     ) -> EnvelopeResponse:
         upstream_status, upstream_payload = await self._lotus_core_ingestion_client.commit_upload(
             entity_type=entity_type,
@@ -67,6 +72,7 @@ class IntakeService:
             content=content,
             allow_partial=allow_partial,
             correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
