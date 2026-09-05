@@ -706,6 +706,7 @@ def test_ai_explanation_fails_closed_on_missing_redacted_evidence_envelope(monke
         ("explanation", "posture", "fallback_used"),
         ("explanation", "verifierOutcome", "not_run"),
         ("explanation", "fallbackUsed", True),
+        ("explanation", "fallbackReason", "ai_unavailable"),
         ("explanation", "executionProvenancePosture", "not_applicable_fallback"),
         ("explanation", "aiLineageRecorded", False),
         ("explanation", "explanationText", " "),
