@@ -25,6 +25,24 @@ REPORT_JOB_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
             ),
         }
     },
+    "report_job_source_contract_invalid": {
+        "detail": {
+            "code": "report_job_source_contract_invalid",
+            "message": (
+                "lotus-report returned a successful response that does not match the "
+                "governed reporting contract."
+            ),
+        }
+    },
+    "report_job_source_identity_mismatch": {
+        "detail": {
+            "code": "report_job_source_identity_mismatch",
+            "message": (
+                "lotus-report answered report job status with evidence for a different "
+                "identity: report_job_id"
+            ),
+        }
+    },
     "missing_caller_context": {
         "detail": {
             "code": "missing_caller_context",

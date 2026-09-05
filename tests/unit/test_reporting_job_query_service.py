@@ -386,3 +386,136 @@ async def test_reporting_job_query_service_maps_upstream_errors_without_leaking_
     }
     assert "sqlite" not in str(exc_info.value.detail).lower()
     assert "report.dev.lotus" not in str(exc_info.value.detail)
+
+
+def _identity_mismatch_code(exc_info: pytest.ExceptionInfo[HTTPException]) -> str:
+    assert exc_info.value.status_code == 502
+    return exc_info.value.detail["code"]
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_status_for_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_status(
+            job_id="rjob_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_events_for_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_events(
+            job_id="rjob_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_cancel_evidence_for_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.cancel_report_job(
+            job_id="rjob_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_lineage_owned_by_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_lineage(
+            job_id="rjob_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_a_different_snapshot() -> None:
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_snapshot(
+            snapshot_id="rsnap_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_refuses_snapshot_lineage_for_a_different_snapshot() -> (
+    None
+):
+    reporting_client = _ReportingClient()
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_snapshot_lineage(
+            snapshot_id="rsnap_other",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert _identity_mismatch_code(exc_info) == "report_job_source_identity_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_maps_a_malformed_success_to_a_bounded_502() -> None:
+    reporting_client = _ReportingClient()
+    payload = _job_status_payload()
+    del payload["report_job_id"]
+    reporting_client.status_response = (200, payload)
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_report_job_status(
+            job_id="rjob_1",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["code"] == "report_job_source_contract_invalid"
+
+
+@pytest.mark.asyncio
+async def test_reporting_job_query_service_maps_a_malformed_list_success_to_a_bounded_502() -> None:
+    reporting_client = _ReportingClient()
+    reporting_client.list_response = (200, {"count": "not-a-number"})
+    service = ReportingJobQueryService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.list_report_jobs(
+            filters={},
+            caller_headers=_caller_headers(),
+            correlation_id="corr-report-job",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["code"] == "report_job_source_contract_invalid"

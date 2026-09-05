@@ -250,6 +250,12 @@ consumer migration remain tracked by parent issue #569.
   the admitted `X-Tenant-Id`/`X-Region`, a conflicting `tenantId`/`region` filter is a bounded
   `400` before any source call, and a source result whose applied-filter echo or rows leave the
   fence is refused as `report_job_source_scope_violation` (502) rather than published
+- reporting source successes are admitted semantically before publication: status, events,
+  lineage, cancel, and snapshot responses must answer the requested job or snapshot, a
+  submission handle must echo the caller's `Idempotency-Key` and name the same job in its
+  status URL, and a well-shaped answer for a different identity is refused as
+  `report_job_source_identity_mismatch` (502) while a malformed success becomes
+  `report_job_source_contract_invalid` (502) instead of an internal error
 - report job search, status, append-only event history, and cancellation are gateway-first under
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
 - report batch materialization, status, pause, resume, cancel, retry-failed,
