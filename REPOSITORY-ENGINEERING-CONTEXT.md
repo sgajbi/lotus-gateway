@@ -830,8 +830,10 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    others: execution handoff/update, memo review and AI commentary, report-package
    request/event, narrative review), the nonstandard optional `X-Idempotency-Key` header on the
    intake portfolio-bundle route, a required `idempotency_key` request-body field on the DPM
-   construction, proof-pack, and wave creation mutations (their other lifecycle mutations, such
-   as alternative-set selection, declare none and are not replay-safe to retry), and none at all
+   construction, proof-pack, and wave creation mutations (their other lifecycle mutations
+   declare no caller key: most, such as alternative-set selection, are not replay-safe to
+   retry, while campaign-definition launch preserves Manage's own idempotent replay posture
+   without one), and none at all
    on a few (proposal report requests take no key and are not replay-safe to retry). Read the
    generated OpenAPI together with each route's declared error responses: the reporting
    portfolio-review and outcome-review submissions mark the header optional in the schema yet
