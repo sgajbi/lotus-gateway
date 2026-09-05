@@ -188,7 +188,11 @@ consumer migration remain tracked by parent issue #569.
   invalid, portfolio-scoped, or unscoped Advise context leaves the action fact explicitly
   unavailable instead of failing the request — unlike the narrow action-items route, which
   rejects a non-advisor Advise scope because its entire contract is the action read. Only an
-  unresolvable membership cohort is fatal.
+  unresolvable membership cohort is fatal. Value evidence is admitted for internal consistency
+  before publication: a member resolved off the cohort's as-of basis, or a `COMPLETE` aggregate
+  contradicted by its own member coverage, degrades the value block through its typed
+  contract-invalid refusal while rows and action facts survive; a legitimate older carry-forward
+  `snapshot_date` and measured-zero facts are preserved.
 - portfolio position tax-lot drill-down returns a typed, closed envelope of the current Core BUY
   lots for one exact portfolio/security pair. It preserves source lot identity, acquisition date,
   original/open quantity, local/base cost, accrued interest, and optional source lineage fields;
