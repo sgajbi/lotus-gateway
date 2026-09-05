@@ -50,9 +50,11 @@ tax-lot drill-down; performance and risk workspaces with evidence lineage; propo
 with policy evaluation, reviewed narrative and delivery posture; advisor book and
 advisor cockpit; bank-demo proof APIs; DPM command center (construction, waves and campaigns,
 proof packs, outcome reviews, portfolio memory, PM operating quality); report ordering options
-(`/api/v1/report-ordering/options`) and durable report jobs and batches
-(`/api/v1/report-batches`), where own-book membership is resolved through Core source truth and
-`lotus-report` keeps catalogue and lifecycle authority; archived document retrieval; idea review
+(`/api/v1/report-ordering/options`, eligibility only — not membership proof); durable report
+jobs (`/api/v1/reports/portfolio-reviews`, `/api/v1/report-jobs/*`); report batches
+(`/api/v1/report-batches`), whose creation alone resolves own-book membership through Core
+source truth — with `lotus-report` keeping catalogue and lifecycle authority throughout;
+archived document retrieval; idea review
 queues with governed candidate actions; and AI-assisted summaries through governed workflow-pack
 seams.
 
