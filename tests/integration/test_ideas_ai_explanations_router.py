@@ -1,3 +1,4 @@
+import copy
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -589,6 +590,105 @@ def test_ai_explanation_readiness_route_fails_closed_on_lax_boolean_claims(monke
     response = TestClient(app).get(
         "/api/v1/ideas/ai-explanations/readiness",
         headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def _served_payload_with_evidence(evidence_mutation) -> dict[str, Any]:
+    payload = copy.deepcopy(IDEA_AI_EXPLANATION_EXAMPLE)
+    evidence_mutation(payload["explanation"]["redactedEvidence"])
+    return payload
+
+
+def _post_explanation(monkeypatch, payload) -> "TestClient":
+    async def _generate(self, *, candidate_id, body, caller_headers, correlation_id, **kwargs):
+        return 200, payload
+
+    _patch_generation(monkeypatch, _generate)
+    return TestClient(app)
+
+
+def test_ai_explanation_forwards_redacted_evidence_identity_byte_faithfully(monkeypatch) -> None:
+    payload = _served_payload_with_evidence(
+        lambda evidence: evidence.update({"sourceCutTolerance": {"maxSkewSeconds": 30}})
+    )
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
+    )
+
+    assert response.status_code == 200
+    evidence = response.json()["explanation"]["redactedEvidence"]
+    assert evidence["evidencePacketId"] == "iep_high_cash_8d57adbf52f7f5a7"
+    assert evidence["evidenceContentHash"] == "sha256:evidence-lineage"
+    assert evidence["sourceRevisionVectorDigest"] == "sha256:source-revision-vector"
+    assert evidence["sourceCutPosture"] == "coherent"
+    # Additive source fields survive the typed identity skeleton verbatim.
+    assert evidence["sourceCutTolerance"] == {"maxSkewSeconds": 30}
+
+
+def test_ai_explanation_fails_closed_on_missing_redacted_evidence_identity(monkeypatch) -> None:
+    payload = _served_payload_with_evidence(
+        lambda evidence: evidence.pop("sourceRevisionVectorDigest")
+    )
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def test_ai_explanation_fails_closed_on_blank_redacted_evidence_identity(monkeypatch) -> None:
+    payload = _served_payload_with_evidence(
+        lambda evidence: evidence.update({"sourceCutPosture": " "})
+    )
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def test_ai_explanation_fails_closed_on_duplicate_evidence_identity_spelling(monkeypatch) -> None:
+    payload = _served_payload_with_evidence(
+        lambda evidence: evidence.update({"evidence_content_hash": "sha256:other"})
+    )
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def test_ai_explanation_fails_closed_on_missing_redacted_evidence_envelope(monkeypatch) -> None:
+    payload = copy.deepcopy(IDEA_AI_EXPLANATION_EXAMPLE)
+    del payload["explanation"]["redactedEvidence"]
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
     )
 
     assert response.status_code == 502
