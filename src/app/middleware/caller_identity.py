@@ -39,3 +39,14 @@ def propagated_caller_identity() -> dict[str, str]:
 
     tenant = _caller_tenant_var.get()
     return {CALLER_TENANT_HEADER: tenant} if tenant else {}
+
+
+def admit_caller_tenant(tenant: str) -> Token:
+    """Route-boundary re-admission of the tenant fence.
+
+    A route that resolves its tenant scope through its own contract (for
+    example an explicit query selector) binds the resolved value here so the
+    ambient fence and the route's admitted scope are the same single tenant on
+    every upstream call it makes."""
+
+    return _caller_tenant_var.set(tenant.strip())
