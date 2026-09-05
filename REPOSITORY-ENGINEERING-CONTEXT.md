@@ -563,20 +563,28 @@ Important validation expectations:
    concurrency group uses the pull-request number to cancel stale synchronized revisions while
    manual dispatch uses a unique run ID, and the event matrix is documented in
    `docs/quality-baseline-event-matrix.md`,
-12. Docker parity matters because the gateway is a live integration boundary,
-13. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
+12. The Quality Baseline lane also enforces the branch-protection policy gate: live `main`
+   protection is compared field by field against
+   `quality/branch_protection_policy.v1.json` (which documents the review authority and the
+   deliberate zero-approval exception with its retirement condition) via
+   `scripts/check_branch_protection_policy.py`, failing when protection weakens and when the
+   documented exception is removed without the configuration strengthening; the step
+   authenticates with the automerge PAT because the workflow token cannot read branch
+   protection, and offline document-shape checks run in `make check`,
+13. Docker parity matters because the gateway is a live integration boundary,
+14. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
    release manifest. Main Releasability is the only lane that pushes to GHCR; it captures the
    digest after push, signs the digest-pinned image, creates provenance attestation evidence, and
    requires Kubernetes deployment by digest while preserving the same image for environment
    promotion,
-14. `/version` exposes the same non-secret build and deployment metadata expected in release
+15. `/version` exposes the same non-secret build and deployment metadata expected in release
     manifests: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
     version. Image digest is deployment/runtime metadata captured after push and must not be baked
     into Docker build args, ENV, or OCI labels as `unknown`,
-15. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+16. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
-16. the Starlette TestClient dependency is test-only: the `dev` extra provides
+17. the Starlette TestClient dependency is test-only: the `dev` extra provides
     `httpx2>=2.12.0,<3.0.0`, and `scripts/check_testclient_dependency.py` is a hard gate against
     missing/outdated HTTPX2 or Starlette's legacy `httpx` fallback warning. The production-only
     `requirements-audit.txt` intentionally excludes HTTPX2 because the application image does not
