@@ -1,0 +1,48 @@
+{
+  "contract_id": "lotus-branch-protection-policy",
+  "contract_version": "1.0.0",
+  "repository": "sgajbi/lotus-gateway",
+  "protected_branch": "main",
+  "review_authority": {
+    "review_lead": "the lotus-gateway review-lead session, working with the chatgpt-codex-connector inline review bot",
+    "mergeable_meaning": "an exact-head VERDICT of mergeable means every required context is green on the current head and every review thread on that head is resolved",
+    "escalation": "unresolved disagreements escalate to the repository owner (sgajbi), who is the sole accepted collaborator"
+  },
+  "expected": {
+    "enforce_admins": true,
+    "required_linear_history": true,
+    "allow_force_pushes": false,
+    "allow_deletions": false,
+    "required_conversation_resolution": true,
+    "required_status_checks": {
+      "strict": true,
+      "contexts": [
+        "PR Merge Gate / Workflow Lint",
+        "PR Merge Gate / Lint Typecheck Unit",
+        "PR Merge Gate / Integration Tests",
+        "PR Merge Gate / Coverage Gate",
+        "PR Merge Gate / Validate Docker Build",
+        "PR Merge Gate / CI Local Docker Parity",
+        "Quality Baseline / Ratcheted Trend Gate"
+      ]
+    },
+    "required_pull_request_reviews": {
+      "present": true,
+      "required_approving_review_count": 0,
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": false,
+      "require_last_push_approval": false
+    },
+    "restrictions_present": false,
+    "codeowners_present": false
+  },
+  "documented_exceptions": [
+    {
+      "field": "required_pull_request_reviews.required_approving_review_count",
+      "value": 0,
+      "reason": "the repository has a single accepted collaborator; requiring a non-author approval would hard-lock main rather than strengthen it, and naming that collaborator in CODEOWNERS would record an independent-review control that does not exist",
+      "compensating_controls": "seven required green contexts, enforce_admins, strict up-to-date branches, required conversation resolution, and linear history apply to every merge including the administrator's",
+      "retires_when": "a second accepted reviewer identity exists; then raise required_approving_review_count to 1, add CODEOWNERS, and update this policy in the same change"
+    }
+  ]
+}
