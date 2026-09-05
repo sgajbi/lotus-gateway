@@ -9,6 +9,7 @@ from app.contracts.advisor_brief import (
 )
 from app.contracts.performance_workspace import PerformanceWorkspaceResponse
 from app.middleware.server_timing import server_timing_span
+from app.services.advisor_brief_cache import advisor_brief_cache_key
 from app.services.advisor_brief_client_protocols import (
     AdvisorBriefAdviseClient,
     AdvisorBriefAiClient,
@@ -90,22 +91,20 @@ class AdvisorBriefService:
         requested_as_of_date: str | None = None,
         requested_reporting_currency: str | None = None,
     ) -> AdvisorBriefResponse:
-        cache_key = (
-            "advisor_brief",
-            portfolio_id,
-            period,
-            chart_frequency,
-            contribution_dimension,
-            attribution_dimension,
-            detail_basis,
-            benchmark_code or "",
-            explicit_start_date or "",
-            explicit_end_date or "",
-            requested_as_of_date or "",
-            requested_reporting_currency or "",
-        )
         return await self._response_cache.get_or_set(
-            key=cache_key,
+            key=advisor_brief_cache_key(
+                portfolio_id=portfolio_id,
+                period=period,
+                chart_frequency=chart_frequency,
+                contribution_dimension=contribution_dimension,
+                attribution_dimension=attribution_dimension,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                explicit_start_date=explicit_start_date,
+                explicit_end_date=explicit_end_date,
+                requested_as_of_date=requested_as_of_date,
+                requested_reporting_currency=requested_reporting_currency,
+            ),
             factory=lambda: self._build_performance_advisor_brief(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
