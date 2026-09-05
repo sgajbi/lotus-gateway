@@ -287,7 +287,13 @@ async def test_reporting_job_query_service_lists_jobs_with_filters() -> None:
     assert reporting_client.calls == [
         {
             "operation": "list",
-            "filters": {"portfolioId": "PB_SG_GLOBAL_BAL_001", "limit": 25},
+            # The admitted tenant/region fence is always sent to the source.
+            "filters": {
+                "portfolioId": "PB_SG_GLOBAL_BAL_001",
+                "limit": 25,
+                "tenantId": "tenant-sg",
+                "region": "APAC",
+            },
             "caller_headers": _caller_headers(),
             "correlation_id": "corr-report-job",
         }

@@ -83,11 +83,23 @@ async def _list_report_jobs(
 def build_report_job_scope_filters(
     tenant_id_filter: Annotated[
         str | None,
-        Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
+        Query(
+            alias="tenantId",
+            description=(
+                "Optional tenant echo; must equal the admitted X-Tenant-Id, which is "
+                "always the effective tenant fence."
+            ),
+        ),
     ] = None,
     region_filter: Annotated[
         str | None,
-        Query(alias="region", description="Return only jobs for this operating region."),
+        Query(
+            alias="region",
+            description=(
+                "Optional region echo; must equal the admitted X-Region, which is "
+                "always the effective region fence."
+            ),
+        ),
     ] = None,
     status_filter: Annotated[
         str | None,
@@ -189,9 +201,14 @@ def build_report_job_search_filters(
     summary="Search report jobs for operations and support",
     description=(
         "Return a bounded list of report jobs through the governed gateway boundary. Use this "
-        "endpoint when operators or support tooling need to find jobs by tenant, region, status, "
-        "portfolio, as-of date, idempotency key, or correlation identifier before drilling into "
-        "status or event history."
+        "endpoint when operators or support tooling need to find jobs by status, portfolio, "
+        "as-of date, idempotency key, or correlation identifier before drilling into status or "
+        "event history. The search is fenced by the admitted caller scope: the effective tenant "
+        "and region are the admitted X-Tenant-Id and X-Region, a tenantId or region filter must "
+        "agree with them (400 on conflict, before any source call), and a source result whose "
+        "applied-filter echo or rows leave the admitted fence is refused as a bounded 502 "
+        "rather than published. A cross-tenant support read requires its own explicitly "
+        "authorized contract."
     ),
     openapi_extra={
         "responses": {
@@ -207,13 +224,19 @@ def build_report_job_search_filters(
     responses={
         **report_job_error_response(
             400,
-            example_key="invalid_report_job_filters",
-            description="Returned when no supported job-search filter is supplied.",
+            example_key="report_job_tenant_scope_ambiguous",
+            description=(
+                "Returned when no supported job-search filter is supplied, or when a "
+                "tenantId/region filter disagrees with the admitted caller scope."
+            ),
         ),
         **report_job_error_response(
             502,
-            example_key="report_job_upstream_unavailable",
-            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+            example_key="report_job_source_scope_violation",
+            description=(
+                "Returned when lotus-report is unavailable, returns an unsafe failure, or "
+                "returns a search result outside the admitted caller scope."
+            ),
         ),
     },
 )
