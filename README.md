@@ -14,7 +14,10 @@ For product teams building on Lotus, Gateway provides:
   evaluation, DPM command center, reporting, advisor brief — that preserve each source's
   authority, evidence and supportability
 - explicit partial, degraded, unavailable and permission-blocked states the UI can render
-  truthfully: a degraded source degrades only its own fact block and never removes delivered rows
+  truthfully: in composed views, a degraded optional enrichment source degrades only its own
+  typed fact block (the Advisor Book workspace keeps its cohort rows, for example), while a
+  failed required source — an unresolvable membership cohort, a missing core portfolio payload —
+  still fails that request explicitly rather than fabricating a partial answer
 - trusted caller-context admission, replay-identified writes for the mutation families whose
   contracts require an `Idempotency-Key`, semantic validation of source responses, and bounded
   product-safe errors at every route
