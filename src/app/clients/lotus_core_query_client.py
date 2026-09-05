@@ -6,7 +6,7 @@ from app.clients.lotus_core_portfolio_query_client import LotusCorePortfolioQuer
 from app.clients.lotus_core_reporting_summary_client import LotusCoreReportingSummaryClientMixin
 from app.clients.lotus_core_simulation_client import LotusCoreSimulationClientMixin
 from app.clients.observed_fanout import request_observed_fanout
-from app.clients.upstream_headers import build_upstream_headers
+from app.clients.upstream_headers import build_core_upstream_headers
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -44,7 +44,7 @@ class LotusCoreQueryClient(
             method="GET",
             url=f"{self._query_base_url}{path}",
             params=params,
-            headers=build_upstream_headers(correlation_id),
+            headers=build_core_upstream_headers(correlation_id),
         )
 
     async def _get_control_plane_resource(
@@ -60,7 +60,7 @@ class LotusCoreQueryClient(
             method="GET",
             url=f"{self._control_plane_base_url}{path}",
             params=params,
-            headers=build_upstream_headers(correlation_id),
+            headers=build_core_upstream_headers(correlation_id),
         )
 
     async def _post_query_resource(
@@ -76,7 +76,7 @@ class LotusCoreQueryClient(
             method="POST",
             url=f"{self._query_base_url}{path}",
             json_body=payload,
-            headers=build_upstream_headers(correlation_id),
+            headers=build_core_upstream_headers(correlation_id),
         )
 
     async def _post_control_plane_resource(
@@ -92,7 +92,7 @@ class LotusCoreQueryClient(
             method="POST",
             url=f"{self._control_plane_base_url}{path}",
             json_body=payload,
-            headers=build_upstream_headers(correlation_id),
+            headers=build_core_upstream_headers(correlation_id),
         )
 
     async def get_capabilities(

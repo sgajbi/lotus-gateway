@@ -6,7 +6,7 @@ identity never propagates ambiently."""
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.clients.upstream_headers import build_upstream_headers
+from app.clients.upstream_headers import build_core_upstream_headers
 from app.middleware.correlation import correlation_middleware
 
 app = FastAPI()
@@ -15,7 +15,7 @@ app.middleware("http")(correlation_middleware)
 
 @app.get("/probe-upstream-headers")
 def probe_upstream_headers() -> dict[str, str]:
-    return build_upstream_headers("corr-probe")
+    return build_core_upstream_headers("corr-probe")
 
 
 client = TestClient(app)

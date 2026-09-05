@@ -3,8 +3,7 @@ from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import (
-    build_idempotent_upstream_headers,
-    build_upstream_headers,
+    build_core_upstream_headers,
 )
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
@@ -30,14 +29,9 @@ class LotusCoreIngestionClient:
         idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/ingest/portfolio-bundle"
-        headers = (
-            build_idempotent_upstream_headers(
-                correlation_id,
-                idempotency_key,
-                idempotency_header="X-Idempotency-Key",
-            )
-            if idempotency_key
-            else build_upstream_headers(correlation_id)
+        headers = build_core_upstream_headers(
+            correlation_id,
+            extras={"X-Idempotency-Key": idempotency_key} if idempotency_key else None,
         )
         return await request_observed_fanout(
             logger=LOGGER,
@@ -95,7 +89,7 @@ class LotusCoreIngestionClient:
         extra_data: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = build_upstream_headers(correlation_id)
+        headers = build_core_upstream_headers(correlation_id)
         form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
         operation = (
