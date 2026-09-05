@@ -18,14 +18,21 @@ str-typed pattern (see idea_ai_explanations.requested_at_utc).
 """
 
 import numbers
+import re
 from datetime import datetime
 from typing import Annotated, Any
 
 from pydantic import BeforeValidator
 
+_NUMERIC_TEXT = re.compile(r"^-?\d+(\.\d+)?$")
+
 
 def reject_numeric_datetime_input(value: Any) -> Any:
-    if isinstance(value, numbers.Number):
+    # Pydantic's lax parser treats both JSON numbers and digit-only strings as
+    # Unix timestamps; refuse both shapes so only genuine ISO text is parsed.
+    if isinstance(value, numbers.Number) or (
+        isinstance(value, str) and _NUMERIC_TEXT.fullmatch(value.strip())
+    ):
         raise ValueError("must be an ISO-8601 date-time string; Unix-timestamp numbers are refused")
     return value
 
