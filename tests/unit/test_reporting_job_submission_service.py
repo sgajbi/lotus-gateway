@@ -268,3 +268,22 @@ async def test_submission_maps_a_malformed_success_to_a_bounded_502() -> None:
 
     assert exc_info.value.status_code == 502
     assert exc_info.value.detail["code"] == "report_job_source_contract_invalid"
+
+
+@pytest.mark.asyncio
+async def test_submission_accepts_a_percent_encoded_status_url_for_the_same_job() -> None:
+    reporting_client = _ReportingClient()
+    payload = dict(reporting_client.portfolio_response[1])
+    payload["report_job_id"] = "rjob one"
+    payload["status_url"] = "/reports/jobs/rjob%20one"
+    reporting_client.portfolio_response = (202, payload)
+    service = ReportingJobSubmissionService(reporting_client=reporting_client)
+
+    response = await service.submit_portfolio_review_job(
+        request=_portfolio_request(),
+        idempotency_key="idem-portfolio",
+        caller_headers=_caller_headers(),
+        correlation_id="corr-submit",
+    )
+
+    assert response.report_job_id == "rjob one"

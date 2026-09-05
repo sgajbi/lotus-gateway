@@ -1,3 +1,5 @@
+from urllib.parse import unquote
+
 from fastapi import HTTPException, status
 
 from app.contracts.reporting import (
@@ -33,7 +35,9 @@ def _admit_submission_handle(
         },
         actual={
             "idempotency_key": response.idempotency_key,
-            "status_url": response.status_url.rstrip("/").rsplit("/", 1)[-1],
+            # The final path segment may be percent-encoded (Gateway's own
+            # republished link encodes opaque ids), so compare it decoded.
+            "status_url": unquote(response.status_url.rstrip("/").rsplit("/", 1)[-1]),
         },
     )
     return response
