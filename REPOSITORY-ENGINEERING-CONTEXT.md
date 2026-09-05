@@ -34,7 +34,7 @@ Current repository posture:
 3. proposal, advisory-workspace, advisory-policy, advisor-cockpit, advisory-copilot, bank-demo
    proof, proposal-memo, and Manage-consumption route families are active, each preserving
    source authority (performance, reporting, and capability-aggregation families are recorded
-   in their own items below):
+   in their own items below, capability aggregation in the final item):
    - proposal routes, with proposal simulation/lifecycle/workflow/approval/lineage, typed
    selected-proposal risk-and-impact, implementation-status, and discussion-pack-review evidence,
    async operation support,
@@ -384,6 +384,16 @@ under parent issue #586.
     scheduled CI reconcile it with the current producer artifact and report the producer Git blob
     revision. The source artifact governs pairings, while the stricter Gateway reason-evidence rule
     remains separate. Gateway does not invent progression or approval truth.
+28. multi-source platform capability aggregation is active under `/api/v1/platform/capabilities`:
+    Gateway aggregates lotus-core, lotus-performance, lotus-risk, lotus-advise, lotus-manage, and
+    lotus-report integration capabilities into one contract for UI feature control, shell
+    bootstrap, and workflow negotiation, fanning out concurrently with a bounded per-source
+    timeout and returning partial-failure diagnostics instead of serially blocking the shell.
+    The route admits exactly one tenant scope — the `tenantId` query selector and the
+    `X-Tenant-Id` caller context must agree when both are presented, the governed default tenant
+    applies only when neither is given, and the resolved scope is re-admitted via
+    `admit_caller_tenant` so every upstream call and the response label carry one identical
+    tenant (see the tenant-admission item above).
 
 ## Architecture And Module Map
 
