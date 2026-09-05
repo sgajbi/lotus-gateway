@@ -1,6 +1,7 @@
 import copy
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.contracts.idea_examples import (
@@ -693,3 +694,38 @@ def test_ai_explanation_fails_closed_on_missing_redacted_evidence_envelope(monke
 
     assert response.status_code == 502
     assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
+    ("field_scope", "field", "value"),
+    [
+        ("response", "disposition", "output_not_accepted"),
+        ("response", "evaluationVerdict", "idempotency_conflict"),
+        ("response", "lotusAiRuntimeExecutionConfirmed", False),
+        ("response", "lotusAiRunId", None),
+        ("explanation", "posture", "fallback_used"),
+        ("explanation", "verifierOutcome", "not_run"),
+        ("explanation", "fallbackUsed", True),
+        ("explanation", "executionProvenancePosture", "not_applicable_fallback"),
+        ("explanation", "aiLineageRecorded", False),
+        ("explanation", "explanationText", " "),
+    ],
+)
+def test_ai_explanation_fails_closed_on_contradictory_served_proof(
+    monkeypatch, field_scope, field, value
+) -> None:
+    payload = copy.deepcopy(IDEA_AI_EXPLANATION_EXAMPLE)
+    target = payload if field_scope == "response" else payload["explanation"]
+    target[field] = value
+    client = _post_explanation(monkeypatch, payload)
+
+    response = client.post(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7/ai-explanations",
+        headers=_headers(),
+        json=_request_body(),
+    )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["detail"]["code"] == "idea_ai_explanation_unsafe"
+    assert field in body["detail"]["message"]
