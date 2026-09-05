@@ -832,8 +832,11 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    intake portfolio-bundle route, a required `idempotency_key` request-body field on the DPM
    construction, proof-pack, and wave creation mutations (their other lifecycle mutations, such
    as alternative-set selection, declare none and are not replay-safe to retry), and none at all
-   on a few (proposal report requests take no key and are not replay-safe to retry). The generated OpenAPI is each route's
-   authoritative declaration.
+   on a few (proposal report requests take no key and are not replay-safe to retry). Read the
+   generated OpenAPI together with each route's declared error responses: the reporting
+   portfolio-review and outcome-review submissions mark the header optional in the schema yet
+   enforce it in the service with the declared 400 missing_idempotency_key, so the schema alone
+   understates a requirement the error contract declares.
 7. Canonical `gateway.dev.lotus` addressing exists only while the optional platform ingress is
    active; `make run-canonical` binds Uvicorn to `0.0.0.0:8111` (reachable on all local
    interfaces — `127.0.0.1:8111` is the conventional debugging URL, not the bind scope) and
