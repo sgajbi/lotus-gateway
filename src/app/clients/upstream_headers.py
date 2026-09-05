@@ -9,11 +9,30 @@ def build_upstream_headers(
     caller_headers: dict[str, str] | None = None,
 ) -> dict[str, str]:
     headers = propagation_headers(correlation_id)
-    # Upstream Lotus services fence requests by tenant (lotus-core rejects any
-    # protected call without X-Tenant-Id). Propagate ONLY the caller-presented
-    # tenant fence ambiently — it narrows, never grants; authority-bearing
-    # identity flows solely through a route's explicitly admitted
-    # caller_headers, which always win over this ambient capture.
+    if extras:
+        headers.update(extras)
+    if caller_headers:
+        headers.update(caller_headers)
+    return headers
+
+
+def build_core_upstream_headers(
+    correlation_id: str,
+    *,
+    extras: dict[str, str] | None = None,
+    caller_headers: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Headers for lotus-core-bound calls only.
+
+    Core's fail-closed ingress rejects any protected call without X-Tenant-Id,
+    so Core-bound calls carry the caller-presented tenant fence captured at the
+    request boundary. This stays OFF the generic builder deliberately: other
+    upstream boundaries (for example the DPM/Manage read-authority forwarding)
+    classify X-Tenant-Id as trusted authority, and an ambient merge there would
+    turn an unadmitted request header into upstream scope. A route's explicitly
+    admitted caller_headers always win over the ambient tenant."""
+
+    headers = propagation_headers(correlation_id)
     headers.update(propagated_caller_identity())
     if extras:
         headers.update(extras)

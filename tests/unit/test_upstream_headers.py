@@ -1,5 +1,6 @@
 from app.clients.upstream_headers import (
     build_archive_caller_headers,
+    build_core_upstream_headers,
     build_idempotent_upstream_headers,
     build_upstream_headers,
 )
@@ -85,7 +86,7 @@ def test_build_archive_caller_headers_defaults_actor_type() -> None:
     assert "X-Booking-Center-Code" not in headers
 
 
-def test_build_upstream_headers_propagates_only_the_caller_presented_tenant() -> None:
+def test_core_upstream_headers_propagate_only_the_caller_presented_tenant() -> None:
     from app.middleware.caller_identity import (
         capture_caller_identity,
         release_caller_identity,
@@ -108,11 +109,17 @@ def test_build_upstream_headers_propagates_only_the_caller_presented_tenant() ->
         }
     )
     try:
-        headers = build_upstream_headers("corr-identity")
+        core_headers = build_core_upstream_headers("corr-identity")
+        generic_headers = build_upstream_headers("corr-identity")
     finally:
         release_caller_identity(token)
 
-    assert headers["X-Tenant-Id"] == "tenant-sg"
+    assert core_headers["X-Tenant-Id"] == "tenant-sg"
+    # The generic builder serves every upstream, and some boundaries (for
+    # example the DPM/Manage read-authority forwarding) classify X-Tenant-Id
+    # itself as trusted authority — so the ambient fence stays Core-only.
+    assert "X-Tenant-Id" not in generic_headers
+    headers = core_headers
     for never_ambient in (
         "X-Actor-Id",
         "X-Caller-Application",
@@ -134,7 +141,7 @@ def test_explicitly_admitted_caller_headers_win_over_the_ambient_tenant() -> Non
 
     token = capture_caller_identity({"X-Tenant-Id": "tenant-presented"})
     try:
-        headers = build_upstream_headers(
+        headers = build_core_upstream_headers(
             "corr-override",
             caller_headers={"X-Tenant-Id": "tenant-admitted"},
         )
@@ -145,6 +152,6 @@ def test_explicitly_admitted_caller_headers_win_over_the_ambient_tenant() -> Non
 
 
 def test_a_request_that_presented_no_tenant_propagates_none() -> None:
-    headers = build_upstream_headers("corr-anonymous")
+    headers = build_core_upstream_headers("corr-anonymous")
 
     assert "X-Tenant-Id" not in headers
