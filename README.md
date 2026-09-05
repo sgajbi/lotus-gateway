@@ -19,8 +19,9 @@ For product teams building on Lotus, Gateway provides:
   failed required source — an unresolvable membership cohort, a missing core portfolio payload —
   still fails that request explicitly rather than fabricating a partial answer
 - trusted caller-context admission, replay-identified writes for the mutation families whose
-  contracts require an `Idempotency-Key`, semantic validation of source responses, and bounded
-  product-safe errors at every route
+  contracts require an `Idempotency-Key`, semantic validation of source responses in the route
+  families with declared response admission (some proposal write responses remain deliberately
+  opaque source envelopes), and bounded product-safe errors at every route
 
 ## Place In The Platform
 
@@ -47,7 +48,7 @@ Gateway-generated plumbing, not domain records).
 Supported business journeys, concisely: portfolio views with allocations, transactions and
 tax-lot drill-down; performance and risk workspaces with evidence lineage; proposal lifecycle
 with policy evaluation, reviewed narrative and delivery posture; advisor book and
-advisor cockpit; bank-demo proof publication; DPM command center (construction, waves and campaigns,
+advisor cockpit; bank-demo proof APIs; DPM command center (construction, waves and campaigns,
 proof packs, outcome reviews, portfolio memory, PM operating quality); report ordering options
 (`/api/v1/report-ordering/options`) and durable report jobs and batches
 (`/api/v1/report-batches`), where own-book membership is resolved through Core source truth and
