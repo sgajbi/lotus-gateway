@@ -831,7 +831,9 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    (proposal report requests take none and are not replay-safe to retry). The generated OpenAPI
    is each route's authoritative declaration.
 7. Canonical `gateway.dev.lotus` addressing exists only while the optional platform ingress is
-   active; `make run-canonical` serves `127.0.0.1:8111` and does not provision that hostname.
+   active; `make run-canonical` binds Uvicorn to `0.0.0.0:8111` (reachable on all local
+   interfaces — `127.0.0.1:8111` is the conventional debugging URL, not the bind scope) and
+   does not provision that hostname.
 
 ## Context Maintenance Rule
 
