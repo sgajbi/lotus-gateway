@@ -10,6 +10,11 @@ from pydantic import (
     model_validator,
 )
 
+from app.contracts.idea_evidence_identity import (
+    IdeaSourceEvidenceIdentity,
+    reject_declared_field_duplicates,
+)
+
 
 class IdeaCandidateAIExplanationRequest(BaseModel):
     """Documented transport shape for requesting a governed Idea AI explanation."""
@@ -58,18 +63,7 @@ class IdeaCandidateAIExplanationRequest(BaseModel):
         return value
 
 
-def _reject_declared_field_duplicates(model: BaseModel) -> BaseModel:
-    """Refuse extras that duplicate a declared field under another spelling.
-
-    Source-preserving envelopes accept unknown extras, but a snake_case
-    duplicate of a declared camelCase field could contradict the validated
-    value while riding along in the serialized response; identity and
-    evidence fields must have exactly one authoritative spelling.
-    """
-    duplicates = sorted(set(model.model_extra or {}) & set(type(model).model_fields))
-    if duplicates:
-        raise ValueError(f"duplicate spellings of declared fields: {duplicates}")
-    return model
+_reject_declared_field_duplicates = reject_declared_field_duplicates
 
 
 class IdeaAIExplanationEnvelope(BaseModel):
@@ -95,6 +89,14 @@ class IdeaAIExplanationEnvelope(BaseModel):
     supported_feature_promoted: StrictBool = Field(..., alias="supportedFeaturePromoted")
     execution_provenance_posture: str = Field(..., alias="executionProvenancePosture")
     ai_lineage_recorded: StrictBool = Field(..., alias="aiLineageRecorded")
+    redacted_evidence: IdeaSourceEvidenceIdentity = Field(
+        ...,
+        alias="redactedEvidence",
+        description=(
+            "Lotus Idea redacted evidence envelope; its typed identity fields bind the "
+            "explanation to the exact candidate evidence revision it was generated from."
+        ),
+    )
 
     _no_duplicate_field_spellings = model_validator(mode="after")(_reject_declared_field_duplicates)
 

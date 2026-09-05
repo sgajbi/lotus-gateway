@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -537,3 +539,79 @@ def test_idea_candidate_action_preserves_source_conflict_and_validation_status(
 
     assert response.status_code == upstream_status
     assert "source-internal-detail" not in str(response.json())
+
+
+def _detail_with_evidence(monkeypatch, evidence_mutation) -> "TestClient":
+    async def _detail(self, *, candidate_id, caller_headers, correlation_id):
+        payload = copy.deepcopy(IDEA_CANDIDATE_DETAIL_EXAMPLE)
+        evidence_mutation(payload["evidence"])
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.get_candidate_detail",
+        _detail,
+    )
+    return TestClient(app)
+
+
+def test_idea_candidate_detail_forwards_evidence_identity_byte_faithfully(monkeypatch) -> None:
+    def _add_additive_field(evidence: dict) -> None:
+        evidence["sourceCutTolerance"] = {"maxSkewSeconds": 30}
+
+    client = _detail_with_evidence(monkeypatch, _add_additive_field)
+    response = client.get(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200
+    evidence = response.json()["evidence"]
+    assert evidence["evidencePacketId"] == "iep_high_cash_8d57adbf52f7f5a7"
+    assert evidence["evidenceContentHash"] == "sha256:evidence-lineage"
+    assert evidence["sourceRevisionVectorDigest"] == "sha256:source-revision-vector"
+    assert evidence["sourceCutPosture"] == "coherent"
+    # Additive source fields survive the typed identity skeleton verbatim.
+    assert evidence["sourceCutTolerance"] == {"maxSkewSeconds": 30}
+    assert evidence["lineageId"] == "lineage_high_cash_8d57adbf52f7f5a7"
+
+
+def test_idea_candidate_detail_fails_closed_on_missing_evidence_identity(monkeypatch) -> None:
+    def _drop_digest(evidence: dict) -> None:
+        del evidence["sourceRevisionVectorDigest"]
+
+    client = _detail_with_evidence(monkeypatch, _drop_digest)
+    response = client.get(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def test_idea_candidate_detail_fails_closed_on_blank_evidence_identity(monkeypatch) -> None:
+    def _blank_hash(evidence: dict) -> None:
+        evidence["evidenceContentHash"] = " "
+
+    client = _detail_with_evidence(monkeypatch, _blank_hash)
+    response = client.get(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+def test_idea_candidate_detail_fails_closed_on_duplicate_identity_spelling(monkeypatch) -> None:
+    def _duplicate_spelling(evidence: dict) -> None:
+        evidence["source_cut_posture"] = "incoherent"
+
+    client = _detail_with_evidence(monkeypatch, _duplicate_spelling)
+    response = client.get(
+        "/api/v1/ideas/candidates/idea_high_cash_8d57adbf52f7f5a7",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"

@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.contracts.idea_evidence_identity import IdeaSourceEvidenceIdentity
+
 
 class IdeaReasonCode(StrEnum):
     """Lotus Idea-owned reason vocabulary accepted by candidate actions."""
@@ -116,9 +118,13 @@ class IdeaGatewayCandidateDetailResponse(BaseModel):
         ...,
         description="Lotus Idea candidate summary, lifecycle, score, and source signal identity.",
     )
-    evidence: dict[str, Any] = Field(
+    evidence: IdeaSourceEvidenceIdentity = Field(
         ...,
-        description="Lotus Idea redacted evidence, lineage, and source reference posture.",
+        description=(
+            "Lotus Idea redacted evidence, lineage, and source reference posture. The typed "
+            "identity fields bind the candidate to its current evidence revision; the remaining "
+            "source posture is preserved verbatim."
+        ),
     )
     lifecycle_history: list[dict[str, Any]] = Field(
         ...,

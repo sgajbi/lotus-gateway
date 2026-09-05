@@ -49,6 +49,8 @@ IDEA_CANDIDATE_DETAIL_EXAMPLE: dict[str, Any] = {
     "evidence": {
         "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
         "evidenceContentHash": "sha256:evidence-lineage",
+        "sourceRevisionVectorDigest": "sha256:source-revision-vector",
+        "sourceCutPosture": "coherent",
         "supportability": "ready",
         "lineageId": "lineage_high_cash_8d57adbf52f7f5a7",
         "createdAtUtc": "2026-06-21T10:00:00Z",
@@ -205,6 +207,14 @@ IDEA_AI_EXPLANATION_EXAMPLE: dict[str, Any] = {
         "aiLineageRecorded": True,
         "lotusAiRuntimeExecuted": False,
         "supportedFeaturePromoted": False,
+        "redactedEvidence": {
+            "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
+            "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+            "evidenceContentHash": "sha256:evidence-lineage",
+            "sourceRevisionVectorDigest": "sha256:source-revision-vector",
+            "sourceCutPosture": "coherent",
+            "supportability": "ready",
+        },
     },
 }
 
