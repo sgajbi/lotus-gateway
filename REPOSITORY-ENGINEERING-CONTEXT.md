@@ -392,8 +392,12 @@ under parent issue #586.
     The route admits exactly one tenant scope — the `tenantId` query selector and the
     `X-Tenant-Id` caller context must agree when both are presented, the governed default tenant
     applies only when neither is given, and the resolved scope is re-admitted via
-    `admit_caller_tenant` so every upstream call and the response label carry one identical
-    tenant (see the tenant-admission item above).
+    `admit_caller_tenant` so the response label and every tenant-aware source call carry one
+    identical tenant (see the tenant-admission item above): Core-backed reads take the ambient
+    Core-read fence and the analytics capability read receives the tenant selector its contract
+    declares, while lotus-risk's `/integration/capabilities` route publishes service-level,
+    tenant-agnostic capability truth and is deliberately called without tenant scope rather than
+    inventing a selector its contract does not declare.
 
 ## Architecture And Module Map
 
