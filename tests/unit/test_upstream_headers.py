@@ -83,3 +83,70 @@ def test_build_archive_caller_headers_defaults_actor_type() -> None:
 
     assert headers["X-Actor-Type"] == "user"
     assert "X-Booking-Center-Code" not in headers
+
+
+def test_build_upstream_headers_propagates_the_caller_presented_identity() -> None:
+    from starlette.datastructures import Headers
+
+    from app.middleware.caller_identity import (
+        capture_caller_identity,
+        release_caller_identity,
+    )
+
+    token = capture_caller_identity(
+        Headers(
+            {
+                "X-Tenant-Id": "tenant-sg",
+                "X-Actor-Id": "PM_SG_001",
+                "X-Caller-Application": "lotus-workbench",
+                "X-Region": "APAC",
+                "X-Booking-Center-Code": "Singapore",
+                "X-Role": "ADVISOR",
+                # Never propagated ambiently: credentials and entitlement claims.
+                "Authorization": "Bearer secret",
+                "X-Caller-Capabilities": "advisor.book.read",
+                "X-Authorized-Advisor-Id": "PM_SG_001",
+            }
+        )
+    )
+    try:
+        headers = build_upstream_headers("corr-identity")
+    finally:
+        release_caller_identity(token)
+
+    assert headers["X-Tenant-Id"] == "tenant-sg"
+    assert headers["X-Actor-Id"] == "PM_SG_001"
+    assert headers["X-Caller-Application"] == "lotus-workbench"
+    assert headers["X-Region"] == "APAC"
+    assert headers["X-Booking-Center-Code"] == "Singapore"
+    assert headers["X-Role"] == "ADVISOR"
+    assert "Authorization" not in headers
+    assert "X-Caller-Capabilities" not in headers
+    assert "X-Authorized-Advisor-Id" not in headers
+
+
+def test_explicitly_admitted_caller_headers_win_over_the_ambient_identity() -> None:
+    from starlette.datastructures import Headers
+
+    from app.middleware.caller_identity import (
+        capture_caller_identity,
+        release_caller_identity,
+    )
+
+    token = capture_caller_identity(Headers({"X-Tenant-Id": "tenant-presented"}))
+    try:
+        headers = build_upstream_headers(
+            "corr-override",
+            caller_headers={"X-Tenant-Id": "tenant-admitted"},
+        )
+    finally:
+        release_caller_identity(token)
+
+    assert headers["X-Tenant-Id"] == "tenant-admitted"
+
+
+def test_a_request_that_presented_no_identity_propagates_none() -> None:
+    headers = build_upstream_headers("corr-anonymous")
+
+    assert "X-Tenant-Id" not in headers
+    assert "X-Actor-Id" not in headers

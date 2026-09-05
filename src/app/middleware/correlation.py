@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from fastapi import Request
 
+from app.middleware.caller_identity import capture_caller_identity, release_caller_identity
 from app.middleware.server_timing import (
     format_server_timing_header,
     reset_server_timing_metrics,
@@ -108,6 +109,7 @@ async def correlation_middleware(request: Request, call_next):
     correlation_token = correlation_id_var.set(correlation_id)
     request_token = request_id_var.set(request_id)
     trace_token = trace_id_var.set(trace_id)
+    caller_identity_token = capture_caller_identity(request.headers)
     server_timing_token = reset_server_timing_metrics()
     try:
         response = await call_next(request)
@@ -126,6 +128,7 @@ async def correlation_middleware(request: Request, call_next):
         correlation_id_var.reset(correlation_token)
         request_id_var.reset(request_token)
         trace_id_var.reset(trace_token)
+        release_caller_identity(caller_identity_token)
 
     response.headers["X-Correlation-Id"] = correlation_id
     response.headers["X-Request-Id"] = request_id
