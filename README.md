@@ -10,18 +10,20 @@ Workbench, preserving access boundaries, evidence and explicit unavailable state
 For product teams building on Lotus, Gateway provides:
 
 - one governed, product-oriented API for `lotus-workbench` instead of nine service integrations
-- composed product views — advisor book, performance and risk workspaces, proposals with policy
-  evaluation, DPM command center, reporting, advisor brief — that preserve each source's
-  authority, evidence and supportability
-- explicit partial, degraded, unavailable and permission-blocked states the UI can render
-  truthfully: in composed views, a degraded optional enrichment source degrades only its own
-  typed fact block (the Advisor Book workspace keeps its cohort rows, for example), while a
-  failed required source — an unresolvable membership cohort, a missing core portfolio payload —
-  still fails that request explicitly rather than fabricating a partial answer
-- trusted caller-context admission, replay-identified writes for the mutation families whose
-  contracts require an `Idempotency-Key`, semantic validation of source responses in the route
-  families with declared response admission (some proposal write responses remain deliberately
-  opaque source envelopes), and bounded product-safe errors at every route
+- composed product views that preserve each source's authority, evidence and supportability
+- truthful availability states — partial, degraded, unavailable and permission-blocked —
+  the UI can render without guessing
+- trusted caller-context admission and bounded product-safe errors at every route
+
+Three availability and safety rules are worth knowing before integrating:
+
+- a degraded optional enrichment degrades only its own typed fact block; the Advisor Book
+  workspace keeps its cohort rows, for example
+- a failed required source — an unresolvable membership cohort, a missing core portfolio
+  payload — fails that request explicitly instead of fabricating a partial answer
+- write idempotency and source-response admission are route-declared, not universal: retries
+  replay only where the contract requires an `Idempotency-Key`, and some proposal write
+  responses are deliberately opaque source envelopes
 
 ## Place In The Platform
 
@@ -36,27 +38,35 @@ owning services  lotus-core · lotus-performance · lotus-risk · lotus-advise �
                  lotus-manage · lotus-report · lotus-archive · lotus-idea · lotus-ai
 ```
 
-Domain authority stays with the owning services: Core owns portfolio facts, Performance and Risk
-own analytics, Advise/Manage/Idea own their workflows, Report owns report execution, Archive owns
-documents, and AI owns its execution and accepted-output contracts. Gateway composes, validates
-and publishes; it never recomputes domain truth, mints source-owned domain record identity, or
-invents evidence (transport identifiers such as correlation ids and replay keys are
-Gateway-generated plumbing, not domain records).
+Domain authority stays with the owning services: Core owns portfolio facts; Performance and
+Risk own analytics; Advise, Manage and Idea own their workflows; Report owns report execution;
+Archive owns documents; AI owns its execution and accepted-output contracts.
+
+Gateway composes, validates and publishes. It does not recompute domain truth, mint
+source-owned record identity, or invent evidence; transport identifiers such as correlation ids
+and replay keys are Gateway plumbing, not domain records.
 
 ## Capability And Availability
 
-Supported business journeys, concisely: portfolio views with allocations, transactions and
-tax-lot drill-down; performance and risk workspaces with evidence lineage; proposal lifecycle
-with policy evaluation, reviewed narrative and delivery posture; advisor book and
-advisor cockpit; bank-demo proof APIs; DPM command center (construction, waves and campaigns,
-proof packs, outcome reviews, portfolio memory, PM operating quality); report ordering options
-(`/api/v1/report-ordering/options`, eligibility only — not membership proof); durable report
-jobs (`/api/v1/reports/portfolio-reviews`, `/api/v1/report-jobs/*`); report batches
-(`/api/v1/report-batches`), whose creation alone resolves own-book membership through Core
-source truth — with `lotus-report` keeping catalogue and lifecycle authority throughout;
-archived document retrieval; idea review
-queues with governed candidate actions; and AI-assisted summaries through governed workflow-pack
-seams.
+Supported business journeys:
+
+- portfolio views: allocations, transactions, tax-lot drill-down
+- performance and risk workspaces with evidence lineage
+- proposal lifecycle: policy evaluation, reviewed narrative, delivery posture
+- advisor book and advisor cockpit
+- bank-demo proof APIs
+- DPM command center: construction, waves and campaigns, proof packs, outcome reviews,
+  portfolio memory, PM operating quality
+- report ordering options at `/api/v1/report-ordering/options` — eligibility only, never
+  membership proof
+- durable report jobs: `/api/v1/reports/portfolio-reviews` and `/api/v1/report-jobs/*`
+- report batches at `/api/v1/report-batches` — creation alone resolves own-book membership
+  through Core source truth; `lotus-report` keeps catalogue and lifecycle authority
+- archived document retrieval
+- idea review queues with governed candidate actions
+- AI-assisted summaries through governed workflow-pack seams
+
+Where to verify each claim:
 
 - Route-family summary with copy-paste examples:
   [wiki/API-Surface.md](wiki/API-Surface.md); the generated OpenAPI at `/docs` on a running
