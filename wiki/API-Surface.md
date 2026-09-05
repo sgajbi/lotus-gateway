@@ -495,10 +495,14 @@ consumer migration remain tracked by parent issue #569.
   tenant on a mutation; tenant-authority verification itself is owned by lotus-core's ingress
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
   and `instrument_page_limit`
-- proposal lifecycle writes require `Idempotency-Key`, with two exceptions: report requests
-  (`POST /api/v1/proposals/{proposal_id}/report-requests`) accept no idempotency key and are not
-  replay-safe to retry, and narrative review accepts an optional `Idempotency-Key` while
-  preserving the reviewed narrative posture returned by `lotus-advise`
+- proposal mutation idempotency is declared per route, not universal: routes that require
+  `Idempotency-Key` reject its absence; several proposal-family mutations — execution handoff
+  and execution update, memo review, memo AI commentary, report-package request and event, and
+  narrative review (which preserves the reviewed narrative posture returned by `lotus-advise`) —
+  accept the key optionally, so supply one whenever a retry must replay rather than repeat the
+  write; report requests (`POST /api/v1/proposals/{proposal_id}/report-requests`) accept no
+  idempotency key and are not replay-safe to retry. The generated OpenAPI carries each route's
+  authoritative declaration
 - proposal simulation, create, list, detail, version, workflow-event, approval, lineage, reviewed
   narrative, report-request, delivery-summary, and delivery-event routes call `lotus-advise`
   `/advisory/proposals/*`; they do not call `lotus-manage`
