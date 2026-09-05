@@ -29,6 +29,10 @@ jobs:
           git fetch origin main --quiet
           python scripts/audit_main_gate_coverage.py --limit 60 --fail-on-gap
       - name: Compare live branch protection against policy (fail closed)
+        # Independent of the audit above: a coverage gap or fetch failure
+        # must not skip this comparison, or protection drift stays invisible
+        # on exactly the days the workflow is already red.
+        if: ${{ !cancelled() }}
         env:
           # github.token cannot carry administration:read, which the branch
           # protection endpoint requires. No Lotus repository holds this

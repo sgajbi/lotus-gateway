@@ -16,10 +16,15 @@ WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 _STEP = re.compile(r"^(?P<indent>\s+)- name: (?P<name>.+)$")
 
 
+def _workflow_files() -> list[Path]:
+    """GitHub recognizes both extensions; scanning one would miss the other."""
+    return sorted(WORKFLOWS.glob("*.yml")) + sorted(WORKFLOWS.glob("*.yaml"))
+
+
 def _iter_steps() -> list[tuple[Path, str, str]]:
     """Return (workflow, step name, step body) for every step in every workflow."""
     steps: list[tuple[Path, str, str]] = []
-    for workflow in sorted(WORKFLOWS.glob("*.yml")):
+    for workflow in _workflow_files():
         lines = workflow.read_text(encoding="utf-8").splitlines()
         current: tuple[str, str] | None = None
         body: list[str] = []
@@ -74,6 +79,6 @@ def test_the_detector_recognizes_an_unguarded_pipe() -> None:
 def test_every_workflow_is_scanned() -> None:
     """A silent zero-input scan would pass while checking nothing."""
     scanned = {workflow for workflow, _, _ in _iter_steps()}
-    on_disk = set(WORKFLOWS.glob("*.yml"))
+    on_disk = set(_workflow_files())
     assert on_disk, "no workflows found: the scan would pass vacuously"
     assert scanned == on_disk, f"workflows never scanned: {on_disk - scanned}"
