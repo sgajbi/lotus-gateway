@@ -4,7 +4,8 @@ import asyncio
 import logging
 from typing import Any
 
-from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.clients.http_json_resilience import request_with_retry_outcome
+from app.clients.http_resilience import request_binary_with_retry
 from app.clients.http_response_payloads import communication_failure_result
 from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
@@ -19,9 +20,9 @@ async def _request_with_optional_total_deadline(
 ) -> tuple[int, dict[str, Any]]:
     try:
         if total_deadline_seconds is None:
-            return await request_with_retry(**request_kwargs)
+            return (await request_with_retry_outcome(**request_kwargs)).as_result()
         async with asyncio.timeout(total_deadline_seconds):
-            return await request_with_retry(**request_kwargs)
+            return (await request_with_retry_outcome(**request_kwargs)).as_result()
     except TimeoutError:
         return communication_failure_result("elapsed deadline exceeded")
 

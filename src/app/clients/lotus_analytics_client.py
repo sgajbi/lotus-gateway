@@ -5,7 +5,6 @@ from app.clients.http_json_resilience import (
     JsonRequestOutcome,
     request_with_retry_outcome,
 )
-from app.clients.http_resilience import request_with_retry
 from app.clients.lotus_analytics_async_polling import (
     AnalyticsPollBudget,
     AnalyticsRequestDeadlineExceeded,
@@ -50,7 +49,7 @@ class LotusAnalyticsClient(
         correlation_id: str,
         params: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        return await request_with_retry(
+        outcome = await request_with_retry_outcome(
             method="GET",
             url=f"{self._base_url}{path}",
             timeout_seconds=self._timeout,
@@ -59,6 +58,7 @@ class LotusAnalyticsClient(
             params=params,
             headers=build_upstream_headers(correlation_id),
         )
+        return outcome.as_result()
 
     async def _post_analytics_request(
         self,
