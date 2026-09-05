@@ -1,52 +1,41 @@
-"""Request-scoped propagation of the caller-presented identity headers.
+"""Request-scoped propagation of the caller-presented tenant fence.
 
-Gateway is a trusted-context front door: callers present their identity as X-*
-headers, each route admits what its contract requires, and every upstream Lotus
-service enforces its own fencing over the same header vocabulary (lotus-core's
-fail-closed tenant ingress rejects any protected call without X-Tenant-Id).
-These contextvars carry the identity the caller presented so upstream calls
-propagate the caller's scope verbatim — Gateway never mints, rewrites, or
-defaults an identity, and a request that presented no identity propagates none.
+lotus-core's fail-closed ingress rejects any protected call without
+X-Tenant-Id, and Gateway's composed reads must carry the tenant the caller
+presented. The tenant is fencing context: forwarding it can only narrow what a
+source returns. It is therefore the ONLY header this ambient mechanism
+propagates.
 
-Only the platform identity vocabulary is captured. Entitlement claims
-(X-Caller-Capabilities, X-Authorized-*) and credentials (Authorization) are
-deliberately excluded: routes that need them forward them explicitly under
-their own contracts.
+Authority-bearing identity (X-Actor-Id, X-Role, X-Caller-Application, booking
+centre, entitlement claims, credentials) never propagates ambiently: several
+upstream boundaries treat those headers as Gateway-vetted authority (for
+example the DPM/Manage read-authority forwarding), so an ambient merge would
+turn unvalidated request headers into upstream authority on routes that never
+admitted them. Routes forward authority only through their explicitly admitted
+caller_headers, exactly as before. Gateway never mints, rewrites, or defaults
+a tenant: a request that presented none propagates none.
 """
 
 from collections.abc import Mapping
 from contextvars import ContextVar, Token
 
-CALLER_IDENTITY_HEADER_NAMES: tuple[str, ...] = (
-    "X-Tenant-Id",
-    "X-Actor-Id",
-    "X-Caller-Application",
-    "X-Region",
-    "X-Booking-Center-Code",
-    "X-Role",
-)
+CALLER_TENANT_HEADER = "X-Tenant-Id"
 
-_caller_identity_var: ContextVar[tuple[tuple[str, str], ...]] = ContextVar(
-    "caller_identity_headers", default=()
-)
+_caller_tenant_var: ContextVar[str] = ContextVar("caller_tenant", default="")
 
 
 def capture_caller_identity(headers: Mapping[str, str]) -> Token:
-    """Record the identity headers the caller presented for this request."""
+    """Record the tenant fence the caller presented for this request."""
 
-    presented = tuple(
-        (name, value)
-        for name in CALLER_IDENTITY_HEADER_NAMES
-        if (value := (headers.get(name) or "").strip())
-    )
-    return _caller_identity_var.set(presented)
+    return _caller_tenant_var.set((headers.get(CALLER_TENANT_HEADER) or "").strip())
 
 
 def release_caller_identity(token: Token) -> None:
-    _caller_identity_var.reset(token)
+    _caller_tenant_var.reset(token)
 
 
 def propagated_caller_identity() -> dict[str, str]:
-    """The caller-presented identity headers to carry on upstream requests."""
+    """The caller-presented tenant fence to carry on upstream requests."""
 
-    return dict(_caller_identity_var.get())
+    tenant = _caller_tenant_var.get()
+    return {CALLER_TENANT_HEADER: tenant} if tenant else {}
