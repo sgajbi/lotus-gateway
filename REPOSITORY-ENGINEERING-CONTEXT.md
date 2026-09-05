@@ -259,9 +259,11 @@ under parent issue #586.
    `app/clients/upstream_headers.py` merges it EXCLUSIVELY on lotus-core query (READ)
    client calls. Core WRITES (the ingestion client behind the intake routes) never take
    the ambient fence — a caller-selected tenant must not scope a mutation into another
-   tenant's partition. The intake routes admit the trusted caller context explicitly
-   (routers/trusted_caller_context.py requires X-Actor-Id, X-Tenant-Id, X-Region; 400
-   missing_caller_context otherwise) and thread it as explicitly admitted caller_headers
+   tenant's partition. The intake routes admit the governed core.intake.write capability claim
+   (403 intake_write_capability_required otherwise; services/intake_access_policy.py) plus
+   the trusted caller context explicitly (routers/trusted_caller_context.py requires
+   X-Actor-Id, X-Tenant-Id, X-Region; 400 missing_caller_context) and thread it as
+   explicitly admitted caller_headers
    through the intake service into the ingestion client, so Core writes carry admitted —
    never ambient — tenant authority. The generic `build_upstream_headers` propagates nothing
    ambiently, deliberately: other upstream boundaries (for example the DPM/Manage

@@ -10,6 +10,7 @@ _TRUSTED_HEADERS = {
     "X-Actor-Id": "OPS_SG_001",
     "X-Tenant-Id": "tenant-sg",
     "X-Region": "APAC",
+    "X-Caller-Capabilities": "core.intake.write",
 }
 
 
@@ -417,6 +418,7 @@ def test_intake_writes_fail_closed_without_trusted_caller_context(monkeypatch):
     response = client.post(
         "/api/v1/intake/portfolio-bundle",
         json={"body": {"sourceSystem": "UI", "portfolios": []}},
+        headers={"X-Caller-Capabilities": "core.intake.write"},
     )
 
     assert response.status_code == 400
@@ -444,3 +446,26 @@ def test_intake_upload_writes_forward_the_admitted_tenant(monkeypatch):
     assert response.status_code == 200
     assert captured["caller_headers"]["X-Tenant-Id"] == "tenant-sg"
     assert captured["caller_headers"]["X-Actor-Id"] == "OPS_SG_001"
+
+
+def test_intake_writes_refuse_callers_without_the_write_capability(monkeypatch):
+    called: list[str] = []
+
+    async def _fake_ingest(*args, **kwargs):
+        called.append("ingest")
+        return 202, {"message": "queued"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.ingest_portfolio_bundle", _fake_ingest)
+
+    client = TestClient(app)
+    headers = {key: value for key, value in _TRUSTED_HEADERS.items()}
+    headers["X-Caller-Capabilities"] = "advisor.book.read"
+    response = client.post(
+        "/api/v1/intake/portfolio-bundle",
+        json={"body": {"sourceSystem": "UI", "portfolios": []}},
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "intake_write_capability_required"
+    assert called == []
