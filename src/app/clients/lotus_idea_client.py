@@ -146,6 +146,45 @@ class LotusIdeaClient:
             causation_id=causation_id,
         )
 
+    async def request_candidate_ai_explanation(
+        self,
+        *,
+        candidate_id: str,
+        body: dict[str, Any],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        idempotency_key: str,
+        causation_id: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._record_candidate_action(
+            operation="idea.candidates.ai-explanations.generate",
+            candidate_id=candidate_id,
+            action_path="ai-explanations",
+            body=body,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            causation_id=causation_id,
+        )
+
+    async def get_ai_explanation_readiness(
+        self,
+        *,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-idea",
+            operation="idea.ai-explanations.readiness",
+            method="GET",
+            url=f"{self._base_url}/api/v1/ai-explanations/readiness",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=self._idea_headers(caller_headers, correlation_id),
+        )
+
     async def _record_candidate_action(
         self,
         *,

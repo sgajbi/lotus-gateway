@@ -308,7 +308,10 @@ was last evaluated.
 5. candidate-scoped conversion-intent recording through
    `/api/v1/ideas/candidates/{candidate_id}/conversion-intents`,
 6. exact candidate-presentation receipt forwarding through
-   `/api/v1/ideas/candidates/{candidate_id}/presentation-receipts`.
+   `/api/v1/ideas/candidates/{candidate_id}/presentation-receipts`,
+7. governed AI-explanation generation passthrough through
+   `/api/v1/ideas/candidates/{candidate_id}/ai-explanations`,
+8. AI-explanation readiness posture read through `/api/v1/ideas/ai-explanations/readiness`.
 
 These are implementation-backed Gateway BFF routes over `lotus-idea`; they do not promote an Idea
 supported feature or claim Workbench, runtime, data-product, suitability, execution, or client
@@ -316,7 +319,12 @@ communication readiness. Gateway preserves `lotus-idea` ranking, source signal i
 references, durable-storage posture, accepted/replayed mutation outcomes, and
 `supportedFeaturePromoted=false`. For mutations it forwards trusted caller context, entitlement
 scope, `Idempotency-Key`, correlation and trace context, and optional `X-Causation-Id` without
-deriving lifecycle, authorization, audit, or downstream authority locally. The review-action and
+deriving lifecycle, authorization, audit, or downstream authority locally. The AI-explanation
+routes are pure transport over the Lotus Idea generation surface: the explicit
+`EXPLANATION_UNAVAILABLE` degraded shape and its disposition reason class pass through verbatim,
+and a served explanation without an accepted evaluation verdict, with mismatched evidence
+identity, or with any transit authority escalation fails closed as a bounded 502. The
+review-action and
 conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
 feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
 legacy aliases. Queue items must include Idea-owned material/evidence versions. Presentation

@@ -185,3 +185,37 @@ IDEA_CONVERSION_INTENT_EXAMPLE: dict[str, Any] = {
     "durableStorageBacked": True,
     "supportedFeaturePromoted": False,
 }
+
+IDEA_AI_EXPLANATION_EXAMPLE: dict[str, Any] = {
+    "status": "EXPLANATION_SERVED",
+    "disposition": "executed",
+    "lotusAiRunId": "wpr_idea_explanation_001",
+    "lotusAiRuntimeExecutionConfirmed": True,
+    "evaluationVerdict": "accepted",
+    "explanation": {
+        "requestId": "ai-generation-001",
+        "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
+        "posture": "ready_for_advisor_review",
+        "verifierOutcome": "passed",
+        "explanationText": "Cash weight is above idle-liquidity policy threshold.",
+        "fallbackUsed": False,
+        "fallbackReason": None,
+        "grantsDownstreamAuthority": False,
+        "executionProvenancePosture": "unattested_local_test_fixture",
+        "aiLineageRecorded": True,
+        "lotusAiRuntimeExecuted": False,
+        "supportedFeaturePromoted": False,
+    },
+}
+
+IDEA_AI_EXPLANATION_READINESS_EXAMPLE: dict[str, Any] = {
+    "repository": "lotus-idea",
+    "supportedFeaturePromoted": False,
+    "sourceAuthority": "lotus-idea",
+    "workflowAuthority": "lotus-ai",
+    "readinessStatus": "blocked",
+    "supportabilityStatus": "not_certified",
+    "certificationReady": False,
+    "deterministicFallbackAvailable": True,
+    "verifierAvailable": True,
+}
