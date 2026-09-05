@@ -73,6 +73,8 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/ideas/candidates/{candidate_id}`
 - `POST /api/v1/ideas/candidates/{candidate_id}/feedback`
 - `POST /api/v1/ideas/candidates/{candidate_id}/presentation-receipts`
+- `POST /api/v1/ideas/candidates/{candidate_id}/ai-explanations`
+- `GET /api/v1/ideas/ai-explanations/readiness`
 - `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -1066,7 +1068,13 @@ vocabulary without compatibility aliases. A presentation receipt must be authore
 visible Workbench render and carries the Idea global rank independently from the Workbench visible
 count, together with the ordered-set digest, queue/ranking policies, and current candidate
 material/evidence versions. Queue retrieval and prefetch emit no
-receipt. These routes record only Lotus Idea-owned workflow facts; they do not initiate downstream
+receipt. The `ai-explanations` route forwards a bounded generation request (request id, one of
+three generation purposes, timezone-aware request time) and preserves the Lotus Idea outcome
+verbatim, including the explicit `EXPLANATION_UNAVAILABLE` degraded shape; a served explanation
+without an accepted evaluation verdict, mismatched evidence identity, or any transit authority
+escalation fails closed as a bounded 502, and `ai-explanations/readiness` forwards the source
+readiness posture without local interpretation. These routes record only Lotus Idea-owned
+workflow facts; they do not initiate downstream
 submission, rebalance, execution, suitability approval, or client communication. See
 [Idea Opportunity Transport](Idea-Opportunity-Transport) for the ownership and certification
 boundary.

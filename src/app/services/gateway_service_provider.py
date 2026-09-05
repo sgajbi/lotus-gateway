@@ -13,7 +13,7 @@ from app.services.domain_product_catalog_service_factory import (
     build_domain_product_catalog_service,
     domain_product_catalog_service_signature,
 )
-from app.services.idea_service import IdeaService
+from app.services.idea_ai_explanation_service import IdeaAIExplanationService
 from app.services.idea_service_factory import build_idea_service, idea_service_signature
 from app.services.intake_service import IntakeService
 from app.services.intake_service_factory import build_intake_service, intake_service_signature
@@ -34,7 +34,7 @@ _SOURCE_PRODUCT_SERVICE: SourceProductExecutionService | None = None
 _SOURCE_PRODUCT_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _INTAKE_SERVICE: IntakeService | None = None
 _INTAKE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-_IDEA_SERVICE: IdeaService | None = None
+_IDEA_SERVICE: IdeaAIExplanationService | None = None
 _IDEA_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
 
@@ -103,7 +103,7 @@ def intake_service() -> IntakeService:
     return service
 
 
-def idea_service() -> IdeaService:
+def idea_service() -> IdeaAIExplanationService:
     global _IDEA_SERVICE, _IDEA_SERVICE_SIGNATURE
     service, signature = resolve_cached_service(
         _IDEA_SERVICE,

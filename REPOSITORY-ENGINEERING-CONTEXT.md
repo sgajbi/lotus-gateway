@@ -229,8 +229,12 @@ under parent issue #586.
    product-facing boundary over `lotus-archive`,
 8. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-9. idea review queue/detail reads and candidate review-action, feedback, conversion-intent, and
-   visible-render presentation-receipt recordings are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
+9. idea review queue/detail reads, candidate review-action, feedback, conversion-intent, and
+   visible-render presentation-receipt recordings, plus governed AI-explanation generation
+   passthrough and readiness reads (transport-only over the Lotus Idea generation surface:
+   the explicit `EXPLANATION_UNAVAILABLE` degraded shape passes through verbatim, and a served
+   explanation without an accepted evaluation verdict, mismatched evidence identity, or transit
+   authority escalation fails closed as a bounded 502) are active under `/api/v1/ideas/*`; Gateway forwards caller entitlement scope, optional
    trusted context, correlation/trace context, and for mutations `Idempotency-Key` plus optional
    causation. It preserves `lotus-idea` ranking, source refs, durable-storage posture, accepted or
    replayed source outcomes, and `supportedFeaturePromoted=false`. Review and conversion requests

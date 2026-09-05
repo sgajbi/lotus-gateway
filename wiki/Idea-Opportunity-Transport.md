@@ -8,6 +8,15 @@ The Idea opportunity boundary records two distinct adviser-journey facts:
 It does not certify suitability, authorize execution, contact a client, or prove that a queue read
 was visible to an adviser.
 
+The boundary also carries the governed AI-explanation transport: Workbench requests a candidate
+explanation through `POST /api/v1/ideas/candidates/{candidate_id}/ai-explanations` (request id,
+one of three bounded generation purposes, timezone-aware request time) and reads posture through
+`GET /api/v1/ideas/ai-explanations/readiness`. Lotus Idea owns generation, governed acceptance,
+provenance, and lineage; Gateway preserves the outcome verbatim — including the explicit
+`EXPLANATION_UNAVAILABLE` degraded shape with its disposition reason class — and fails closed as
+a bounded 502 when a served explanation lacks an accepted evaluation verdict, its evidence
+identity mismatches the request, or transit attempts an authority escalation.
+
 ## Runtime flow
 
 ```mermaid

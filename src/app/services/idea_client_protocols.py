@@ -61,3 +61,21 @@ class IdeaClient(Protocol):
         idempotency_key: str,
         causation_id: str | None,
     ) -> tuple[int, dict[str, Any]]: ...
+
+    async def request_candidate_ai_explanation(
+        self,
+        *,
+        candidate_id: str,
+        body: dict[str, Any],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        idempotency_key: str,
+        causation_id: str | None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_ai_explanation_readiness(
+        self,
+        *,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
