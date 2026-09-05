@@ -14,9 +14,8 @@ deliberately excluded: routes that need them forward them explicitly under
 their own contracts.
 """
 
+from collections.abc import Mapping
 from contextvars import ContextVar, Token
-
-from starlette.datastructures import Headers
 
 CALLER_IDENTITY_HEADER_NAMES: tuple[str, ...] = (
     "X-Tenant-Id",
@@ -32,7 +31,7 @@ _caller_identity_var: ContextVar[tuple[tuple[str, str], ...]] = ContextVar(
 )
 
 
-def capture_caller_identity(headers: Headers) -> Token:
+def capture_caller_identity(headers: Mapping[str, str]) -> Token:
     """Record the identity headers the caller presented for this request."""
 
     presented = tuple(
