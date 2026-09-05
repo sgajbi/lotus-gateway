@@ -8,6 +8,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskRollingResponse,
     WorkbenchRiskSummaryResponse,
 )
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.services.risk_workspace_requests import (
     RiskAttributionRequestContext,
     RiskConcentrationRequestContext,
@@ -27,8 +28,11 @@ RiskWorkspaceResponseT = TypeVar("RiskWorkspaceResponseT", bound=WorkbenchRiskMo
 
 
 def summary_cache_key(context: RiskSummaryRequestContext) -> tuple[object, ...]:
+    # Risk mandate composition reads Core-backed facts under the admitted
+    # tenant fence; one tenant's cached response must never serve another.
     return (
         "summary",
+        admitted_tenant_cache_scope(),
         context.portfolio_id,
         context.period,
         context.detail_basis,
@@ -43,6 +47,7 @@ def summary_cache_key(context: RiskSummaryRequestContext) -> tuple[object, ...]:
 def concentration_cache_key(context: RiskConcentrationRequestContext) -> tuple[object, ...]:
     return (
         "concentration",
+        admitted_tenant_cache_scope(),
         context.portfolio_id,
         context.period,
         context.as_of_date,

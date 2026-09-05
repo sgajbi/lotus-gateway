@@ -73,3 +73,39 @@ async def test_portfolio_upstream_cache_never_serves_across_tenants() -> None:
     assert second == (200, {"tenant": "tenant-b"})
     # Same tenant reuses the cached entry; a different tenant always loads.
     assert calls == ["tenant-a", "tenant-b"]
+
+
+def test_risk_and_brief_response_cache_keys_are_partitioned_by_admitted_tenant() -> None:
+    from app.services.risk_workspace_cache import (
+        concentration_cache_key,
+        summary_cache_key,
+    )
+    from app.services.risk_workspace_requests import RiskSummaryRequestContext
+
+    context = RiskSummaryRequestContext(
+        portfolio_id="PB_001",
+        correlation_id="corr-risk-cache",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code=None,
+        as_of_date="2026-04-10",
+        report_start_date=None,
+        report_end_date=None,
+        reporting_currency="USD",
+    )
+
+    token = _under_tenant("tenant-a")
+    try:
+        summary_a = summary_cache_key(context)
+    finally:
+        release_caller_identity(token)
+    token = _under_tenant("tenant-b")
+    try:
+        summary_b = summary_cache_key(context)
+    finally:
+        release_caller_identity(token)
+
+    assert summary_a != summary_b
+    assert "tenant-a" in summary_a
+    assert "tenant-b" in summary_b
+    assert concentration_cache_key is not None
