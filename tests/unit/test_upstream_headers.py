@@ -86,28 +86,24 @@ def test_build_archive_caller_headers_defaults_actor_type() -> None:
 
 
 def test_build_upstream_headers_propagates_the_caller_presented_identity() -> None:
-    from starlette.datastructures import Headers
-
     from app.middleware.caller_identity import (
         capture_caller_identity,
         release_caller_identity,
     )
 
     token = capture_caller_identity(
-        Headers(
-            {
-                "X-Tenant-Id": "tenant-sg",
-                "X-Actor-Id": "PM_SG_001",
-                "X-Caller-Application": "lotus-workbench",
-                "X-Region": "APAC",
-                "X-Booking-Center-Code": "Singapore",
-                "X-Role": "ADVISOR",
-                # Never propagated ambiently: credentials and entitlement claims.
-                "Authorization": "Bearer secret",
-                "X-Caller-Capabilities": "advisor.book.read",
-                "X-Authorized-Advisor-Id": "PM_SG_001",
-            }
-        )
+        {
+            "X-Tenant-Id": "tenant-sg",
+            "X-Actor-Id": "PM_SG_001",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "Singapore",
+            "X-Role": "ADVISOR",
+            # Never propagated ambiently: credentials and entitlement claims.
+            "Authorization": "Bearer secret",
+            "X-Caller-Capabilities": "advisor.book.read",
+            "X-Authorized-Advisor-Id": "PM_SG_001",
+        }
     )
     try:
         headers = build_upstream_headers("corr-identity")
@@ -126,14 +122,12 @@ def test_build_upstream_headers_propagates_the_caller_presented_identity() -> No
 
 
 def test_explicitly_admitted_caller_headers_win_over_the_ambient_identity() -> None:
-    from starlette.datastructures import Headers
-
     from app.middleware.caller_identity import (
         capture_caller_identity,
         release_caller_identity,
     )
 
-    token = capture_caller_identity(Headers({"X-Tenant-Id": "tenant-presented"}))
+    token = capture_caller_identity({"X-Tenant-Id": "tenant-presented"})
     try:
         headers = build_upstream_headers(
             "corr-override",
