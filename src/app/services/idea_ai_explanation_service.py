@@ -162,6 +162,7 @@ def _served_state_contradictions(response: IdeaCandidateAIExplanationResponse) -
         ("posture", explanation.posture == "ready_for_advisor_review"),
         ("verifierOutcome", explanation.verifier_outcome == "passed"),
         ("fallbackUsed", explanation.fallback_used is False),
+        ("fallbackReason", not (explanation.fallback_reason or "").strip()),
         (
             "executionProvenancePosture",
             explanation.execution_provenance_posture in _SERVED_EXECUTED_PROVENANCE_POSTURES,
