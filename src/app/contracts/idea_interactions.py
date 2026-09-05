@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.contracts.datetime_transport import TransportDatetime
 from app.contracts.idea_actions import IdeaCandidateActionRequest, IdeaCandidateActionResponse
 
 IDEA_FEEDBACK_TAXONOMY_VERSION = "idea-feedback-taxonomy-v1"
@@ -40,7 +41,7 @@ class IdeaCandidateFeedbackRequest(IdeaCandidateActionRequest):
     )
     outcome: IdeaFeedbackOutcome
     reason: IdeaFeedbackReason
-    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
+    recorded_at_utc: TransportDatetime = Field(..., alias="recordedAtUtc")
 
     @field_validator("feedback_id")
     @classmethod
@@ -90,7 +91,7 @@ class IdeaPresentationReceiptFields(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     tenant_id: str = Field(..., alias="tenantId", pattern=_GOVERNED_REFERENCE)
-    presented_at_utc: datetime = Field(..., alias="presentedAtUtc")
+    presented_at_utc: TransportDatetime = Field(..., alias="presentedAtUtc")
     rank_at_presentation: int = Field(
         ...,
         alias="rankAtPresentation",

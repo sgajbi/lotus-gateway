@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.contracts.datetime_transport import TransportDatetime
 from app.contracts.ideas import IdeaReasonCode
 
 
@@ -62,7 +63,7 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
     review_id: str = Field(..., alias="reviewId", min_length=1)
     action: IdeaReviewActionName
     reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
-    decided_at_utc: datetime = Field(..., alias="decidedAtUtc")
+    decided_at_utc: TransportDatetime = Field(..., alias="decidedAtUtc")
     suppression_reason: (
         Literal[
             "duplicate",
@@ -73,7 +74,7 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
         ]
         | None
     ) = Field(default=None, alias="suppressionReason")
-    snoozed_until_utc: datetime | None = Field(default=None, alias="snoozedUntilUtc")
+    snoozed_until_utc: TransportDatetime | None = Field(default=None, alias="snoozedUntilUtc")
 
     @field_validator("review_id")
     @classmethod
@@ -108,7 +109,7 @@ class IdeaCandidateConversionIntentRequest(IdeaCandidateActionRequest):
     conversion_intent_id: str = Field(..., alias="conversionIntentId", min_length=1)
     target: Literal["advise_proposal", "manage_review", "report_evidence"]
     reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
-    requested_at_utc: datetime = Field(..., alias="requestedAtUtc")
+    requested_at_utc: TransportDatetime = Field(..., alias="requestedAtUtc")
 
     @field_validator("conversion_intent_id")
     @classmethod
