@@ -208,3 +208,63 @@ async def test_reporting_job_submission_service_maps_upstream_job_error() -> Non
         "code": "idempotency_conflict",
         "message": "Idempotency key conflicts with another request.",
     }
+
+
+@pytest.mark.asyncio
+async def test_submission_refuses_a_handle_echoing_a_different_idempotency_key() -> None:
+    reporting_client = _ReportingClient()
+    payload = dict(reporting_client.portfolio_response[1])
+    payload["idempotency_key"] = "idem-someone-else"
+    reporting_client.portfolio_response = (202, payload)
+    service = ReportingJobSubmissionService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.submit_portfolio_review_job(
+            request=_portfolio_request(),
+            idempotency_key="idem-portfolio",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-submit",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["code"] == "report_job_source_identity_mismatch"
+    assert "idempotency_key" in exc_info.value.detail["message"]
+
+
+@pytest.mark.asyncio
+async def test_submission_refuses_a_status_url_naming_a_different_job() -> None:
+    reporting_client = _ReportingClient()
+    payload = dict(reporting_client.portfolio_response[1])
+    payload["status_url"] = "/reports/jobs/rjob_other"
+    reporting_client.portfolio_response = (202, payload)
+    service = ReportingJobSubmissionService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.submit_portfolio_review_job(
+            request=_portfolio_request(),
+            idempotency_key="idem-portfolio",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-submit",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["code"] == "report_job_source_identity_mismatch"
+    assert "status_url" in exc_info.value.detail["message"]
+
+
+@pytest.mark.asyncio
+async def test_submission_maps_a_malformed_success_to_a_bounded_502() -> None:
+    reporting_client = _ReportingClient()
+    reporting_client.outcome_response = (202, {"report_job_id": "rjob_outcome_1"})
+    service = ReportingJobSubmissionService(reporting_client=reporting_client)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.submit_outcome_review_report_job(
+            request=_outcome_request(),
+            idempotency_key="idem-outcome",
+            caller_headers=_caller_headers(),
+            correlation_id="corr-submit",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail["code"] == "report_job_source_contract_invalid"

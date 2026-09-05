@@ -40,7 +40,11 @@ async def _get_report_snapshot(
         **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
-            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+            description=(
+                "Returned when lotus-report is unavailable, returns an unsafe failure, or "
+                "answers with a malformed success or evidence for a different identity, "
+                "which is refused rather than published."
+            ),
         ),
     },
 )

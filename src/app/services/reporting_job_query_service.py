@@ -1,6 +1,4 @@
-from typing import Any, TypeVar
-
-from pydantic import BaseModel
+from typing import Any
 
 from app.contracts.reporting import ReportJobStatusResponse
 from app.contracts.reporting_query import (
@@ -10,13 +8,14 @@ from app.contracts.reporting_query import (
     ReportSnapshotLineageResponse,
 )
 from app.services.reporting_client_protocols import ReportingJobQueryClient
-from app.services.reporting_error_mapping import raise_report_job_error
+from app.services.reporting_response_admission import (
+    admit_report_source_response,
+    assert_report_response_identity,
+)
 from app.services.reporting_search_scope import (
     assert_search_result_within_scope,
     resolve_search_scope_params,
 )
-
-ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 
 class ReportingJobQueryService:
@@ -39,7 +38,7 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        response = self._validate_response(ReportJobListResponse, status_code, payload)
+        response = admit_report_source_response(ReportJobListResponse, status_code, payload)
         assert_search_result_within_scope(response, caller_headers=caller_headers)
         return response
 
@@ -55,7 +54,13 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportJobStatusResponse, status_code, payload)
+        response = admit_report_source_response(ReportJobStatusResponse, status_code, payload)
+        assert_report_response_identity(
+            operation="report job status",
+            expected={"report_job_id": job_id},
+            actual={"report_job_id": response.report_job_id},
+        )
+        return response
 
     async def get_report_job_events(
         self,
@@ -69,7 +74,13 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportJobStatusEventsResponse, status_code, payload)
+        response = admit_report_source_response(ReportJobStatusEventsResponse, status_code, payload)
+        assert_report_response_identity(
+            operation="report job events",
+            expected={"report_job_id": job_id},
+            actual={"report_job_id": response.report_job_id},
+        )
+        return response
 
     async def get_report_job_lineage(
         self,
@@ -83,7 +94,13 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportSnapshotLineageResponse, status_code, payload)
+        response = admit_report_source_response(ReportSnapshotLineageResponse, status_code, payload)
+        assert_report_response_identity(
+            operation="report job lineage",
+            expected={"report_job_id": job_id},
+            actual={"report_job_id": response.snapshot.report_job_id},
+        )
+        return response
 
     async def cancel_report_job(
         self,
@@ -97,7 +114,13 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportJobStatusResponse, status_code, payload)
+        response = admit_report_source_response(ReportJobStatusResponse, status_code, payload)
+        assert_report_response_identity(
+            operation="report job cancel",
+            expected={"report_job_id": job_id},
+            actual={"report_job_id": response.report_job_id},
+        )
+        return response
 
     async def get_report_snapshot(
         self,
@@ -111,7 +134,13 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportInputSnapshotRecord, status_code, payload)
+        response = admit_report_source_response(ReportInputSnapshotRecord, status_code, payload)
+        assert_report_response_identity(
+            operation="report snapshot",
+            expected={"snapshot_id": snapshot_id},
+            actual={"snapshot_id": response.snapshot_id},
+        )
+        return response
 
     async def get_report_snapshot_lineage(
         self,
@@ -125,13 +154,10 @@ class ReportingJobQueryService:
             caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
-        return self._validate_response(ReportSnapshotLineageResponse, status_code, payload)
-
-    def _validate_response(
-        self,
-        model_type: type[ResponseModel],
-        status_code: int,
-        payload: dict[str, Any],
-    ) -> ResponseModel:
-        raise_report_job_error(status_code, payload)
-        return model_type.model_validate(payload)
+        response = admit_report_source_response(ReportSnapshotLineageResponse, status_code, payload)
+        assert_report_response_identity(
+            operation="report snapshot lineage",
+            expected={"snapshot_id": snapshot_id},
+            actual={"snapshot_id": response.snapshot.snapshot_id},
+        )
+        return response
