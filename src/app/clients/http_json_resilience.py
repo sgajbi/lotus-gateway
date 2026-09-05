@@ -83,10 +83,11 @@ async def _send_json_request_once(
     json_body: dict[str, Any] | None,
     data: dict[str, Any] | None,
     files: dict[str, Any] | None,
+    follow_redirects: bool,
 ) -> httpx.Response:
     async with httpx.AsyncClient(
         timeout=timeout_seconds,
-        follow_redirects=True,
+        follow_redirects=follow_redirects,
     ) as client:
         return await _send_json_request(
             client=client,
@@ -197,6 +198,7 @@ def _json_request_kwargs(
     json_body: dict[str, Any] | None,
     data: dict[str, Any] | None,
     files: dict[str, Any] | None,
+    follow_redirects: bool,
 ) -> dict[str, Any]:
     return {
         "request_method": request_method,
@@ -207,6 +209,7 @@ def _json_request_kwargs(
         "json_body": json_body,
         "data": data,
         "files": files,
+        "follow_redirects": follow_redirects,
     }
 
 
@@ -271,6 +274,11 @@ async def request_with_retry_outcome(
         json_body=json_body,
         data=data,
         files=files,
+        # A redirect re-delivers the request to a new target — itself an
+        # uncontrolled replay — and a post-commit redirect target failure
+        # would surface as a ConnectError misread as pre-send. A caller that
+        # cannot replay ambiguous losses therefore must not follow redirects.
+        follow_redirects=retry_ambiguous_request_errors,
     )
     return await _execute_json_request(
         request_kwargs=request_kwargs,

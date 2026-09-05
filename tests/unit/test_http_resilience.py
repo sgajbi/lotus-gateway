@@ -93,6 +93,29 @@ def test_should_retry_request_error_can_stop_ambiguous_replays() -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_non_replayable_mutations_do_not_follow_redirects(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _PostParamsAsyncClient)
+
+    # A post-commit redirect whose target fails raises ConnectError, which the
+    # classifier reads as pre-send; a non-replayable mutation therefore must
+    # not follow redirects at all.
+    await request_with_retry(
+        method="POST",
+        url="http://test/review-actions",
+        timeout_seconds=1.0,
+        retry_ambiguous_request_errors=False,
+    )
+    assert _PostParamsAsyncClient.follow_redirects is False
+
+    await request_with_retry(
+        method="POST",
+        url="http://test/review-actions",
+        timeout_seconds=1.0,
+    )
+    assert _PostParamsAsyncClient.follow_redirects is True
+
+
 def test_ambiguous_gate_blocks_read_timeouts_even_when_timeout_retries_are_enabled() -> None:
     # The two flags are independently settable: a caller that re-enables
     # timeout retries must still not replay an ambiguous read timeout.
