@@ -17,6 +17,7 @@ stub so nothing leaves the machine; every other command is the one that ships.
 
 from __future__ import annotations
 
+import itertools
 import os
 import shutil
 import subprocess
@@ -96,20 +97,48 @@ def _dispatch_script() -> str:
     raise AssertionError("no step in the dispatcher enumerates revisions")
 
 
-def _git(repo: Path, *args: str) -> str:
+# Author identity is what attribution matches on, so the harness must control it
+# rather than let two commits land in the same second and match by accident.
+_AUTHORED_SECONDS = itertools.count(0)
+
+
+def _git(repo: Path, *args: str, author_date: str | None = None) -> str:
+    environment = dict(os.environ)
+    if author_date is not None:
+        environment["GIT_AUTHOR_DATE"] = author_date
+        environment["GIT_COMMITTER_DATE"] = author_date
     result = subprocess.run(
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
-        check=True,
+        env=environment,
     )
+    if result.returncode != 0:
+        # check=True raises without the message, which makes a harness failure
+        # look like a defect in the code under test.
+        raise AssertionError(
+            f"git {' '.join(args)} failed ({result.returncode}): "
+            f"{(result.stderr or result.stdout).strip()}"
+        )
     return result.stdout.strip()
 
 
-def _commit(repo: Path, name: str, *, body: str | None = None) -> str:
+def _next_author_date() -> str:
+    """A distinct, ordered author timestamp for each commit the harness makes."""
+    return f"2026-01-01T00:00:{next(_AUTHORED_SECONDS):02d}+00:00"
+
+
+def _commit(repo: Path, name: str, *, body: str | None = None, subject: str | None = None) -> str:
     (repo / name).write_text(body if body is not None else f"{name}\n", encoding="utf-8")
     _git(repo, "add", name)
-    _git(repo, "commit", "--quiet", "-m", f"add {name}")
+    _git(
+        repo,
+        "commit",
+        "--quiet",
+        "-m",
+        subject if subject is not None else f"add {name}",
+        author_date=_next_author_date(),
+    )
     return _git(repo, "rev-parse", "HEAD")
 
 
@@ -129,6 +158,18 @@ def _new_repo(tmp_path: Path, name: str) -> Path:
 def _publish_pr_head(repo: Path, head: str) -> None:
     """Expose the PR's own commits where the step fetches them from."""
     _git(repo, "update-ref", f"refs/pull/{PR_NUMBER}/head", head)
+
+
+def _patch_id(repo: Path, commit: str) -> str:
+    """The stable patch-id of a commit, as the workflow computes it."""
+    show = subprocess.run(["git", "-C", str(repo), "show", commit], capture_output=True, check=True)
+    result = subprocess.run(
+        ["git", "-C", str(repo), "patch-id", "--stable"],
+        input=show.stdout,
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout.decode().split(" ")[0]
 
 
 def _run_dispatch(
@@ -289,7 +330,16 @@ def test_a_squash_is_refused_because_its_change_is_not_the_prs(tmp_path: Path) -
     (repo / "part-one").write_text("part-one\n", encoding="utf-8")
     (repo / "part-two").write_text("part-two\n", encoding="utf-8")
     _git(repo, "add", "part-one", "part-two")
-    _git(repo, "commit", "--quiet", "-m", "Add both parts (#744)")
+    # A squash is a new authoring act: its own date, and a combined change that
+    # matches no single commit of the PR.
+    _git(
+        repo,
+        "commit",
+        "--quiet",
+        "-m",
+        "Add both parts (#744)",
+        author_date=_next_author_date(),
+    )
     squashed = _git(repo, "rev-parse", "HEAD")
 
     code, output, dispatched = _run_dispatch(
@@ -298,7 +348,7 @@ def test_a_squash_is_refused_because_its_change_is_not_the_prs(tmp_path: Path) -
 
     assert code != 0, "squash-merging contradicts the rebase-only rule and must fail closed"
     assert dispatched == [], "nothing may be dispatched when the merge method is not a rebase"
-    assert "does not contain" in output, output
+    assert "matches no commit" in output, output
 
 
 def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
@@ -357,33 +407,30 @@ def test_offsetting_count_mismatches_are_refused(tmp_path: Path) -> None:
 
     assert code != 0, "an offsetting mismatch must still refuse"
     assert dispatched == [], "no revision may be dispatched from an unattributable window"
-    assert "does not contain" in output, output
+    assert "matches no commit" in output, output
 
 
 def test_a_duplicate_subject_cannot_admit_an_unrelated_revision(tmp_path: Path) -> None:
-    """Two commits can share a headline; they cannot share a change.
+    """A subject is not an identity, and sharing one must not attribute a revision.
 
-    Subject text is not an identity. An unrelated revision titled the same as one
-    of the PR's commits would satisfy a membership test on subjects while making
-    an entirely different change, so attribution uses patch-id and consumes each
-    match rather than testing membership.
+    An unrelated main commit titled the same as one of the PR's commits makes a
+    completely different change and was authored by a different act. Attribution
+    matches on the change or on the author identity a rebase preserves exactly,
+    never on subject text, so this window is refused rather than dispatched under
+    the wrong PR.
     """
     repo = _new_repo(tmp_path, "duplicate-subject")
     _commit(repo, "root")
     base = _commit(repo, "base")
 
     _git(repo, "checkout", "--quiet", "-b", "pr")
-    (repo / "app.py").write_text("import os\n", encoding="utf-8")
-    _git(repo, "add", "app.py")
-    _git(repo, "commit", "--quiet", "-m", "fix lint")
-    pr_fix = _git(repo, "rev-parse", "HEAD")
+    pr_fix = _commit(repo, "app.py", body="import os\n", subject="fix lint")
     _publish_pr_head(repo, pr_fix)
 
     _git(repo, "checkout", "--quiet", "main")
-    # Same headline, different change, from a merge that landed underneath.
-    (repo / "other.py").write_text("import sys\n", encoding="utf-8")
-    _git(repo, "add", "other.py")
-    _git(repo, "commit", "--quiet", "-m", "fix lint")
+    # Same headline, different change, different author act: a commit from a
+    # merge that landed underneath this PR.
+    _commit(repo, "other.py", body="import sys\n", subject="fix lint")
     _git(repo, "cherry-pick", pr_fix)
     tip = _git(repo, "rev-parse", "HEAD")
 
@@ -393,7 +440,7 @@ def test_a_duplicate_subject_cannot_admit_an_unrelated_revision(tmp_path: Path) 
 
     assert code != 0, "a same-titled unrelated revision must not be attributed to this PR"
     assert dispatched == [], "nothing may be dispatched from a window holding foreign work"
-    assert "does not contain" in output, output
+    assert "matches no commit" in output, output
 
 
 def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -> None:
@@ -422,3 +469,63 @@ def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -
     assert code == 0, output
     assert dispatched == landed, "every landed revision, oldest first"
     assert len(dispatched) == 4
+
+
+def test_a_rebase_over_changed_context_is_still_attributed(tmp_path: Path) -> None:
+    """patch-id is not rebase-stable, and the subject carries the match.
+
+    `git patch-id --stable` is stable across git versions and hunk ordering, not
+    across content: the id hashes the diff including its context lines. When main
+    changes a line near the PR's change, the cleanly rebased commit hashes
+    differently from the original. Requiring patch-id alone would refuse this
+    legitimate rebase and dispatch nothing -- the coverage hole this enumeration
+    exists to close, arriving by a stricter route.
+    """
+    # Separation of three lines, measured: closer conflicts, further leaves the
+    # patch-id unchanged because patch-id ignores line numbers. At three the
+    # rebase is clean AND main's line sits inside the PR hunk's recorded context.
+    original = [f"line{number}\n" for number in range(1, 41)]
+    pr_lines = list(original)
+    pr_lines[9] = "PR_CHANGE\n"
+    main_lines = list(original)
+    main_lines[12] = "MAIN_CHANGE\n"
+
+    repo = _new_repo(tmp_path, "changed-context")
+    _commit(repo, "root")
+    base = _commit(repo, "module.py", body="".join(original), subject="add module")
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    pr_change = _commit(
+        repo,
+        "module.py",
+        body="".join(pr_lines),
+        subject="rewrite line 10",
+    )
+    _publish_pr_head(repo, pr_change)
+
+    _git(repo, "checkout", "--quiet", "main")
+    # main's own change is NOT part of the PR, so the base moves with it -- which
+    # is what GitHub records when the PR is re-synchronised before merging. The
+    # window is then exactly the rebased commit.
+    base = _commit(
+        repo,
+        "module.py",
+        body="".join(main_lines),
+        subject="rewrite line 13",
+    )
+    _git(repo, "cherry-pick", pr_change)
+    landed_tip = _git(repo, "rev-parse", "HEAD")
+
+    original_id = _patch_id(repo, pr_change)
+    landed_id = _patch_id(repo, landed_tip)
+    assert original_id != landed_id, (
+        "this case is only meaningful if the rebase changed the patch-id; "
+        "if git ever makes these equal the case must be rebuilt"
+    )
+
+    code, output, dispatched = _run_dispatch(
+        repo, tmp_path, merge_sha=landed_tip, base_sha=base, commit_count=1
+    )
+
+    assert code == 0, output
+    assert landed_tip in dispatched, "a legitimate rebase must still be gated"
