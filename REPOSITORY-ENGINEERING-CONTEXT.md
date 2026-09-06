@@ -610,6 +610,56 @@ Most relevant current governance:
 7. `../lotus-platform/rfcs/RFC-0082-lotus-core-domain-authority-and-analytics-serving-boundary-hardening.md`
 8. `docs/standards/RFC-0082-upstream-contract-family-map.md`
 
+## CI Hazards Measured In This Repository
+
+Estate-wide practice rules live in `AGENTS.md` and are not repeated here. What follows is this
+repository's own evidence and the local facts that follow from it.
+
+### Six enforcement steps here could not fail
+
+`gate.py 2>&1 | tee log.txt` reports `tee`'s status, so six steps across `quality-baseline.yml` and
+`main-releasability.yml` — including `make test-coverage` and `make security-audit` — passed
+whatever their gate decided. The branch-protection checker raised `CalledProcessError` on an empty
+token in every run beneath a green check from the day it landed.
+
+The specific Bash facts that cost a review round each, kept here because the next person writing a
+step in this repository needs them:
+
+1. `PIPESTATUS` describes only the most recently executed pipeline, and any command before the
+   capture — even `echo` — replaces it;
+2. `set -o pipefail` in a branch that never runs has no effect, while `set +o pipefail` in a branch
+   that may run must be assumed to have taken effect;
+3. a `set -o pipefail` inside a function body does nothing until that function is called;
+4. `|&` is `2>&1 |`, and `set -euo pipefail` sets the same option as `set -o pipefail`;
+5. `$( )` contents execute despite looking like quoted text, and a command substitution discards
+   its exit status, so `echo "$(gate.py)" | tee log` hides the gate twice over.
+
+`tests/unit/test_workflow_pipeline_exit_codes.py` refuses these at PR time.
+
+### The dispatcher binds evidence by tag, and workflow edits break that
+
+`merged-pr-main-releasability.yml` creates one tag per revision so each run's head SHA **is** the
+revision. That is load-bearing: `scripts/audit_main_gate_coverage.py` matches with
+`gh run list --commit <sha>`, so dispatching against `main` would leave every ancestor reading
+UNGATED however correctly the job checked out the revision.
+
+The tag write is refused when the tagged commit's workflow tree differs from the default branch
+tip's. Land workflow-touching pull requests here as a single commit, or edit workflow files in the
+first commit and never again in that pull request.
+
+Rebase-only merging is asserted by measuring the commits rather than reading the repository's merge
+settings, which needs a permission the workflow token may not hold: one parent on the merge commit,
+single-parent revisions, a contiguous window, and no revision an ancestor of `base.sha` — the last
+of which is what catches a squash, whose borrowed commits pass every other check.
+
+### This repository holds the canonical branch-protection checker
+
+`scripts/check_branch_protection_policy.py` and `tests/unit/test_branch_protection_policy.py` are
+what sibling repositories lift; the platform contract states the parity rules. What is local: the
+policy table is the only repository-specific input, and the checker corroborates its `repository`
+field against `GITHUB_REPOSITORY` or the origin remote, so a lifted table that kept its source
+repository fails here rather than validating someone else's protection.
+
 ## Known Constraints And Implementation Notes
 
 Portfolio transaction settlement applicability is a joint source contract: `component_type`
@@ -630,9 +680,9 @@ across a Gateway reporting-period boundary. Missing, date-only, naive, malformed
 source timestamps fail closed with `502` code
 `portfolio_transaction_source_contract_invalid`; Gateway does not emit partial malformed rows or
 silently discard them. Valid timezone-aware source timestamps remain compatible. Workbench display,
-consumer migration, and source-policy follow-up remain under parent issue #569 and child issue
-#642. No database migration is required because this slice changes documentation and regression
-coverage only.
+consumer migration, and source-policy follow-up remain under parent issue #569 and child
+issue #642. No database migration is required because this slice changes documentation and
+regression coverage only.
 
 Performance attribution level totals are also source-owned. Gateway preserves explicit numeric
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when

@@ -7,11 +7,16 @@ while the configuration stays weak.
 """
 
 import copy
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from scripts.check_branch_protection_policy import (
     compare_live_to_policy,
+    detect_repository,
     load_policy,
     resolve_effective_codeowners,
     validate_policy_document,
@@ -224,3 +229,109 @@ def test_offline_validation_rejects_wrong_review_value_types() -> None:
         "bypass_pull_request_allowances.users must be a list" in issue
         for issue in validate_policy_document(policy)
     )
+
+
+def test_identity_is_corroborated_from_outside_the_document(tmp_path, monkeypatch):
+    """A lifted table keeping its source repository must not pass.
+
+    The document is the thing being validated, so its own `repository` field
+    cannot establish which repository the checker is running in. Without an
+    outside source, a sibling that lifts the table and forgets one field reads
+    the original repository's protection, finds it matches, and goes green.
+    """
+    monkeypatch.setenv("GITHUB_REPOSITORY", "sgajbi/lotus-render")
+    assert detect_repository(tmp_path) == "sgajbi/lotus-render"
+
+
+# The CI-local container is python:3.11-slim, which ships no git binary. These
+# two cases exercise git-derived identity, so in that lane they would assert the
+# behaviour of an absent tool rather than of this code. Skipping is honest;
+# asserting a fallback that cannot run there is not. They still execute in the
+# unit lane, which is where the behaviour is actually verified.
+requires_git = pytest.mark.skipif(
+    shutil.which("git") is None,
+    reason="git is required to exercise remote-derived repository identity",
+)
+
+
+@requires_git
+def test_identity_falls_back_to_the_origin_remote(tmp_path, monkeypatch):
+    """Locally there is no GITHUB_REPOSITORY; the remote is the equivalent fact."""
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(tmp_path),
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/sgajbi/lotus-example.git",
+        ],
+        check=True,
+    )
+    assert detect_repository(tmp_path) == "sgajbi/lotus-example"
+
+
+@requires_git
+def test_identity_ignores_the_checkout_directory_name(tmp_path, monkeypatch):
+    """Worktrees and clones are routinely named something else."""
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+    checkout = tmp_path / "some-unrelated-worktree-name"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "--quiet", str(checkout)], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "remote",
+            "add",
+            "origin",
+            "git@github.com:sgajbi/lotus-example.git",
+        ],
+        check=True,
+    )
+    assert detect_repository(checkout) == "sgajbi/lotus-example"
+
+
+@requires_git
+def test_unknowable_identity_refuses(tmp_path, monkeypatch):
+    """No env and no remote means the gate cannot know what it is validating."""
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+    assert detect_repository(tmp_path) is None
+
+
+def test_a_blank_repository_field_is_not_a_declaration(monkeypatch, tmp_path):
+    """Present-but-empty must fail, not skip the comparison.
+
+    An empty field would otherwise pass the mismatch check by having nothing to
+    mismatch — the same gap as omitting the field, wearing the shape of a
+    filled-in one.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["repository"] = "   "
+
+    issues = validate_policy_document(policy)
+    blank = [issue for issue in issues if "no repository" in issue or "empty" in issue]
+
+    assert blank, f"a blank repository field must be reported: {issues}"
+
+
+def test_identity_is_unknowable_without_a_git_binary(tmp_path, monkeypatch):
+    """No git is the same situation as no remote, not a crash.
+
+    The caller refuses when identity is None, so returning None keeps the gate
+    fail-closed. Raising would surface as an unhandled error in a lane that
+    simply has no git, which reads as a broken checker rather than an
+    uncorroborated identity.
+    """
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(subprocess, "run", no_git)
+
+    assert detect_repository(tmp_path) is None
