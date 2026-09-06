@@ -137,6 +137,7 @@ def _hook_revisions() -> dict[str, str]:
     default_stages = _config().get("default_stages")
 
     revisions: dict[str, str] = {}
+    running: dict[str, set[str]] = {}
     for source, revision, hooks in _hooks_by_repository():
         if not revision:
             continue
@@ -147,18 +148,28 @@ def _hook_revisions() -> dict[str, str]:
             if hook.get("id")
         }
         for tool, required in REV_PINNED_HOOKS.items():
-            if tool in source and all(runs.get(hook, False) for hook in required):
-                if tool in revisions and revisions[tool] != revision:
-                    # pre-commit runs BOTH stanzas. Taking the last match would
-                    # hide an obsolete revision that still executes on every
-                    # commit, so an ambiguous configuration is refused rather
-                    # than resolved by file order.
-                    raise AssertionError(
-                        f"two runnable {tool} hook sets are configured, at "
-                        f"{revisions[tool]} and {revision}; pre-commit runs both, so the "
-                        "version developers get depends on which one reports first"
-                    )
+            if tool not in source:
+                continue
+            # ANY runnable required hook makes this stanza's version one that
+            # developers actually execute. Asking only for stanzas carrying ALL
+            # of them would let a stale stanza holding just `- id: ruff` keep
+            # running an old checker on every commit, unnoticed because it was
+            # never a candidate to be credited.
+            if any(runs.get(hook, False) for hook in required):
+                running.setdefault(tool, set()).add(revision)
+            if all(runs.get(hook, False) for hook in required):
                 revisions[tool] = revision
+
+    for tool, found in running.items():
+        if len(found) > 1:
+            # pre-commit runs every stanza. Resolving this by file order would
+            # hide a revision that genuinely executes behind one that looks
+            # correct.
+            raise AssertionError(
+                f"{len(found)} runnable {tool} revisions are configured "
+                f"({', '.join(sorted(found))}); pre-commit runs all of them, so the "
+                "version developers get is decided by file order"
+            )
     return revisions
 
 
@@ -356,7 +367,7 @@ repos:
       - id: ruff
       - id: ruff-format
 """
-    with pytest.raises(AssertionError, match="two runnable ruff hook sets"):
+    with pytest.raises(AssertionError, match="runnable ruff revisions"):
         _parse_config(duplicated, tmp_path, monkeypatch)
 
 
@@ -383,3 +394,34 @@ repos:
 
     with pytest.raises(AssertionError, match="does not run on an ordinary commit"):
         test_dependency_aware_tools_run_from_the_project_environment()
+
+
+def test_a_partial_stale_stanza_is_refused(tmp_path, monkeypatch) -> None:
+    """A stanza holding only one required hook still runs that hook.
+
+    An old stanza with `- id: ruff` alone executes an obsolete checker on every
+    commit. Requiring a stanza to carry ALL the tool's hooks before considering
+    it would leave that one unexamined, because it was never a candidate to be
+    credited in the first place.
+    """
+    partial_stale = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+"""
+    with pytest.raises(AssertionError, match="runnable ruff revisions"):
+        _parse_config(partial_stale, tmp_path, monkeypatch)
+
+    disabled_stale = partial_stale.replace(
+        "      - id: ruff\n  - repo:", "      - id: ruff\n        stages: [manual]\n  - repo:"
+    )
+    assert _parse_config(disabled_stale, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "a stale stanza that does not run on commit is not a conflict"
+    )
