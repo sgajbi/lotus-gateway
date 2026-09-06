@@ -87,6 +87,7 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
         )
 
     paths: list[Path] = []
+    absent: list[str] = []
     for entry in result.stdout.split(b"\0"):
         if not entry:
             continue
@@ -99,8 +100,12 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
         # A symlink is NOT skipped. Git stores the target string as the blob, so
         # an interpreted escape lands in that target exactly as it would in a
         # file, and skipping the path would drop the one thing worth reading.
-        # What is skipped is a path that resolves to nothing readable at all.
         if not path.is_symlink() and not path.is_file():
+            # Tracked but absent from the working tree: a sparse checkout keeps
+            # such paths in the index while omitting the files. Skipping them
+            # silently would shrink the scan without shrinking what it claims to
+            # have read, which is the failure this whole module is about.
+            absent.append(path.relative_to(root).as_posix())
             continue
         # Scoped to THIS repository. The list names paths in lotus-gateway, so
         # applying it to a fixture repository would excuse a file that merely
@@ -108,6 +113,14 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
         if root == REPO_ROOT and path.relative_to(root).as_posix() in EXPECTED_BINARY_PATHS:
             continue
         paths.append(path)
+
+    if absent:
+        raise AssertionError(
+            f"{len(absent)} tracked path(s) are not present in this working tree, so the "
+            "scan cannot cover what git tracks. A sparse checkout produces exactly this. "
+            "Run this gate in a full checkout rather than accepting a narrowed scan: "
+            + ", ".join(sorted(absent)[:5])
+        )
     return tuple(paths)
 
 
@@ -221,6 +234,11 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
     run_git("init", "--quiet", "--initial-branch=main")
     run_git("config", "user.email", "test@example.invalid")
     run_git("config", "user.name", "Test")
+    # A workstation with commit.gpgsign or core.hooksPath set would otherwise
+    # make these fixtures prompt, fail, or run someone's hooks -- a test failing
+    # for a reason that has nothing to do with what it checks.
+    run_git("config", "commit.gpgsign", "false")
+    run_git("config", "core.hooksPath", "/dev/null")
 
     (repo / ".gitignore").write_text("gateway-*.log\n", encoding="utf-8")
     config = repo / "settings.toml"
@@ -346,6 +364,11 @@ def test_a_declared_binary_path_is_excluded(tmp_path: Path, monkeypatch) -> None
     run_git("init", "--quiet", "--initial-branch=main")
     run_git("config", "user.email", "test@example.invalid")
     run_git("config", "user.name", "Test")
+    # A workstation with commit.gpgsign or core.hooksPath set would otherwise
+    # make these fixtures prompt, fail, or run someone's hooks -- a test failing
+    # for a reason that has nothing to do with what it checks.
+    run_git("config", "commit.gpgsign", "false")
+    run_git("config", "core.hooksPath", "/dev/null")
 
     asset = repo / "logo.gif"
     asset.write_bytes(b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!")
