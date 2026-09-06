@@ -31,6 +31,11 @@ STAGE_PREFIXES = frozenset({"sudo", "env", "command", "exec", "nohup", "time", "
 TRIVIAL_SOURCES = frozenset({"echo", "printf", "true", ":", "yes"})
 CONDITION_KEYWORDS = ("if", "elif", "while", "until")
 
+# Bash block structure: a `set -o pipefail` inside one of these may never
+# execute, so only an unconditional setting is honoured.
+BLOCK_OPENERS = frozenset({"if", "while", "until", "for", "case"})
+BLOCK_CLOSERS = frozenset({"fi", "done", "esac"})
+
 _STEPS_KEY = re.compile(r"^\s*steps:\s*$")
 _NAME = re.compile(r"(?:^|-\s+)name:\s*(?P<name>.+?)\s*$")
 _RUN_KEY = re.compile(r"^\s*(?:-\s+)?run:\s*(?P<inline>.*)$")
@@ -192,34 +197,54 @@ def _status_is_propagated(shell: list[str], index: int) -> bool:
 def unguarded_pipelines(step_body: str) -> list[str]:
     """Return each pipeline whose gate status never reaches the step.
 
-    The step is read as a sequence of command segments in execution order, so a
-    ``set`` command and a pipeline written on the same line are handled in the
-    order Bash runs them. ``set -o pipefail`` (including compact forms such as
-    ``set -euo pipefail``) protects only what follows it and is cancelled by a
-    later ``set +o pipefail``; a ``${PIPESTATUS[0]}`` capture protects only the
-    pipeline it immediately follows, and only when that value reaches an exit.
+    The step is read as command segments in execution order, so a ``set`` and a
+    pipeline on the same line are handled in the order Bash runs them.
+
+    Two Bash facts shape the guard rules. ``PIPESTATUS`` describes only the most
+    recently executed pipeline, so a capture on the next line vouches for the
+    **last** pipeline of the previous line and no earlier one. And a ``set -o
+    pipefail`` inside a conditional or loop body may never execute, so only an
+    unconditional one — at the top level of the block — is honoured.
     """
     shell = run_lines(step_body)
     pipefail = False
+    depth = 0
     offenders: list[str] = []
 
     for index, line in enumerate(shell):
         probe = _QUOTED.sub("", line)
         if probe.strip().startswith("#"):
             continue
-        for segment in re.split(r"&&|\|\||;", probe):
+
+        segments = re.split(r"&&|\|\||;", probe)
+        piped = [i for i, segment in enumerate(segments) if terminal_sink(segment) is not None]
+        last_piped = piped[-1] if piped else None
+        reported = False
+
+        for position, segment in enumerate(segments):
+            words = segment.split()
+            for word in words:
+                if word in BLOCK_OPENERS:
+                    depth += 1
+                elif word in BLOCK_CLOSERS:
+                    depth = max(0, depth - 1)
+
             if _PIPEFAIL_OFF.match(segment):
-                pipefail = False
+                if depth == 0:
+                    pipefail = False
                 continue
             if _PIPEFAIL_ON.match(segment):
-                pipefail = True
+                if depth == 0:
+                    pipefail = True
                 continue
-            if terminal_sink(segment) is None:
+            if position not in piped or reported:
                 continue
-            if pipefail or _status_is_propagated(shell, index):
+            if pipefail:
+                continue
+            if position == last_piped and _status_is_propagated(shell, index):
                 continue
             offenders.append(line)
-            break
+            reported = True
 
     return offenders
 
@@ -346,3 +371,15 @@ def test_same_line_set_is_applied_before_the_pipeline_after_it() -> None:
     enabled = "set -o pipefail; gate.py | tee log"
     assert unguarded_pipelines(f"run: |\n  {disabled}\n") == [disabled]
     assert unguarded_pipelines(f"run: |\n  {enabled}\n") == []
+
+
+def test_pipestatus_vouches_only_for_the_last_pipeline_on_the_line() -> None:
+    """PIPESTATUS describes the most recent pipeline, not every one on the line."""
+    body = 'run: |\n  a.py | tee a; b.py | tee b\n  s=${PIPESTATUS[0]}\n  exit "$s"\n'
+    assert unguarded_pipelines(body) == ["a.py | tee a; b.py | tee b"]
+
+
+def test_pipefail_inside_an_untaken_branch_is_not_honoured() -> None:
+    """`if false; then set -o pipefail; fi` never runs; assuming it did is unsafe."""
+    body = "run: |\n  if false; then set -o pipefail; fi\n  gate.py | tee log\n"
+    assert unguarded_pipelines(body) == ["gate.py | tee log"]

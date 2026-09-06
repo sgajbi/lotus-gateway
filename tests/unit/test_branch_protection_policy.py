@@ -172,3 +172,24 @@ def test_offline_validation_requires_each_bypass_category():
             f"bypass_pull_request_allowances.{category} must be declared" in issue
             for issue in issues
         ), f"removing bypass_pull_request_allowances.{category} passed the offline gate"
+
+
+def test_offline_validation_rejects_wrong_value_types():
+    """A bare string would be compared character by character after merge."""
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["contexts"] = "PR Merge Gate / Coverage"
+    assert any("must be a list of strings" in issue for issue in validate_policy_document(policy))
+
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["strict"] = "true"
+    assert any(
+        "required_status_checks.strict must be a boolean" in issue
+        for issue in validate_policy_document(policy)
+    )
+
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["enforce_admins"] = "true"
+    assert any(
+        "expected.enforce_admins must be a boolean" in issue
+        for issue in validate_policy_document(policy)
+    )
