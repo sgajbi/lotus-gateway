@@ -73,16 +73,38 @@ def is_text(data: bytes) -> bool:
         # again silencing the guard on the input it exists for. Short files are
         # text, and their control bytes get reported.
         return True
-    # Control bytes alone do not separate the two: uniformly distributed binary
-    # is only about 11% control bytes, which is lower than some prose. Bytes at
-    # or above 0x80 are what binary is dense in, while UTF-8 source and
-    # documentation carry them only for the occasional non-ASCII character.
+    # Decoding settles it whenever it can. CJK, Arabic and heavily accented
+    # documentation are made almost entirely of bytes at or above 0x80, so a
+    # density that counts high bytes as binary evidence would drop valid Unicode
+    # text from the inventory and never check it for control bytes at all. Text
+    # that decodes as UTF-8 is text, and only its control characters count.
+    try:
+        decoded = window.decode("utf-8")
+    except UnicodeDecodeError:
+        # The window may have cut a multibyte character; retry without the tail
+        # before concluding the file is not UTF-8.
+        decoded = None
+        for trim in (1, 2, 3):
+            try:
+                decoded = window[:-trim].decode("utf-8")
+                break
+            except UnicodeDecodeError:
+                continue
+
+    if decoded:
+        controls = sum(1 for character in decoded if is_suspicious(ord(character)))
+        return controls / len(decoded) <= BINARY_DENSITY
+
+    # Not valid UTF-8, so judge the raw bytes. Control bytes alone cannot carry
+    # that measure -- uniformly distributed binary is only about 11% control
+    # bytes, lower than some prose -- and high bytes are what such binary is
+    # dense in.
     non_text = sum(1 for byte in window if is_suspicious(byte) or byte >= 0x80)
     return non_text / len(window) <= BINARY_DENSITY
 
 
-@lru_cache(maxsize=1)
-def _inventory() -> tuple[Path, ...]:
+@lru_cache(maxsize=4)
+def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
     """Tracked files, from git, as the reproducible definition of source.
 
     Two properties matter and only git provides both.
@@ -105,7 +127,7 @@ def _inventory() -> tuple[Path, ...]:
     lane, not of this check.
     """
     result = subprocess.run(
-        ["git", "-C", str(REPO_ROOT), "ls-files", "-z"],
+        ["git", "-C", str(root), "ls-files", "-z"],
         capture_output=True,
     )
     if result.returncode != 0:
@@ -120,7 +142,7 @@ def _inventory() -> tuple[Path, ...]:
     for entry in result.stdout.split(b"\0"):
         if not entry:
             continue
-        path = REPO_ROOT / entry.decode("utf-8")
+        path = root / entry.decode("utf-8")
         if not path.is_file() or path.is_symlink():
             continue
         try:
@@ -132,14 +154,14 @@ def _inventory() -> tuple[Path, ...]:
     return tuple(paths)
 
 
-def _source_inventory() -> list[Path]:
+def _source_inventory(root: Path = REPO_ROOT) -> list[Path]:
     """The cached inventory, as a list.
 
     Cached because four assertions need it and each rebuild reads every tracked
     file. Over the CI-local bind mount that difference was minutes, and a gate
     people wait for is a gate people skip.
     """
-    return list(_inventory())
+    return list(_inventory(root))
 
 
 def find_offenders(paths: list[Path]) -> list[str]:
@@ -209,26 +231,50 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
 
     assert find_offenders([log]), "an ANSI log does carry bytes this guard rejects"
 
-    # Verify the exclusion against a real ignored artifact in the repository
-    # itself, rather than asserting that no tracked file ends in .log -- that
-    # would fail on a legitimate tracked log fixture while proving nothing about
-    # ignored ones, which is the thing being claimed.
-    planted = REPO_ROOT / "gateway-byte-scan-probe.log"
-    assert not planted.exists(), "probe name is already in use"
-    planted.write_bytes(b"\x1b[31mFAILED\x1b[0m simulated build output\n")
+    # Exercise the exclusion in a purpose-built repository rather than by
+    # planting a file in this one: a test that mutates the tree it runs in can
+    # leave debris when it fails, and this asserts a property of the inventory
+    # rather than of this checkout.
+    #
+    # It also separates ignored from merely log-named. A TRACKED log fixture is
+    # legitimate source and must stay in scope; only the ignored artifact is
+    # excluded. Asserting "no .log is tracked" conflated the two and would have
+    # failed on a repository that legitimately tracks one.
+    repo = tmp_path / "scan-fixture"
+    repo.mkdir()
+
+    def run_git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=True)
+
+    run_git("init", "--quiet", "--initial-branch=main")
+    run_git("config", "user.email", "test@example.invalid")
+    run_git("config", "user.name", "Test")
+
+    (repo / ".gitignore").write_text("gateway-*.log\n", encoding="utf-8")
+    config = repo / "settings.toml"
+    config.write_text("[tool]\nname = 'x'\n", encoding="utf-8")
+    tracked_log = repo / "expected-output.log"
+    tracked_log.write_text("plain expected output\n", encoding="utf-8")
+    run_git("add", ".gitignore", "settings.toml", "expected-output.log")
+    run_git("commit", "--quiet", "-m", "fixture")
+
+    ignored_log = repo / "gateway-build.log"
+    ignored_log.write_bytes(b"\x1b[31mFAILED\x1b[0m simulated build output\n")
     try:
         ignored = subprocess.run(
-            ["git", "-C", str(REPO_ROOT), "check-ignore", "-q", str(planted)],
+            ["git", "-C", str(repo), "check-ignore", "-q", str(ignored_log)],
             capture_output=True,
         )
-        assert ignored.returncode == 0, "gateway-*.log must be ignored for this claim to hold"
+        assert ignored.returncode == 0, "the fixture's gitignore must actually ignore it"
 
-        _inventory.cache_clear()
-        assert planted not in set(_source_inventory()), (
+        scanned = set(_source_inventory(repo))
+        assert ignored_log not in scanned, (
             "an ignored artifact carrying 0x1b must not enter the source inventory"
         )
+        assert tracked_log in scanned, "a TRACKED log fixture is source and must remain in scope"
+        assert config in scanned
+        assert not find_offenders(sorted(scanned)), "the fixture's tracked files are clean"
     finally:
-        planted.unlink()
         _inventory.cache_clear()
 
 
@@ -314,3 +360,26 @@ def test_a_clean_corpus_produces_no_findings() -> None:
     for data in clean:
         assert is_text(data)
         assert not [byte for byte in data if is_suspicious(byte)]
+
+
+def test_non_ascii_text_is_not_mistaken_for_binary(tmp_path: Path) -> None:
+    """Predominantly non-ASCII documentation is text and must stay in scope.
+
+    CJK, Arabic and heavily accented prose are made almost entirely of bytes at
+    or above 0x80. Counting those as evidence of binary would drop valid Unicode
+    files from the inventory, so their control bytes would never be checked --
+    the same silent exclusion as the NUL rule, reached through the encoding.
+    """
+    japanese = "これはテストです。\n" * 20
+    arabic = "هذا اختبار للتوثيق.\n" * 20
+    accented = "Références détaillées à l'évaluation.\n" * 20
+
+    for prose in (japanese, arabic, accented):
+        assert is_text(prose.encode("utf-8")), "valid UTF-8 prose is text"
+
+    corrupted = (japanese + "\x08broken\n").encode("utf-8")
+    assert is_text(corrupted), "non-ASCII text with a stray control byte is still text"
+
+    victim = tmp_path / "guide.ja.md"
+    victim.write_bytes(corrupted)
+    assert find_offenders([victim]), "its control byte must still be reported"
