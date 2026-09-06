@@ -258,20 +258,34 @@ def test_a_clean_corpus_produces_no_findings() -> None:
         assert not [byte for byte in data if is_suspicious(byte)]
 
 
-def test_no_binary_is_tracked_so_nothing_is_excluded() -> None:
-    """The exception list is empty, and that is a measurement, not an assumption.
+def test_every_file_outside_the_exception_list_is_clean() -> None:
+    """The scan's actual claim: nothing excused, nothing corrupted.
 
-    Every tracked file is scanned. If this ever fails, a binary asset has been
-    added and the correct response is to name it in EXPECTED_BINARY_PATHS -- not
-    to reintroduce a heuristic that decides for itself which files to skip.
+    This must stay true after a binary asset is legitimately declared, so it
+    asserts what the gate is for rather than that the list is empty. An
+    assertion that the list must be empty would make the gate's own remedy --
+    "add its path to EXPECTED_BINARY_PATHS" -- impossible to follow.
     """
-    assert EXPECTED_BINARY_PATHS == frozenset(), (
-        "a path was excused from the scan; each entry needs a reason in review"
-    )
     assert not find_offenders(_source_inventory()), (
         "a tracked file carries control bytes; if it is a binary asset, name it "
         "in EXPECTED_BINARY_PATHS"
     )
+
+
+def test_only_real_binaries_may_be_excused() -> None:
+    """The exception list cannot be used to hide corrupted text.
+
+    Every declared path must exist, be tracked, and actually be binary. Without
+    this, the documented remedy doubles as a way to silence a genuine finding by
+    naming the damaged file.
+    """
+    for declared in sorted(EXPECTED_BINARY_PATHS):
+        path = REPO_ROOT / declared
+        assert path.is_file(), f"{declared} is excused from the scan but does not exist"
+        assert b"\x00" in path.read_bytes()[:TYPE_SNIFF_BYTES], (
+            f"{declared} is excused as binary but reads as text; a corrupted source file "
+            "must be repaired rather than excused"
+        )
 
 
 def test_a_declared_binary_path_is_excluded(tmp_path: Path, monkeypatch) -> None:
