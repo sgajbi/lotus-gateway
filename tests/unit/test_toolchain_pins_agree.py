@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 import tomllib
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -79,45 +80,66 @@ def _runs_on_commit(stages: object) -> bool:
     return bool(names & {"pre-commit", "commit"})
 
 
-# Paths this repository actually contains, used to ask whether a hook's filters
-# can select anything at all. Probing with the real regex engine generalises past
-# any single degenerate pattern: `files: ^$` and an `exclude` matching everything
-# both fall out of it, and so does the next spelling of "never".
-_FILE_PROBES = (
-    "src/app/main.py",
-    "tests/unit/test_toolchain_pins_agree.py",
-    "pyproject.toml",
-    ".pre-commit-config.yaml",
-    "README.md",
+_SKIPPED_DIRECTORIES = frozenset(
+    {".git", ".venv", "venv", "node_modules", "__pycache__", ".mypy_cache", ".ruff_cache"}
 )
 
 
-def _selects_any_file(hook: dict[str, object]) -> bool:
-    """Whether this hook's own filters leave it anything to run on.
+@lru_cache(maxsize=1)
+def _repository_paths() -> tuple[str, ...]:
+    """Every real path in this checkout, as the corpus filters are probed against.
 
-    A hook keeping its id and its commit stage is still inert if `files` cannot
-    match or `exclude` removes everything, and pre-commit then skips it on every
-    commit while the version it declares looks enforced.
-
-    This asks the question rather than pattern-matching on patterns, but it is
-    not a simulation of pre-commit's file selection: `types`, `language` and the
-    changed-file set are not modelled. It answers "can these filters ever select
-    a file here", which is the degenerate case worth failing on.
+    A fixed sample cannot answer the question. A filter as ordinary as
+    `files: ^src/app/services/` selects hundreds of real files while matching
+    none of a handful of hand-picked examples, and calling that hook inert would
+    be the false positive this check exists to avoid.
     """
-    files = str(hook.get("files", "") or "")
-    exclude = str(hook.get("exclude", "") or "")
+    paths: list[str] = []
+    for path in REPO_ROOT.rglob("*"):
+        if any(part in _SKIPPED_DIRECTORIES for part in path.parts):
+            continue
+        if path.is_file():
+            paths.append(path.relative_to(REPO_ROOT).as_posix())
+    return tuple(paths)
+
+
+def _selects_any_file(
+    hook: dict[str, object], global_filters: tuple[str, str], corpus: tuple[str, ...]
+) -> bool:
+    """Whether the filters leave this hook anything to run on.
+
+    A hook keeping its id and its commit stage is still inert if the patterns
+    cannot select a file, and pre-commit then skips it on every commit while the
+    version it declares looks enforced.
+
+    Top-level `files` and `exclude` are applied ALONGSIDE the hook's own, because
+    pre-commit narrows the candidate set globally before a hook sees it: a
+    top-level `exclude: .*` removes everything however permissive the hook is.
+
+    Not a simulation of pre-commit's file selection -- `types`, `language` and
+    the changed-file set are not modelled. It answers whether these patterns can
+    ever select a file in this repository, which is the degenerate case worth
+    failing on.
+    """
+    global_files, global_exclude = global_filters
+    patterns = (
+        global_files,
+        str(hook.get("files", "") or ""),
+        global_exclude,
+        str(hook.get("exclude", "") or ""),
+    )
     try:
-        includes = re.compile(files) if files else None
-        excludes = re.compile(exclude) if exclude else None
+        includes = [re.compile(p) for p in patterns[:2] if p]
+        excludes = [re.compile(p) for p in patterns[2:] if p]
     except re.error:
         # An uncompilable pattern is pre-commit's problem to report, not a
         # reason for this check to claim the hook is inert.
         return True
 
-    for path in _FILE_PROBES:
-        if includes is not None and not includes.search(path):
+    for path in corpus:
+        if any(not pattern.search(path) for pattern in includes):
             continue
-        if excludes is not None and excludes.search(path):
+        if any(pattern.search(path) for pattern in excludes):
             continue
         return True
     return False
@@ -145,6 +167,12 @@ def _hook_revisions() -> dict[str, str]:
     # Resolved after the whole document is read, because mapping order carries
     # no meaning: a default declared last still governs hooks declared first.
     default_stages = document.get("default_stages")
+    # pre-commit narrows the candidate set globally before any hook sees it.
+    global_filters = (
+        str(document.get("files", "") or ""),
+        str(document.get("exclude", "") or ""),
+    )
+    corpus = _repository_paths()
 
     revisions: dict[str, str] = {}
     for repository in document.get("repos", []) or []:
@@ -169,7 +197,7 @@ def _hook_revisions() -> dict[str, str]:
             # inherits it.
             runs[identifier] = _runs_on_commit(
                 hook.get("stages", default_stages)
-            ) and _selects_any_file(hook)
+            ) and _selects_any_file(hook, global_filters, corpus)
 
         for tool, required in REQUIRED_HOOKS.items():
             if tool in source and all(runs.get(hook, False) for hook in required):
@@ -421,4 +449,56 @@ repos:
     )
     assert _parse_config(narrow_but_real, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
         "a narrow filter that still selects files is enforced and must be credited"
+    )
+
+
+def test_a_narrow_but_real_filter_is_credited(tmp_path, monkeypatch) -> None:
+    """An ordinary scoped filter must not read as inert.
+
+    `files: ^src/app/services/` selects hundreds of real files. Probing a handful
+    of hand-picked example paths would match none of them and call the hook dead
+    — the false positive this check exists to avoid, produced by the check
+    itself.
+    """
+    scoped = """
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        files: ^src/app/services/
+"""
+    assert (REPO_ROOT / "src/app/services").is_dir(), "this case needs that directory to exist"
+    assert _parse_config(scoped, tmp_path, monkeypatch).get("mypy") == "2.3.1"
+
+
+def test_top_level_filters_are_applied_too(tmp_path, monkeypatch) -> None:
+    """pre-commit narrows candidates globally before a hook sees them.
+
+    A top-level `exclude: .*` removes every file however permissive the hook's
+    own patterns are, so reading only the hook mapping credits a version nothing
+    enforces.
+    """
+    globally_excluded = """
+exclude: .*
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+"""
+    assert _parse_config(globally_excluded, tmp_path, monkeypatch) == {}, (
+        "a top-level exclude removing everything must not be credited"
+    )
+
+    globally_scoped = """
+files: ^src/
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+"""
+    assert _parse_config(globally_scoped, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
+        "a top-level filter that still selects files is enforced"
     )
