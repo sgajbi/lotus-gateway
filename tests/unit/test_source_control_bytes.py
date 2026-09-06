@@ -272,19 +272,28 @@ def test_every_file_outside_the_exception_list_is_clean() -> None:
     )
 
 
-def test_only_real_binaries_may_be_excused() -> None:
-    """The exception list cannot be used to hide corrupted text.
+def test_every_excusal_is_load_bearing() -> None:
+    """A declared path must exist, and must be something the scan actually rejects.
 
-    Every declared path must exist, be tracked, and actually be binary. Without
-    this, the documented remedy doubles as a way to silence a genuine finding by
-    naming the damaged file.
+    This is what stops the list becoming a way to quieten the gate: a clean file
+    cannot be excused, because excusing it changes nothing and the entry is inert.
+
+    It deliberately does NOT require a NUL. Not every binary format carries one in
+    its first block, and demanding one would refuse a legitimate declaration for a
+    file the scan genuinely rejects — the gate telling you to add a path and then
+    rejecting the path you add.
+
+    What this cannot do is separate a real binary from corrupted text, because the
+    detector rejects both. That judgement is why each entry is a deliberate line in
+    a reviewed file rather than an inference: a corrupted source file must be
+    repaired, not excused.
     """
     for declared in sorted(EXPECTED_BINARY_PATHS):
         path = REPO_ROOT / declared
         assert path.is_file(), f"{declared} is excused from the scan but does not exist"
-        assert b"\x00" in path.read_bytes()[:TYPE_SNIFF_BYTES], (
-            f"{declared} is excused as binary but reads as text; a corrupted source file "
-            "must be repaired rather than excused"
+        assert find_offenders([path]), (
+            f"{declared} is excused from the scan, but the scan does not reject it; "
+            "the entry does nothing and should be removed"
         )
 
 
