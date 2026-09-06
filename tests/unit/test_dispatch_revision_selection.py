@@ -21,7 +21,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "merged-pr-main-releasability.yml"
@@ -57,13 +56,32 @@ pytestmark = pytest.mark.skipif(
 
 
 def _dispatch_script() -> str:
-    """The step's shell, taken from the workflow rather than restated here."""
-    document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    for job in document["jobs"].values():
-        for step in job.get("steps", []):
-            run = step.get("run", "")
-            if "revisions=" in run and "rev-list" in run:
-                return run
+    """The step's shell, taken from the workflow rather than restated here.
+
+    Read as a YAML block scalar by hand rather than with a parser: PyYAML is not
+    a dependency of this repository and no other test needs one, so adding it to
+    read a single literal block would be a dependency bought for one call.
+    """
+    lines = WORKFLOW.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() not in ("run: |", "run: |-"):
+            continue
+        key_indent = len(line) - len(line.lstrip())
+        body: list[str] = []
+        body_indent: int | None = None
+        for candidate in lines[index + 1 :]:
+            if not candidate.strip():
+                body.append("")
+                continue
+            candidate_indent = len(candidate) - len(candidate.lstrip())
+            if candidate_indent <= key_indent:
+                break
+            if body_indent is None:
+                body_indent = candidate_indent
+            body.append(candidate[body_indent:])
+        script = "\n".join(body)
+        if "revisions=" in script and "rev-list" in script:
+            return script
     raise AssertionError("no step in the dispatcher enumerates revisions")
 
 
