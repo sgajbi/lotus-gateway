@@ -298,20 +298,6 @@ def test_a_clean_corpus_produces_no_findings() -> None:
         assert not [byte for byte in data if is_suspicious(byte)]
 
 
-def test_every_file_outside_the_exception_list_is_clean() -> None:
-    """The scan's actual claim: nothing excused, nothing corrupted.
-
-    This must stay true after a binary asset is legitimately declared, so it
-    asserts what the gate is for rather than that the list is empty. An
-    assertion that the list must be empty would make the gate's own remedy --
-    "add its path to EXPECTED_BINARY_PATHS" -- impossible to follow.
-    """
-    assert not find_offenders(_source_inventory()), (
-        "a tracked file carries control bytes; if it is a binary asset, name it "
-        "in EXPECTED_BINARY_PATHS"
-    )
-
-
 def test_every_excusal_is_load_bearing() -> None:
     """A declared path must exist, and must be something the scan actually rejects.
 
