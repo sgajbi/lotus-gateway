@@ -80,10 +80,28 @@ jobs:
           # rebases, and cannot overshoot however stale the count is.
           revisions="$(git rev-list --reverse "$BASE_SHA..$MERGE_COMMIT_SHA")"
           enumerated_count="$(printf '%s\n' "$revisions" | grep -c .)"
-          if [ "$enumerated_count" -ne "$COMMIT_COUNT" ]; then
-            # Expected after a rebase or a branch update. Recorded rather than
-            # fatal, because the range is authoritative and the count is not.
-            echo "::notice::Enumerated $enumerated_count revision(s) for PR #$PR_NUMBER; pull_request.commits reported $COMMIT_COUNT. The base..tip range is authoritative."
+          # The two directions of a count mismatch mean opposite things, so they
+          # are not treated alike.
+          #
+          # FEWER than the count is expected and safe: a rebase that dropped a
+          # commit already on main, a branch update, or a squash. Every revision
+          # in the range still landed and still gets a verdict, so coverage is
+          # complete and the count is simply stale.
+          #
+          # MORE than the count means the range is claiming revisions this PR did
+          # not add. base.sha is the base branch as of the PR's last
+          # synchronisation, not as of the merge, so when main advances
+          # underneath an un-synchronised PR the range spans the other merges
+          # too. Dispatching those would stamp this PR's number onto another
+          # PR's revisions and report coverage that was never established here.
+          # Refuse: over-claiming is the failure this whole enumeration exists to
+          # prevent.
+          if [ "$enumerated_count" -gt "$COMMIT_COUNT" ]; then
+            echo "::error::Enumerated $enumerated_count revision(s) for PR #$PR_NUMBER but pull_request.commits reported only $COMMIT_COUNT. The $BASE_SHA..$MERGE_COMMIT_SHA range spans revisions this PR did not add, which happens when main advanced past a base that was never re-synchronised. Refusing to dispatch rather than claim another PR's revisions."
+            exit 1
+          fi
+          if [ "$enumerated_count" -lt "$COMMIT_COUNT" ]; then
+            echo "::notice::Enumerated $enumerated_count revision(s) for PR #$PR_NUMBER; pull_request.commits reported $COMMIT_COUNT. Expected after a rebase, branch update or squash: the range is authoritative and every revision in it is gated."
           fi
           if [ -z "$revisions" ]; then
             echo "::error::No revisions enumerated for merged PR #$PR_NUMBER at $MERGE_COMMIT_SHA"
