@@ -37,16 +37,15 @@ def is_suspicious(byte: int) -> bool:
     return byte < 0x09 or byte in (0x0B, 0x0C) or 0x0D < byte < 0x20
 
 
-# Above this share of non-text bytes in the sniff window, a file is a binary
-# format rather than corrupted text. Real binaries are dense with such bytes --
-# PNG, zip and compiled output are far above it -- while source that has taken a
-# stray control byte is otherwise entirely printable.
+# Above this share of CONTROL characters, decoded content is a data format that
+# happens to be UTF-8 clean rather than source prose. Source that has taken a
+# stray control byte is far below it.
 BINARY_DENSITY = 0.30
 
-# Below this many bytes a density is dominated by whatever single byte is being
-# looked for, so binary is never inferred. Every binary format in use carries
-# more than this in its header alone, and the repository tracks none.
-MIN_BYTES_TO_JUDGE_BINARY = 64
+# Below this many decoded characters a density is dominated by whatever single
+# character is being looked for, so it is not consulted. Binary never reaches
+# this branch -- it is excluded by failing to decode.
+MIN_CHARS_TO_JUDGE_DENSITY = 64
 
 
 def is_text(data: bytes) -> bool:
@@ -60,47 +59,53 @@ def is_text(data: bytes) -> bool:
     Demonstrating it on the FIRST NUL was wrong in the one case that matters
     most. An escaped `\\0` materialised into a tracked source file is exactly the
     corruption this module exists to catch, and treating any NUL as proof of
-    binary made such a file skipped rather than reported -- the guard would go
-    quiet on its own worst input. Density decides instead: one stray control byte
-    in otherwise printable source stays text and gets reported; a real binary is
-    dense with them and is excluded.
+    binary made such a file skipped rather than reported -- the guard going quiet
+    on its own worst input. NUL is valid UTF-8, so it no longer excludes
+    anything.
+
+    Encoding decides instead. Content that reads as UTF-8 is source and is
+    scanned; content that does not is a binary format and is excluded, at any
+    size. Decoded content is judged only on its CONTROL characters, and only when
+    there is enough of it for a proportion to mean anything.
     """
-    window = data[:TYPE_SNIFF_BYTES]
-    if len(window) < MIN_BYTES_TO_JUDGE_BINARY:
-        # Too short for a density to mean anything: in `x=\x00` the single
-        # corrupting byte is a third of the file, so density alone would call the
-        # smallest corrupted config binary and drop it from the inventory --
-        # again silencing the guard on the input it exists for. Short files are
-        # text, and their control bytes get reported.
+    decoded = _decode_utf8(data[:TYPE_SNIFF_BYTES])
+    if decoded is None:
+        # Not valid UTF-8, so not source text here -- every tracked file in this
+        # repository is UTF-8. This is what excludes binaries of ANY size. A
+        # 34-byte GIF is already unreadable as UTF-8 in its header, where a
+        # size-based rule admitted it and then reported those header bytes as
+        # corruption; a guard that flags valid binaries is a guard people
+        # silence.
+        return False
+
+    if len(decoded) < MIN_CHARS_TO_JUDGE_DENSITY:
+        # It decoded, so it is text. There is simply too little of it for a
+        # density to mean anything: in `x=\x00` the corrupting byte is a third of
+        # the content, and judging by density would drop the smallest corrupted
+        # config from the inventory -- silencing the guard on the input it exists
+        # for.
         return True
-    # Decoding settles it whenever it can. CJK, Arabic and heavily accented
-    # documentation are made almost entirely of bytes at or above 0x80, so a
-    # density that counts high bytes as binary evidence would drop valid Unicode
-    # text from the inventory and never check it for control bytes at all. Text
-    # that decodes as UTF-8 is text, and only its control characters count.
-    try:
-        decoded = window.decode("utf-8")
-    except UnicodeDecodeError:
-        # The window may have cut a multibyte character; retry without the tail
-        # before concluding the file is not UTF-8.
-        decoded = None
-        for trim in (1, 2, 3):
-            try:
-                decoded = window[:-trim].decode("utf-8")
-                break
-            except UnicodeDecodeError:
-                continue
 
-    if decoded:
-        controls = sum(1 for character in decoded if is_suspicious(ord(character)))
-        return controls / len(decoded) <= BINARY_DENSITY
+    # Only CONTROL characters count toward the density. CJK, Arabic and heavily
+    # accented documentation are almost entirely bytes at or above 0x80, so
+    # counting high bytes as evidence of binary would drop valid Unicode text and
+    # never check it for control bytes at all.
+    controls = sum(1 for character in decoded if is_suspicious(ord(character)))
+    return controls / len(decoded) <= BINARY_DENSITY
 
-    # Not valid UTF-8, so judge the raw bytes. Control bytes alone cannot carry
-    # that measure -- uniformly distributed binary is only about 11% control
-    # bytes, lower than some prose -- and high bytes are what such binary is
-    # dense in.
-    non_text = sum(1 for byte in window if is_suspicious(byte) or byte >= 0x80)
-    return non_text / len(window) <= BINARY_DENSITY
+
+def _decode_utf8(window: bytes) -> str | None:
+    """The window as text, or None when it is not UTF-8 at all.
+
+    A window cut at a fixed byte count can split a multibyte character, so a
+    failure at the tail is retried before concluding the content is binary.
+    """
+    for trim in (0, 1, 2, 3):
+        try:
+            return (window[: len(window) - trim] if trim else window).decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+    return None
 
 
 @lru_cache(maxsize=4)
@@ -268,9 +273,9 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
         assert ignored.returncode == 0, "the fixture's gitignore must actually ignore it"
 
         scanned = set(_source_inventory(repo))
-        assert ignored_log not in scanned, (
-            "an ignored artifact carrying 0x1b must not enter the source inventory"
-        )
+        assert (
+            ignored_log not in scanned
+        ), "an ignored artifact carrying 0x1b must not enter the source inventory"
         assert tracked_log in scanned, "a TRACKED log fixture is source and must remain in scope"
         assert config in scanned
         assert not find_offenders(sorted(scanned)), "the fixture's tracked files are clean"
@@ -383,3 +388,19 @@ def test_non_ascii_text_is_not_mistaken_for_binary(tmp_path: Path) -> None:
     victim = tmp_path / "guide.ja.md"
     victim.write_bytes(corrupted)
     assert find_offenders([victim]), "its control byte must still be reported"
+
+
+def test_a_small_binary_is_excluded_by_failing_to_decode() -> None:
+    """Size must not admit a binary, or the gate reports its header as damage.
+
+    A 1x1 GIF is 34 bytes. Under a size-based exemption it entered the inventory
+    and every control byte in its header became a finding -- a gate that flags
+    valid files, which is the failure that gets a gate ignored rather than fixed.
+    """
+    gif = (
+        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!"
+        b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
+        b"\x02D\x01\x00;"
+    )
+    assert len(gif) < MIN_CHARS_TO_JUDGE_DENSITY, "this case is only meaningful while it is short"
+    assert not is_text(gif), "a small binary must be excluded by its encoding, not admitted by size"
