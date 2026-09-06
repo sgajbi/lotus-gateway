@@ -274,6 +274,7 @@ def test_identity_falls_back_to_the_origin_remote(tmp_path, monkeypatch):
     assert detect_repository(tmp_path) == "sgajbi/lotus-example"
 
 
+@requires_git
 def test_identity_ignores_the_checkout_directory_name(tmp_path, monkeypatch):
     """Worktrees and clones are routinely named something else."""
     monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
