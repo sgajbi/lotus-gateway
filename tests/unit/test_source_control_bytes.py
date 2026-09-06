@@ -273,9 +273,9 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
         assert ignored.returncode == 0, "the fixture's gitignore must actually ignore it"
 
         scanned = set(_source_inventory(repo))
-        assert (
-            ignored_log not in scanned
-        ), "an ignored artifact carrying 0x1b must not enter the source inventory"
+        assert ignored_log not in scanned, (
+            "an ignored artifact carrying 0x1b must not enter the source inventory"
+        )
         assert tracked_log in scanned, "a TRACKED log fixture is source and must remain in scope"
         assert config in scanned
         assert not find_offenders(sorted(scanned)), "the fixture's tracked files are clean"
