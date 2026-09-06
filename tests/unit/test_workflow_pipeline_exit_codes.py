@@ -34,8 +34,8 @@ CONDITION_KEYWORDS = ("if", "elif", "while", "until")
 _STEPS_KEY = re.compile(r"^\s*steps:\s*$")
 _NAME = re.compile(r"(?:^|-\s+)name:\s*(?P<name>.+?)\s*$")
 _RUN_KEY = re.compile(r"^\s*(?:-\s+)?run:\s*(?P<inline>.*)$")
-_PIPEFAIL_ON = re.compile(r"^\s*set\s+[-\w\s]*-o\s+pipefail")
-_PIPEFAIL_OFF = re.compile(r"^\s*set\s+\+o\s+pipefail")
+_PIPEFAIL_ON = re.compile(r"^\s*set\s+(?:[-+]\w+\s+)*-\w*o\s+pipefail\b")
+_PIPEFAIL_OFF = re.compile(r"^\s*set\s+(?:[-+]\w+\s+)*\+\w*o\s+pipefail\b")
 _QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
 _PIPESTATUS_CAPTURE = re.compile(r"(?P<var>[A-Za-z_][A-Za-z0-9_]*)=[\"']?\$\{PIPESTATUS\[0\]\}")
 _PIPESTATUS_DIRECT = re.compile(r"(?:exit|return)\s+\"?\$\{PIPESTATUS\[0\]\}")
@@ -140,36 +140,40 @@ def run_lines(step_body: str) -> list[str]:
     return _join_continuations(lines)
 
 
-def terminal_sink(shell_line: str) -> str | None:
-    """Return the passive sink this pipeline ends in, if it has one."""
-    stripped = shell_line.strip()
-    if stripped.startswith("#"):
+def terminal_sink(segment: str) -> str | None:
+    """Return the passive sink this single command segment ends in, if any.
+
+    A segment is one command in a shell list; the caller splits on ``&&``,
+    ``||`` and ``;``. ``|&`` is Bash shorthand for ``2>&1 |`` and is normalised
+    first, or the ``&`` would be read as the sink's command name.
+    """
+    words = segment.replace("|&", "|").split()
+    while words and (words[0] in CONDITION_KEYWORDS or words[0] == "!"):
+        words = words[1:]
+    text = re.split(r"\b(?:then|do)\b", " ".join(words))[0]
+    if "|" not in text:
         return None
-    probe = _QUOTED.sub("", stripped)
-    # Every segment counts: `gate.py | tee log; echo done` and
-    # `gate.py | tee log && echo done` both end the step on the trailing
-    # command, so keeping only the last segment would miss the hidden gate.
-    for segment in re.split(r"&&|\|\||;", probe):
-        words = segment.split()
-        while words and (words[0] in CONDITION_KEYWORDS or words[0] == "!"):
-            words = words[1:]
-        segment = re.split(r"\b(?:then|do)\b", " ".join(words))[0]
-        if "|" not in segment:
-            continue
-        first = segment.split("|", 1)[0].strip().split()
-        while first and (first[0] in STAGE_PREFIXES or "=" in first[0]):
-            first = first[1:]
-        if first and first[0].split("/")[-1] in TRIVIAL_SOURCES:
-            continue
-        last = segment.rsplit("|", 1)[1].strip().split()
-        while last and (last[0] in STAGE_PREFIXES or "=" in last[0]):
-            last = last[1:]
-        if not last:
-            continue
-        command = last[0].lstrip("$(").split("/")[-1]
-        if command in PASSIVE_SINKS:
-            return command
-    return None
+
+    stages = [stage.strip() for stage in text.split("|")]
+    last = _command_of(stages[-1])
+    if last not in PASSIVE_SINKS:
+        return None
+    # Only harmless when *every* stage feeding the sink is a producer with no
+    # verdict: `printf x | gate.py | tee log` still hides gate.py's failure.
+    upstream = [_command_of(stage) for stage in stages[:-1]]
+    if upstream and all(command in TRIVIAL_SOURCES for command in upstream):
+        return None
+    return last
+
+
+def _command_of(stage: str) -> str:
+    """Return the command a pipeline stage runs, past prefixes and assignments."""
+    words = stage.split()
+    while words and (words[0] in STAGE_PREFIXES or "=" in words[0]):
+        words = words[1:]
+    if not words:
+        return ""
+    return words[0].lstrip("$(").split("/")[-1]
 
 
 def _status_is_propagated(shell: list[str], index: int) -> bool:
@@ -188,26 +192,35 @@ def _status_is_propagated(shell: list[str], index: int) -> bool:
 def unguarded_pipelines(step_body: str) -> list[str]:
     """Return each pipeline whose gate status never reaches the step.
 
-    Guards are judged per pipeline in execution order: ``set -o pipefail``
-    protects only what follows it and is cancelled by a later ``set +o
-    pipefail``, and a ``${PIPESTATUS[0]}`` capture protects only the pipeline it
-    immediately follows, and only when that value reaches an exit.
+    The step is read as a sequence of command segments in execution order, so a
+    ``set`` command and a pipeline written on the same line are handled in the
+    order Bash runs them. ``set -o pipefail`` (including compact forms such as
+    ``set -euo pipefail``) protects only what follows it and is cancelled by a
+    later ``set +o pipefail``; a ``${PIPESTATUS[0]}`` capture protects only the
+    pipeline it immediately follows, and only when that value reaches an exit.
     """
     shell = run_lines(step_body)
     pipefail = False
     offenders: list[str] = []
+
     for index, line in enumerate(shell):
-        if _PIPEFAIL_OFF.match(line):
-            pipefail = False
+        probe = _QUOTED.sub("", line)
+        if probe.strip().startswith("#"):
             continue
-        if _PIPEFAIL_ON.match(line):
-            pipefail = True
-            continue
-        if terminal_sink(line) is None:
-            continue
-        if pipefail or _status_is_propagated(shell, index):
-            continue
-        offenders.append(line)
+        for segment in re.split(r"&&|\|\||;", probe):
+            if _PIPEFAIL_OFF.match(segment):
+                pipefail = False
+                continue
+            if _PIPEFAIL_ON.match(segment):
+                pipefail = True
+                continue
+            if terminal_sink(segment) is None:
+                continue
+            if pipefail or _status_is_propagated(shell, index):
+                continue
+            offenders.append(line)
+            break
+
     return offenders
 
 
@@ -308,3 +321,28 @@ def test_pipeline_before_a_later_shell_command_is_reported() -> None:
     """`gate.py | tee log; echo done` ends the step on echo, hiding the gate."""
     for line in ("gate.py | tee log; echo done", "gate.py | tee log && echo done"):
         assert unguarded_pipelines(f"run: {line}\n") == [line], line
+
+
+def test_bash_pipe_ampersand_operator_is_recognized() -> None:
+    """`|&` is shorthand for `2>&1 |` and hides the gate the same way."""
+    assert unguarded_pipelines("run: gate.py |& tee log\n") == ["gate.py |& tee log"]
+
+
+def test_a_gate_after_a_trivial_source_is_still_reported() -> None:
+    """Only the whole upstream being verdict-free makes a pipeline harmless."""
+    line = "printf data | python gate.py | tee log"
+    assert unguarded_pipelines(f"run: {line}\n") == [line]
+
+
+def test_compact_pipefail_option_clusters_are_accepted() -> None:
+    """`set -euo pipefail` is the repository idiom; rejecting it blocks valid PRs."""
+    for options in ("-o", "-eo", "-euo", "-euxo"):
+        body = f"run: |\n  set {options} pipefail\n  gate.py | tee log\n"
+        assert unguarded_pipelines(body) == [], options
+
+
+def test_same_line_set_is_applied_before_the_pipeline_after_it() -> None:
+    disabled = "set +o pipefail; gate.py | tee log"
+    enabled = "set -o pipefail; gate.py | tee log"
+    assert unguarded_pipelines(f"run: |\n  {disabled}\n") == [disabled]
+    assert unguarded_pipelines(f"run: |\n  {enabled}\n") == []
