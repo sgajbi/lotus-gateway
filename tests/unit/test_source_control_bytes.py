@@ -17,6 +17,7 @@ nothing in Markdown rendering signals it at all.
 from __future__ import annotations
 
 import subprocess
+from functools import lru_cache
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +50,8 @@ def is_text(data: bytes) -> bool:
     return b"\x00" not in data[:TYPE_SNIFF_BYTES]
 
 
-def _source_inventory() -> list[Path]:
+@lru_cache(maxsize=1)
+def _inventory() -> tuple[Path, ...]:
     """Tracked files, from git, as the reproducible definition of source.
 
     Two properties matter and only git provides both.
@@ -96,7 +98,17 @@ def _source_inventory() -> list[Path]:
             continue
         if is_text(data):
             paths.append(path)
-    return paths
+    return tuple(paths)
+
+
+def _source_inventory() -> list[Path]:
+    """The cached inventory, as a list.
+
+    Cached because four assertions need it and each rebuild reads every tracked
+    file. Over the CI-local bind mount that difference was minutes, and a gate
+    people wait for is a gate people skip.
+    """
+    return list(_inventory())
 
 
 def find_offenders(paths: list[Path]) -> list[str]:
