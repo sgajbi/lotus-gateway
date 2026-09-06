@@ -17,8 +17,21 @@ repos:
         args: ["--fix"]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+  # mypy runs from the PROJECT environment, not an isolated hook environment.
+  # A mirrors-mypy hook resolves its own env with no project dependencies, so it
+  # cannot see fastapi or pydantic and reports import errors on every commit that
+  # CI does not. Matching its rev to the pinned version does not fix that: the
+  # version was never the problem, the missing dependency graph was.
+  #
+  # `language: system` uses the interpreter the developer installed the project
+  # into, so the hook runs exactly the pinned mypy against exactly the resolved
+  # dependencies -- version agreement by construction rather than by comparison.
+  - repo: local
     hooks:
       - id: mypy
+        name: mypy (project environment)
+        entry: python -m mypy
         args: ["src"]
+        language: system
+        pass_filenames: false
+        types: [python]
