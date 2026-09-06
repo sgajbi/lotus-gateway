@@ -96,11 +96,17 @@ def detect_repository(repo_root: Path) -> str | None:
     if from_env:
         return from_env
 
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), "remote", "get-url", "origin"],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, FileNotFoundError):
+        # No git binary is the same situation as no remote: identity cannot be
+        # corroborated from outside the document, so it is unknowable rather
+        # than an error to crash on. The caller already refuses on None.
+        return None
     if result.returncode != 0:
         return None
     url = result.stdout.strip()
@@ -118,6 +124,15 @@ def detect_repository(repo_root: Path) -> str | None:
 def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     """Offline shape check: the document must be complete enough to gate against."""
     issues: list[str] = []
+
+    # Present-but-blank is not a declaration. An empty identity field would pass
+    # the mismatch comparison by having nothing to mismatch -- the same gap as
+    # omitting it, wearing the shape of a filled-in field.
+    if not str(policy.get("repository", "")).strip():
+        issues.append(
+            "policy declares no repository: the identity field is present but "
+            "empty, so nothing can be compared against this checkout"
+        )
     for key in ("repository", "protected_branch", "expected", "documented_exceptions"):
         if key not in policy:
             issues.append(f"policy is missing required key: {key}")

@@ -301,3 +301,37 @@ def test_unknowable_identity_refuses(tmp_path, monkeypatch):
     """No env and no remote means the gate cannot know what it is validating."""
     monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
     assert detect_repository(tmp_path) is None
+
+
+def test_a_blank_repository_field_is_not_a_declaration(monkeypatch, tmp_path):
+    """Present-but-empty must fail, not skip the comparison.
+
+    An empty field would otherwise pass the mismatch check by having nothing to
+    mismatch — the same gap as omitting the field, wearing the shape of a
+    filled-in one.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["repository"] = "   "
+
+    issues = validate_policy_document(policy)
+    blank = [issue for issue in issues if "no repository" in issue or "empty" in issue]
+
+    assert blank, f"a blank repository field must be reported: {issues}"
+
+
+def test_identity_is_unknowable_without_a_git_binary(tmp_path, monkeypatch):
+    """No git is the same situation as no remote, not a crash.
+
+    The caller refuses when identity is None, so returning None keeps the gate
+    fail-closed. Raising would surface as an unhandled error in a lane that
+    simply has no git, which reads as a broken checker rather than an
+    uncorroborated identity.
+    """
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(subprocess, "run", no_git)
+
+    assert detect_repository(tmp_path) is None
