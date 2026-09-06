@@ -7,29 +7,44 @@ Nothing connects the two files, so they drift silently and each gate keeps
 reporting confidently.
 
 That is a correctness problem rather than hygiene, because a formatter's OUTPUT
-is its contract. Two versions can disagree about what "formatted" means, and
-then one gate's clean run and the other's failure are both true. A sibling
-repository measured 665 files clean under one pin and three files needing
-reformatting under another, on the same unchanged tree, and a commit message
-there recorded "three pre-existing format failures" that did not exist under the
-enforced version. The number was real; the conclusion was not.
+is its contract. Two versions can disagree about what "formatted" means, and then
+one gate's clean run and the other's failure are both true. A sibling repository
+measured 665 files clean under one pin and three needing reformatting under
+another on the same unchanged tree, and a commit message there recorded "three
+pre-existing format failures" that did not exist under the enforced version. The
+number was real; the conclusion was not.
 
 This repository had the same drift latent: pre-commit ran ruff v0.15.1 while
 `pyproject` admitted anything in `>=0.15.15,<0.16` — a rev that did not even
 satisfy the project's own floor — and pre-commit pinned mypy v1.13.0 while an
-open `mypy>=1.13.0` floor let CI resolve 2.3.1. Two major versions apart on a
-type checker, where a newer release finding new errors on unchanged code is
-indistinguishable from a regression.
+open `mypy>=1.13.0` floor let CI resolve 2.3.1.
 
-The check compares the two SOURCES rather than asserting a literal version, so
-bumping either file fails until the other is bumped in the same change.
+The two tools are held together in DIFFERENT ways, because their failure modes
+differ:
+
+* **ruff** is pinned by `rev`, and this file compares that rev to the pyproject
+  pin. Ruff needs no project context, so an isolated hook environment runs it
+  correctly.
+* **mypy** runs from the PROJECT environment via a `local` hook. A mirrored hook
+  resolves its own environment without the project's dependencies, so it cannot
+  see fastapi or pydantic and reports import errors on every commit that CI does
+  not. A sibling repository measured 586 errors in 233 files from such a hook
+  against 385 files clean from CI, with the versions already matching. Matching
+  the rev does not fix that — the version was never the problem.
+
+What this file does NOT do is model pre-commit's file selection. `files`,
+`exclude`, `types`, `types_or`, `exclude_types` and `always_run` interact in ways
+that amount to reimplementing pre-commit, and an earlier revision that tried
+produced five findings of which three were the check failing VALID configuration.
+A checker that fails correct configuration teaches its reader to ignore it. Stage
+exclusion is modelled because it is unambiguous; the rest is pre-commit's own
+semantics and is deliberately out of scope.
 """
 
 from __future__ import annotations
 
 import re
 import tomllib
-from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -39,18 +54,18 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 PRE_COMMIT = REPO_ROOT / ".pre-commit-config.yaml"
 
 # Tools whose output is the contract, so two versions can disagree about a
-# verdict on identical code. Both must be exactly pinned and identical across
-# the two files.
-#
-# The hook ids are every hook that tool needs for pre-commit to cover what CI
-# runs. The Makefile invokes `ruff check` AND `ruff format --check`, so a config
-# keeping `- id: ruff` while dropping `- id: ruff-format` leaves the formatter
-# unenforced locally while this comparison still saw a Ruff revision.
-REQUIRED_HOOKS: dict[str, tuple[str, ...]] = {
-    "ruff": ("ruff", "ruff-format"),
-    "mypy": ("mypy",),
-}
-OUTPUT_DEFINING_TOOLS = tuple(REQUIRED_HOOKS)
+# verdict on identical code. Every one must be pinned exactly in pyproject.
+OUTPUT_DEFINING_TOOLS = ("ruff", "mypy")
+
+# Hooks pinned by `rev`, with every hook id that tool needs for pre-commit to
+# cover what CI runs. The Makefile invokes `ruff check` AND `ruff format
+# --check`, so a config keeping `- id: ruff` while dropping `- id: ruff-format`
+# leaves the formatter unenforced locally.
+REV_PINNED_HOOKS: dict[str, tuple[str, ...]] = {"ruff": ("ruff", "ruff-format")}
+
+# Tools that must run from the project environment instead, because they need
+# the resolved dependency graph to produce a correct verdict.
+PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 
 _EXACT_PIN = re.compile(r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[0-9][^\s,;]*)$")
 
@@ -71,8 +86,8 @@ def _declared_pins() -> dict[str, str]:
 def _runs_on_commit(stages: object) -> bool:
     """Whether a resolved stages list still includes the ordinary commit run.
 
-    pre-commit accepts both the modern `pre-commit` name and the legacy `commit`
-    name, so either counts. An empty list runs nothing.
+    pre-commit accepts the modern `pre-commit` name and the legacy `commit` name,
+    so either counts. An empty list runs nothing.
     """
     if stages is None:
         return True
@@ -80,126 +95,57 @@ def _runs_on_commit(stages: object) -> bool:
     return bool(names & {"pre-commit", "commit"})
 
 
-_SKIPPED_DIRECTORIES = frozenset(
-    {".git", ".venv", "venv", "node_modules", "__pycache__", ".mypy_cache", ".ruff_cache"}
-)
+def _config() -> dict[str, object]:
+    return yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8")) or {}
 
 
-@lru_cache(maxsize=1)
-def _repository_paths() -> tuple[str, ...]:
-    """Every real path in this checkout, as the corpus filters are probed against.
+def _hooks_by_repository() -> list[tuple[str, str, list[dict[str, object]]]]:
+    """(source, rev, hooks) per repository stanza, with malformed entries dropped.
 
-    A fixed sample cannot answer the question. A filter as ordinary as
-    `files: ^src/app/services/` selects hundreds of real files while matching
-    none of a handful of hand-picked examples, and calling that hook inert would
-    be the false positive this check exists to avoid.
+    A malformed stanza describes no runnable hook, so it contributes nothing
+    rather than crashing the gate on someone's typo.
     """
-    paths: list[str] = []
-    for path in REPO_ROOT.rglob("*"):
-        if any(part in _SKIPPED_DIRECTORIES for part in path.parts):
+    stanzas: list[tuple[str, str, list[dict[str, object]]]] = []
+    for repository in _config().get("repos", []) or []:
+        if not isinstance(repository, dict):
             continue
-        if path.is_file():
-            paths.append(path.relative_to(REPO_ROOT).as_posix())
-    return tuple(paths)
-
-
-def _selects_any_file(
-    hook: dict[str, object], global_filters: tuple[str, str], corpus: tuple[str, ...]
-) -> bool:
-    """Whether the filters leave this hook anything to run on.
-
-    A hook keeping its id and its commit stage is still inert if the patterns
-    cannot select a file, and pre-commit then skips it on every commit while the
-    version it declares looks enforced.
-
-    Top-level `files` and `exclude` are applied ALONGSIDE the hook's own, because
-    pre-commit narrows the candidate set globally before a hook sees it: a
-    top-level `exclude: .*` removes everything however permissive the hook is.
-
-    Not a simulation of pre-commit's file selection -- `types`, `language` and
-    the changed-file set are not modelled. It answers whether these patterns can
-    ever select a file in this repository, which is the degenerate case worth
-    failing on.
-    """
-    global_files, global_exclude = global_filters
-    patterns = (
-        global_files,
-        str(hook.get("files", "") or ""),
-        global_exclude,
-        str(hook.get("exclude", "") or ""),
-    )
-    try:
-        includes = [re.compile(p) for p in patterns[:2] if p]
-        excludes = [re.compile(p) for p in patterns[2:] if p]
-    except re.error:
-        # An uncompilable pattern is pre-commit's problem to report, not a
-        # reason for this check to claim the hook is inert.
-        return True
-
-    for path in corpus:
-        if any(not pattern.search(path) for pattern in includes):
+        hooks = repository.get("hooks") or []
+        if not isinstance(hooks, list):
             continue
-        if any(pattern.search(path) for pattern in excludes):
-            continue
-        return True
-    return False
+        stanzas.append(
+            (
+                str(repository.get("repo", "")),
+                str(repository.get("rev", "")).lstrip("v"),
+                [hook for hook in hooks if isinstance(hook, dict)],
+            )
+        )
+    return stanzas
 
 
 def _hook_revisions() -> dict[str, str]:
-    """Versions pre-commit resolves, for tools whose hooks all run on commit.
+    """Revisions for rev-pinned tools whose required hooks all run on commit.
 
-    A revision is credited only when EVERY hook the tool needs is present and
-    runs on an ordinary commit. A `rev:` proves a repository stanza is listed,
-    not that its hooks execute -- a stanza whose hook was removed, renamed,
-    commented out or moved to another stage still carries its revision.
+    A `rev:` proves a repository stanza is listed, not that its hooks execute — a
+    stanza whose hook was removed, renamed, commented out or moved to another
+    stage still carries its revision.
 
-    Parsed with a real YAML parser rather than scanned line by line. That was a
-    deliberate reversal: reading two fields by hand was proportionate, but
-    correctness here needs actual YAML semantics -- block sequences (`stages:`
-    followed by `- pre-commit` on its own line), quoting, and mapping order,
-    since a `default_stages` written after `repos` applies to hooks declared
-    before it. Four consecutive review findings were all the hand scanner
-    mishandling valid configurations, and each fix added a branch that attracted
-    the next one. A parser is what this needs.
+    `default_stages` is applied after the whole document is read, because YAML
+    mapping order carries no meaning: a default written below `repos` still
+    governs hooks declared above it.
     """
-    document = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8")) or {}
-
-    # Resolved after the whole document is read, because mapping order carries
-    # no meaning: a default declared last still governs hooks declared first.
-    default_stages = document.get("default_stages")
-    # pre-commit narrows the candidate set globally before any hook sees it.
-    global_filters = (
-        str(document.get("files", "") or ""),
-        str(document.get("exclude", "") or ""),
-    )
-    corpus = _repository_paths()
+    default_stages = _config().get("default_stages")
 
     revisions: dict[str, str] = {}
-    for repository in document.get("repos", []) or []:
-        source = str(repository.get("repo", ""))
-        revision = str(repository.get("rev", "")).lstrip("v")
+    for source, revision, hooks in _hooks_by_repository():
         if not revision:
             continue
-
-        runs: dict[str, bool] = {}
-        hooks = repository.get("hooks") or []
-        if not isinstance(hooks, list):
-            # A malformed stanza describes no runnable hook, so it credits
-            # nothing rather than crashing the gate on someone's typo.
-            continue
-        for hook in hooks:
-            if not isinstance(hook, dict):
-                continue
-            identifier = str(hook.get("id", ""))
-            if not identifier:
-                continue
-            # A per-hook `stages` OVERRIDES the file default; absent, the hook
-            # inherits it.
-            runs[identifier] = _runs_on_commit(
-                hook.get("stages", default_stages)
-            ) and _selects_any_file(hook, global_filters, corpus)
-
-        for tool, required in REQUIRED_HOOKS.items():
+        # A per-hook `stages` OVERRIDES the file default; absent, it inherits.
+        runs = {
+            str(hook.get("id", "")): _runs_on_commit(hook.get("stages", default_stages))
+            for hook in hooks
+            if hook.get("id")
+        }
+        for tool, required in REV_PINNED_HOOKS.items():
             if tool in source and all(runs.get(hook, False) for hook in required):
                 revisions[tool] = revision
     return revisions
@@ -221,146 +167,72 @@ def test_every_output_defining_tool_is_exactly_pinned() -> None:
     )
 
 
-def test_pre_commit_runs_the_same_versions_ci_enforces() -> None:
+def test_rev_pinned_hooks_run_the_versions_ci_enforces() -> None:
     """The two sources are compared, so neither can be bumped alone."""
     pins = _declared_pins()
     revisions = _hook_revisions()
 
-    # Without this the loop below iterates nothing when the pins are ranges, and
-    # the comparison passes while comparing no versions at all -- a zero-input
-    # pass, which is the failure mode this whole file exists to describe.
-    assert set(pins) == set(OUTPUT_DEFINING_TOOLS), (
-        f"expected an exact pin for each of {', '.join(OUTPUT_DEFINING_TOOLS)}, found "
+    # Without this the loop iterates nothing when the pins are ranges, and the
+    # comparison passes while comparing no versions at all — a zero-input pass,
+    # which is the failure mode this whole file exists to describe.
+    assert set(REV_PINNED_HOOKS) <= set(pins), (
+        f"expected an exact pin for each of {', '.join(REV_PINNED_HOOKS)}, found "
         f"{sorted(pins) or 'none'}; with nothing pinned there is nothing to compare"
     )
 
-    for tool, pinned in sorted(pins.items()):
+    for tool in sorted(REV_PINNED_HOOKS):
+        pinned = pins[tool]
         assert tool in revisions, (
             f"pyproject pins {tool}=={pinned} but .pre-commit-config.yaml declares no "
-            f"{tool} hook, so the commit hook and CI check different things"
+            f"runnable {tool} hook set, so the commit hook and CI check different things"
         )
         assert revisions[tool] == pinned, (
             f"{tool} disagrees between the gates: pyproject enforces {pinned} and "
-            f"pre-commit runs {revisions[tool]}. A formatter or type checker's output "
-            "is its contract, so both gates would report confidently and disagree. "
-            "Bump both in the same change."
+            f"pre-commit runs {revisions[tool]}. A formatter's output is its contract, "
+            "so both gates would report confidently and disagree. Bump both together."
         )
 
 
-def test_a_removed_or_disabled_hook_is_not_credited(tmp_path, monkeypatch) -> None:
-    """A `rev:` proves a repository is listed, not that its hook runs.
+def test_dependency_aware_tools_run_from_the_project_environment() -> None:
+    """mypy needs the resolved dependency graph, which a hook environment lacks.
 
-    A stanza whose hook has been removed, renamed, commented out or restricted to
-    another stage still carries its revision. Crediting it would let this
-    comparison agree with a tool that is not running -- the same shape as a
-    dispatch tag being read as proof a gate passed.
+    A mirrored hook installs mypy alone, so it cannot see fastapi or pydantic and
+    reports import errors on every commit that CI does not. A sibling repository
+    measured 586 errors in 233 files from such a hook against 385 files clean
+    from CI — with the versions already matching. That is why matching a rev is
+    the right fix for ruff and the wrong one for mypy.
     """
-    baseline = PRE_COMMIT.read_text(encoding="utf-8")
+    stanzas = _hooks_by_repository()
 
-    def parse(config: str) -> dict[str, str]:
-        written = tmp_path / "pre-commit.yaml"
-        written.write_text(config, encoding="utf-8")
-        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
-        return _hook_revisions()
+    for tool in PROJECT_ENVIRONMENT_TOOLS:
+        mirrored = [
+            source
+            for source, _revision, hooks in stanzas
+            if source != "local" and any(hook.get("id") == tool for hook in hooks)
+        ]
+        assert not mirrored, (
+            f"{tool} is declared by {mirrored[0]}, which resolves its own environment "
+            "without the project's dependencies. Declare it as a local hook running the "
+            "project environment instead."
+        )
 
-    assert parse(baseline).get("mypy"), "the real config must credit its mypy hook"
+        local_hooks = [
+            hook
+            for source, _revision, hooks in stanzas
+            if source == "local"
+            for hook in hooks
+            if hook.get("id") == tool
+        ]
+        assert local_hooks, f"{tool} must be declared as a local hook"
 
-    # Whole hook blocks, not just their id lines: leaving an orphaned `args:`
-    # behind would make `hooks:` a mapping rather than a list, and the case would
-    # then be exercising a malformed file instead of a removed hook.
-    mypy_hook = '      - id: mypy\n        args: ["src"]\n'
-
-    removed = baseline.replace(mypy_hook, "")
-    assert "mypy" not in parse(removed), "a removed hook must not be credited"
-
-    commented = baseline.replace(mypy_hook, '      # - id: mypy\n      #   args: ["src"]\n')
-    assert "mypy" not in parse(commented), "a commented-out hook must not be credited"
-
-    staged = baseline.replace("      - id: mypy\n", "      - id: mypy\n        stages: [manual]\n")
-    assert "mypy" not in parse(staged), "a hook restricted to another stage does not run on commit"
-
-
-def test_top_level_default_stages_can_disable_everything(tmp_path, monkeypatch) -> None:
-    """A file-wide default_stages excluding the commit makes every hook inert.
-
-    The per-hook branch cannot see this: it only fires after a hook id, so a
-    setting at the top of the file would leave every hook credited while none of
-    them runs on a developer's commit.
-    """
-    baseline = PRE_COMMIT.read_text(encoding="utf-8")
-
-    def parse(config: str) -> dict[str, str]:
-        written = tmp_path / "pre-commit.yaml"
-        written.write_text(config, encoding="utf-8")
-        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
-        return _hook_revisions()
-
-    assert parse(baseline), "the real config must credit its hooks"
-
-    disabled = "default_stages: [manual]\n" + baseline
-    assert parse(disabled) == {}, "a manual-only default must credit nothing"
-
-    still_running = "default_stages: [pre-commit]\n" + baseline
-    assert parse(still_running), "a default that includes the commit stage still counts"
-
-    legacy_name = "default_stages: [commit]\n" + baseline
-    assert parse(legacy_name), "pre-commit's legacy stage name still counts"
-
-
-def test_every_hook_ci_runs_must_be_present(tmp_path, monkeypatch) -> None:
-    """Ruff needs both hooks, because CI runs both commands.
-
-    The Makefile invokes `ruff check` and `ruff format --check`. A config keeping
-    `- id: ruff` while dropping `- id: ruff-format` leaves the formatter
-    unenforced locally, and crediting the Ruff revision anyway would report the
-    two gates as agreeing about a command one of them no longer runs.
-    """
-    baseline = PRE_COMMIT.read_text(encoding="utf-8")
-
-    def parse(config: str) -> dict[str, str]:
-        written = tmp_path / "pre-commit.yaml"
-        written.write_text(config, encoding="utf-8")
-        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
-        return _hook_revisions()
-
-    assert parse(baseline).get("ruff"), "the real config runs both Ruff hooks"
-
-    without_formatter = baseline.replace("      - id: ruff-format\n", "")
-    assert "ruff" not in parse(without_formatter), (
-        "dropping the formatter hook must stop crediting Ruff"
-    )
-
-    formatter_staged = baseline.replace(
-        "      - id: ruff-format\n",
-        "      - id: ruff-format\n        stages: [manual]\n",
-    )
-    assert "ruff" not in parse(formatter_staged), (
-        "a formatter moved off the commit stage is not enforced on commit"
-    )
-    assert parse(formatter_staged).get("mypy"), "and mypy is unaffected by Ruff's hooks"
-
-
-def test_a_per_hook_stage_overrides_the_file_default(tmp_path, monkeypatch) -> None:
-    """pre-commit resolves per-hook stages OVER default_stages.
-
-    A manual file default paired with explicit per-hook overrides is a valid
-    configuration that does run on commit. Treating the default as disabling
-    everything would fail a correct config, which is how a checker earns the
-    habit of being ignored.
-    """
-    baseline = PRE_COMMIT.read_text(encoding="utf-8")
-
-    def parse(config: str) -> dict[str, str]:
-        written = tmp_path / "pre-commit.yaml"
-        written.write_text(config, encoding="utf-8")
-        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
-        return _hook_revisions()
-
-    overridden = "default_stages: [manual]\n" + baseline.replace(
-        "      - id: mypy\n", "      - id: mypy\n        stages: [pre-commit]\n"
-    )
-    assert parse(overridden).get("mypy"), "an explicit per-hook stage still runs on commit"
-    assert "ruff" not in parse(overridden), "hooks without an override follow the manual default"
+        hook = local_hooks[0]
+        assert hook.get("language") == "system", (
+            f"{tool} must use language: system so it runs in the environment the project "
+            "was installed into, not one pre-commit builds for it"
+        )
+        assert tool in str(hook.get("entry", "")), (
+            f"the local {tool} hook must actually invoke {tool}; entry is {hook.get('entry')!r}"
+        )
 
 
 def _parse_config(text: str, tmp_path, monkeypatch) -> dict[str, str]:
@@ -370,135 +242,71 @@ def _parse_config(text: str, tmp_path, monkeypatch) -> dict[str, str]:
     return _hook_revisions()
 
 
-def test_a_default_declared_after_the_repos_still_applies(tmp_path, monkeypatch) -> None:
-    """YAML mapping order carries no meaning.
-
-    A `default_stages` written below `repos:` governs hooks declared above it.
-    Reading the file top to bottom and snapshotting the default as each hook is
-    encountered gets this wrong, and the result is a config pre-commit treats as
-    disabled while the check reports the gates agreeing.
-    """
-    config = """
+_RUFF_STANZA = """
 repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
     hooks:
-      - id: mypy
-default_stages: [manual]
+      - id: ruff
+      - id: ruff-format
 """
-    assert _parse_config(config, tmp_path, monkeypatch) == {}, (
-        "a default declared after the repos still disables them"
+
+
+def test_a_removed_or_disabled_hook_is_not_credited(tmp_path, monkeypatch) -> None:
+    """A `rev:` proves a repository is listed, not that its hooks run."""
+    assert _parse_config(_RUFF_STANZA, tmp_path, monkeypatch).get("ruff") == "0.15.22"
+
+    without_formatter = _RUFF_STANZA.replace("      - id: ruff-format\n", "")
+    assert "ruff" not in _parse_config(without_formatter, tmp_path, monkeypatch), (
+        "CI runs `ruff format --check`, so dropping that hook must stop crediting Ruff"
+    )
+
+    commented = _RUFF_STANZA.replace("      - id: ruff-format", "      # - id: ruff-format")
+    assert "ruff" not in _parse_config(commented, tmp_path, monkeypatch), (
+        "a commented-out hook does not run"
+    )
+
+    staged = _RUFF_STANZA.replace(
+        "      - id: ruff-format\n", "      - id: ruff-format\n        stages: [manual]\n"
+    )
+    assert "ruff" not in _parse_config(staged, tmp_path, monkeypatch), (
+        "a hook restricted to another stage does not run on commit"
     )
 
 
-def test_block_style_stage_sequences_are_read(tmp_path, monkeypatch) -> None:
-    """`stages:` with items on following lines is ordinary YAML.
+def test_stage_resolution_follows_pre_commit(tmp_path, monkeypatch) -> None:
+    """Per-hook stages override the file default, whatever the key order."""
+    after_repos = _RUFF_STANZA + "default_stages: [manual]\n"
+    assert _parse_config(after_repos, tmp_path, monkeypatch) == {}, (
+        "a default declared after the repos still governs hooks declared before it"
+    )
 
-    Treating only the inline `[...]` form as a stage list makes a valid
-    block-style config look like a hook with no stages, so a hook that does run
-    on commit is rejected -- a checker failing correct configuration.
-    """
-    block_style = """
+    overridden = "default_stages: [manual]\n" + _RUFF_STANZA.replace(
+        "      - id: ruff\n", "      - id: ruff\n        stages: [pre-commit]\n"
+    ).replace(
+        "      - id: ruff-format\n",
+        "      - id: ruff-format\n        stages: [pre-commit]\n",
+    )
+    assert _parse_config(overridden, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "explicit per-hook stages override a manual default"
+    )
+
+    block_style = _RUFF_STANZA.replace(
+        "      - id: ruff\n",
+        "      - id: ruff\n        stages:\n          - pre-commit\n",
+    )
+    assert _parse_config(block_style, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "a block-style stages list is ordinary YAML and must be read"
+    )
+
+
+def test_a_malformed_stanza_credits_nothing(tmp_path, monkeypatch) -> None:
+    """Someone's typo produces a finding, not a crash that reads as a broken gate."""
+    malformed = """
 repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
     hooks:
-      - id: mypy
-        stages:
-          - pre-commit
+      args: ["--fix"]
 """
-    assert _parse_config(block_style, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
-        "a block-style stages list naming the commit stage must be credited"
-    )
-
-    block_manual = block_style.replace("          - pre-commit", "          - manual")
-    assert _parse_config(block_manual, tmp_path, monkeypatch) == {}, (
-        "and a block-style list naming another stage must not be"
-    )
-
-
-def test_a_hook_filtered_to_nothing_is_not_credited(tmp_path, monkeypatch) -> None:
-    """Keeping an id and a commit stage is not enough to be enforced.
-
-    `files: ^$` or an `exclude` matching everything leaves pre-commit skipping
-    the hook on every commit, while its declared version still looks enforced.
-    The filters are probed with the real regex engine against real paths, so this
-    covers any spelling of "never" rather than one literal pattern.
-    """
-    runnable = """
-repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
-    hooks:
-      - id: mypy
-"""
-    assert _parse_config(runnable, tmp_path, monkeypatch).get("mypy") == "2.3.1"
-
-    never_matches = runnable.replace("      - id: mypy\n", "      - id: mypy\n        files: ^$\n")
-    assert _parse_config(never_matches, tmp_path, monkeypatch) == {}, (
-        "a files pattern that cannot match must not be credited"
-    )
-
-    excludes_all = runnable.replace("      - id: mypy\n", "      - id: mypy\n        exclude: .*\n")
-    assert _parse_config(excludes_all, tmp_path, monkeypatch) == {}, (
-        "an exclude removing everything must not be credited"
-    )
-
-    narrow_but_real = runnable.replace(
-        "      - id: mypy\n", "      - id: mypy\n        files: ^src/\n"
-    )
-    assert _parse_config(narrow_but_real, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
-        "a narrow filter that still selects files is enforced and must be credited"
-    )
-
-
-def test_a_narrow_but_real_filter_is_credited(tmp_path, monkeypatch) -> None:
-    """An ordinary scoped filter must not read as inert.
-
-    `files: ^src/app/services/` selects hundreds of real files. Probing a handful
-    of hand-picked example paths would match none of them and call the hook dead
-    — the false positive this check exists to avoid, produced by the check
-    itself.
-    """
-    scoped = """
-repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
-    hooks:
-      - id: mypy
-        files: ^src/app/services/
-"""
-    assert (REPO_ROOT / "src/app/services").is_dir(), "this case needs that directory to exist"
-    assert _parse_config(scoped, tmp_path, monkeypatch).get("mypy") == "2.3.1"
-
-
-def test_top_level_filters_are_applied_too(tmp_path, monkeypatch) -> None:
-    """pre-commit narrows candidates globally before a hook sees them.
-
-    A top-level `exclude: .*` removes every file however permissive the hook's
-    own patterns are, so reading only the hook mapping credits a version nothing
-    enforces.
-    """
-    globally_excluded = """
-exclude: .*
-repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
-    hooks:
-      - id: mypy
-"""
-    assert _parse_config(globally_excluded, tmp_path, monkeypatch) == {}, (
-        "a top-level exclude removing everything must not be credited"
-    )
-
-    globally_scoped = """
-files: ^src/
-repos:
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
-    hooks:
-      - id: mypy
-"""
-    assert _parse_config(globally_scoped, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
-        "a top-level filter that still selects files is enforced"
-    )
+    assert _parse_config(malformed, tmp_path, monkeypatch) == {}
