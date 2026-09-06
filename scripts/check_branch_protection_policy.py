@@ -32,6 +32,14 @@ _REQUIRED_EXCEPTION_KEYS = {"field", "value", "reason", "compensating_controls",
 # Every field the live comparison reads. Without this list an edit could drop a
 # field, pass --offline in the blocking lane, and only fail hours later in the
 # scheduled live run.
+_REQUIRED_REVIEW_KEYS = (
+    "required_approving_review_count",
+    "dismiss_stale_reviews",
+    "require_code_owner_reviews",
+    "require_last_push_approval",
+    "bypass_pull_request_allowances",
+)
+
 _REQUIRED_EXPECTED_KEYS = (
     "enforce_admins",
     "required_linear_history",
@@ -63,11 +71,22 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     for key in _REQUIRED_EXPECTED_KEYS:
         if key not in expected:
             issues.append(f"expected.{key} must be declared")
-    contexts = expected.get("required_status_checks", {}).get("contexts")
+    checks = expected.get("required_status_checks", {})
+    for key in ("strict", "contexts"):
+        if key not in checks:
+            issues.append(f"expected.required_status_checks.{key} must be declared")
+    contexts = checks.get("contexts")
     if isinstance(contexts, list) and not contexts:
         issues.append(
             "expected.required_status_checks.contexts is empty: nothing would be required"
         )
+    declared_reviews = expected.get("required_pull_request_reviews", {})
+    if "present" not in declared_reviews:
+        issues.append("expected.required_pull_request_reviews.present must be declared")
+    elif declared_reviews.get("present"):
+        for key in _REQUIRED_REVIEW_KEYS:
+            if key not in declared_reviews:
+                issues.append(f"expected.required_pull_request_reviews.{key} must be declared")
     reviews = expected.get("required_pull_request_reviews", {})
     for exception in policy.get("documented_exceptions", []):
         missing = _REQUIRED_EXCEPTION_KEYS - set(exception)
