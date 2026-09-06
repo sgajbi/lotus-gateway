@@ -121,10 +121,21 @@ and the policy updates in the same change.
 
 The complete field-by-field policy lives in
 [`quality/branch_protection_policy.v1.json`](../blob/main/quality/branch_protection_policy.v1.json).
-Two lanes enforce it. The Quality Baseline lane validates the policy document's shape on every
-PR, which needs no credentials. The live field-by-field comparison — failing when protection
-weakens **and** when the documented exception is removed without the configuration
-strengthening — runs daily in Main Gate Coverage Audit.
+Two lanes enforce it. The Quality Baseline lane runs on every PR and needs no credentials. It
+validates the policy document's shape **and corroborates the repository the document names**: the
+running repository is resolved from `GITHUB_REPOSITORY`, or from the `origin` remote when that is
+unset, and never from the checkout directory name, which differs for worktrees and renamed
+clones. A policy naming a different repository fails, and an identity that cannot be resolved at
+all fails rather than falling back to trusting the document's own claim about itself.
+
+That check exists because the policy table is designed to be lifted between repositories. A
+sibling that copies it and forgets to edit one field would otherwise read *this* repository's
+protection, find that it matches, and pass — a green gate that measured nothing about the
+repository it was running in.
+
+The live field-by-field comparison — failing when protection weakens **and** when the documented
+exception is removed without the configuration strengthening — runs daily in Main Gate Coverage
+Audit.
 
 The live comparison is scheduled rather than blocking because it authenticates with a PAT
 carrying `administration: read` (the workflow token cannot), and that secret is not yet
