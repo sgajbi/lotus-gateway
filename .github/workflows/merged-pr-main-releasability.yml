@@ -128,11 +128,31 @@ jobs:
           # quietly accepted the drift would leave nothing to notice it.
           #
           # Identity is the patch-id, not the subject. A rebase rewrites SHAs, so
-          # those cannot be compared; subjects can be compared but are not
-          # unique, and two commits titled "fix lint" -- one from this PR, one
-          # from a merge that landed underneath it -- are indistinguishable by
-          # text. patch-id hashes the change itself, is stable across rebase, and
-          # differs for a squash and for unrelated work.
+          # those cannot be compared, and a subject is not an identity at all --
+          # an unrelated main commit titled "fix lint" alongside this PR's own
+          # "fix lint" is accepted by any subject test while making a completely
+          # different change.
+          #
+          # Two properties a rebase DOES preserve exactly, and an unrelated commit
+          # does not share:
+          #
+          #   AUTHOR IDENTITY AND TIMESTAMP. `git rebase` and `git cherry-pick`
+          #   rewrite the committer, never the author. The author email and the
+          #   author date, to the second, come through unchanged from the PR's own
+          #   commit. An unrelated commit has its own author date; a squash gets a
+          #   new one.
+          #
+          #   PATCH-ID, when the diff context is untouched. This one is NOT
+          #   rebase-stable on its own: `--stable` means stable across git
+          #   versions and hunk ordering, not across content, and the id hashes
+          #   the diff including its context lines. If main moves a line beside
+          #   the change, a cleanly rebased commit hashes differently. Requiring
+          #   it alone would refuse legitimate rebases and dispatch nothing.
+          #
+          # A revision is attributed when EITHER matches, and refused when neither
+          # does. Both are verifiable against history rather than against text, so
+          # an unattributable window still fails closed -- the subject is never
+          # consulted.
           #
           # The PR's own commits are fetched for this. They are not otherwise
           # present: the checkout has main, and a rebase merge rewrote every SHA
@@ -142,29 +162,33 @@ jobs:
             exit 1
           fi
           pr_head="$(git rev-parse FETCH_HEAD)"
-          pr_patch_ids="$(git rev-list --reverse "$BASE_SHA..$pr_head" | while read -r pr_commit; do
-            git show "$pr_commit" | git patch-id --stable | cut -d' ' -f1
+          pr_identities="$(git rev-list --reverse "$BASE_SHA..$pr_head" | while read -r pr_commit; do
+            printf '%s\t%s\n' \
+              "$(git show "$pr_commit" | git patch-id --stable | cut -d' ' -f1)" \
+              "$(git log -1 --format='%ae|%aI' "$pr_commit")"
           done)"
-          if [ -z "$pr_patch_ids" ]; then
+          if [ -z "$pr_identities" ]; then
             echo "::error::PR #$PR_NUMBER contributed no identifiable changes from $BASE_SHA, so the enumerated window cannot be attributed to it. Refusing to dispatch."
             exit 1
           fi
 
-          # Each PR change may be claimed once. Consuming matches rather than
-          # testing membership means a duplicated change cannot admit an extra
-          # revision that happens to look like one the PR already accounted for.
-          unclaimed_patch_ids="$pr_patch_ids"
+          # Each PR commit may be claimed once. Consuming the match rather than
+          # testing membership means a change or subject appearing twice cannot
+          # admit an extra revision the PR already accounted for.
+          unclaimed_identities="$pr_identities"
           for candidate in $revisions; do
             candidate_patch_id="$(git show "$candidate" | git patch-id --stable | cut -d' ' -f1)"
-            if ! printf '%s\n' "$unclaimed_patch_ids" | grep -Fxq "$candidate_patch_id"; then
+            candidate_author="$(git log -1 --format='%ae|%aI' "$candidate")"
+            claimed_line="$(printf '%s\n' "$unclaimed_identities" | awk -F'\t' \
+              -v patch_id="$candidate_patch_id" -v author="$candidate_author" '
+              ($1 == patch_id) || ($2 == author) { print NR; exit }
+            ')"
+            if [ -z "$claimed_line" ]; then
               candidate_subject="$(git log -1 --format=%s "$candidate")"
-              echo "::error::Revision $candidate (\"$candidate_subject\") makes a change that PR #$PR_NUMBER does not contain. The enumerated window holds work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
+              echo "::error::Revision $candidate (\"$candidate_subject\", authored $candidate_author) matches no commit of PR #$PR_NUMBER by change or by author identity. The enumerated window holds work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
               exit 1
             fi
-            unclaimed_patch_ids="$(printf '%s\n' "$unclaimed_patch_ids" | awk -v claimed="$candidate_patch_id" '
-              BEGIN { removed = 0 }
-              { if (!removed && $0 == claimed) { removed = 1; next } print }
-            ')"
+            unclaimed_identities="$(printf '%s\n' "$unclaimed_identities" | awk -v claimed="$claimed_line" 'NR != claimed')"
           done
 
           # The window must be one contiguous single-parent chain ending at the
