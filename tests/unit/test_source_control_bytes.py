@@ -239,6 +239,10 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
     # for a reason that has nothing to do with what it checks.
     run_git("config", "commit.gpgsign", "false")
     run_git("config", "core.hooksPath", "/dev/null")
+    # A global core.excludesFile containing the common *.log pattern would make
+    # the tracked-log fixture unaddable, and the test would fail before reaching
+    # the inventory it exists to exercise.
+    run_git("config", "core.excludesFile", "/dev/null")
 
     (repo / ".gitignore").write_text("gateway-*.log\n", encoding="utf-8")
     config = repo / "settings.toml"
@@ -355,6 +359,10 @@ def test_a_declared_binary_path_is_excluded(tmp_path: Path, monkeypatch) -> None
     # for a reason that has nothing to do with what it checks.
     run_git("config", "commit.gpgsign", "false")
     run_git("config", "core.hooksPath", "/dev/null")
+    # A global core.excludesFile containing the common *.log pattern would make
+    # the tracked-log fixture unaddable, and the test would fail before reaching
+    # the inventory it exists to exercise.
+    run_git("config", "core.excludesFile", "/dev/null")
 
     asset = repo / "logo.gif"
     asset.write_bytes(b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!")
