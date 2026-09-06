@@ -37,17 +37,38 @@ def is_suspicious(byte: int) -> bool:
     return byte < 0x09 or byte in (0x0B, 0x0C) or 0x0D < byte < 0x20
 
 
+# Above this share of non-text bytes in the sniff window, a file is a binary
+# format rather than corrupted text. Real binaries are dense with such bytes --
+# PNG, zip and compiled output are far above it -- while source that has taken a
+# stray control byte is otherwise entirely printable.
+BINARY_DENSITY = 0.30
+
+
 def is_text(data: bytes) -> bool:
-    """Classify by CONTENT, not by name.
+    """Classify by CONTENT, not by name, and not on a single byte.
 
     An extension allowlist cannot express "text": it silently omits every
     dot-prefixed or extensionless file, and `.importlinter` and `quality/.npmrc`
-    are both real configuration this guard must cover. Deciding on a NUL byte
-    inverts that — text is the default and binary is the exception that can
-    actually be detected — so a file is skipped only when its own bytes say it
-    is not text.
+    are both real configuration this guard must cover. Text is therefore the
+    default and binary the exception that must be demonstrated.
+
+    Demonstrating it on the FIRST NUL was wrong in the one case that matters
+    most. An escaped `\\0` materialised into a tracked source file is exactly the
+    corruption this module exists to catch, and treating any NUL as proof of
+    binary made such a file skipped rather than reported -- the guard would go
+    quiet on its own worst input. Density decides instead: one stray control byte
+    in otherwise printable source stays text and gets reported; a real binary is
+    dense with them and is excluded.
     """
-    return b"\x00" not in data[:TYPE_SNIFF_BYTES]
+    window = data[:TYPE_SNIFF_BYTES]
+    if not window:
+        return True
+    # Control bytes alone do not separate the two: uniformly distributed binary
+    # is only about 11% control bytes, which is lower than some prose. Bytes at
+    # or above 0x80 are what binary is dense in, while UTF-8 source and
+    # documentation carry them only for the occasional non-ASCII character.
+    non_text = sum(1 for byte in window if is_suspicious(byte) or byte >= 0x80)
+    return non_text / len(window) <= BINARY_DENSITY
 
 
 @lru_cache(maxsize=1)
@@ -178,10 +199,27 @@ def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Pa
 
     assert find_offenders([log]), "an ANSI log does carry bytes this guard rejects"
 
-    tracked = {path.relative_to(REPO_ROOT).as_posix() for path in _source_inventory()}
-    assert not [name for name in tracked if name.endswith(".log")], (
-        "no .log file is tracked, so none may appear in the inventory"
-    )
+    # Verify the exclusion against a real ignored artifact in the repository
+    # itself, rather than asserting that no tracked file ends in .log -- that
+    # would fail on a legitimate tracked log fixture while proving nothing about
+    # ignored ones, which is the thing being claimed.
+    planted = REPO_ROOT / "gateway-byte-scan-probe.log"
+    assert not planted.exists(), "probe name is already in use"
+    planted.write_bytes(b"\x1b[31mFAILED\x1b[0m simulated build output\n")
+    try:
+        ignored = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "check-ignore", "-q", str(planted)],
+            capture_output=True,
+        )
+        assert ignored.returncode == 0, "gateway-*.log must be ignored for this claim to hold"
+
+        _inventory.cache_clear()
+        assert planted not in set(_source_inventory()), (
+            "an ignored artifact carrying 0x1b must not enter the source inventory"
+        )
+    finally:
+        planted.unlink()
+        _inventory.cache_clear()
 
 
 def test_the_inventory_covers_dot_prefixed_and_extensionless_configuration() -> None:
@@ -203,9 +241,35 @@ def test_binary_content_is_excluded_by_its_own_bytes() -> None:
     """Classification must reject binary without consulting the file name."""
     assert is_text(b"# a comment\nkey = value\n")
     assert is_text(b"")
-    assert not is_text(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+
+    # A real PNG: header plus compressed data, which is dense with control bytes
+    # rather than carrying a handful. A sixteen-byte header stub is only a
+    # quarter control bytes and is indistinguishable from corrupted text.
+    png = b"\x89PNG\r\n\x1a\n" + bytes(range(256)) * 2
+    assert not is_text(png)
+
     # A NUL beyond the sniff window does not reclassify a text file.
     assert is_text(b"x" * (TYPE_SNIFF_BYTES + 16) + b"\x00")
+
+
+def test_a_stray_nul_in_source_stays_text_and_is_reported(tmp_path: Path) -> None:
+    """The corruption this module exists for must not be classified away.
+
+    An escaped `\\0` materialised into tracked source is the worst input here, and
+    a rule that called any NUL-bearing file binary would drop it from the
+    inventory before it could be reported -- the guard going quiet on precisely
+    the defect it was written to catch.
+    """
+    corrupted = b'PATTERN = "value\x00suffix"\n' + b"# ordinary source line\n" * 20
+
+    assert is_text(corrupted), "one stray NUL does not make otherwise-printable source binary"
+
+    victim = tmp_path / "settings.py"
+    victim.write_bytes(corrupted)
+    offenders = find_offenders([victim])
+
+    assert offenders, "a NUL in tracked source must be reported"
+    assert "byte=0x00" in offenders[0], offenders[0]
 
 
 def test_a_clean_corpus_produces_no_findings() -> None:
