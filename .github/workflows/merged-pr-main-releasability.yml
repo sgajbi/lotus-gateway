@@ -251,6 +251,18 @@ jobs:
                 echo "::error::Dispatch ref $dispatch_ref points to $existing_ref_sha, expected $revision"
                 exit 1
               fi
+              # A dispatch tag that already exists means this revision was
+              # already enumerated by an earlier merge. That is the observable
+              # trace of the one case patch identity cannot resolve: when another
+              # PR lands the same change and this PR's now-redundant commit is
+              # dropped by the rebase, the two revisions are identical by every
+              # local measure, so this window can claim one of theirs. Coverage
+              # is unaffected -- the revision receives a verdict either way, and
+              # already had one -- but the attribution recorded against it is
+              # this PR rather than the one that landed it. Saying so leaves a
+              # trail rather than a silent mis-attribution, and dispatch still
+              # proceeds so a previously failed gate run can be re-driven.
+              echo "::notice::Dispatch ref $dispatch_ref already exists, so $revision was gated by an earlier merge. Re-dispatching under PR #$PR_NUMBER; if this PR did not land that revision, the attribution here is the earlier merge's."
               echo "  tag exists for $revision"
             fi
             if [ -z "$existing_ref_sha" ]; then
