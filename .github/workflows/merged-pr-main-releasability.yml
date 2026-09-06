@@ -108,6 +108,38 @@ jobs:
             exit 1
           fi
 
+          # Every enumerated revision must be one of THIS PR's commits.
+          #
+          # The count comparison above cannot establish that, in either
+          # direction. Two effects cancel exactly: main advances by one commit
+          # while the rebase drops one, and the range then holds an unrelated
+          # revision plus the remaining PR commits while the count still
+          # matches. Every structural check passes -- single-parent, contiguous,
+          # not an ancestor of the stale base -- and another PR's revision is
+          # dispatched and recorded under this PR's number.
+          #
+          # It is also the only signal that separates a legitimate rebase from a
+          # squash. Both land fewer revisions than the count. A rebase preserves
+          # each commit's subject, so every enumerated subject is still one of
+          # the PR's; a squash lands one commit whose subject is the PR title,
+          # which is not. Squash-merging contradicts the rebase-only rule in
+          # docs/documentation/git-branch-protection-workflow.md, so it is
+          # refused here rather than reported: the fail-closed coverage audit
+          # reports the resulting ungated revision, and a dispatcher that
+          # quietly accepted the drift would leave nothing to notice it.
+          pr_subjects="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json commits --jq '.commits[].messageHeadline')"
+          if [ -z "$pr_subjects" ]; then
+            echo "::error::Could not read PR #$PR_NUMBER's commits, so enumerated revisions cannot be attributed to it. Refusing to dispatch on an unverifiable window."
+            exit 1
+          fi
+          for candidate in $revisions; do
+            candidate_subject="$(git log -1 --format=%s "$candidate")"
+            if ! printf '%s\n' "$pr_subjects" | grep -Fxq "$candidate_subject"; then
+              echo "::error::Revision $candidate (\"$candidate_subject\") is not among PR #$PR_NUMBER's commits. The enumerated window contains work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
+              exit 1
+            fi
+          done
+
           # The window must be one contiguous single-parent chain ending at the
           # merge commit, and every commit in it must be NEW to main.
           #

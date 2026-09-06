@@ -37,12 +37,20 @@ def _resolve_bash() -> str | None:
     """
     git = shutil.which("git")
     if git:
-        git_root = Path(git).resolve().parents[2]
-        for candidate in (git_root / "bin" / "bash.exe", git_root / "usr" / "bin" / "bash.exe"):
-            if candidate.is_file():
-                return str(candidate)
+        # Walk up rather than indexing a fixed number of parents: git resolves to
+        # `Git\cmd\git.exe` on one installation and `Git\mingw64\bin\git.EXE` on
+        # another, so a fixed depth finds the install root on one layout and
+        # `C:\Program Files` on the other -- where both candidates miss and the
+        # whole suite silently skips in the environment this exists to support.
+        for ancestor in Path(git).resolve().parents:
+            for relative in (("bin", "bash.exe"), ("usr", "bin", "bash.exe")):
+                candidate = ancestor.joinpath(*relative)
+                if candidate.is_file():
+                    return str(candidate)
     found = shutil.which("bash")
     if found and "system32" in found.lower():
+        # The WSL shim runs in a different filesystem namespace and cannot see
+        # these paths; skipping is honest, silently using it is not.
         return None
     return found
 
@@ -117,7 +125,13 @@ def _new_repo(tmp_path: Path, name: str) -> Path:
 
 
 def _run_dispatch(
-    repo: Path, tmp_path: Path, *, merge_sha: str, base_sha: str, commit_count: int
+    repo: Path,
+    tmp_path: Path,
+    *,
+    merge_sha: str,
+    base_sha: str,
+    commit_count: int,
+    pr_subjects: list[str],
 ) -> tuple[int, str, list[str]]:
     """Execute the real step. Returns (exit code, output, dispatched revisions)."""
     bin_dir = tmp_path / f"bin-{merge_sha[:8]}"
@@ -128,11 +142,18 @@ def _run_dispatch(
     # A GET on a dispatch tag must report "absent" so the create path runs; the
     # shipped code tests that by EXIT CODE, never by output, because `gh api
     # --jq` writes a 404 body to stdout and an output test reads it as a SHA.
+    # The step attributes each enumerated revision to the PR by subject, so the
+    # stub must answer `pr view --json commits` with the subjects the caller says
+    # this PR had. Everything else about the PR is irrelevant to selection.
+    subjects_file = tmp_path / f"pr-subjects-{merge_sha[:8]}.txt"
+    subjects_file.write_text("\n".join(pr_subjects) + "\n", encoding="utf-8", newline="\n")
+
     stub = bin_dir / "gh"
     stub.write_text(
         "#!/bin/sh\n"
         f'echo "$@" >> "{calls.as_posix()}"\n'
         'case "$*" in\n'
+        f'  *"pr view"*|*commits*) cat "{subjects_file.as_posix()}" ;;\n'
         "  *git/ref/tags/*) exit 1 ;;\n"
         "  *) exit 0 ;;\n"
         "esac\n",
@@ -196,7 +217,12 @@ def test_a_rebase_that_makes_the_commit_count_stale_still_gates_what_landed(
     second = _commit(repo, "pr-two")
 
     code, output, dispatched = _run_dispatch(
-        repo, tmp_path, merge_sha=second, base_sha=base, commit_count=3
+        repo,
+        tmp_path,
+        merge_sha=second,
+        base_sha=base,
+        commit_count=3,
+        pr_subjects=["add pr-one", "add pr-two", "add already-on-main"],
     )
 
     assert code == 0, output
@@ -222,7 +248,12 @@ def test_a_stale_base_that_spans_another_merge_is_refused(tmp_path: Path) -> Non
     mine = _commit(repo, "my-only-commit")
 
     code, output, dispatched = _run_dispatch(
-        repo, tmp_path, merge_sha=mine, base_sha=base, commit_count=1
+        repo,
+        tmp_path,
+        merge_sha=mine,
+        base_sha=base,
+        commit_count=1,
+        pr_subjects=["add my-only-commit"],
     )
 
     assert code != 0, "over-claiming revisions must refuse, not proceed"
@@ -231,25 +262,34 @@ def test_a_stale_base_that_spans_another_merge_is_refused(tmp_path: Path) -> Non
 
 
 def test_a_squash_gates_the_single_revision_that_landed(tmp_path: Path) -> None:
-    """A squash reports more commits than it lands, and coverage is still complete.
+    """A squash contradicts the rebase-only rule and must fail closed.
 
-    Main gains exactly one revision, so exactly one verdict is required. Refusing
-    here would leave that landed revision ungated, which is worse than the
-    deviation from rebase-only merging. The mismatch is surfaced rather than
-    silently accepted.
+    Both a squash and a legitimate rebase land fewer revisions than
+    pull_request.commits reports, so the count cannot separate them. The subjects
+    can: a rebase preserves each commit's subject, while a squash lands one
+    commit whose subject is the PR title and matches none of them.
+
+    Refusing does leave that landed revision ungated, which the fail-closed
+    coverage audit reports. A dispatcher that quietly gated it instead would
+    absorb the merge-method drift and leave nothing to notice it.
     """
     repo = _new_repo(tmp_path, "squashed")
     _commit(repo, "root")
     base = _commit(repo, "base")
-    squashed = _commit(repo, "everything-at-once")
+    squashed = _commit(repo, "everything-at-once")  # PR title, not a commit headline
 
     code, output, dispatched = _run_dispatch(
-        repo, tmp_path, merge_sha=squashed, base_sha=base, commit_count=3
+        repo,
+        tmp_path,
+        merge_sha=squashed,
+        base_sha=base,
+        commit_count=3,
+        pr_subjects=["add part-one", "add part-two", "add part-three"],
     )
 
-    assert code == 0, output
-    assert dispatched == [squashed]
-    assert "::notice::" in output, "a squash must be reported, not silently treated as a rebase"
+    assert code != 0, "squash-merging contradicts the rebase-only rule and must fail closed"
+    assert dispatched == [], "nothing may be dispatched when the merge method is not a rebase"
+    assert "not among PR" in output, output
 
 
 def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
@@ -270,7 +310,12 @@ def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
     merge_sha = _git(repo, "rev-parse", "HEAD")
 
     code, output, dispatched = _run_dispatch(
-        repo, tmp_path, merge_sha=merge_sha, base_sha=base, commit_count=2
+        repo,
+        tmp_path,
+        merge_sha=merge_sha,
+        base_sha=base,
+        commit_count=2,
+        pr_subjects=["add side-work", "add main-work"],
     )
 
     assert code != 0, "a two-parent merge must be refused"
@@ -291,8 +336,43 @@ def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -
     landed = [_commit(repo, f"pr-{index}") for index in range(1, 5)]
 
     code, output, dispatched = _run_dispatch(
-        repo, tmp_path, merge_sha=landed[-1], base_sha=base, commit_count=4
+        repo,
+        tmp_path,
+        merge_sha=landed[-1],
+        base_sha=base,
+        commit_count=4,
+        pr_subjects=[f"add pr-{index}" for index in range(1, 5)],
     )
 
     assert code == 0, output
     assert dispatched == landed, "every landed revision, oldest first"
+
+
+def test_offsetting_count_mismatches_are_refused(tmp_path: Path) -> None:
+    """Main advances by one while the rebase drops one, so the counts cancel.
+
+    The range then holds an unrelated revision plus the remaining PR commits, and
+    enumerated_count still equals pull_request.commits. Every structural check
+    passes -- single-parent, contiguous, not an ancestor of the stale base -- so
+    without attributing revisions to the PR this dispatches another PR's work
+    under this PR's number.
+    """
+    repo = _new_repo(tmp_path, "offsetting")
+    _commit(repo, "root")
+    base = _commit(repo, "base")
+    _commit(repo, "unrelated-main-advance")
+    _commit(repo, "pr-kept-one")
+    tip = _commit(repo, "pr-kept-two")
+
+    code, output, dispatched = _run_dispatch(
+        repo,
+        tmp_path,
+        merge_sha=tip,
+        base_sha=base,
+        commit_count=3,
+        pr_subjects=["add pr-kept-one", "add pr-kept-two", "add pr-dropped"],
+    )
+
+    assert code != 0, "an offsetting mismatch must still refuse"
+    assert dispatched == [], "no revision may be dispatched from an unattributable window"
+    assert "unrelated-main-advance" in output or "not among PR" in output, output
