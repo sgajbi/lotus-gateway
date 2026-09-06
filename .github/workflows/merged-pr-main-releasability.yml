@@ -284,7 +284,7 @@ jobs:
               # this PR rather than the one that landed it. Saying so leaves a
               # trail rather than a silent mis-attribution, and dispatch still
               # proceeds so a previously failed gate run can be re-driven.
-              echo "::notice::Dispatch ref $dispatch_ref already exists, so $revision was gated by an earlier merge. Re-dispatching under PR #$PR_NUMBER; if this PR did not land that revision, the attribution here is the earlier merge's."
+              echo "::notice::Dispatch ref $dispatch_ref already exists for $revision, so an earlier merge enumerated this revision. That proves the ref exists -- NOT that a gate ran for it, and not that any run passed. Release evidence must come from the run for this revision. Re-dispatching under PR #$PR_NUMBER."
               echo "  tag exists for $revision"
             fi
             if [ -z "$existing_ref_sha" ]; then
