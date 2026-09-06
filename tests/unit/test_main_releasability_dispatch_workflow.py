@@ -35,7 +35,37 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     assert 'git rev-list -n "$COMMIT_COUNT" "$MERGE_COMMIT_SHA" | tac' in text
     assert "for revision in $revisions; do" in text
     assert "fetch-depth: 0" in text
-    assert '"$merge_methods" != "false,false,true"' in text
+    # Rebase-only merging is what makes the enumeration correct, and it is
+    # MEASURED on the commits rather than read from the repository's declared
+    # merge settings: that read needs a permission the workflow token may not
+    # hold, and a declared posture is weaker evidence than the history it
+    # predicts. Each invariant kills a distinct way the window can be wrong.
+    assert "allow_rebase_merge" not in text, (
+        "the settings read is the dependency this replaced; measuring the "
+        "invariant needs no token at all"
+    )
+    # A merge commit's second parent would send the walk into main's history.
+    assert 'merge_parents="$(git rev-list --parents -n 1 "$MERGE_COMMIT_SHA" | wc -w)"' in text
+    # The validation pass must not reuse $revision: the ordering checks below
+    # locate the dispatch loop by that header.
+    assert "for candidate in $revisions; do" in text
+    assert '[ "$merge_parents" -ne 2 ]' in text
+    # A squash lands one commit however many the PR held, so the walk would
+    # return commits earlier PRs put on main. Those are single-parent and
+    # contiguous, so only base-ancestry catches them.
+    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in text
+    assert 'git merge-base --is-ancestor "$candidate" "$BASE_SHA"' in text
+    assert '[ -z "$BASE_SHA" ]' in text, "an absent base must refuse, not skip the check"
+    # A gap would mean the walk crossed history the PR did not add.
+    assert 'actual_parent="$(git rev-parse "${candidate}^")"' in text
+    assert '[ "$actual_parent" != "$previous" ]' in text
+    # Each gh call names itself on failure: a bare 403 identifies neither the
+    # operation nor its permission, which is what made three dispatcher
+    # failures across two repositories unattributable.
+    assert "run_gh()" in text
+    assert 'if ! output="$("$@" 2>&1)"; then' in text, (
+        "set -e aborts on a failing assignment, before the diagnostic prints"
+    )
     assert '-f triggering_pr="$PR_NUMBER"' in text
     assert '-f source_branch="main"' in text
     # Ancestry is judged against the freshly fetched main, and a revision that
