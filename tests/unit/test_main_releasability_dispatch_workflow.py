@@ -32,8 +32,13 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     # the sibling fix this ports; rebase-only merging is what makes the
     # enumeration correct, so its assertion must fail loudly on change).
     assert "COMMIT_COUNT: ${{ github.event.pull_request.commits }}" in text
-    assert 'git rev-list -n "$COMMIT_COUNT" "$MERGE_COMMIT_SHA" | tac' in text
-    assert "for revision in $revisions; do" in text
+    # WHICH revisions get selected is proved by executing this step against real
+    # Git histories in test_dispatch_revision_selection.py, not asserted here.
+    # This file previously required the enumeration command by name, which is a
+    # test that passes whether or not the command selects correctly and fails
+    # when it is corrected -- it pinned the defective walk as the contract, so
+    # fixing the defect broke the test. Behaviour belongs where it can be run.
+    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in text
     assert "fetch-depth: 0" in text
     # Rebase-only merging is what makes the enumeration correct, and it is
     # MEASURED on the commits rather than read from the repository's declared
