@@ -63,17 +63,43 @@ def _hook_revisions() -> dict[str, str]:
     YAML dependency, and buying one to read two fields would be a dependency
     added for a single call.
     """
+    # A revision is only recorded once the stanza is known to RUN the hook. A
+    # repository stanza whose hook has been removed, renamed, commented out or
+    # restricted to a non-default stage still carries a `rev:`, and accepting it
+    # would let this comparison pass while pre-commit runs nothing -- a gate
+    # agreeing with a tool that is not there.
     revisions: dict[str, str] = {}
     current_repo = ""
+    pending_revision = ""
+    enabled_hooks: set[str] = set()
+    last_hook = ""
+
+    def record() -> None:
+        for tool in OUTPUT_DEFINING_TOOLS:
+            if tool in current_repo and pending_revision and tool in enabled_hooks:
+                revisions[tool] = pending_revision
+
     for line in PRE_COMMIT.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
+        if stripped.startswith("#"):
+            # A commented-out hook does not run, so it must not be credited.
+            continue
         if stripped.startswith("- repo:"):
+            record()
             current_repo = stripped.partition("- repo:")[2].strip()
-        elif stripped.startswith("rev:") and current_repo:
-            revision = stripped.partition("rev:")[2].strip().lstrip("v")
-            for tool in OUTPUT_DEFINING_TOOLS:
-                if tool in current_repo:
-                    revisions[tool] = revision
+            pending_revision = ""
+            enabled_hooks = set()
+            last_hook = ""
+        elif stripped.startswith("rev:"):
+            pending_revision = stripped.partition("rev:")[2].strip().lstrip("v")
+        elif stripped.startswith("- id:"):
+            last_hook = stripped.partition("- id:")[2].strip()
+            enabled_hooks.add(last_hook)
+        elif stripped.startswith("stages:") and last_hook:
+            # A hook restricted to explicit stages does not run on an ordinary
+            # commit, so it cannot be credited as the version developers get.
+            enabled_hooks.discard(last_hook)
+    record()
     return revisions
 
 
@@ -117,3 +143,31 @@ def test_pre_commit_runs_the_same_versions_ci_enforces() -> None:
             "is its contract, so both gates would report confidently and disagree. "
             "Bump both in the same change."
         )
+
+
+def test_a_removed_or_disabled_hook_is_not_credited(tmp_path, monkeypatch) -> None:
+    """A `rev:` proves a repository is listed, not that its hook runs.
+
+    A stanza whose hook has been removed, renamed, commented out or restricted to
+    another stage still carries its revision. Crediting it would let this
+    comparison agree with a tool that is not running -- the same shape as a
+    dispatch tag being read as proof a gate passed.
+    """
+    baseline = PRE_COMMIT.read_text(encoding="utf-8")
+
+    def parse(config: str) -> dict[str, str]:
+        written = tmp_path / "pre-commit.yaml"
+        written.write_text(config, encoding="utf-8")
+        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+        return _hook_revisions()
+
+    assert parse(baseline).get("mypy"), "the real config must credit its mypy hook"
+
+    removed = baseline.replace("      - id: mypy\n", "")
+    assert "mypy" not in parse(removed), "a removed hook must not be credited"
+
+    commented = baseline.replace("      - id: mypy", "      # - id: mypy")
+    assert "mypy" not in parse(commented), "a commented-out hook must not be credited"
+
+    staged = baseline.replace("      - id: mypy\n", "      - id: mypy\n        stages: [manual]\n")
+    assert "mypy" not in parse(staged), "a hook restricted to another stage does not run on commit"
