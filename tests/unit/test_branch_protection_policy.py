@@ -129,3 +129,31 @@ def test_offline_validation_rejects_an_empty_required_context_list():
     policy["expected"]["required_status_checks"]["contexts"] = []
     issues = validate_policy_document(policy)
     assert any("contexts is empty" in issue for issue in issues)
+
+
+def test_offline_validation_rejects_missing_nested_fields():
+    """Deleting a nested field must not pass offline and crash the live run."""
+    policy = load_policy()
+    cases = [
+        (("required_status_checks", "strict"), "expected.required_status_checks.strict"),
+        (("required_status_checks", "contexts"), "expected.required_status_checks.contexts"),
+        (
+            ("required_pull_request_reviews", "present"),
+            "expected.required_pull_request_reviews.present",
+        ),
+        (
+            ("required_pull_request_reviews", "dismiss_stale_reviews"),
+            "expected.required_pull_request_reviews.dismiss_stale_reviews",
+        ),
+        (
+            ("required_pull_request_reviews", "bypass_pull_request_allowances"),
+            "expected.required_pull_request_reviews.bypass_pull_request_allowances",
+        ),
+    ]
+    for (parent, field), expected_message in cases:
+        incomplete = copy.deepcopy(policy)
+        del incomplete["expected"][parent][field]
+        issues = validate_policy_document(incomplete)
+        assert any(expected_message in issue for issue in issues), (
+            f"removing expected.{parent}.{field} passed the offline gate"
+        )
