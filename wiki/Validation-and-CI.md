@@ -132,6 +132,12 @@ provisioned: the step fails closed daily until an operator creates it. A blockin
 then would deadlock every pull request on an operator action. Restoring the blocking lane is
 tracked in issue #738.
 
+The two lanes prove different things, and the difference matters when reading a green PR. The
+blocking check proves the policy **document** is complete and well-formed; it reads nothing from
+GitHub and therefore certifies nothing about the protection actually configured on `main`. Only
+the scheduled comparison can do that, and it has not yet succeeded in CI because the credential
+does not exist. A green pull request is not evidence that live protection matches the policy.
+
 ## PR auto-merge posture
 
 PR auto-merge is rebase-only for linear history. The `Queue Auto Merge` helper uses

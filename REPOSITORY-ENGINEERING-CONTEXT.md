@@ -563,14 +563,21 @@ Important validation expectations:
    concurrency group uses the pull-request number to cancel stale synchronized revisions while
    manual dispatch uses a unique run ID, and the event matrix is documented in
    `docs/quality-baseline-event-matrix.md`,
-12. The Quality Baseline lane also enforces the branch-protection policy gate: live `main`
-   protection is compared field by field against
-   `quality/branch_protection_policy.v1.json` (which documents the review authority and the
-   deliberate zero-approval exception with its retirement condition) via
-   `scripts/check_branch_protection_policy.py`, failing when protection weakens and when the
-   documented exception is removed without the configuration strengthening; the step
-   authenticates with the automerge PAT because the workflow token cannot read branch
-   protection, and offline document-shape checks run in `make check`,
+12. The branch-protection policy gate runs in two lanes, split by what each can prove.
+   `quality/branch_protection_policy.v1.json` documents every protection field, the review
+   authority, and the deliberate zero-approval exception with its retirement condition.
+   The **Quality Baseline lane runs the offline document-shape check** (`--offline`), which
+   needs no credentials and therefore blocks every pull request: it refuses a policy missing
+   any field the live comparison reads, a non-list context set, a wrong value type, or a
+   zero-approval count whose documented exception has been deleted. The **live field-by-field
+   comparison runs daily in Main Gate Coverage Audit**, invoked bare so a missing credential
+   stops the run rather than passing it, and independent of the audit step before it so a
+   coverage failure cannot skip it. It authenticates with a PAT carrying `administration: read`
+   because the workflow token cannot read branch protection; that secret is not provisioned in
+   any Lotus repository, so the step fails closed daily and no live comparison has yet
+   succeeded in CI. **An offline shape check certifies nothing about live protection** — the
+   document being well-formed is not evidence that `main` matches it. Restoring a blocking
+   live comparison is tracked in issue #738 and needs an operator to provision the credential,
 13. Docker parity matters because the gateway is a live integration boundary,
 14. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
