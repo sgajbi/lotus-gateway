@@ -9,8 +9,10 @@ survived — the test required the defective command by name, so fixing the defe
 broke the test.
 
 These cases build real Git histories, execute the step's own shell, and assert on
-which revisions it dispatched. `gh` is replaced by a recording stub so nothing
-leaves the machine; every other command is the one that ships.
+which revisions it dispatched. Rebases are simulated by cherry-picking, so the
+landed revisions have different SHAs and identical changes, which is what the
+step's patch-id attribution has to cope with. `gh` is replaced by a recording
+stub so nothing leaves the machine; every other command is the one that ships.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "merged-pr-main-releasability.yml"
+PR_NUMBER = "744"
 
 
 def _resolve_bash() -> str | None:
@@ -103,8 +106,8 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def _commit(repo: Path, name: str) -> str:
-    (repo / name).write_text(f"{name}\n", encoding="utf-8")
+def _commit(repo: Path, name: str, *, body: str | None = None) -> str:
+    (repo / name).write_text(body if body is not None else f"{name}\n", encoding="utf-8")
     _git(repo, "add", name)
     _git(repo, "commit", "--quiet", "-m", f"add {name}")
     return _git(repo, "rev-parse", "HEAD")
@@ -116,22 +119,20 @@ def _new_repo(tmp_path: Path, name: str) -> Path:
     _git(repo, "init", "--quiet", "--initial-branch=main")
     _git(repo, "config", "user.email", "test@example.invalid")
     _git(repo, "config", "user.name", "Test")
-    # The step runs `git fetch origin main`, which is part of what is being
-    # exercised. Point origin at the repository itself so the fetch is real
-    # rather than stubbed away -- a fetch that never runs would hide an
-    # enumeration that depends on refs it brings in.
+    # The step runs `git fetch origin ...`, which is part of what is being
+    # exercised. Point origin at the repository itself so those fetches are real
+    # rather than stubbed away.
     _git(repo, "remote", "add", "origin", str(repo))
     return repo
 
 
+def _publish_pr_head(repo: Path, head: str) -> None:
+    """Expose the PR's own commits where the step fetches them from."""
+    _git(repo, "update-ref", f"refs/pull/{PR_NUMBER}/head", head)
+
+
 def _run_dispatch(
-    repo: Path,
-    tmp_path: Path,
-    *,
-    merge_sha: str,
-    base_sha: str,
-    commit_count: int,
-    pr_subjects: list[str],
+    repo: Path, tmp_path: Path, *, merge_sha: str, base_sha: str, commit_count: int
 ) -> tuple[int, str, list[str]]:
     """Execute the real step. Returns (exit code, output, dispatched revisions)."""
     bin_dir = tmp_path / f"bin-{merge_sha[:8]}"
@@ -142,18 +143,11 @@ def _run_dispatch(
     # A GET on a dispatch tag must report "absent" so the create path runs; the
     # shipped code tests that by EXIT CODE, never by output, because `gh api
     # --jq` writes a 404 body to stdout and an output test reads it as a SHA.
-    # The step attributes each enumerated revision to the PR by subject, so the
-    # stub must answer `pr view --json commits` with the subjects the caller says
-    # this PR had. Everything else about the PR is irrelevant to selection.
-    subjects_file = tmp_path / f"pr-subjects-{merge_sha[:8]}.txt"
-    subjects_file.write_text("\n".join(pr_subjects) + "\n", encoding="utf-8", newline="\n")
-
     stub = bin_dir / "gh"
     stub.write_text(
         "#!/bin/sh\n"
         f'echo "$@" >> "{calls.as_posix()}"\n'
         'case "$*" in\n'
-        f'  *"pr view"*|*commits*) cat "{subjects_file.as_posix()}" ;;\n'
         "  *git/ref/tags/*) exit 1 ;;\n"
         "  *) exit 0 ;;\n"
         "esac\n",
@@ -169,7 +163,7 @@ def _run_dispatch(
             "MERGE_COMMIT_SHA": merge_sha,
             "BASE_SHA": base_sha,
             "COMMIT_COUNT": str(commit_count),
-            "PR_NUMBER": "744",
+            "PR_NUMBER": PR_NUMBER,
             "GITHUB_REPOSITORY": "sgajbi/lotus-gateway",
             "GH_TOKEN": "stub-token-not-a-credential",
         }
@@ -209,24 +203,31 @@ def test_a_rebase_that_makes_the_commit_count_stale_still_gates_what_landed(
     Three were reported, two landed. Counting back three from the tip reached
     base.sha itself, and since a commit is its own ancestor the new-to-main guard
     refused the whole dispatch, gating nothing.
+
+    The landed revisions are cherry-picks, so their SHAs differ from the PR's
+    while their changes are identical -- which is exactly what a rebase produces
+    and what attribution has to accept.
     """
     repo = _new_repo(tmp_path, "rebased")
     _commit(repo, "root")
     base = _commit(repo, "base")
-    first = _commit(repo, "pr-one")
-    second = _commit(repo, "pr-two")
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    kept_one = _commit(repo, "pr-one")
+    kept_two = _commit(repo, "pr-two")
+    _commit(repo, "pr-dropped")
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
+
+    _git(repo, "checkout", "--quiet", "main")
+    _git(repo, "cherry-pick", kept_one, kept_two)
+    landed = _git(repo, "rev-list", "--reverse", f"{base}..HEAD").split()
 
     code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=second,
-        base_sha=base,
-        commit_count=3,
-        pr_subjects=["add pr-one", "add pr-two", "add already-on-main"],
+        repo, tmp_path, merge_sha=landed[-1], base_sha=base, commit_count=3
     )
 
     assert code == 0, output
-    assert dispatched == [first, second], "exactly the revisions this PR added, in order"
+    assert dispatched == landed, "exactly the revisions this PR added, in order"
     assert base not in dispatched, "the base predates the PR and must never be gated"
     assert "::notice::" in output, "a stale count is reported, not hidden"
 
@@ -243,17 +244,19 @@ def test_a_stale_base_that_spans_another_merge_is_refused(tmp_path: Path) -> Non
     repo = _new_repo(tmp_path, "stale-base")
     _commit(repo, "root")
     base = _commit(repo, "base")
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    mine = _commit(repo, "my-only-commit")
+    _publish_pr_head(repo, mine)
+
+    _git(repo, "checkout", "--quiet", "main")
     _commit(repo, "other-pr-one")
     _commit(repo, "other-pr-two")
-    mine = _commit(repo, "my-only-commit")
+    _git(repo, "cherry-pick", mine)
+    tip = _git(repo, "rev-parse", "HEAD")
 
     code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=mine,
-        base_sha=base,
-        commit_count=1,
-        pr_subjects=["add my-only-commit"],
+        repo, tmp_path, merge_sha=tip, base_sha=base, commit_count=1
     )
 
     assert code != 0, "over-claiming revisions must refuse, not proceed"
@@ -261,35 +264,41 @@ def test_a_stale_base_that_spans_another_merge_is_refused(tmp_path: Path) -> Non
     assert "did not add" in output or "Refusing" in output, output
 
 
-def test_a_squash_gates_the_single_revision_that_landed(tmp_path: Path) -> None:
+def test_a_squash_is_refused_because_its_change_is_not_the_prs(tmp_path: Path) -> None:
     """A squash contradicts the rebase-only rule and must fail closed.
 
     Both a squash and a legitimate rebase land fewer revisions than
-    pull_request.commits reports, so the count cannot separate them. The subjects
-    can: a rebase preserves each commit's subject, while a squash lands one
-    commit whose subject is the PR title and matches none of them.
+    pull_request.commits reports, so the count cannot separate them. The change
+    can: a rebase preserves each commit's patch, while a squash combines them
+    into one whose patch matches no individual commit of the PR.
 
-    Refusing does leave that landed revision ungated, which the fail-closed
-    coverage audit reports. A dispatcher that quietly gated it instead would
-    absorb the merge-method drift and leave nothing to notice it.
+    Refusing leaves that landed revision ungated, which the fail-closed coverage
+    audit reports. A dispatcher that quietly gated it would absorb the
+    merge-method drift and leave nothing to notice it.
     """
     repo = _new_repo(tmp_path, "squashed")
     _commit(repo, "root")
     base = _commit(repo, "base")
-    squashed = _commit(repo, "everything-at-once")  # PR title, not a commit headline
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    _commit(repo, "part-one")
+    _commit(repo, "part-two")
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
+
+    _git(repo, "checkout", "--quiet", "main")
+    (repo / "part-one").write_text("part-one\n", encoding="utf-8")
+    (repo / "part-two").write_text("part-two\n", encoding="utf-8")
+    _git(repo, "add", "part-one", "part-two")
+    _git(repo, "commit", "--quiet", "-m", "Add both parts (#744)")
+    squashed = _git(repo, "rev-parse", "HEAD")
 
     code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=squashed,
-        base_sha=base,
-        commit_count=3,
-        pr_subjects=["add part-one", "add part-two", "add part-three"],
+        repo, tmp_path, merge_sha=squashed, base_sha=base, commit_count=2
     )
 
     assert code != 0, "squash-merging contradicts the rebase-only rule and must fail closed"
     assert dispatched == [], "nothing may be dispatched when the merge method is not a rebase"
-    assert "not among PR" in output, output
+    assert "does not contain" in output, output
 
 
 def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
@@ -304,23 +313,87 @@ def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
     base = _commit(repo, "base")
     _git(repo, "checkout", "--quiet", "-b", "side")
     _commit(repo, "side-work")
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
     _git(repo, "checkout", "--quiet", "main")
     _commit(repo, "main-work")
     _git(repo, "merge", "--quiet", "--no-ff", "-m", "merge side", "side")
     merge_sha = _git(repo, "rev-parse", "HEAD")
 
     code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=merge_sha,
-        base_sha=base,
-        commit_count=2,
-        pr_subjects=["add side-work", "add main-work"],
+        repo, tmp_path, merge_sha=merge_sha, base_sha=base, commit_count=2
     )
 
     assert code != 0, "a two-parent merge must be refused"
     assert dispatched == []
     assert "parent" in output.lower(), output
+
+
+def test_offsetting_count_mismatches_are_refused(tmp_path: Path) -> None:
+    """Main advances by one while the rebase drops one, so the counts cancel.
+
+    The range then holds an unrelated revision plus the remaining PR commits, and
+    enumerated_count equals pull_request.commits. Every structural check passes,
+    so without attributing revisions to the PR by their CHANGE this dispatches
+    another PR's work under this PR's number.
+    """
+    repo = _new_repo(tmp_path, "offsetting")
+    _commit(repo, "root")
+    base = _commit(repo, "base")
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    kept_one = _commit(repo, "pr-kept-one")
+    kept_two = _commit(repo, "pr-kept-two")
+    _commit(repo, "pr-dropped")
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
+
+    _git(repo, "checkout", "--quiet", "main")
+    _commit(repo, "unrelated-main-advance")
+    _git(repo, "cherry-pick", kept_one, kept_two)
+    tip = _git(repo, "rev-parse", "HEAD")
+
+    code, output, dispatched = _run_dispatch(
+        repo, tmp_path, merge_sha=tip, base_sha=base, commit_count=3
+    )
+
+    assert code != 0, "an offsetting mismatch must still refuse"
+    assert dispatched == [], "no revision may be dispatched from an unattributable window"
+    assert "does not contain" in output, output
+
+
+def test_a_duplicate_subject_cannot_admit_an_unrelated_revision(tmp_path: Path) -> None:
+    """Two commits can share a headline; they cannot share a change.
+
+    Subject text is not an identity. An unrelated revision titled the same as one
+    of the PR's commits would satisfy a membership test on subjects while making
+    an entirely different change, so attribution uses patch-id and consumes each
+    match rather than testing membership.
+    """
+    repo = _new_repo(tmp_path, "duplicate-subject")
+    _commit(repo, "root")
+    base = _commit(repo, "base")
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    (repo / "app.py").write_text("import os\n", encoding="utf-8")
+    _git(repo, "add", "app.py")
+    _git(repo, "commit", "--quiet", "-m", "fix lint")
+    pr_fix = _git(repo, "rev-parse", "HEAD")
+    _publish_pr_head(repo, pr_fix)
+
+    _git(repo, "checkout", "--quiet", "main")
+    # Same headline, different change, from a merge that landed underneath.
+    (repo / "other.py").write_text("import sys\n", encoding="utf-8")
+    _git(repo, "add", "other.py")
+    _git(repo, "commit", "--quiet", "-m", "fix lint")
+    _git(repo, "cherry-pick", pr_fix)
+    tip = _git(repo, "rev-parse", "HEAD")
+
+    code, output, dispatched = _run_dispatch(
+        repo, tmp_path, merge_sha=tip, base_sha=base, commit_count=2
+    )
+
+    assert code != 0, "a same-titled unrelated revision must not be attributed to this PR"
+    assert dispatched == [], "nothing may be dispatched from a window holding foreign work"
+    assert "does not contain" in output, output
 
 
 def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -> None:
@@ -333,46 +406,19 @@ def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -
     repo = _new_repo(tmp_path, "ordered")
     _commit(repo, "root")
     base = _commit(repo, "base")
-    landed = [_commit(repo, f"pr-{index}") for index in range(1, 5)]
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    pr_commits = [_commit(repo, f"pr-{index}") for index in range(1, 5)]
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
+
+    _git(repo, "checkout", "--quiet", "main")
+    _git(repo, "cherry-pick", *pr_commits)
+    landed = _git(repo, "rev-list", "--reverse", f"{base}..HEAD").split()
 
     code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=landed[-1],
-        base_sha=base,
-        commit_count=4,
-        pr_subjects=[f"add pr-{index}" for index in range(1, 5)],
+        repo, tmp_path, merge_sha=landed[-1], base_sha=base, commit_count=4
     )
 
     assert code == 0, output
     assert dispatched == landed, "every landed revision, oldest first"
-
-
-def test_offsetting_count_mismatches_are_refused(tmp_path: Path) -> None:
-    """Main advances by one while the rebase drops one, so the counts cancel.
-
-    The range then holds an unrelated revision plus the remaining PR commits, and
-    enumerated_count still equals pull_request.commits. Every structural check
-    passes -- single-parent, contiguous, not an ancestor of the stale base -- so
-    without attributing revisions to the PR this dispatches another PR's work
-    under this PR's number.
-    """
-    repo = _new_repo(tmp_path, "offsetting")
-    _commit(repo, "root")
-    base = _commit(repo, "base")
-    _commit(repo, "unrelated-main-advance")
-    _commit(repo, "pr-kept-one")
-    tip = _commit(repo, "pr-kept-two")
-
-    code, output, dispatched = _run_dispatch(
-        repo,
-        tmp_path,
-        merge_sha=tip,
-        base_sha=base,
-        commit_count=3,
-        pr_subjects=["add pr-kept-one", "add pr-kept-two", "add pr-dropped"],
-    )
-
-    assert code != 0, "an offsetting mismatch must still refuse"
-    assert dispatched == [], "no revision may be dispatched from an unattributable window"
-    assert "unrelated-main-advance" in output or "not among PR" in output, output
+    assert len(dispatched) == 4

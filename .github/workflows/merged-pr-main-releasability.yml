@@ -118,26 +118,53 @@ jobs:
           # not an ancestor of the stale base -- and another PR's revision is
           # dispatched and recorded under this PR's number.
           #
-          # It is also the only signal that separates a legitimate rebase from a
-          # squash. Both land fewer revisions than the count. A rebase preserves
-          # each commit's subject, so every enumerated subject is still one of
-          # the PR's; a squash lands one commit whose subject is the PR title,
-          # which is not. Squash-merging contradicts the rebase-only rule in
-          # docs/documentation/git-branch-protection-workflow.md, so it is
-          # refused here rather than reported: the fail-closed coverage audit
-          # reports the resulting ungated revision, and a dispatcher that
+          # It also separates a legitimate rebase from a squash, which no count
+          # rule can: both land fewer revisions than reported. A rebase preserves
+          # each commit's CHANGE; a squash combines them into one whose change
+          # matches no individual commit. Squash-merging contradicts the
+          # rebase-only rule in docs/documentation/git-branch-protection-workflow.md,
+          # so it is refused rather than reported -- the fail-closed coverage
+          # audit reports the resulting ungated revision, and a dispatcher that
           # quietly accepted the drift would leave nothing to notice it.
-          pr_subjects="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json commits --jq '.commits[].messageHeadline')"
-          if [ -z "$pr_subjects" ]; then
-            echo "::error::Could not read PR #$PR_NUMBER's commits, so enumerated revisions cannot be attributed to it. Refusing to dispatch on an unverifiable window."
+          #
+          # Identity is the patch-id, not the subject. A rebase rewrites SHAs, so
+          # those cannot be compared; subjects can be compared but are not
+          # unique, and two commits titled "fix lint" -- one from this PR, one
+          # from a merge that landed underneath it -- are indistinguishable by
+          # text. patch-id hashes the change itself, is stable across rebase, and
+          # differs for a squash and for unrelated work.
+          #
+          # The PR's own commits are fetched for this. They are not otherwise
+          # present: the checkout has main, and a rebase merge rewrote every SHA
+          # the API reports.
+          if ! git fetch origin "refs/pull/$PR_NUMBER/head" --quiet; then
+            echo "::error::Could not fetch refs/pull/$PR_NUMBER/head, so enumerated revisions cannot be attributed to this PR. Refusing to dispatch on an unverifiable window."
             exit 1
           fi
+          pr_head="$(git rev-parse FETCH_HEAD)"
+          pr_patch_ids="$(git rev-list --reverse "$BASE_SHA..$pr_head" | while read -r pr_commit; do
+            git show "$pr_commit" | git patch-id --stable | cut -d' ' -f1
+          done)"
+          if [ -z "$pr_patch_ids" ]; then
+            echo "::error::PR #$PR_NUMBER contributed no identifiable changes from $BASE_SHA, so the enumerated window cannot be attributed to it. Refusing to dispatch."
+            exit 1
+          fi
+
+          # Each PR change may be claimed once. Consuming matches rather than
+          # testing membership means a duplicated change cannot admit an extra
+          # revision that happens to look like one the PR already accounted for.
+          unclaimed_patch_ids="$pr_patch_ids"
           for candidate in $revisions; do
-            candidate_subject="$(git log -1 --format=%s "$candidate")"
-            if ! printf '%s\n' "$pr_subjects" | grep -Fxq "$candidate_subject"; then
-              echo "::error::Revision $candidate (\"$candidate_subject\") is not among PR #$PR_NUMBER's commits. The enumerated window contains work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
+            candidate_patch_id="$(git show "$candidate" | git patch-id --stable | cut -d' ' -f1)"
+            if ! printf '%s\n' "$unclaimed_patch_ids" | grep -Fxq "$candidate_patch_id"; then
+              candidate_subject="$(git log -1 --format=%s "$candidate")"
+              echo "::error::Revision $candidate (\"$candidate_subject\") makes a change that PR #$PR_NUMBER does not contain. The enumerated window holds work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
               exit 1
             fi
+            unclaimed_patch_ids="$(printf '%s\n' "$unclaimed_patch_ids" | awk -v claimed="$candidate_patch_id" '
+              BEGIN { removed = 0 }
+              { if (!removed && $0 == claimed) { removed = 1; next } print }
+            ')"
           done
 
           # The window must be one contiguous single-parent chain ending at the
