@@ -47,6 +47,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,16 @@ def _hook_revisions() -> dict[str, str]:
         }
         for tool, required in REV_PINNED_HOOKS.items():
             if tool in source and all(runs.get(hook, False) for hook in required):
+                if tool in revisions and revisions[tool] != revision:
+                    # pre-commit runs BOTH stanzas. Taking the last match would
+                    # hide an obsolete revision that still executes on every
+                    # commit, so an ambiguous configuration is refused rather
+                    # than resolved by file order.
+                    raise AssertionError(
+                        f"two runnable {tool} hook sets are configured, at "
+                        f"{revisions[tool]} and {revision}; pre-commit runs both, so the "
+                        "version developers get depends on which one reports first"
+                    )
                 revisions[tool] = revision
     return revisions
 
@@ -226,9 +237,23 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
         assert local_hooks, f"{tool} must be declared as a local hook"
 
         hook = local_hooks[0]
+        default_stages = _config().get("default_stages")
+        assert _runs_on_commit(hook.get("stages", default_stages)), (
+            f"the local {tool} hook is configured but does not run on an ordinary commit, "
+            "so the environment it would have used is irrelevant"
+        )
         assert hook.get("language") == "system", (
             f"{tool} must use language: system so it runs in the environment the project "
             "was installed into, not one pre-commit builds for it"
+        )
+        # `python -m mypy` rather than a bare `mypy` executable: it follows the
+        # interpreter running pre-commit instead of whatever is first on PATH.
+        # The residual is real and is the same contract `make lint` already has
+        # -- run from the environment the project was installed into. A hook
+        # cannot enforce that; it can only avoid making it worse.
+        assert str(hook.get("entry", "")).startswith("python -m "), (
+            f"the local {tool} hook must invoke the interpreter, not a PATH executable; "
+            f"entry is {hook.get('entry')!r}"
         )
         assert tool in str(hook.get("entry", "")), (
             f"the local {tool} hook must actually invoke {tool}; entry is {hook.get('entry')!r}"
@@ -310,3 +335,51 @@ repos:
       args: ["--fix"]
 """
     assert _parse_config(malformed, tmp_path, monkeypatch) == {}
+
+
+def test_two_runnable_stanzas_for_one_tool_are_refused(tmp_path, monkeypatch) -> None:
+    """pre-commit runs both, so the version is decided by file order.
+
+    An obsolete stanza left above the pinned one still executes on every commit.
+    Taking the last match would hide it behind a revision that looks correct.
+    """
+    duplicated = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+"""
+    with pytest.raises(AssertionError, match="two runnable ruff hook sets"):
+        _parse_config(duplicated, tmp_path, monkeypatch)
+
+
+def test_a_manual_local_hook_is_reported(tmp_path, monkeypatch) -> None:
+    """Being declared locally is not the same as running.
+
+    A local hook restricted to another stage never executes, so the environment
+    it would have used is irrelevant — and checking only its language and entry
+    would report agreement about a hook nobody runs.
+    """
+    manual_local = """
+repos:
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        language: system
+        stages: [manual]
+"""
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(manual_local, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+
+    with pytest.raises(AssertionError, match="does not run on an ordinary commit"):
+        test_dependency_aware_tools_run_from_the_project_environment()
