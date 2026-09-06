@@ -16,6 +16,7 @@ nothing in Markdown rendering signals it at all.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -89,7 +90,12 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
     for entry in result.stdout.split(b"\0"):
         if not entry:
             continue
-        path = root / entry.decode("utf-8")
+        # os.fsdecode, not a strict UTF-8 decode: on POSIX a filename is a byte
+        # string that need not be valid UTF-8, and `git ls-files -z` returns those
+        # bytes verbatim. A strict decode would raise and take the whole scan down
+        # over a filename, which is the gate failing for a reason unrelated to what
+        # it checks. surrogateescape round-trips such names back to the filesystem.
+        path = root / os.fsdecode(entry)
         if not path.is_file() or path.is_symlink():
             continue
         if path.relative_to(root).as_posix() in EXPECTED_BINARY_PATHS:
@@ -285,7 +291,7 @@ def test_every_excusal_is_load_bearing() -> None:
     repaired, not excused.
     """
     tracked = {
-        entry.decode("utf-8")
+        os.fsdecode(entry)
         for entry in subprocess.run(
             ["git", "-C", str(REPO_ROOT), "ls-files", "-z"], capture_output=True, check=True
         ).stdout.split(b"\0")
