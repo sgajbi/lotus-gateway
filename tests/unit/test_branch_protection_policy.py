@@ -7,9 +7,12 @@ while the configuration stays weak.
 """
 
 import copy
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+
+import pytest
 
 from scripts.check_branch_protection_policy import (
     compare_live_to_policy,
@@ -240,6 +243,18 @@ def test_identity_is_corroborated_from_outside_the_document(tmp_path, monkeypatc
     assert detect_repository(tmp_path) == "sgajbi/lotus-render"
 
 
+# The CI-local container is python:3.11-slim, which ships no git binary. These
+# two cases exercise git-derived identity, so in that lane they would assert the
+# behaviour of an absent tool rather than of this code. Skipping is honest;
+# asserting a fallback that cannot run there is not. They still execute in the
+# unit lane, which is where the behaviour is actually verified.
+requires_git = pytest.mark.skipif(
+    shutil.which("git") is None,
+    reason="git is required to exercise remote-derived repository identity",
+)
+
+
+@requires_git
 def test_identity_falls_back_to_the_origin_remote(tmp_path, monkeypatch):
     """Locally there is no GITHUB_REPOSITORY; the remote is the equivalent fact."""
     monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
@@ -280,6 +295,7 @@ def test_identity_ignores_the_checkout_directory_name(tmp_path, monkeypatch):
     assert detect_repository(checkout) == "sgajbi/lotus-example"
 
 
+@requires_git
 def test_unknowable_identity_refuses(tmp_path, monkeypatch):
     """No env and no remote means the gate cannot know what it is validating."""
     monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
