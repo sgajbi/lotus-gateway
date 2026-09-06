@@ -56,6 +56,17 @@ def _declared_pins() -> dict[str, str]:
     return pins
 
 
+def _runs_on_commit(stages: str) -> bool:
+    """Whether a stages list still includes the ordinary commit run.
+
+    pre-commit accepts both the modern `pre-commit` name and the legacy `commit`
+    name, so either counts. An empty list runs nothing.
+    """
+    names = {token.strip().strip("[]'\"") for token in stages.split(",")}
+    names.discard("")
+    return bool(names & {"pre-commit", "commit"})
+
+
 def _hook_revisions() -> dict[str, str]:
     """Versions pre-commit resolves, keyed by the tool the repo provides.
 
@@ -84,6 +95,13 @@ def _hook_revisions() -> dict[str, str]:
         if stripped.startswith("#"):
             # A commented-out hook does not run, so it must not be credited.
             continue
+        if line[:1] not in (" ", "\t", "") and stripped.startswith("default_stages:"):
+            # A top-level default_stages excluding the commit stage disables
+            # every hook that does not override it, so nothing in this file is
+            # what developers actually run. Credit nothing rather than crediting
+            # hooks that are configured but inert.
+            if not _runs_on_commit(stripped.partition("default_stages:")[2]):
+                return {}
         if stripped.startswith("- repo:"):
             record()
             current_repo = stripped.partition("- repo:")[2].strip()
@@ -96,9 +114,11 @@ def _hook_revisions() -> dict[str, str]:
             last_hook = stripped.partition("- id:")[2].strip()
             enabled_hooks.add(last_hook)
         elif stripped.startswith("stages:") and last_hook:
-            # A hook restricted to explicit stages does not run on an ordinary
-            # commit, so it cannot be credited as the version developers get.
-            enabled_hooks.discard(last_hook)
+            # A hook restricted to stages that exclude the commit does not run on
+            # an ordinary commit, so it cannot be credited as the version
+            # developers get.
+            if not _runs_on_commit(stripped.partition("stages:")[2]):
+                enabled_hooks.discard(last_hook)
     record()
     return revisions
 
@@ -171,3 +191,30 @@ def test_a_removed_or_disabled_hook_is_not_credited(tmp_path, monkeypatch) -> No
 
     staged = baseline.replace("      - id: mypy\n", "      - id: mypy\n        stages: [manual]\n")
     assert "mypy" not in parse(staged), "a hook restricted to another stage does not run on commit"
+
+
+def test_top_level_default_stages_can_disable_everything(tmp_path, monkeypatch) -> None:
+    """A file-wide default_stages excluding the commit makes every hook inert.
+
+    The per-hook branch cannot see this: it only fires after a hook id, so a
+    setting at the top of the file would leave every hook credited while none of
+    them runs on a developer's commit.
+    """
+    baseline = PRE_COMMIT.read_text(encoding="utf-8")
+
+    def parse(config: str) -> dict[str, str]:
+        written = tmp_path / "pre-commit.yaml"
+        written.write_text(config, encoding="utf-8")
+        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+        return _hook_revisions()
+
+    assert parse(baseline), "the real config must credit its hooks"
+
+    disabled = "default_stages: [manual]\n" + baseline
+    assert parse(disabled) == {}, "a manual-only default must credit nothing"
+
+    still_running = "default_stages: [pre-commit]\n" + baseline
+    assert parse(still_running), "a default that includes the commit stage still counts"
+
+    legacy_name = "default_stages: [commit]\n" + baseline
+    assert parse(legacy_name), "pre-commit's legacy stage name still counts"
