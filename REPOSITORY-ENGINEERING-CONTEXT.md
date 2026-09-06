@@ -612,8 +612,8 @@ Most relevant current governance:
 
 ## CI Hazards Measured In This Repository
 
-Estate-wide practice rules live in `AGENTS.md` (Evidence And Guard Integrity) and are not repeated
-here. What follows is this repository's own evidence and the local facts that follow from it.
+Estate-wide practice rules live in `AGENTS.md` and are not repeated here. What follows is this
+repository's own evidence and the local facts that follow from it.
 
 ### Six enforcement steps here could not fail
 
