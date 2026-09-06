@@ -32,19 +32,13 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     # the sibling fix this ports; rebase-only merging is what makes the
     # enumeration correct, so its assertion must fail loudly on change).
     assert "COMMIT_COUNT: ${{ github.event.pull_request.commits }}" in text
-    # The window is the base..tip RANGE, never a walk back by COMMIT_COUNT.
-    # pull_request.commits describes the branch when the event fired, not what
-    # landed, so a rebase or a branch update leaves it larger than the window and
-    # the walk runs into commits earlier merges put on main. On PR #744 that
-    # reached base.sha itself and the ancestry guard refused the whole dispatch,
-    # gating nothing. This assertion previously pinned that walk as a
-    # requirement, which made the test defend the defect.
-    assert 'git rev-list --reverse "$BASE_SHA..$MERGE_COMMIT_SHA"' in text
-    assert 'rev-list -n "$COMMIT_COUNT"' not in text, (
-        "the count-based walk is what overshot the window; the range replaces it"
-    )
-    assert 'BASE_SHA: ${{ github.event.pull_request.base.sha }}' in text
-    assert "for revision in $revisions; do" in text
+    # WHICH revisions get selected is proved by executing this step against real
+    # Git histories in test_dispatch_revision_selection.py, not asserted here.
+    # This file previously required the enumeration command by name, which is a
+    # test that passes whether or not the command selects correctly and fails
+    # when it is corrected -- it pinned the defective walk as the contract, so
+    # fixing the defect broke the test. Behaviour belongs where it can be run.
+    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in text
     assert "fetch-depth: 0" in text
     # Rebase-only merging is what makes the enumeration correct, and it is
     # MEASURED on the commits rather than read from the repository's declared
