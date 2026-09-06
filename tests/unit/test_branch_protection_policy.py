@@ -157,3 +157,18 @@ def test_offline_validation_rejects_missing_nested_fields():
         assert any(expected_message in issue for issue in issues), (
             f"removing expected.{parent}.{field} passed the offline gate"
         )
+
+
+def test_offline_validation_requires_each_bypass_category():
+    """The live comparison builds all three categories; offline must demand them."""
+    policy = load_policy()
+    for category in ("users", "teams", "apps"):
+        incomplete = copy.deepcopy(policy)
+        del incomplete["expected"]["required_pull_request_reviews"][
+            "bypass_pull_request_allowances"
+        ][category]
+        issues = validate_policy_document(incomplete)
+        assert any(
+            f"bypass_pull_request_allowances.{category} must be declared" in issue
+            for issue in issues
+        ), f"removing bypass_pull_request_allowances.{category} passed the offline gate"

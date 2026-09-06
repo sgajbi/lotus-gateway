@@ -29,9 +29,11 @@ POLICY_PATH = Path(__file__).resolve().parents[1] / "quality" / "branch_protecti
 
 _REQUIRED_EXCEPTION_KEYS = {"field", "value", "reason", "compensating_controls", "retires_when"}
 
-# Every field the live comparison reads. Without this list an edit could drop a
-# field, pass --offline in the blocking lane, and only fail hours later in the
+# Every field the live comparison reads. Without these lists an edit could drop
+# a field, pass --offline in the blocking lane, and only fail hours later in the
 # scheduled live run.
+_BYPASS_CATEGORIES = ("users", "teams", "apps")
+
 _REQUIRED_REVIEW_KEYS = (
     "required_approving_review_count",
     "dismiss_stale_reviews",
@@ -87,12 +89,18 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         for key in _REQUIRED_REVIEW_KEYS:
             if key not in declared_reviews:
                 issues.append(f"expected.required_pull_request_reviews.{key} must be declared")
-    reviews = expected.get("required_pull_request_reviews", {})
+        bypass = declared_reviews.get("bypass_pull_request_allowances", {})
+        for category in _BYPASS_CATEGORIES:
+            if category not in bypass:
+                issues.append(
+                    "expected.required_pull_request_reviews."
+                    f"bypass_pull_request_allowances.{category} must be declared"
+                )
     for exception in policy.get("documented_exceptions", []):
         missing = _REQUIRED_EXCEPTION_KEYS - set(exception)
         if missing:
             issues.append(f"documented exception is missing keys: {sorted(missing)}")
-    if reviews.get("required_approving_review_count") == 0 and not any(
+    if declared_reviews.get("required_approving_review_count") == 0 and not any(
         e.get("field") == "required_pull_request_reviews.required_approving_review_count"
         for e in policy.get("documented_exceptions", [])
     ):
