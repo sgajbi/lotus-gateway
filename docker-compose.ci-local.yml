@@ -7,11 +7,19 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
+    # git is installed here rather than in the Dockerfile on purpose. The image
+    # this compose file builds IS the production image -- `docker build` in
+    # main-releasability.yml and pr-merge-gate.yml runs with no `--target`, so a
+    # new stage would silently change the released artifact and a package added
+    # to the base would ship to production. The source-byte gate needs the git
+    # BINARY to read its inventory; the repository itself, `.git` included, is
+    # already here through the bind mount above. Keeping the install in this lane
+    # keeps the released image unchanged.
     command:
       [
         "sh",
         "-lc",
-        "pip install --no-cache-dir -e '.[dev]' && ruff check . && ruff format --check . && mypy src && python -m pytest tests/unit tests/contract && python -m pytest tests/integration"
+        "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends git && rm -rf /var/lib/apt/lists/* && git config --global --add safe.directory /app && pip install --no-cache-dir -e '.[dev]' && ruff check . && ruff format --check . && mypy src && python -m pytest tests/unit tests/contract && python -m pytest tests/integration"
       ]
     environment:
       - DECISIONING_SERVICE_BASE_URL=http://host.docker.internal:8000

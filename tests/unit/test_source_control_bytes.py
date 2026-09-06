@@ -9,35 +9,17 @@ source cannot see it. Only the bytes can.
 It is not hypothetical. A sibling repository's guard compiled to
 ``'\\x08([A-Z][a-z]+)-only\\x08'`` and passed on the exact defect it was written
 to catch, because no real text contains a backspace. A guard corrupted this way
-does not fail loudly; it silently matches nothing.
+does not fail loudly; it silently matches nothing. In a sibling's review ledger
+the same mechanism ate the first letter of nine real identifiers in prose, where
+nothing in Markdown rendering signals it at all.
 """
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-
-# Directories that are not source: version control internals, dependency trees,
-# build output and caches. Everything else is walked. Enumerating what to SKIP
-# rather than what to scan means a new top-level directory is covered the day it
-# is added, which a suffix or directory allowlist is not.
-EXCLUDED_DIRECTORY_NAMES = {
-    ".git",
-    ".hg",
-    ".idea",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".tox",
-    ".venv",
-    "__pycache__",
-    "build",
-    "dist",
-    "htmlcov",
-    "node_modules",
-    "venv",
-}
 
 # How much of a file decides its type. A NUL byte does not occur in text and
 # appears within the first block of every binary format in this repository.
@@ -59,29 +41,53 @@ def is_text(data: bytes) -> bool:
 
     An extension allowlist cannot express "text": it silently omits every
     dot-prefixed or extensionless file, and `.importlinter` and `quality/.npmrc`
-    are both real configuration this guard must cover. A name-based rule also
-    has to be extended for every new format, and the omission is invisible --
-    the scan still passes, having looked at less.
-
-    Deciding on a NUL byte inverts that. Text is the default and binary is the
-    exception it can actually detect, so a file is only skipped when its own
-    bytes say it is not text.
+    are both real configuration this guard must cover. Deciding on a NUL byte
+    inverts that — text is the default and binary is the exception that can
+    actually be detected — so a file is skipped only when its own bytes say it
+    is not text.
     """
     return b"\x00" not in data[:TYPE_SNIFF_BYTES]
 
 
-def _scanned_files() -> list[Path]:
-    """Every file under the repository that its own content shows to be text.
+def _source_inventory() -> list[Path]:
+    """Tracked files, from git, as the reproducible definition of source.
 
-    Deliberately free of any subprocess: this suite runs inside the CI-local
-    container, which has no git binary, so shelling out to `git ls-files` made
-    the whole gate fail to run there while passing on the runner. A guard that
-    cannot execute in one of its two required environments is not a guard.
+    Two properties matter and only git provides both.
+
+    It is REPRODUCIBLE: the same commit yields the same inventory on a runner, in
+    the container and on a workstation, where a filesystem walk yields whatever
+    happens to be lying in the tree.
+
+    It EXCLUDES BUILD OUTPUT BY CONSTRUCTION. An ANSI-coloured log is full of
+    0x1b, which this guard is right to reject in source and must never reject in
+    a file nobody tracks. A walk reads those logs and fails on them, which
+    teaches the reader to ignore the gate — and a gate that gets ignored is
+    worse than no gate. Ignored-ness is not a property a walk can recover, so it
+    is taken from the tool that owns it.
+
+    An earlier revision walked the filesystem to avoid needing the git binary
+    inside the CI-local container. That fixed the wrong half: the container
+    bind-mounts the repository, `.git` and all, so the inventory was always
+    available there — only the binary was missing, and that is a property of the
+    lane, not of this check.
     """
-    found: list[Path] = []
-    for path in REPO_ROOT.rglob("*"):
-        if any(part in EXCLUDED_DIRECTORY_NAMES for part in path.parts):
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z"],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(
+            "git ls-files failed, so the source inventory cannot be established: "
+            f"{result.stderr.decode('utf-8', 'replace').strip()}. This check must not "
+            "fall back to walking the filesystem — that reads untracked build output "
+            "and fails on logs nobody tracks."
+        )
+
+    paths: list[Path] = []
+    for entry in result.stdout.split(b"\0"):
+        if not entry:
             continue
+        path = REPO_ROOT / entry.decode("utf-8")
         if not path.is_file() or path.is_symlink():
             continue
         try:
@@ -89,21 +95,29 @@ def _scanned_files() -> list[Path]:
         except OSError:
             continue
         if is_text(data):
-            found.append(path)
-    return found
+            paths.append(path)
+    return paths
 
 
-def test_no_source_file_carries_an_interpreted_escape() -> None:
+def find_offenders(paths: list[Path]) -> list[str]:
+    """Report the first control byte in each file that carries one."""
     offenders: list[str] = []
-    for path in _scanned_files():
+    for path in paths:
         data = path.read_bytes()
         for offset, byte in enumerate(data):
             if is_suspicious(byte):
                 line = data[:offset].count(b"\n") + 1
-                offenders.append(
-                    f"{path.relative_to(REPO_ROOT).as_posix()}:{line} byte=0x{byte:02x}"
-                )
+                try:
+                    name = path.relative_to(REPO_ROOT).as_posix()
+                except ValueError:
+                    name = str(path)
+                offenders.append(f"{name}:{line} byte=0x{byte:02x}")
                 break
+    return offenders
+
+
+def test_no_source_file_carries_an_interpreted_escape() -> None:
+    offenders = find_offenders(_source_inventory())
 
     assert not offenders, (
         "these files carry control bytes, which a shell escape produces when a "
@@ -114,7 +128,7 @@ def test_no_source_file_carries_an_interpreted_escape() -> None:
 
 def test_the_scan_reads_a_meaningful_number_of_files() -> None:
     """A zero-input scan would pass while checking nothing."""
-    files = _scanned_files()
+    files = _source_inventory()
     assert len(files) > 100, f"only {len(files)} files scanned; the assertion would be hollow"
 
 
@@ -126,19 +140,51 @@ def test_the_detector_recognises_each_corruption_it_exists_for() -> None:
         assert not is_suspicious(legitimate), f"0x{legitimate:02x} is ordinary text"
 
 
-def test_the_policy_covers_dot_prefixed_and_extensionless_configuration() -> None:
+def test_corrupted_tracked_text_is_rejected(tmp_path: Path) -> None:
+    """The rejection half, exercised rather than asserted about."""
+    victim = tmp_path / "config.toml"
+    victim.write_bytes(b"[tool]\nname = " + bytes([0x08]) + b"business_date\n")
+
+    offenders = find_offenders([victim])
+
+    assert offenders, "a tracked text file carrying 0x08 must be reported"
+    assert "byte=0x08" in offenders[0]
+    assert offenders[0].endswith(":2 byte=0x08"), f"the finding must name the line: {offenders[0]}"
+
+
+def test_ignored_ansi_logs_are_accepted_because_they_are_not_source(tmp_path: Path) -> None:
+    """The acceptance half, and the reason it holds.
+
+    An ANSI-coloured log is genuinely full of 0x1b, so it would be REPORTED if it
+    were scanned. What protects it is not the byte classifier but the inventory:
+    it is not tracked, so it is not source. Proving both halves separately is the
+    point — otherwise "the gate is quiet" could equally mean the classifier is
+    broken.
+    """
+    log = tmp_path / "gateway-ci.log"
+    log.write_bytes(b"\x1b[31mFAILED\x1b[0m tests/unit/test_x.py\n")
+
+    assert find_offenders([log]), "an ANSI log does carry bytes this guard rejects"
+
+    tracked = {path.relative_to(REPO_ROOT).as_posix() for path in _source_inventory()}
+    assert not [name for name in tracked if name.endswith(".log")], (
+        "no .log file is tracked, so none may appear in the inventory"
+    )
+
+
+def test_the_inventory_covers_dot_prefixed_and_extensionless_configuration() -> None:
     """The files a suffix allowlist silently omitted must be in scope.
 
-    `.importlinter` and `quality/.npmrc` are real configuration whose names carry
-    no usable extension. Under the previous name-based rule the scan passed
-    while never opening either, which is the failure mode that matters: a guard
-    reporting success about files it did not read.
+    `.importlinter` and `quality/.npmrc` are real tracked configuration whose
+    names carry no usable extension. Under the previous name-based rule the scan
+    passed while never opening either — a guard reporting success about files it
+    did not read.
     """
-    scanned = {path.relative_to(REPO_ROOT).as_posix() for path in _scanned_files()}
+    scanned = {path.relative_to(REPO_ROOT).as_posix() for path in _source_inventory()}
 
     for required in (".importlinter", "quality/.npmrc"):
         assert (REPO_ROOT / required).is_file(), f"{required} is missing from the repository"
-        assert required in scanned, f"{required} exists but the scan does not cover it"
+        assert required in scanned, f"{required} is tracked but the inventory omits it"
 
 
 def test_binary_content_is_excluded_by_its_own_bytes() -> None:
@@ -146,7 +192,7 @@ def test_binary_content_is_excluded_by_its_own_bytes() -> None:
     assert is_text(b"# a comment\nkey = value\n")
     assert is_text(b"")
     assert not is_text(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
-    # A NUL beyond the sniff window does not make the file binary.
+    # A NUL beyond the sniff window does not reclassify a text file.
     assert is_text(b"x" * (TYPE_SNIFF_BYTES + 16) + b"\x00")
 
 
