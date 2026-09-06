@@ -43,6 +43,11 @@ def is_suspicious(byte: int) -> bool:
 # stray control byte is otherwise entirely printable.
 BINARY_DENSITY = 0.30
 
+# Below this many bytes a density is dominated by whatever single byte is being
+# looked for, so binary is never inferred. Every binary format in use carries
+# more than this in its header alone, and the repository tracks none.
+MIN_BYTES_TO_JUDGE_BINARY = 64
+
 
 def is_text(data: bytes) -> bool:
     """Classify by CONTENT, not by name, and not on a single byte.
@@ -61,7 +66,12 @@ def is_text(data: bytes) -> bool:
     dense with them and is excluded.
     """
     window = data[:TYPE_SNIFF_BYTES]
-    if not window:
+    if len(window) < MIN_BYTES_TO_JUDGE_BINARY:
+        # Too short for a density to mean anything: in `x=\x00` the single
+        # corrupting byte is a third of the file, so density alone would call the
+        # smallest corrupted config binary and drop it from the inventory --
+        # again silencing the guard on the input it exists for. Short files are
+        # text, and their control bytes get reported.
         return True
     # Control bytes alone do not separate the two: uniformly distributed binary
     # is only about 11% control bytes, which is lower than some prose. Bytes at
@@ -250,6 +260,24 @@ def test_binary_content_is_excluded_by_its_own_bytes() -> None:
 
     # A NUL beyond the sniff window does not reclassify a text file.
     assert is_text(b"x" * (TYPE_SNIFF_BYTES + 16) + b"\x00")
+
+
+def test_a_short_corrupted_file_is_still_scanned(tmp_path: Path) -> None:
+    """Density must not classify away the smallest corrupted files.
+
+    In a three-byte config the corrupting byte is a third of the content, so a
+    density rule alone would call it binary and drop it from the inventory --
+    the same silencing this classifier was just fixed to avoid, reappearing at
+    the other end of the size range.
+    """
+    tiny = b"x=" + bytes([0x00])
+
+    assert is_text(tiny), "a three-byte file is too short for density to mean anything"
+
+    victim = tmp_path / "tiny.env"
+    victim.write_bytes(tiny)
+
+    assert find_offenders([victim]), "a short corrupted file must still be reported"
 
 
 def test_a_stray_nul_in_source_stays_text_and_is_reported(tmp_path: Path) -> None:
