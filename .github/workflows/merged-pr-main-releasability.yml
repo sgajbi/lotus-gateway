@@ -118,15 +118,19 @@ jobs:
             local operation="$1"
             shift
             local output status=0
-            # `set -e` aborts on a failing assignment, which would exit before
-            # the diagnostic below ever printed. The `if` keeps the failure
-            # ours to report.
-            if ! output="$("$@" 2>&1)"; then
-              status=$?
+            # Capture the status with `|| status=$?` rather than testing with
+            # `if !`: the `!` inverts the result, so `$?` inside the branch is
+            # the negation's 0 and every diagnostic would have read "exit 0".
+            # The `||` also keeps `set -e` from aborting before we report.
+            output="$("$@" 2>&1)" || status=$?
+            if [ "$status" -ne 0 ]; then
               echo "::error::$operation failed (exit $status): $output"
               return "$status"
             fi
-            printf '%s' "$output"
+            # Deliberately silent on success. Callers used to append
+            # `>/dev/null` to drop the API response, and that redirect applied
+            # to the whole function -- including the error line above, so the
+            # diagnostic vanished exactly when it fired.
           }
 
           for revision in $revisions; do
@@ -155,7 +159,7 @@ jobs:
               run_gh "POST /repos/$GITHUB_REPOSITORY/git/refs (create $dispatch_ref)" \
                 gh api "repos/$GITHUB_REPOSITORY/git/refs" \
                 -f ref="refs/tags/$dispatch_ref" \
-                -f sha="$revision" >/dev/null
+                -f sha="$revision"
               echo "  tag created for $revision"
             fi
             run_gh "POST /repos/$GITHUB_REPOSITORY/actions/workflows/main-releasability.yml/dispatches (ref $dispatch_ref)" \

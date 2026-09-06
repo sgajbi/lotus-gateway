@@ -63,8 +63,14 @@ def test_merged_pr_main_releasability_dispatcher_targets_main_gate() -> None:
     # operation nor its permission, which is what made three dispatcher
     # failures across two repositories unattributable.
     assert "run_gh()" in text
-    assert 'if ! output="$("$@" 2>&1)"; then' in text, (
-        "set -e aborts on a failing assignment, before the diagnostic prints"
+    assert 'output="$("$@" 2>&1)" || status=$?' in text, (
+        "`if !` inverts the result, so $? inside the branch is the negation's 0 "
+        "and every diagnostic reads 'exit 0'; `|| status=$?` captures the real "
+        "status and still keeps set -e from aborting first"
+    )
+    assert '-f sha="$revision" >/dev/null' not in text, (
+        "a redirect on the run_gh call applies to the whole function, including "
+        "its ::error:: line, so the diagnostic vanishes exactly when it fires"
     )
     assert '-f triggering_pr="$PR_NUMBER"' in text
     assert '-f source_branch="main"' in text
