@@ -96,7 +96,11 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
         # over a filename, which is the gate failing for a reason unrelated to what
         # it checks. surrogateescape round-trips such names back to the filesystem.
         path = root / os.fsdecode(entry)
-        if not path.is_file() or path.is_symlink():
+        # A symlink is NOT skipped. Git stores the target string as the blob, so
+        # an interpreted escape lands in that target exactly as it would in a
+        # file, and skipping the path would drop the one thing worth reading.
+        # What is skipped is a path that resolves to nothing readable at all.
+        if not path.is_symlink() and not path.is_file():
             continue
         if path.relative_to(root).as_posix() in EXPECTED_BINARY_PATHS:
             continue
@@ -114,11 +118,24 @@ def _source_inventory(root: Path = REPO_ROOT) -> list[Path]:
     return list(_inventory(root))
 
 
+def _stored_bytes(path: Path) -> bytes:
+    """What git stores for this path.
+
+    For a regular file that is its content. For a symlink it is the TARGET
+    string, which is the blob git holds -- reading through the link would scan
+    whatever it points at instead, which is a different file and may not even be
+    tracked.
+    """
+    if path.is_symlink():
+        return os.fsencode(os.readlink(path))
+    return path.read_bytes()
+
+
 def find_offenders(paths: list[Path]) -> list[str]:
     """Report the first control byte in each file that carries one."""
     offenders: list[str] = []
     for path in paths:
-        data = path.read_bytes()
+        data = _stored_bytes(path)
         for offset, byte in enumerate(data):
             if is_suspicious(byte):
                 line = data[:offset].count(b"\n") + 1
