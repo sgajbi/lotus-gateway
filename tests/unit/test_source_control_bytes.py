@@ -102,7 +102,10 @@ def _inventory(root: Path = REPO_ROOT) -> tuple[Path, ...]:
         # What is skipped is a path that resolves to nothing readable at all.
         if not path.is_symlink() and not path.is_file():
             continue
-        if path.relative_to(root).as_posix() in EXPECTED_BINARY_PATHS:
+        # Scoped to THIS repository. The list names paths in lotus-gateway, so
+        # applying it to a fixture repository would excuse a file that merely
+        # shares a name -- and silently narrow a test's own scan.
+        if root == REPO_ROOT and path.relative_to(root).as_posix() in EXPECTED_BINARY_PATHS:
             continue
         paths.append(path)
     return tuple(paths)
@@ -354,6 +357,10 @@ def test_a_declared_binary_path_is_excluded(tmp_path: Path, monkeypatch) -> None
     assert asset in set(_source_inventory(repo)), "undeclared, the asset is scanned and reported"
     assert find_offenders([asset]), "and it does carry bytes the detector rejects"
 
+    # Both are patched. The exclusion list is scoped to REPO_ROOT, so the fixture
+    # must BE the repository root for a declaration to apply to it; patching only
+    # the list would leave this test silently proving nothing.
+    monkeypatch.setattr("test_source_control_bytes.REPO_ROOT", repo)
     monkeypatch.setattr("test_source_control_bytes.EXPECTED_BINARY_PATHS", frozenset({"logo.gif"}))
     _inventory.cache_clear()
     try:
