@@ -79,6 +79,50 @@ def _runs_on_commit(stages: object) -> bool:
     return bool(names & {"pre-commit", "commit"})
 
 
+# Paths this repository actually contains, used to ask whether a hook's filters
+# can select anything at all. Probing with the real regex engine generalises past
+# any single degenerate pattern: `files: ^$` and an `exclude` matching everything
+# both fall out of it, and so does the next spelling of "never".
+_FILE_PROBES = (
+    "src/app/main.py",
+    "tests/unit/test_toolchain_pins_agree.py",
+    "pyproject.toml",
+    ".pre-commit-config.yaml",
+    "README.md",
+)
+
+
+def _selects_any_file(hook: dict[str, object]) -> bool:
+    """Whether this hook's own filters leave it anything to run on.
+
+    A hook keeping its id and its commit stage is still inert if `files` cannot
+    match or `exclude` removes everything, and pre-commit then skips it on every
+    commit while the version it declares looks enforced.
+
+    This asks the question rather than pattern-matching on patterns, but it is
+    not a simulation of pre-commit's file selection: `types`, `language` and the
+    changed-file set are not modelled. It answers "can these filters ever select
+    a file here", which is the degenerate case worth failing on.
+    """
+    files = str(hook.get("files", "") or "")
+    exclude = str(hook.get("exclude", "") or "")
+    try:
+        includes = re.compile(files) if files else None
+        excludes = re.compile(exclude) if exclude else None
+    except re.error:
+        # An uncompilable pattern is pre-commit's problem to report, not a
+        # reason for this check to claim the hook is inert.
+        return True
+
+    for path in _FILE_PROBES:
+        if includes is not None and not includes.search(path):
+            continue
+        if excludes is not None and excludes.search(path):
+            continue
+        return True
+    return False
+
+
 def _hook_revisions() -> dict[str, str]:
     """Versions pre-commit resolves, for tools whose hooks all run on commit.
 
@@ -123,7 +167,9 @@ def _hook_revisions() -> dict[str, str]:
                 continue
             # A per-hook `stages` OVERRIDES the file default; absent, the hook
             # inherits it.
-            runs[identifier] = _runs_on_commit(hook.get("stages", default_stages))
+            runs[identifier] = _runs_on_commit(
+                hook.get("stages", default_stages)
+            ) and _selects_any_file(hook)
 
         for tool, required in REQUIRED_HOOKS.items():
             if tool in source and all(runs.get(hook, False) for hook in required):
@@ -340,4 +386,39 @@ repos:
     block_manual = block_style.replace("          - pre-commit", "          - manual")
     assert _parse_config(block_manual, tmp_path, monkeypatch) == {}, (
         "and a block-style list naming another stage must not be"
+    )
+
+
+def test_a_hook_filtered_to_nothing_is_not_credited(tmp_path, monkeypatch) -> None:
+    """Keeping an id and a commit stage is not enough to be enforced.
+
+    `files: ^$` or an `exclude` matching everything leaves pre-commit skipping
+    the hook on every commit, while its declared version still looks enforced.
+    The filters are probed with the real regex engine against real paths, so this
+    covers any spelling of "never" rather than one literal pattern.
+    """
+    runnable = """
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+"""
+    assert _parse_config(runnable, tmp_path, monkeypatch).get("mypy") == "2.3.1"
+
+    never_matches = runnable.replace("      - id: mypy\n", "      - id: mypy\n        files: ^$\n")
+    assert _parse_config(never_matches, tmp_path, monkeypatch) == {}, (
+        "a files pattern that cannot match must not be credited"
+    )
+
+    excludes_all = runnable.replace("      - id: mypy\n", "      - id: mypy\n        exclude: .*\n")
+    assert _parse_config(excludes_all, tmp_path, monkeypatch) == {}, (
+        "an exclude removing everything must not be credited"
+    )
+
+    narrow_but_real = runnable.replace(
+        "      - id: mypy\n", "      - id: mypy\n        files: ^src/\n"
+    )
+    assert _parse_config(narrow_but_real, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
+        "a narrow filter that still selects files is enforced and must be credited"
     )
