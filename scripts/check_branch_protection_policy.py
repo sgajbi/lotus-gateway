@@ -42,6 +42,13 @@ _REQUIRED_REVIEW_KEYS = (
     "bypass_pull_request_allowances",
 )
 
+_BOOLEAN_REVIEW_KEYS = (
+    "present",
+    "dismiss_stale_reviews",
+    "require_code_owner_reviews",
+    "require_last_push_approval",
+)
+
 _BOOLEAN_EXPECTED_KEYS = (
     "enforce_admins",
     "required_linear_history",
@@ -110,12 +117,26 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         for key in _REQUIRED_REVIEW_KEYS:
             if key not in declared_reviews:
                 issues.append(f"expected.required_pull_request_reviews.{key} must be declared")
+        for key in _BOOLEAN_REVIEW_KEYS:
+            if key in declared_reviews and not isinstance(declared_reviews[key], bool):
+                issues.append(f"expected.required_pull_request_reviews.{key} must be a boolean")
+        count = declared_reviews.get("required_approving_review_count")
+        if count is not None and (isinstance(count, bool) or not isinstance(count, int)):
+            issues.append(
+                "expected.required_pull_request_reviews."
+                "required_approving_review_count must be an integer"
+            )
         bypass = declared_reviews.get("bypass_pull_request_allowances", {})
         for category in _BYPASS_CATEGORIES:
             if category not in bypass:
                 issues.append(
                     "expected.required_pull_request_reviews."
                     f"bypass_pull_request_allowances.{category} must be declared"
+                )
+            elif not isinstance(bypass[category], list):
+                issues.append(
+                    "expected.required_pull_request_reviews."
+                    f"bypass_pull_request_allowances.{category} must be a list"
                 )
     for exception in policy.get("documented_exceptions", []):
         missing = _REQUIRED_EXCEPTION_KEYS - set(exception)

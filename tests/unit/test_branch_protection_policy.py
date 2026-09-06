@@ -193,3 +193,31 @@ def test_offline_validation_rejects_wrong_value_types():
         "expected.enforce_admins must be a boolean" in issue
         for issue in validate_policy_document(policy)
     )
+
+
+def test_offline_validation_rejects_wrong_review_value_types():
+    """A string "true" or "0" would merge and mismatch only in the live run."""
+    base = load_policy()
+
+    policy = copy.deepcopy(base)
+    policy["expected"]["required_pull_request_reviews"]["dismiss_stale_reviews"] = "true"
+    assert any(
+        "dismiss_stale_reviews must be a boolean" in issue
+        for issue in validate_policy_document(policy)
+    )
+
+    policy = copy.deepcopy(base)
+    policy["expected"]["required_pull_request_reviews"]["required_approving_review_count"] = "0"
+    assert any(
+        "required_approving_review_count must be an integer" in issue
+        for issue in validate_policy_document(policy)
+    )
+
+    policy = copy.deepcopy(base)
+    policy["expected"]["required_pull_request_reviews"]["bypass_pull_request_allowances"][
+        "users"
+    ] = "nobody"
+    assert any(
+        "bypass_pull_request_allowances.users must be a list" in issue
+        for issue in validate_policy_document(policy)
+    )

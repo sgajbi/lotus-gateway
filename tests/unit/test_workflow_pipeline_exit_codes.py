@@ -35,6 +35,7 @@ CONDITION_KEYWORDS = ("if", "elif", "while", "until")
 # execute, so only an unconditional setting is honoured.
 BLOCK_OPENERS = frozenset({"if", "while", "until", "for", "case"})
 BLOCK_CLOSERS = frozenset({"fi", "done", "esac"})
+_CONTROL_WORDS = frozenset({"then", "do", "else", "elif", "if", "while", "until"})
 
 _STEPS_KEY = re.compile(r"^\s*steps:\s*$")
 _NAME = re.compile(r"(?:^|-\s+)name:\s*(?P<name>.+?)\s*$")
@@ -43,7 +44,7 @@ _PIPEFAIL_ON = re.compile(r"^\s*set\s+(?:[-+]\w+\s+)*-\w*o\s+pipefail\b")
 _PIPEFAIL_OFF = re.compile(r"^\s*set\s+(?:[-+]\w+\s+)*\+\w*o\s+pipefail\b")
 _QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
 _PIPESTATUS_CAPTURE = re.compile(r"(?P<var>[A-Za-z_][A-Za-z0-9_]*)=[\"']?\$\{PIPESTATUS\[0\]\}")
-_PIPESTATUS_DIRECT = re.compile(r"(?:exit|return)\s+\"?\$\{PIPESTATUS\[0\]\}")
+_PIPESTATUS_DIRECT = re.compile(r"^(?:exit|return)\s+\"?\$\{PIPESTATUS\[0\]\}")
 
 
 def workflow_files() -> list[Path]:
@@ -182,16 +183,45 @@ def _command_of(stage: str) -> str:
 
 
 def _status_is_propagated(shell: list[str], index: int) -> bool:
-    """True when this pipeline's stage-0 status reaches an exit or return."""
-    following = shell[index + 1] if index + 1 < len(shell) else ""
-    if _PIPESTATUS_DIRECT.search(following):
+    """True when this pipeline's stage-0 status reaches an executed exit or return.
+
+    Comments are stripped first: ``# exit ${PIPESTATUS[0]}`` propagates nothing.
+    The capture must be a real command, and the ``exit``/``return`` that consumes
+    it must start a command segment rather than merely appear in the text.
+    """
+    following = _strip_comment(shell[index + 1]) if index + 1 < len(shell) else ""
+
+    if any(
+        _PIPESTATUS_DIRECT.match(segment.strip()) for segment in re.split(r"&&|\|\||;", following)
+    ):
         return True
+
     capture = _PIPESTATUS_CAPTURE.search(following)
     if capture is None:
         return False
+
     variable = capture.group("var")
-    exits = re.compile(rf"(?:exit|return)\s+\"?\$\{{?{re.escape(variable)}\}}?")
-    return any(exits.search(line) for line in shell[index + 2 :])
+    exits = re.compile(rf"^(?:exit|return)\s+\"?\$\{{?{re.escape(variable)}\}}?")
+    return any(
+        exits.match(segment.strip())
+        for line in shell[index + 2 :]
+        for segment in re.split(r"&&|\|\||;", _strip_comment(line))
+    )
+
+
+def _strip_control_words(segment: str) -> str:
+    """Drop leading `then`/`do`/`else` so `; then set +o pipefail` is seen as a set."""
+    words = segment.split()
+    while words and words[0] in _CONTROL_WORDS:
+        words = words[1:]
+    return " ".join(words)
+
+
+def _strip_comment(line: str) -> str:
+    """Drop a trailing comment, leaving quoted `#` characters alone."""
+    masked = _QUOTED.sub(lambda match: "\x00" * len(match.group()), line)
+    position = masked.find("#")
+    return line if position == -1 else line[:position]
 
 
 def unguarded_pipelines(step_body: str) -> list[str]:
@@ -229,11 +259,13 @@ def unguarded_pipelines(step_body: str) -> list[str]:
                 elif word in BLOCK_CLOSERS:
                     depth = max(0, depth - 1)
 
-            if _PIPEFAIL_OFF.match(segment):
-                if depth == 0:
-                    pipefail = False
+            command = _strip_control_words(segment)
+            if _PIPEFAIL_OFF.match(command):
+                # A disable inside a branch may well execute, so it always
+                # invalidates the guard; only enabling requires certainty.
+                pipefail = False
                 continue
-            if _PIPEFAIL_ON.match(segment):
+            if _PIPEFAIL_ON.match(command):
                 if depth == 0:
                     pipefail = True
                 continue
@@ -367,10 +399,27 @@ def test_compact_pipefail_option_clusters_are_accepted() -> None:
 
 
 def test_same_line_set_is_applied_before_the_pipeline_after_it() -> None:
-    disabled = "set +o pipefail; gate.py | tee log"
+    """Enable first, so a disable that never matched would fail this test.
+
+    Asserting the disabled case alone passes for the wrong reason: pipefail is
+    off by default, so the pipeline is reported whether or not `set +o` was
+    recognised at all. That is exactly how a broken pattern survived here once.
+    """
+    disabled = "set -o pipefail; set +o pipefail; gate.py | tee log"
     enabled = "set -o pipefail; gate.py | tee log"
     assert unguarded_pipelines(f"run: |\n  {disabled}\n") == [disabled]
     assert unguarded_pipelines(f"run: |\n  {enabled}\n") == []
+
+
+def test_conditional_disable_invalidates_an_earlier_guard() -> None:
+    """A `set +o` inside a branch may execute, so it must cancel the guard."""
+    body = "run: |\n  set -o pipefail\n  if true; then set +o pipefail; fi\n  gate.py | tee log\n"
+    assert unguarded_pipelines(body) == ["gate.py | tee log"]
+
+
+def test_commented_propagation_is_not_a_guard() -> None:
+    body = "run: |\n  gate.py | tee log\n  # exit ${PIPESTATUS[0]}\n"
+    assert unguarded_pipelines(body) == ["gate.py | tee log"]
 
 
 def test_pipestatus_vouches_only_for_the_last_pipeline_on_the_line() -> None:
