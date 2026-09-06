@@ -63,7 +63,28 @@ jobs:
             exit 1
           fi
 
-          revisions="$(git rev-list -n "$COMMIT_COUNT" "$MERGE_COMMIT_SHA" | tac)"
+          # Enumerate the exact window this PR added, rather than counting back
+          # COMMIT_COUNT commits from the tip.
+          #
+          # pull_request.commits describes the branch when the event fired, not
+          # what landed. Updating a branch from main, or a rebase that drops a
+          # commit already on main, leaves that count larger than the window.
+          # Walking back by it then runs off the end of the PR's own history
+          # into commits earlier merges put there. Not hypothetical: on PR #744
+          # the count was 3, exactly 2 revisions landed, and the walk reached
+          # base.sha itself. A commit is its own ancestor, so the guard below
+          # refused the entire dispatch and NOTHING was gated. The guard was
+          # right; its input was wrong.
+          #
+          # base..tip is the window by definition: it excludes the base, follows
+          # rebases, and cannot overshoot however stale the count is.
+          revisions="$(git rev-list --reverse "$BASE_SHA..$MERGE_COMMIT_SHA")"
+          enumerated_count="$(printf '%s\n' "$revisions" | grep -c .)"
+          if [ "$enumerated_count" -ne "$COMMIT_COUNT" ]; then
+            # Expected after a rebase or a branch update. Recorded rather than
+            # fatal, because the range is authoritative and the count is not.
+            echo "::notice::Enumerated $enumerated_count revision(s) for PR #$PR_NUMBER; pull_request.commits reported $COMMIT_COUNT. The base..tip range is authoritative."
+          fi
           if [ -z "$revisions" ]; then
             echo "::error::No revisions enumerated for merged PR #$PR_NUMBER at $MERGE_COMMIT_SHA"
             exit 1
