@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -75,6 +76,43 @@ _REQUIRED_EXPECTED_KEYS = (
 def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     policy: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return policy
+
+
+def detect_repository(repo_root: Path) -> str | None:
+    """Return the repository this checkout actually is, or None if unknowable.
+
+    Identity must be corroborated from OUTSIDE the policy document. The document
+    is the thing being validated, so trusting its own `repository` field lets a
+    lifted table point at the repository it was copied from: the checker then
+    reads someone else's protection, finds it matches, and passes. A sibling
+    that lifts the table and forgets to edit one field gets a green gate that
+    measured nothing about itself.
+
+    `GITHUB_REPOSITORY` is authoritative in Actions. Locally the origin remote
+    is the equivalent fact, and it is read rather than the directory name
+    because worktrees and clones are routinely named something else.
+    """
+    from_env = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if from_env:
+        return from_env
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "remote", "get-url", "origin"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    url = result.stdout.strip()
+    if not url:
+        return None
+    url = url.removesuffix(".git")
+    if url.startswith("git@"):
+        url = url.partition(":")[2]
+    parts = [part for part in url.replace("\\", "/").split("/") if part]
+    if len(parts) < 2:
+        return None
+    return f"{parts[-2]}/{parts[-1]}"
 
 
 def validate_policy_document(policy: dict[str, Any]) -> list[str]:
@@ -259,6 +297,21 @@ def main() -> int:
 
     policy = load_policy()
     issues = validate_policy_document(policy)
+
+    declared = str(policy.get("repository", "")).strip()
+    actual = detect_repository(POLICY_PATH.resolve().parents[1])
+    if actual is None:
+        issues.append(
+            "cannot determine which repository this checkout is (no "
+            "GITHUB_REPOSITORY and no origin remote); refusing rather than "
+            "trusting the policy document's own repository field"
+        )
+    elif declared and declared.lower() != actual.lower():
+        issues.append(
+            f"policy declares repository {declared!r} but this checkout is "
+            f"{actual!r}: a lifted policy table that keeps the source "
+            "repository would validate the wrong repository and pass"
+        )
     if not args.offline and not issues:
         live = fetch_live_protection(policy["repository"], policy["protected_branch"])
         issues.extend(compare_live_to_policy(policy, live))
