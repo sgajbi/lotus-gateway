@@ -42,6 +42,16 @@ _REQUIRED_REVIEW_KEYS = (
     "bypass_pull_request_allowances",
 )
 
+_BOOLEAN_EXPECTED_KEYS = (
+    "enforce_admins",
+    "required_linear_history",
+    "allow_force_pushes",
+    "allow_deletions",
+    "required_conversation_resolution",
+    "restrictions_present",
+    "codeowners_present",
+)
+
 _REQUIRED_EXPECTED_KEYS = (
     "enforce_admins",
     "required_linear_history",
@@ -78,10 +88,21 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         if key not in checks:
             issues.append(f"expected.required_status_checks.{key} must be declared")
     contexts = checks.get("contexts")
-    if isinstance(contexts, list) and not contexts:
-        issues.append(
-            "expected.required_status_checks.contexts is empty: nothing would be required"
-        )
+    if "contexts" in checks:
+        if not isinstance(contexts, list) or not all(isinstance(c, str) for c in contexts):
+            issues.append(
+                "expected.required_status_checks.contexts must be a list of strings: "
+                "a bare string would be compared character by character"
+            )
+        elif not contexts:
+            issues.append(
+                "expected.required_status_checks.contexts is empty: nothing would be required"
+            )
+    if "strict" in checks and not isinstance(checks["strict"], bool):
+        issues.append("expected.required_status_checks.strict must be a boolean")
+    for key in _BOOLEAN_EXPECTED_KEYS:
+        if key in expected and not isinstance(expected[key], bool):
+            issues.append(f"expected.{key} must be a boolean")
     declared_reviews = expected.get("required_pull_request_reviews", {})
     if "present" not in declared_reviews:
         issues.append("expected.required_pull_request_reviews.present must be declared")
