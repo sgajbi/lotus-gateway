@@ -22,10 +22,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# How much of a file decides its type. A NUL byte does not occur in text and
-# appears within the first block of every binary format in this repository.
-TYPE_SNIFF_BYTES = 8192
-
 
 def is_suspicious(byte: int) -> bool:
     """True for control bytes never legitimate in a text file.
@@ -288,9 +284,21 @@ def test_every_excusal_is_load_bearing() -> None:
     a reviewed file rather than an inference: a corrupted source file must be
     repaired, not excused.
     """
+    tracked = {
+        entry.decode("utf-8")
+        for entry in subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files", "-z"], capture_output=True, check=True
+        ).stdout.split(b"\0")
+        if entry
+    }
     for declared in sorted(EXPECTED_BINARY_PATHS):
         path = REPO_ROOT / declared
         assert path.is_file(), f"{declared} is excused from the scan but does not exist"
+        assert declared in tracked, (
+            f"{declared} is excused from the scan but is not tracked; the scan only "
+            "reads tracked files, so the entry excuses nothing and hides that the "
+            "asset left version control"
+        )
         assert find_offenders([path]), (
             f"{declared} is excused from the scan, but the scan does not reject it; "
             "the entry does nothing and should be removed"
