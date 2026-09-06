@@ -14,18 +14,15 @@ does not fail loudly; it silently matches nothing.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCANNED_ROOTS = (
-    "scripts",
-    "src",
-    "tests",
-    "quality",
-    ".github",
-    "docs",
-    "wiki",
-)
+
+# Text suffixes plus extensionless files that are text by convention. The set of
+# DIRECTORIES is deliberately not enumerated: a fixed list silently stops
+# covering anything added outside it, and the root Makefile, pyproject.toml and
+# compose files all sat outside the previous one.
 TEXT_SUFFIXES = {
     ".py",
     ".md",
@@ -37,38 +34,45 @@ TEXT_SUFFIXES = {
     ".txt",
     ".toml",
     ".cfg",
+    ".ini",
+    ".sql",
+    ".env",
 }
+TEXT_FILENAMES = {"Makefile", "Dockerfile", ".gitignore", ".dockerignore"}
 
 
 def is_suspicious(byte: int) -> bool:
     """True for control bytes never legitimate in these files.
 
     Tab (0x09), newline (0x0A) and carriage return (0x0D) are excluded: they are
-    ordinary formatting. Everything below 0x20 otherwise indicates an escape
-    that was interpreted when it should have been written literally.
+    ordinary formatting. Everything else below 0x20 indicates an escape that was
+    interpreted when it should have been written literally.
     """
     return byte < 0x09 or byte in (0x0B, 0x0C) or 0x0D < byte < 0x20
 
 
-def _scanned_files() -> list[Path]:
-    files: list[Path] = []
-    for root in SCANNED_ROOTS:
-        base = REPO_ROOT / root
-        if not base.is_dir():
+def _tracked_text_files() -> list[Path]:
+    """Every tracked file git knows about that is text by suffix or name."""
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z"],
+        capture_output=True,
+        check=True,
+    )
+    paths = []
+    for entry in result.stdout.split(b"\0"):
+        if not entry:
             continue
-        files.extend(
-            path
-            for path in base.rglob("*")
-            if path.is_file()
-            and path.suffix.lower() in TEXT_SUFFIXES
-            and "__pycache__" not in path.parts
-        )
-    return files
+        path = REPO_ROOT / entry.decode("utf-8")
+        if not path.is_file():
+            continue
+        if path.suffix.lower() in TEXT_SUFFIXES or path.name in TEXT_FILENAMES:
+            paths.append(path)
+    return paths
 
 
 def test_no_source_file_carries_an_interpreted_escape() -> None:
     offenders: list[str] = []
-    for path in _scanned_files():
+    for path in _tracked_text_files():
         data = path.read_bytes()
         for offset, byte in enumerate(data):
             if is_suspicious(byte):
@@ -87,7 +91,7 @@ def test_no_source_file_carries_an_interpreted_escape() -> None:
 
 def test_the_scan_reads_a_meaningful_number_of_files() -> None:
     """A zero-input scan would pass while checking nothing."""
-    files = _scanned_files()
+    files = _tracked_text_files()
     assert len(files) > 100, f"only {len(files)} files scanned; the assertion would be hollow"
 
 
