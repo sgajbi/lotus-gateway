@@ -145,27 +145,31 @@ def terminal_sink(shell_line: str) -> str | None:
     stripped = shell_line.strip()
     if stripped.startswith("#"):
         return None
-    probe = _QUOTED.sub("", stripped).replace("||", "")
-    words = probe.split()
-    while words and (words[0] in CONDITION_KEYWORDS or words[0] == "!"):
-        words = words[1:]
-    probe = re.split(r";\s*(?:then|do)\b", " ".join(words))[0]
-    if "|" in probe and ("&&" in probe or ";" in probe):
-        probe = re.split(r"&&|;", probe)[-1]
-    if "|" not in probe:
-        return None
-    first = probe.split("|", 1)[0].strip().split()
-    while first and (first[0] in STAGE_PREFIXES or "=" in first[0]):
-        first = first[1:]
-    if first and first[0].split("/")[-1] in TRIVIAL_SOURCES:
-        return None
-    last = probe.rsplit("|", 1)[1].strip().split()
-    while last and (last[0] in STAGE_PREFIXES or "=" in last[0]):
-        last = last[1:]
-    if not last:
-        return None
-    command = last[0].lstrip("$(").split("/")[-1]
-    return command if command in PASSIVE_SINKS else None
+    probe = _QUOTED.sub("", stripped)
+    # Every segment counts: `gate.py | tee log; echo done` and
+    # `gate.py | tee log && echo done` both end the step on the trailing
+    # command, so keeping only the last segment would miss the hidden gate.
+    for segment in re.split(r"&&|\|\||;", probe):
+        words = segment.split()
+        while words and (words[0] in CONDITION_KEYWORDS or words[0] == "!"):
+            words = words[1:]
+        segment = re.split(r"\b(?:then|do)\b", " ".join(words))[0]
+        if "|" not in segment:
+            continue
+        first = segment.split("|", 1)[0].strip().split()
+        while first and (first[0] in STAGE_PREFIXES or "=" in first[0]):
+            first = first[1:]
+        if first and first[0].split("/")[-1] in TRIVIAL_SOURCES:
+            continue
+        last = segment.rsplit("|", 1)[1].strip().split()
+        while last and (last[0] in STAGE_PREFIXES or "=" in last[0]):
+            last = last[1:]
+        if not last:
+            continue
+        command = last[0].lstrip("$(").split("/")[-1]
+        if command in PASSIVE_SINKS:
+            return command
+    return None
 
 
 def _status_is_propagated(shell: list[str], index: int) -> bool:
@@ -298,3 +302,9 @@ def test_pipeline_split_across_lines_is_joined() -> None:
 
 def test_sink_behind_a_runner_prefix_is_detected() -> None:
     assert unguarded_pipelines("run: gate.py | sudo tee out.txt\n")
+
+
+def test_pipeline_before_a_later_shell_command_is_reported() -> None:
+    """`gate.py | tee log; echo done` ends the step on echo, hiding the gate."""
+    for line in ("gate.py | tee log; echo done", "gate.py | tee log && echo done"):
+        assert unguarded_pipelines(f"run: {line}\n") == [line], line
