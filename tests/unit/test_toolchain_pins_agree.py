@@ -31,6 +31,8 @@ import re
 import tomllib
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 PRE_COMMIT = REPO_ROOT / ".pre-commit-config.yaml"
@@ -65,75 +67,66 @@ def _declared_pins() -> dict[str, str]:
     return pins
 
 
-def _runs_on_commit(stages: str) -> bool:
-    """Whether a stages list still includes the ordinary commit run.
+def _runs_on_commit(stages: object) -> bool:
+    """Whether a resolved stages list still includes the ordinary commit run.
 
     pre-commit accepts both the modern `pre-commit` name and the legacy `commit`
     name, so either counts. An empty list runs nothing.
     """
-    names = {token.strip().strip("[]'\"") for token in stages.split(",")}
-    names.discard("")
+    if stages is None:
+        return True
+    names = {str(stage).strip() for stage in stages}
     return bool(names & {"pre-commit", "commit"})
 
 
 def _hook_revisions() -> dict[str, str]:
     """Versions pre-commit resolves, for tools whose hooks all run on commit.
 
-    Read line by line rather than with a YAML parser: this repository declares no
-    YAML dependency, and buying one to read a handful of fields would be a
-    dependency added for a single call.
-
     A revision is credited only when EVERY hook the tool needs is present and
     runs on an ordinary commit. A `rev:` proves a repository stanza is listed,
     not that its hooks execute -- a stanza whose hook was removed, renamed,
     commented out or moved to another stage still carries its revision.
 
-    Stage resolution follows pre-commit's own rule rather than a shortcut: a
-    per-hook `stages:` OVERRIDES the file-level `default_stages`. Treating a
-    manual default as disabling everything would reject the valid combination of
-    a manual default with explicit per-hook overrides -- a checker failing a
-    correct config, which is how checkers stop being read.
+    Parsed with a real YAML parser rather than scanned line by line. That was a
+    deliberate reversal: reading two fields by hand was proportionate, but
+    correctness here needs actual YAML semantics -- block sequences (`stages:`
+    followed by `- pre-commit` on its own line), quoting, and mapping order,
+    since a `default_stages` written after `repos` applies to hooks declared
+    before it. Four consecutive review findings were all the hand scanner
+    mishandling valid configurations, and each fix added a branch that attracted
+    the next one. A parser is what this needs.
     """
-    default_runs_on_commit = True
-    repositories: list[tuple[str, str, dict[str, bool]]] = []
-    current_repo = ""
-    pending_revision = ""
-    hooks: dict[str, bool] = {}
-    last_hook = ""
+    document = yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8")) or {}
 
-    def close_repo() -> None:
-        if current_repo:
-            repositories.append((current_repo, pending_revision, dict(hooks)))
-
-    for line in PRE_COMMIT.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            # A commented-out hook does not run, so it must not be credited.
-            continue
-        top_level = line[:1] not in (" ", "\t", "")
-        if top_level and stripped.startswith("default_stages:"):
-            default_runs_on_commit = _runs_on_commit(stripped.partition("default_stages:")[2])
-        elif stripped.startswith("- repo:"):
-            close_repo()
-            current_repo = stripped.partition("- repo:")[2].strip()
-            pending_revision = ""
-            hooks = {}
-            last_hook = ""
-        elif stripped.startswith("rev:"):
-            pending_revision = stripped.partition("rev:")[2].strip().lstrip("v")
-        elif stripped.startswith("- id:"):
-            last_hook = stripped.partition("- id:")[2].strip()
-            hooks[last_hook] = default_runs_on_commit
-        elif stripped.startswith("stages:") and last_hook:
-            hooks[last_hook] = _runs_on_commit(stripped.partition("stages:")[2])
-    close_repo()
+    # Resolved after the whole document is read, because mapping order carries
+    # no meaning: a default declared last still governs hooks declared first.
+    default_stages = document.get("default_stages")
 
     revisions: dict[str, str] = {}
-    for tool, required in REQUIRED_HOOKS.items():
-        for repository, revision, repo_hooks in repositories:
-            if tool not in repository or not revision:
+    for repository in document.get("repos", []) or []:
+        source = str(repository.get("repo", ""))
+        revision = str(repository.get("rev", "")).lstrip("v")
+        if not revision:
+            continue
+
+        runs: dict[str, bool] = {}
+        hooks = repository.get("hooks") or []
+        if not isinstance(hooks, list):
+            # A malformed stanza describes no runnable hook, so it credits
+            # nothing rather than crashing the gate on someone's typo.
+            continue
+        for hook in hooks:
+            if not isinstance(hook, dict):
                 continue
-            if all(repo_hooks.get(hook, False) for hook in required):
+            identifier = str(hook.get("id", ""))
+            if not identifier:
+                continue
+            # A per-hook `stages` OVERRIDES the file default; absent, the hook
+            # inherits it.
+            runs[identifier] = _runs_on_commit(hook.get("stages", default_stages))
+
+        for tool, required in REQUIRED_HOOKS.items():
+            if tool in source and all(runs.get(hook, False) for hook in required):
                 revisions[tool] = revision
     return revisions
 
@@ -198,10 +191,15 @@ def test_a_removed_or_disabled_hook_is_not_credited(tmp_path, monkeypatch) -> No
 
     assert parse(baseline).get("mypy"), "the real config must credit its mypy hook"
 
-    removed = baseline.replace("      - id: mypy\n", "")
+    # Whole hook blocks, not just their id lines: leaving an orphaned `args:`
+    # behind would make `hooks:` a mapping rather than a list, and the case would
+    # then be exercising a malformed file instead of a removed hook.
+    mypy_hook = '      - id: mypy\n        args: ["src"]\n'
+
+    removed = baseline.replace(mypy_hook, "")
     assert "mypy" not in parse(removed), "a removed hook must not be credited"
 
-    commented = baseline.replace("      - id: mypy", "      # - id: mypy")
+    commented = baseline.replace(mypy_hook, '      # - id: mypy\n      #   args: ["src"]\n')
     assert "mypy" not in parse(commented), "a commented-out hook must not be credited"
 
     staged = baseline.replace("      - id: mypy\n", "      - id: mypy\n        stages: [manual]\n")
@@ -289,3 +287,57 @@ def test_a_per_hook_stage_overrides_the_file_default(tmp_path, monkeypatch) -> N
     )
     assert parse(overridden).get("mypy"), "an explicit per-hook stage still runs on commit"
     assert "ruff" not in parse(overridden), "hooks without an override follow the manual default"
+
+
+def _parse_config(text: str, tmp_path, monkeypatch) -> dict[str, str]:
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(text, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+    return _hook_revisions()
+
+
+def test_a_default_declared_after_the_repos_still_applies(tmp_path, monkeypatch) -> None:
+    """YAML mapping order carries no meaning.
+
+    A `default_stages` written below `repos:` governs hooks declared above it.
+    Reading the file top to bottom and snapshotting the default as each hook is
+    encountered gets this wrong, and the result is a config pre-commit treats as
+    disabled while the check reports the gates agreeing.
+    """
+    config = """
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+default_stages: [manual]
+"""
+    assert _parse_config(config, tmp_path, monkeypatch) == {}, (
+        "a default declared after the repos still disables them"
+    )
+
+
+def test_block_style_stage_sequences_are_read(tmp_path, monkeypatch) -> None:
+    """`stages:` with items on following lines is ordinary YAML.
+
+    Treating only the inline `[...]` form as a stage list makes a valid
+    block-style config look like a hook with no stages, so a hook that does run
+    on commit is rejected -- a checker failing correct configuration.
+    """
+    block_style = """
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        stages:
+          - pre-commit
+"""
+    assert _parse_config(block_style, tmp_path, monkeypatch).get("mypy") == "2.3.1", (
+        "a block-style stages list naming the commit stage must be credited"
+    )
+
+    block_manual = block_style.replace("          - pre-commit", "          - manual")
+    assert _parse_config(block_manual, tmp_path, monkeypatch) == {}, (
+        "and a block-style list naming another stage must not be"
+    )
