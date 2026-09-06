@@ -19,7 +19,7 @@ services:
       [
         "sh",
         "-lc",
-        "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends git && rm -rf /var/lib/apt/lists/* && git config --global --add safe.directory /app && pip install --no-cache-dir -e '.[dev]' && ruff check . && ruff format --check . && mypy src && python -m pytest tests/unit tests/contract && python -m pytest tests/integration"
+        "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends git && rm -rf /var/lib/apt/lists/* && git config --global --add safe.directory /app && { [ -d /app/.git ] || { echo 'ci-local must run from the primary checkout: /app/.git is a file, so this is a linked worktree whose real Git directory lives outside the bind mount and cannot be resolved in the container.' >&2; exit 1; }; } && pip install --no-cache-dir -e '.[dev]' && ruff check . && ruff format --check . && mypy src && python -m pytest tests/unit tests/contract && python -m pytest tests/integration"
       ]
     environment:
       - DECISIONING_SERVICE_BASE_URL=http://host.docker.internal:8000
