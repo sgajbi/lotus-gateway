@@ -127,32 +127,34 @@ jobs:
           # audit reports the resulting ungated revision, and a dispatcher that
           # quietly accepted the drift would leave nothing to notice it.
           #
-          # Identity is the patch-id, not the subject. A rebase rewrites SHAs, so
-          # those cannot be compared, and a subject is not an identity at all --
-          # an unrelated main commit titled "fix lint" alongside this PR's own
-          # "fix lint" is accepted by any subject test while making a completely
-          # different change.
+          # IDENTITY IS THE CHANGE. Neither the subject nor the author is
+          # consulted, because neither is an identity.
           #
-          # Two properties a rebase DOES preserve exactly, and an unrelated commit
-          # does not share:
+          # A rebase rewrites SHAs, so those cannot be compared. Subject text is
+          # not unique -- an unrelated main commit titled "fix lint" alongside
+          # this PR's own "fix lint" satisfies any subject test while making a
+          # completely different change. Author email and timestamp are not
+          # unique either: a rebase preserves them, but so does every other
+          # commit the same person authored in the same second, and a probe
+          # dispatched two unrelated main commits that shared author metadata
+          # with two different PR commits.
           #
-          #   AUTHOR IDENTITY AND TIMESTAMP. `git rebase` and `git cherry-pick`
-          #   rewrite the committer, never the author. The author email and the
-          #   author date, to the second, come through unchanged from the PR's own
-          #   commit. An unrelated commit has its own author date; a squash gets a
-          #   new one.
+          # What is used is the patch-id of a ZERO-CONTEXT diff. Plain patch-id
+          # is not rebase-stable: it hashes the diff including its context lines,
+          # so a change main makes beside the PR's change alters it. Measured at
+          # each separation -- at two and three lines the rebase applies cleanly
+          # while the default-context id differs, and the zero-context id is
+          # unchanged at every distance. Zero context drops exactly the part a
+          # rebase can move and keeps the added and removed lines that make the
+          # change what it is.
           #
-          #   PATCH-ID, when the diff context is untouched. This one is NOT
-          #   rebase-stable on its own: `--stable` means stable across git
-          #   versions and hunk ordering, not across content, and the id hashes
-          #   the diff including its context lines. If main moves a line beside
-          #   the change, a cleanly rebased commit hashes differently. Requiring
-          #   it alone would refuse legitimate rebases and dispatch nothing.
-          #
-          # A revision is attributed when EITHER matches, and refused when neither
-          # does. Both are verifiable against history rather than against text, so
-          # an unattributable window still fails closed -- the subject is never
-          # consulted.
+          # Anything that does not match is refused, and the refusal is about
+          # ATTRIBUTION rather than coverage. Coverage is that every landed
+          # revision carries a verdict; attribution is that THIS PR introduced
+          # it. A revision this PR cannot be shown to have introduced still needs
+          # a verdict, and it must not obtain one by borrowing this PR's number:
+          # the fail-closed coverage audit is what reports it, and the merge that
+          # actually landed it is what should dispatch it.
           #
           # The PR's own commits are fetched for this. They are not otherwise
           # present: the checkout has main, and a rebase merge rewrote every SHA
@@ -163,9 +165,7 @@ jobs:
           fi
           pr_head="$(git rev-parse FETCH_HEAD)"
           pr_identities="$(git rev-list --reverse "$BASE_SHA..$pr_head" | while read -r pr_commit; do
-            printf '%s\t%s\n' \
-              "$(git show "$pr_commit" | git patch-id --stable | cut -d' ' -f1)" \
-              "$(git log -1 --format='%ae|%aI' "$pr_commit")"
+            git show -U0 "$pr_commit" | git patch-id --stable | cut -d' ' -f1
           done)"
           if [ -z "$pr_identities" ]; then
             echo "::error::PR #$PR_NUMBER contributed no identifiable changes from $BASE_SHA, so the enumerated window cannot be attributed to it. Refusing to dispatch."
@@ -177,15 +177,13 @@ jobs:
           # admit an extra revision the PR already accounted for.
           unclaimed_identities="$pr_identities"
           for candidate in $revisions; do
-            candidate_patch_id="$(git show "$candidate" | git patch-id --stable | cut -d' ' -f1)"
-            candidate_author="$(git log -1 --format='%ae|%aI' "$candidate")"
-            claimed_line="$(printf '%s\n' "$unclaimed_identities" | awk -F'\t' \
-              -v patch_id="$candidate_patch_id" -v author="$candidate_author" '
-              ($1 == patch_id) || ($2 == author) { print NR; exit }
-            ')"
+            candidate_patch_id="$(git show -U0 "$candidate" | git patch-id --stable | cut -d' ' -f1)"
+            claimed_line="$(printf '%s\n' "$unclaimed_identities" | awk \
+              -v patch_id="$candidate_patch_id" '$0 == patch_id { print NR; exit }')"
             if [ -z "$claimed_line" ]; then
               candidate_subject="$(git log -1 --format=%s "$candidate")"
-              echo "::error::Revision $candidate (\"$candidate_subject\", authored $candidate_author) matches no commit of PR #$PR_NUMBER by change or by author identity. The enumerated window holds work this PR did not add, or the merge was not a rebase. Refusing to dispatch."
+              echo "::error::Revision $candidate (\"$candidate_subject\") makes no change that PR #$PR_NUMBER contains, so this PR cannot be shown to have introduced it. Refusing to dispatch under an attribution that is not established."
+              echo "::error::This refusal is about ATTRIBUTION, not coverage: $candidate is on main and still requires a release verdict. The fail-closed coverage audit reports it as ungated, and it must be dispatched under the merge that actually landed it."
               exit 1
             fi
             unclaimed_identities="$(printf '%s\n' "$unclaimed_identities" | awk -v claimed="$claimed_line" 'NR != claimed')"

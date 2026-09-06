@@ -348,7 +348,7 @@ def test_a_squash_is_refused_because_its_change_is_not_the_prs(tmp_path: Path) -
 
     assert code != 0, "squash-merging contradicts the rebase-only rule and must fail closed"
     assert dispatched == [], "nothing may be dispatched when the merge method is not a rebase"
-    assert "matches no commit" in output, output
+    assert "makes no change" in output, output
 
 
 def test_a_true_merge_commit_is_refused(tmp_path: Path) -> None:
@@ -407,7 +407,7 @@ def test_offsetting_count_mismatches_are_refused(tmp_path: Path) -> None:
 
     assert code != 0, "an offsetting mismatch must still refuse"
     assert dispatched == [], "no revision may be dispatched from an unattributable window"
-    assert "matches no commit" in output, output
+    assert "makes no change" in output, output
 
 
 def test_a_duplicate_subject_cannot_admit_an_unrelated_revision(tmp_path: Path) -> None:
@@ -440,7 +440,7 @@ def test_a_duplicate_subject_cannot_admit_an_unrelated_revision(tmp_path: Path) 
 
     assert code != 0, "a same-titled unrelated revision must not be attributed to this PR"
     assert dispatched == [], "nothing may be dispatched from a window holding foreign work"
-    assert "matches no commit" in output, output
+    assert "makes no change" in output, output
 
 
 def test_every_landed_revision_is_dispatched_in_ancestry_order(tmp_path: Path) -> None:
@@ -529,3 +529,45 @@ def test_a_rebase_over_changed_context_is_still_attributed(tmp_path: Path) -> No
 
     assert code == 0, output
     assert landed_tip in dispatched, "a legitimate rebase must still be gated"
+
+
+def test_shared_author_metadata_cannot_admit_unrelated_revisions(tmp_path: Path) -> None:
+    """Author email and timestamp are not identity either.
+
+    A rebase preserves them, but so does every other commit the same person
+    authored in the same second. A probe against an earlier revision of this
+    dispatcher showed two unrelated main commits, sharing author metadata with
+    two different PR commits, both dispatched with the shell returning zero.
+
+    Attribution is the change alone, so identical authorship establishes nothing.
+    """
+    repo = _new_repo(tmp_path, "shared-author")
+    _commit(repo, "root")
+    base = _commit(repo, "base")
+
+    # Two PR commits and two unrelated main commits, pairwise sharing an author
+    # timestamp: the same person committing in the same second.
+    first_stamp = _next_author_date()
+    second_stamp = _next_author_date()
+
+    _git(repo, "checkout", "--quiet", "-b", "pr")
+    for name, stamp in (("pr-alpha", first_stamp), ("pr-beta", second_stamp)):
+        (repo / name).write_text(f"{name}\n", encoding="utf-8")
+        _git(repo, "add", name)
+        _git(repo, "commit", "--quiet", "-m", f"add {name}", author_date=stamp)
+    _publish_pr_head(repo, _git(repo, "rev-parse", "HEAD"))
+
+    _git(repo, "checkout", "--quiet", "main")
+    for name, stamp in (("other-alpha", first_stamp), ("other-beta", second_stamp)):
+        (repo / name).write_text(f"{name}\n", encoding="utf-8")
+        _git(repo, "add", name)
+        _git(repo, "commit", "--quiet", "-m", f"add {name}", author_date=stamp)
+    tip = _git(repo, "rev-parse", "HEAD")
+
+    code, output, dispatched = _run_dispatch(
+        repo, tmp_path, merge_sha=tip, base_sha=base, commit_count=2
+    )
+
+    assert code != 0, "identical authorship must not attribute an unrelated revision"
+    assert dispatched == [], "no revision may be dispatched on author metadata alone"
+    assert "makes no change" in output, output
