@@ -30,6 +30,7 @@ jobs:
           MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           COMMIT_COUNT: ${{ github.event.pull_request.commits }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           if [ -z "$MERGE_COMMIT_SHA" ]; then
@@ -37,29 +38,100 @@ jobs:
             exit 1
           fi
 
-          # This enumeration is correct ONLY under rebase-only merging: a
-          # squash lands one commit however many the PR held (N-1 dispatches
-          # would name commits from earlier PRs), and a merge commit adds a
-          # second parent (the walk would descend into main's own history).
-          # Gating the wrong trees while reporting success is worse than the
-          # coverage gap this dispatcher closes, so fail loudly if the
-          # repository's merge methods ever change.
-          merge_methods="$(gh api "repos/$GITHUB_REPOSITORY" \
-            --jq '[.allow_squash_merge, .allow_merge_commit, .allow_rebase_merge] | @csv')"
-          if [ "$merge_methods" != "false,false,true" ]; then
-            echo "::error::Merge methods changed ($merge_methods); per-commit enumeration assumes rebase-only merging. Update the dispatcher before merging anything."
-            exit 1
-          fi
-
           git fetch origin main --quiet
           # Judge ancestry against the freshly fetched main, not the event-time
           # checkout snapshot.
           git checkout --quiet --detach FETCH_HEAD
+          # This enumeration is correct ONLY under rebase-only merging: a squash
+          # lands one commit however many the PR held (N-1 dispatches would name
+          # commits from earlier PRs), and a merge commit adds a second parent
+          # (the walk would descend into main's own history).
+          #
+          # Measure that invariant on the commits themselves rather than reading
+          # the repository's declared merge settings. The settings read needs a
+          # permission the workflow token may not hold — it returned null fields
+          # in lotus-ai and refused outright in three dispatcher runs across two
+          # repositories — and a declared posture is weaker evidence than the
+          # history it is supposed to predict. Local git needs no token at all.
+          merge_parents="$(git rev-list --parents -n 1 "$MERGE_COMMIT_SHA" | wc -w)"
+          if [ "$merge_parents" -ne 2 ]; then
+            echo "::error::$MERGE_COMMIT_SHA has $((merge_parents - 1)) parent(s); per-commit enumeration assumes rebase-only merging (exactly one). Audit that merge before trusting gate coverage."
+            exit 1
+          fi
+          if [ -z "$BASE_SHA" ]; then
+            echo "::error::pull_request.base.sha is required to prove the enumerated window belongs to this PR"
+            exit 1
+          fi
+
           revisions="$(git rev-list -n "$COMMIT_COUNT" "$MERGE_COMMIT_SHA" | tac)"
           if [ -z "$revisions" ]; then
             echo "::error::No revisions enumerated for merged PR #$PR_NUMBER at $MERGE_COMMIT_SHA"
             exit 1
           fi
+
+          # The window must be one contiguous single-parent chain ending at the
+          # merge commit, and every commit in it must be NEW to main.
+          #
+          # Single-parent alone does not catch a squash: a squash of an 8-commit
+          # PR lands one commit, COMMIT_COUNT is still 8, and the walk returns
+          # that commit plus seven that earlier PRs already put on main. Those
+          # seven are single-parent and perfectly contiguous, so the linearity
+          # checks pass while the run record claims revisions this PR never
+          # added. A commit that predates the PR's base is reachable from
+          # base.sha; a rebased commit never is, even when main moved during the
+          # PR's life, because the rebase rewrites it onto newer history.
+          # A distinct loop variable on purpose: this validation pass and the
+          # dispatch loop below are different phases, and sharing `$revision`
+          # made them indistinguishable to the ordering checks that keep the
+          # ancestry guard inside the dispatch loop.
+          previous=""
+          for candidate in $revisions; do
+            candidate_parents="$(git rev-list --parents -n 1 "$candidate" | wc -w)"
+            if [ "$candidate_parents" -ne 2 ]; then
+              echo "::error::Revision $candidate has $((candidate_parents - 1)) parent(s); the enumerated window must be linear."
+              exit 1
+            fi
+            if git merge-base --is-ancestor "$candidate" "$BASE_SHA"; then
+              echo "::error::Revision $candidate is an ancestor of base $BASE_SHA, so this PR did not add it; the enumeration is claiming revisions from earlier merges (a squash merge produces exactly this). Refusing to dispatch."
+              exit 1
+            fi
+            if [ -n "$previous" ]; then
+              actual_parent="$(git rev-parse "${candidate}^")"
+              if [ "$actual_parent" != "$previous" ]; then
+                echo "::error::Revision $candidate has parent $actual_parent, expected $previous; the enumerated window is not contiguous."
+                exit 1
+              fi
+            fi
+            previous="$candidate"
+          done
+
+          # Announce the work before the loop. Without this a failure inside
+          # the first iteration produces no output at all, which is how three
+          # dispatcher 403s across two repositories arrived with nothing to
+          # identify the operation that refused.
+          echo "Enumerated $(printf '%s\n' $revisions | wc -l) revision(s) for PR #$PR_NUMBER at $MERGE_COMMIT_SHA"
+
+          # Run one gh call, and on failure say which API operation refused and
+          # what it returned. A bare "Resource not accessible by integration"
+          # names neither, and the operations here need different permissions.
+          run_gh() {
+            local operation="$1"
+            shift
+            local output status=0
+            # Capture the status with `|| status=$?` rather than testing with
+            # `if !`: the `!` inverts the result, so `$?` inside the branch is
+            # the negation's 0 and every diagnostic would have read "exit 0".
+            # The `||` also keeps `set -e` from aborting before we report.
+            output="$("$@" 2>&1)" || status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "::error::$operation failed (exit $status): $output"
+              return "$status"
+            fi
+            # Deliberately silent on success. Callers used to append
+            # `>/dev/null` to drop the API response, and that redirect applied
+            # to the whole function -- including the error line above, so the
+            # diagnostic vanished exactly when it fired.
+          }
 
           for revision in $revisions; do
             # A revision that is not on the fetched main (for example after a
@@ -70,21 +142,28 @@ jobs:
               exit 1
             fi
             dispatch_ref="main-releasability-${revision}"
+            # Existence is decided by exit code, never by output: `gh api`
+            # writes a 404 body to stdout, so testing the text reads
+            # '{"message":...}' as a sha.
             existing_ref_sha=""
-            if existing_ref_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$dispatch_ref" --jq .object.sha 2>/dev/null)"; then
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$dispatch_ref" \
+                --jq .object.sha >"$RUNNER_TEMP/existing_ref" 2>/dev/null; then
+              existing_ref_sha="$(cat "$RUNNER_TEMP/existing_ref")"
               if [ "$existing_ref_sha" != "$revision" ]; then
                 echo "::error::Dispatch ref $dispatch_ref points to $existing_ref_sha, expected $revision"
                 exit 1
               fi
-            else
-              existing_ref_sha=""
+              echo "  tag exists for $revision"
             fi
             if [ -z "$existing_ref_sha" ]; then
-              gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+              run_gh "POST /repos/$GITHUB_REPOSITORY/git/refs (create $dispatch_ref)" \
+                gh api "repos/$GITHUB_REPOSITORY/git/refs" \
                 -f ref="refs/tags/$dispatch_ref" \
-                -f sha="$revision" >/dev/null
+                -f sha="$revision"
+              echo "  tag created for $revision"
             fi
-            gh workflow run main-releasability.yml \
+            run_gh "POST /repos/$GITHUB_REPOSITORY/actions/workflows/main-releasability.yml/dispatches (ref $dispatch_ref)" \
+              gh workflow run main-releasability.yml \
               --repo "$GITHUB_REPOSITORY" \
               --ref "$dispatch_ref" \
               -f expected_sha="$revision" \
