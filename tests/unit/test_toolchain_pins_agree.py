@@ -38,7 +38,16 @@ PRE_COMMIT = REPO_ROOT / ".pre-commit-config.yaml"
 # Tools whose output is the contract, so two versions can disagree about a
 # verdict on identical code. Both must be exactly pinned and identical across
 # the two files.
-OUTPUT_DEFINING_TOOLS = ("ruff", "mypy")
+#
+# The hook ids are every hook that tool needs for pre-commit to cover what CI
+# runs. The Makefile invokes `ruff check` AND `ruff format --check`, so a config
+# keeping `- id: ruff` while dropping `- id: ruff-format` leaves the formatter
+# unenforced locally while this comparison still saw a Ruff revision.
+REQUIRED_HOOKS: dict[str, tuple[str, ...]] = {
+    "ruff": ("ruff", "ruff-format"),
+    "mypy": ("mypy",),
+}
+OUTPUT_DEFINING_TOOLS = tuple(REQUIRED_HOOKS)
 
 _EXACT_PIN = re.compile(r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[0-9][^\s,;]*)$")
 
@@ -68,58 +77,64 @@ def _runs_on_commit(stages: str) -> bool:
 
 
 def _hook_revisions() -> dict[str, str]:
-    """Versions pre-commit resolves, keyed by the tool the repo provides.
+    """Versions pre-commit resolves, for tools whose hooks all run on commit.
 
     Read line by line rather than with a YAML parser: this repository declares no
-    YAML dependency, and buying one to read two fields would be a dependency
-    added for a single call.
+    YAML dependency, and buying one to read a handful of fields would be a
+    dependency added for a single call.
+
+    A revision is credited only when EVERY hook the tool needs is present and
+    runs on an ordinary commit. A `rev:` proves a repository stanza is listed,
+    not that its hooks execute -- a stanza whose hook was removed, renamed,
+    commented out or moved to another stage still carries its revision.
+
+    Stage resolution follows pre-commit's own rule rather than a shortcut: a
+    per-hook `stages:` OVERRIDES the file-level `default_stages`. Treating a
+    manual default as disabling everything would reject the valid combination of
+    a manual default with explicit per-hook overrides -- a checker failing a
+    correct config, which is how checkers stop being read.
     """
-    # A revision is only recorded once the stanza is known to RUN the hook. A
-    # repository stanza whose hook has been removed, renamed, commented out or
-    # restricted to a non-default stage still carries a `rev:`, and accepting it
-    # would let this comparison pass while pre-commit runs nothing -- a gate
-    # agreeing with a tool that is not there.
-    revisions: dict[str, str] = {}
+    default_runs_on_commit = True
+    repositories: list[tuple[str, str, dict[str, bool]]] = []
     current_repo = ""
     pending_revision = ""
-    enabled_hooks: set[str] = set()
+    hooks: dict[str, bool] = {}
     last_hook = ""
 
-    def record() -> None:
-        for tool in OUTPUT_DEFINING_TOOLS:
-            if tool in current_repo and pending_revision and tool in enabled_hooks:
-                revisions[tool] = pending_revision
+    def close_repo() -> None:
+        if current_repo:
+            repositories.append((current_repo, pending_revision, dict(hooks)))
 
     for line in PRE_COMMIT.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped.startswith("#"):
             # A commented-out hook does not run, so it must not be credited.
             continue
-        if line[:1] not in (" ", "\t", "") and stripped.startswith("default_stages:"):
-            # A top-level default_stages excluding the commit stage disables
-            # every hook that does not override it, so nothing in this file is
-            # what developers actually run. Credit nothing rather than crediting
-            # hooks that are configured but inert.
-            if not _runs_on_commit(stripped.partition("default_stages:")[2]):
-                return {}
-        if stripped.startswith("- repo:"):
-            record()
+        top_level = line[:1] not in (" ", "\t", "")
+        if top_level and stripped.startswith("default_stages:"):
+            default_runs_on_commit = _runs_on_commit(stripped.partition("default_stages:")[2])
+        elif stripped.startswith("- repo:"):
+            close_repo()
             current_repo = stripped.partition("- repo:")[2].strip()
             pending_revision = ""
-            enabled_hooks = set()
+            hooks = {}
             last_hook = ""
         elif stripped.startswith("rev:"):
             pending_revision = stripped.partition("rev:")[2].strip().lstrip("v")
         elif stripped.startswith("- id:"):
             last_hook = stripped.partition("- id:")[2].strip()
-            enabled_hooks.add(last_hook)
+            hooks[last_hook] = default_runs_on_commit
         elif stripped.startswith("stages:") and last_hook:
-            # A hook restricted to stages that exclude the commit does not run on
-            # an ordinary commit, so it cannot be credited as the version
-            # developers get.
-            if not _runs_on_commit(stripped.partition("stages:")[2]):
-                enabled_hooks.discard(last_hook)
-    record()
+            hooks[last_hook] = _runs_on_commit(stripped.partition("stages:")[2])
+    close_repo()
+
+    revisions: dict[str, str] = {}
+    for tool, required in REQUIRED_HOOKS.items():
+        for repository, revision, repo_hooks in repositories:
+            if tool not in repository or not revision:
+                continue
+            if all(repo_hooks.get(hook, False) for hook in required):
+                revisions[tool] = revision
     return revisions
 
 
@@ -218,3 +233,59 @@ def test_top_level_default_stages_can_disable_everything(tmp_path, monkeypatch) 
 
     legacy_name = "default_stages: [commit]\n" + baseline
     assert parse(legacy_name), "pre-commit's legacy stage name still counts"
+
+
+def test_every_hook_ci_runs_must_be_present(tmp_path, monkeypatch) -> None:
+    """Ruff needs both hooks, because CI runs both commands.
+
+    The Makefile invokes `ruff check` and `ruff format --check`. A config keeping
+    `- id: ruff` while dropping `- id: ruff-format` leaves the formatter
+    unenforced locally, and crediting the Ruff revision anyway would report the
+    two gates as agreeing about a command one of them no longer runs.
+    """
+    baseline = PRE_COMMIT.read_text(encoding="utf-8")
+
+    def parse(config: str) -> dict[str, str]:
+        written = tmp_path / "pre-commit.yaml"
+        written.write_text(config, encoding="utf-8")
+        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+        return _hook_revisions()
+
+    assert parse(baseline).get("ruff"), "the real config runs both Ruff hooks"
+
+    without_formatter = baseline.replace("      - id: ruff-format\n", "")
+    assert "ruff" not in parse(without_formatter), (
+        "dropping the formatter hook must stop crediting Ruff"
+    )
+
+    formatter_staged = baseline.replace(
+        "      - id: ruff-format\n",
+        "      - id: ruff-format\n        stages: [manual]\n",
+    )
+    assert "ruff" not in parse(formatter_staged), (
+        "a formatter moved off the commit stage is not enforced on commit"
+    )
+    assert parse(formatter_staged).get("mypy"), "and mypy is unaffected by Ruff's hooks"
+
+
+def test_a_per_hook_stage_overrides_the_file_default(tmp_path, monkeypatch) -> None:
+    """pre-commit resolves per-hook stages OVER default_stages.
+
+    A manual file default paired with explicit per-hook overrides is a valid
+    configuration that does run on commit. Treating the default as disabling
+    everything would fail a correct config, which is how a checker earns the
+    habit of being ignored.
+    """
+    baseline = PRE_COMMIT.read_text(encoding="utf-8")
+
+    def parse(config: str) -> dict[str, str]:
+        written = tmp_path / "pre-commit.yaml"
+        written.write_text(config, encoding="utf-8")
+        monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+        return _hook_revisions()
+
+    overridden = "default_stages: [manual]\n" + baseline.replace(
+        "      - id: mypy\n", "      - id: mypy\n        stages: [pre-commit]\n"
+    )
+    assert parse(overridden).get("mypy"), "an explicit per-hook stage still runs on commit"
+    assert "ruff" not in parse(overridden), "hooks without an override follow the manual default"
