@@ -181,8 +181,17 @@ def test_admitted_scope_is_what_reaches_advise(operation, monkeypatch) -> None:
 
 
 @pytest.mark.parametrize("operation", sorted(WRITE_ROUTES))
-def test_the_retired_constant_is_never_sent(operation, monkeypatch) -> None:
-    """No outbound header carries the seeded tenant, whatever the caller sent."""
+def test_the_retired_constant_is_replaced_rather_than_merely_absent(operation, monkeypatch) -> None:
+    """The seeded tenant is gone AND the caller's own tenant is what took its place.
+
+    The absence half alone is worthless. "No header carries `tenant_sg_001`" is
+    satisfied maximally by sending no headers at all, and this test passed under
+    exactly that mutation: dropping every scope header from the outbound set left
+    all seven cases green while nothing whatsoever was forwarded.
+
+    An absence claim needs its presence half, in the SAME case. Split across two
+    tests, the second is the one that gets dropped as redundant.
+    """
     method, path, body, role, capability, idempotency_key = WRITE_ROUTES[operation]
     transport = _Transport()
     transport.install(monkeypatch)
@@ -193,6 +202,13 @@ def test_the_retired_constant_is_never_sent(operation, monkeypatch) -> None:
         headers=_headers(role=role, capabilities=capability, idempotency_key=idempotency_key),
     )
 
+    assert transport.posts, "the write must actually have been forwarded"
+    for call in transport.posts:
+        # Presence first: something real is being sent under this name.
+        assert call["headers"]["X-Tenant-Id"] == CALLER_TENANT, (
+            f"{operation} must forward the caller's tenant, not merely omit the old one"
+        )
+    # Absence second, across every outbound call including the scope read.
     for call in transport.posts + transport.gets:
         assert RETIRED_MINTED_TENANT not in call["headers"].values(), (
             f"{operation} still asserts the seeded tenant: {call['headers']}"
