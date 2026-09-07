@@ -132,6 +132,21 @@ def _reports_a_verdict(hook: dict[str, object]) -> bool:
     return not (names & VERDICT_NEUTRALISING_ARGS)
 
 
+def _runs_the_pinned_tool(hook: dict[str, object]) -> bool:
+    """Whether a rev-pinned hook still runs the program its revision names.
+
+    pre-commit lets a hook override `entry` and `language`, and that is exactly
+    what makes a `rev:` a claim about the SOURCE rather than about the command.
+    An override keeps the id, the stage and the revision while running something
+    else entirely — `entry: python -c 'pass'` satisfies every check that reads
+    the id, and ruff never runs.
+
+    An override may be perfectly deliberate. It is simply no longer described by
+    the pin, which is the only thing this file can speak about.
+    """
+    return not ({"entry", "language"} & set(hook))
+
+
 def _config() -> dict[str, object]:
     return yaml.safe_load(PRE_COMMIT.read_text(encoding="utf-8")) or {}
 
@@ -187,12 +202,14 @@ def _hook_revisions() -> dict[str, str]:
             identifier = str(hook.get("id", ""))
             if not identifier:
                 continue
-            # A hook counts only if it both runs and can still refuse: an
-            # occurrence carrying `--exit-zero` executes and reports success
-            # regardless. OR-ing across occurrences stays correct — a second,
-            # un-neutralised occurrence does fail the commit.
+            # Three conditions, each one a way for a listed hook to be no
+            # evidence: it must run on a commit, still be able to refuse, and
+            # still be the program the revision names. OR-ing across occurrences
+            # stays correct — a second, sound occurrence does gate the commit.
             runs[identifier] = runs.get(identifier, False) or (
-                _runs_on_commit(hook.get("stages", default_stages)) and _reports_a_verdict(hook)
+                _runs_on_commit(hook.get("stages", default_stages))
+                and _reports_a_verdict(hook)
+                and _runs_the_pinned_tool(hook)
             )
         for tool, required in REV_PINNED_HOOKS.items():
             if source.rstrip("/") != EXPECTED_HOOK_REPOSITORIES[tool]:
@@ -279,12 +296,22 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
     the right fix for ruff and the wrong one for mypy.
     """
     stanzas = _hooks_by_repository()
+    default_stages = _config().get("default_stages")
 
     for tool in PROJECT_ENVIRONMENT_TOOLS:
+        # Only occurrences that run on an ordinary commit. A mirrored hook held
+        # at `stages: [manual]` is not part of the gate being compared and cannot
+        # report the wrong verdict on a commit, so rejecting it would fail a
+        # configuration that works — the failure that gets a checker ignored, and
+        # the one this file has already made three times.
         mirrored = [
             source
             for source, _revision, hooks in stanzas
-            if source != "local" and any(hook.get("id") == tool for hook in hooks)
+            if source != "local"
+            and any(
+                hook.get("id") == tool and _runs_on_commit(hook.get("stages", default_stages))
+                for hook in hooks
+            )
         ]
         assert not mirrored, (
             f"{tool} is declared by {mirrored[0]}, which resolves its own environment "
@@ -301,7 +328,6 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
         ]
         assert local_hooks, f"{tool} must be declared as a local hook"
 
-        default_stages = _config().get("default_stages")
         running_local = [
             hook for hook in local_hooks if _runs_on_commit(hook.get("stages", default_stages))
         ]
@@ -633,6 +659,64 @@ repos:
     assert "ruff" not in _parse_config(
         template.format(args='"--fix", "--exit-zero"'), tmp_path, monkeypatch
     ), "a hook that always exits 0 does not cover the tool"
+
+
+def test_an_overridden_entry_is_not_the_pinned_tool(tmp_path, monkeypatch) -> None:
+    """A `rev:` describes the source, not the command.
+
+    pre-commit lets a hook override `entry`, so `entry: python -c 'pass'` keeps
+    the id, the stage and the revision while ruff never runs. Every check that
+    reads the id is satisfied and the pin describes nothing.
+    """
+    overridden = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        entry: python -c 'pass'
+      - id: ruff-format
+"""
+    assert "ruff" not in _parse_config(overridden, tmp_path, monkeypatch), (
+        "a hook whose entry was replaced does not run the version its rev names"
+    )
+
+
+def test_a_manual_mirrored_hook_is_not_a_conflict(tmp_path, monkeypatch) -> None:
+    """A mirrored hook held at `stages: [manual]` is not part of the commit gate.
+
+    It cannot report a wrong verdict on a commit, so rejecting it fails a
+    configuration that works — the failure that gets a checker ignored, and one
+    this file has made three times.
+    """
+    coexisting = """
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        stages: [manual]
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        args: ["src"]
+        language: system
+        pass_filenames: false
+"""
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(coexisting, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+
+    test_dependency_aware_tools_run_from_the_project_environment()
+
+    # The accept side must not be an accept-everything: the SAME mirrored hook
+    # on the commit stage is still refused.
+    running = coexisting.replace("stages: [manual]", "stages: [pre-commit]")
+    written.write_text(running, encoding="utf-8")
+    with pytest.raises(AssertionError, match="mirrors-mypy"):
+        test_dependency_aware_tools_run_from_the_project_environment()
 
 
 def test_neutralising_args_are_rejected(tmp_path, monkeypatch) -> None:
