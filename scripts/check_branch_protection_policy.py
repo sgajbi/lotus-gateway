@@ -139,6 +139,11 @@ _WEAK_POSTURES: dict[str, Any] = {
     # approved against a base it was never tested on.
     "required_status_checks.strict": False,
     "required_pull_request_reviews.present": False,
+    # A stale approval surviving new commits means the approved tree is not the
+    # merged tree. `require_last_push_approval` and `require_code_owner_reviews`
+    # are deliberately NOT here: not enabling a stronger option is a policy
+    # choice, whereas switching dismissal off weakens a control that is on.
+    "required_pull_request_reviews.dismiss_stale_reviews": False,
     "required_pull_request_reviews.required_approving_review_count": 0,
 }
 

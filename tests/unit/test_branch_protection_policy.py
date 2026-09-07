@@ -92,6 +92,7 @@ def test_the_weak_postures_named_here_are_the_ones_that_must_be_documented() -> 
         "required_conversation_resolution",
         "required_status_checks.strict",
         "required_pull_request_reviews.present",
+        "required_pull_request_reviews.dismiss_stale_reviews",
         "required_pull_request_reviews.required_approving_review_count",
     }
     # The omissions are deliberate: their safe direction is a policy choice
@@ -104,6 +105,10 @@ def test_the_weak_postures_named_here_are_the_ones_that_must_be_documented() -> 
         "allow_fork_syncing",
         "restrictions_present",
         "codeowners_present",
+        # Not enabling a stronger option is a choice; switching off a control
+        # that is on is a weakening. These two are the former.
+        "required_pull_request_reviews.require_last_push_approval",
+        "required_pull_request_reviews.require_code_owner_reviews",
     ):
         assert policy_choice not in WEAK_POSTURES
 
