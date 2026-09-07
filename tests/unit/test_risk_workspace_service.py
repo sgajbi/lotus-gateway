@@ -332,6 +332,7 @@ async def test_risk_summary_uses_stateful_request_and_maps_supportability() -> N
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     request = client.calculate_calls[0]["payload"]
@@ -381,7 +382,7 @@ async def test_risk_workspace_explicit_window_reaches_lotus_risk_period_contract
         "reporting_currency": "USD",
     }
 
-    await service.get_summary(**common)
+    await service.get_summary(**common, tenant_id="tenant-sg")
     await service.get_drawdown(**common, include_underwater_series=False)
     await service.get_rolling(**common, include_time_series=False)
     await service.get_attribution(
@@ -419,6 +420,7 @@ async def test_risk_summary_reports_partial_when_benchmark_metrics_have_errors()
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     assert response.state == "partial"
@@ -449,6 +451,7 @@ async def test_risk_summary_preserves_source_calculation_supportability() -> Non
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     assert response.state == "partial"
@@ -469,6 +472,7 @@ async def test_risk_concentration_uses_stateful_request_and_maps_issuer_supporta
         period="YTD",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
         benchmark_code="BMK_1",
     )
 
@@ -524,6 +528,7 @@ async def test_risk_workspace_cache_reuses_identical_summary_requests() -> None:
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
     second = await service.get_summary(
         portfolio_id="PF_1",
@@ -533,6 +538,7 @@ async def test_risk_workspace_cache_reuses_identical_summary_requests() -> None:
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     assert len(client.calculate_calls) == 1
@@ -556,6 +562,7 @@ async def test_risk_summary_returns_unavailable_envelope_on_upstream_failure() -
         benchmark_code="BMK_1",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     assert response.state == "unavailable"
@@ -579,6 +586,7 @@ async def test_risk_concentration_returns_unavailable_envelope_on_malformed_succ
         period="YTD",
         as_of_date="2026-04-04",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
         benchmark_code="BMK_1",
     )
 

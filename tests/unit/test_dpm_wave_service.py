@@ -20,44 +20,48 @@ class _FakeDpmClient:
 
         return _missing
 
-    async def create_wave(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def create_wave(self, body, idempotency_key, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "create_wave",
                 "body": body,
                 "idempotency_key": idempotency_key,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
 
-    async def simulate_wave(self, wave_id, body, correlation_id):  # noqa: ANN001
+    async def simulate_wave(self, wave_id, body, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "simulate_wave",
                 "wave_id": wave_id,
                 "body": body,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
 
-    async def get_wave_supportability(self, wave_id, correlation_id):  # noqa: ANN001
+    async def get_wave_supportability(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "get_wave_supportability",
                 "wave_id": wave_id,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
 
-    async def get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+    async def get_wave_report_input(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "get_wave_report_input",
                 "wave_id": wave_id,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
@@ -291,6 +295,7 @@ async def test_dpm_wave_service_preserves_manage_wave_truth_and_supportability()
         body={"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
         idempotency_key="wave-idem-1",
         correlation_id="corr-wave-create",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-wave-create"
@@ -309,6 +314,7 @@ async def test_dpm_wave_service_preserves_manage_wave_truth_and_supportability()
             "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
             "idempotency_key": "wave-idem-1",
             "correlation_id": "corr-wave-create",
+            "tenant_id": "tenant-sg",
         }
     ]
 
@@ -870,6 +876,7 @@ async def test_dpm_wave_service_forwards_simulation_without_local_reconstruction
         wave_id="dwv_001",
         body={"actor_id": "pm_sg_1", "item_inputs": []},
         correlation_id="corr-wave-simulate",
+        tenant_id="tenant-sg",
     )
 
     assert response.supportability.state == "degraded"
@@ -882,6 +889,7 @@ async def test_dpm_wave_service_forwards_simulation_without_local_reconstruction
             "wave_id": "dwv_001",
             "body": {"actor_id": "pm_sg_1", "item_inputs": []},
             "correlation_id": "corr-wave-simulate",
+            "tenant_id": "tenant-sg",
         }
     ]
 
@@ -905,6 +913,7 @@ async def test_dpm_wave_service_manage_errors_are_product_safe() -> None:
         await service.get_wave_supportability(
             wave_id="dwv_001",
             correlation_id="corr-wave-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 422
@@ -934,6 +943,7 @@ async def test_dpm_wave_service_exposes_manage_report_input_without_rebuilding()
     response = await service.get_wave_report_input(
         wave_id="dwv_001",
         correlation_id="corr-wave-report-input",
+        tenant_id="tenant-sg",
     )
 
     assert response.supportability.state == "ready"
@@ -944,6 +954,7 @@ async def test_dpm_wave_service_exposes_manage_report_input_without_rebuilding()
             "method": "get_wave_report_input",
             "wave_id": "dwv_001",
             "correlation_id": "corr-wave-report-input",
+            "tenant_id": "tenant-sg",
         }
     ]
 
@@ -980,6 +991,7 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
             audience=["portfolio_manager", "investment_control"],
         ),
         correlation_id="corr-wave-ai-memo",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-ai"
@@ -1037,6 +1049,7 @@ async def test_dpm_wave_pm_memo_ai_errors_are_product_safe() -> None:
             wave_id="dwv_001",
             request=DpmWaveMemoRequest(),
             correlation_id="corr-wave-ai-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 503
@@ -1071,6 +1084,7 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
             audience=["operations", "portfolio_manager"],
         ),
         correlation_id="corr-operations-handoff-summary",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-ai"
@@ -1089,6 +1103,7 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
             "method": "get_wave_report_input",
             "wave_id": "dwv_001",
             "correlation_id": "corr-operations-handoff-summary",
+            "tenant_id": "tenant-sg",
         }
     ]
     ai_call = ai_client.calls[0]
@@ -1136,6 +1151,7 @@ async def test_dpm_operations_handoff_summary_ai_errors_are_product_safe() -> No
             wave_id="dwv_001",
             request=DpmOperationsHandoffSummaryRequest(requested_outputs=["order_ticket"]),
             correlation_id="corr-operations-handoff-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 422

@@ -41,6 +41,7 @@ class RiskWorkspaceMandateServiceMixin:
                 portfolio_id=context.portfolio_id,
                 correlation_id=context.correlation_id,
                 as_of_date=context.as_of_date,
+                tenant_id=context.tenant_id,
             ),
         )
         return compose_summary_mandate_comparison(
@@ -61,6 +62,7 @@ class RiskWorkspaceMandateServiceMixin:
                 portfolio_id=context.portfolio_id,
                 correlation_id=context.correlation_id,
                 as_of_date=context.as_of_date,
+                tenant_id=context.tenant_id,
             ),
         )
         return compose_concentration_mandate_comparison(
@@ -74,6 +76,7 @@ class RiskWorkspaceMandateServiceMixin:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str,
+        tenant_id: str | None,
     ) -> RiskMandateSources:
         if self._manage_client is None or self._cash_source is None:
             return RiskMandateSources(
@@ -90,4 +93,5 @@ class RiskWorkspaceMandateServiceMixin:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
+            tenant_id=tenant_id,
         )

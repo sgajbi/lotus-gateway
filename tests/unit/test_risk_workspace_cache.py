@@ -17,6 +17,7 @@ def test_summary_cache_key_uses_request_shape_without_correlation_id() -> None:
         report_start_date=None,
         report_end_date="2026-04-10",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
     second = build_summary_request_context(
         portfolio_id="PF_1",
@@ -28,6 +29,7 @@ def test_summary_cache_key_uses_request_shape_without_correlation_id() -> None:
         report_start_date=None,
         report_end_date="2026-04-10",
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     assert summary_cache_key(first) == summary_cache_key(second)

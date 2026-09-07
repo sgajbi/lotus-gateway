@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query
 
 from app.contracts.dpm_waves import DpmWaveGatewayResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_lookup_common import UPSTREAM_WAVE_LOOKUP_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
@@ -13,6 +14,7 @@ router = APIRouter(
 
 async def _list_waves(
     *,
+    tenant_id: str,
     state: str | None,
     trigger_type: str | None,
     as_of_date: str | None,
@@ -30,6 +32,7 @@ async def _list_waves(
             "offset": offset,
         },
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -46,6 +49,7 @@ async def _list_waves(
     responses=UPSTREAM_WAVE_LOOKUP_ERROR_RESPONSES,
 )
 async def list_waves(
+    tenant_id: DpmManageTenantId,
     state: str | None = Query(default=None, description="Optional manage wave-state filter."),
     trigger_type: str | None = Query(
         default=None,
@@ -66,6 +70,7 @@ async def list_waves(
     offset: int = Query(default=0, ge=0, description="Zero-based wave-list offset."),
 ) -> DpmWaveGatewayResponse:
     return await _list_waves(
+        tenant_id=tenant_id,
         state=state,
         trigger_type=trigger_type,
         as_of_date=as_of_date,

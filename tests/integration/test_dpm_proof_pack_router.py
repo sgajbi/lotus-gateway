@@ -9,7 +9,7 @@ from tests.support.lotus_ai_workflow_pack import (
 def test_dpm_proof_pack_generate_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_generate_proof_pack(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_generate_proof_pack(self, body, idempotency_key, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["body"] = body
         captured["idempotency_key"] = idempotency_key
@@ -101,7 +101,7 @@ def test_dpm_proof_pack_markdown_is_returned_in_gateway_envelope(monkeypatch) ->
 def test_dpm_proof_pack_handoff_routes_preserve_manage_payload(monkeypatch) -> None:
     captured: list[dict[str, object]] = []
 
-    async def _fake_report_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_report_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured.append(
             {
@@ -112,7 +112,7 @@ def test_dpm_proof_pack_handoff_routes_preserve_manage_payload(monkeypatch) -> N
         )
         return 200, {"proof_pack_id": proof_pack_id, "report_input_ref": "report-input:dpp_rr_001"}
 
-    async def _fake_ai_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_ai_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured.append(
             {
@@ -163,7 +163,7 @@ def test_dpm_proof_pack_handoff_routes_preserve_manage_payload(monkeypatch) -> N
 def test_dpm_proof_pack_pm_memo_executes_lotus_ai_workflow_pack(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_ai_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_ai_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["manage"] = {
             "proof_pack_id": proof_pack_id,
@@ -226,7 +226,7 @@ def test_dpm_proof_pack_pm_memo_executes_lotus_ai_workflow_pack(monkeypatch) -> 
 def test_dpm_proof_pack_pm_memo_rejects_malformed_ai_contract_without_leakage(
     monkeypatch,
 ) -> None:
-    async def _fake_ai_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_ai_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self, correlation_id
         return 200, _proof_pack_ai_evidence_payload(proof_pack_id)
 

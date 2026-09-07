@@ -141,10 +141,12 @@ class DpmCommandCenterService(
         self,
         outcome_review_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmOutcomeReviewGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_outcome_review_report_input(
             outcome_review_id=outcome_review_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -152,6 +154,7 @@ class DpmCommandCenterService(
         self,
         outcome_review_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmOutcomeReviewGatewayResponse:
         (
             upstream_status,
@@ -159,6 +162,7 @@ class DpmCommandCenterService(
         ) = await self._dpm_client.get_outcome_review_ai_evidence_input(
             outcome_review_id=outcome_review_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 

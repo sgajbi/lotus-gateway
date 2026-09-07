@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.contracts.dpm_waves import DpmWaveCreateRequest, DpmWaveGatewayResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_error_common import UPSTREAM_WAVE_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
@@ -11,11 +12,15 @@ router = APIRouter(
 )
 
 
-async def _create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
+async def _create_wave(
+    request: DpmWaveCreateRequest,
+    tenant_id: str,
+) -> DpmWaveGatewayResponse:
     return await dpm_wave_service().create_wave(
         body=request.body,
         idempotency_key=request.idempotency_key,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -31,5 +36,8 @@ async def _create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
     ),
     responses=UPSTREAM_WAVE_ERROR_RESPONSES,
 )
-async def create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
-    return await _create_wave(request)
+async def create_wave(
+    request: DpmWaveCreateRequest,
+    tenant_id: DpmManageTenantId,
+) -> DpmWaveGatewayResponse:
+    return await _create_wave(request, tenant_id=tenant_id)

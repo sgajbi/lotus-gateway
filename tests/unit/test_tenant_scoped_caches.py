@@ -92,6 +92,7 @@ def test_risk_and_brief_response_cache_keys_are_partitioned_by_admitted_tenant()
         report_start_date=None,
         report_end_date=None,
         reporting_currency="USD",
+        tenant_id="tenant-sg",
     )
 
     token = _under_tenant("tenant-a")

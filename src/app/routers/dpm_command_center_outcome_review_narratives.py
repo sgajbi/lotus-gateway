@@ -6,6 +6,7 @@ from app.contracts.dpm_command_center import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_command_center_outcome_reviews_common import UPSTREAM_ERROR_RESPONSES
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.services.dpm_service_provider import dpm_command_center_service
 
 router = APIRouter(
@@ -17,6 +18,7 @@ router = APIRouter(
 
 async def _request_outcome_review_ai_narrative(
     *,
+    tenant_id: str,
     request: DpmOutcomeReviewNarrativeRequest,
     outcome_review_id: str,
 ) -> DpmOutcomeReviewNarrativeGatewayResponse:
@@ -24,6 +26,7 @@ async def _request_outcome_review_ai_narrative(
         outcome_review_id=outcome_review_id,
         request=request,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -41,6 +44,7 @@ async def _request_outcome_review_ai_narrative(
     ),
 )
 async def request_outcome_review_ai_narrative(
+    tenant_id: DpmManageTenantId,
     request: DpmOutcomeReviewNarrativeRequest,
     outcome_review_id: str = Path(
         ...,
@@ -49,6 +53,7 @@ async def request_outcome_review_ai_narrative(
     ),
 ) -> DpmOutcomeReviewNarrativeGatewayResponse:
     return await _request_outcome_review_ai_narrative(
+        tenant_id=tenant_id,
         request=request,
         outcome_review_id=outcome_review_id,
     )

@@ -39,9 +39,14 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_command_center(self, params, correlation_id):  # noqa: ANN001
+    async def get_command_center(self, params, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
-            {"method": "command_center", "params": params, "correlation_id": correlation_id}
+            {
+                "method": "command_center",
+                "params": params,
+                "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
+            }
         )
         return self.result
 
@@ -51,7 +56,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_mandate_health(self, mandate_id, correlation_id):  # noqa: ANN001
+    async def get_mandate_health(self, mandate_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "mandate_health",
@@ -61,7 +66,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_mandate_by_portfolio(self, portfolio_id, correlation_id):  # noqa: ANN001
+    async def get_mandate_by_portfolio(self, portfolio_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "mandate_by_portfolio",
@@ -112,7 +117,9 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_outcome_review_ai_evidence_input(self, outcome_review_id, correlation_id):  # noqa: ANN001
+    async def get_outcome_review_ai_evidence_input(
+        self, outcome_review_id, correlation_id, tenant_id
+    ):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "ai_evidence",
@@ -322,7 +329,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def list_monitoring_exceptions(self, params, correlation_id):  # noqa: ANN001
+    async def list_monitoring_exceptions(self, params, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "list_exceptions",
@@ -362,12 +369,12 @@ async def test_dpm_command_center_summary_preserves_manage_health_and_supportabi
 
     response = await service.get_command_center(
         filters={
-            "tenant_id": "default",
             "portfolio_manager_id": "PM_SG_DPM_001",
             "health_state": "PENDING_REVIEW",
             "limit": 25,
         },
         correlation_id="corr-command-center-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-command-center-1"
@@ -382,11 +389,11 @@ async def test_dpm_command_center_summary_preserves_manage_health_and_supportabi
         {
             "method": "command_center",
             "params": {
-                "tenant_id": "default",
                 "portfolio_manager_id": "PM_SG_DPM_001",
                 "health_state": "PENDING_REVIEW",
                 "limit": 25,
             },
+            "tenant_id": "tenant-sg",
             "correlation_id": "corr-command-center-1",
         }
     ]
@@ -450,6 +457,7 @@ async def test_dpm_command_center_mandate_health_preserves_manage_dimensions() -
     response = await service.get_mandate_health(
         mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-mandate-health",
+        tenant_id="tenant-sg",
     )
 
     assert response.supportability.state == "UNKNOWN"
@@ -491,6 +499,7 @@ async def test_dpm_command_center_mandate_supportability_uses_manage_field_gaps(
     response = await service.get_mandate_by_portfolio(
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-mandate-by-portfolio",
+        tenant_id="tenant-sg",
     )
 
     assert response.supportability.state == "PARTIAL"
@@ -764,6 +773,7 @@ async def test_dpm_command_center_manage_errors_are_bounded_product_safe() -> No
         await service.get_command_center(
             filters={"health_state": "NOT_REAL"},
             correlation_id="corr-command-center-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 422
@@ -1807,6 +1817,7 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
             audience=["pm"],
         ),
         correlation_id="corr-ai-narrative-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-ai"
@@ -1868,6 +1879,7 @@ async def test_dpm_command_center_ai_narrative_uses_shared_manage_error_detail()
                 audience=["pm"],
             ),
             correlation_id="corr-ai-narrative-manage-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 422
@@ -1904,6 +1916,7 @@ async def test_dpm_command_center_ai_narrative_bounds_ai_guardrail_failure() -> 
                 audience=["pm"],
             ),
             correlation_id="corr-ai-narrative-blocked",
+            tenant_id="tenant-sg",
         )
 
     detail = cast(dict[str, Any], exc_info.value.detail)
@@ -1944,6 +1957,7 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
             audience=["portfolio_manager", "operations"],
         ),
         correlation_id="corr-exception-summary-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-ai"
@@ -2015,6 +2029,7 @@ async def test_dpm_command_center_exception_summary_bounds_ai_guardrail_failure(
                 audience=["pm"],
             ),
             correlation_id="corr-exception-summary-blocked",
+            tenant_id="tenant-sg",
         )
 
     detail = cast(dict[str, Any], exc_info.value.detail)
@@ -2036,6 +2051,7 @@ async def test_dpm_command_center_exception_summary_missing_exception_is_product
             exception_id="missing_exception",
             request=DpmExceptionSummaryRequest(),
             correlation_id="corr-exception-summary-missing",
+            tenant_id="tenant-sg",
         )
 
     detail = cast(dict[str, Any], exc_info.value.detail)

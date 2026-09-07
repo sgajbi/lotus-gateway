@@ -61,6 +61,7 @@ class _ManageClient:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None = None,
+        tenant_id="tenant-sg",
     ) -> tuple[int, dict[str, Any]]:
         self.calls.append(
             {
@@ -77,6 +78,7 @@ class _ManageClient:
         mandate_id: str,
         correlation_id: str,
         as_of_date: str | None = None,
+        tenant_id="tenant-sg",
     ) -> tuple[int, dict[str, Any]]:
         self.calls.append(
             {
@@ -143,6 +145,7 @@ async def test_source_loader_forwards_review_date_and_normalizes_cash_percentage
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert [call["as_of_date"] for call in manage.calls] == ["2026-05-03", "2026-05-03"]
@@ -172,6 +175,7 @@ async def test_source_loader_does_not_default_an_absent_review_frequency() -> No
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is not None
@@ -189,6 +193,7 @@ async def test_source_loader_does_not_request_health_when_mandate_is_unavailable
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert [call["method"] for call in manage.calls] == ["mandate"]
@@ -208,6 +213,7 @@ async def test_source_loader_degrades_malformed_health_without_losing_mandate_or
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is not None
@@ -229,6 +235,7 @@ async def test_source_loader_rejects_cross_portfolio_health_evidence() -> None:
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is not None
@@ -249,6 +256,7 @@ async def test_source_loader_rejects_invalid_mandate_ratio_bounds() -> None:
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is None
@@ -268,6 +276,7 @@ async def test_source_loader_preserves_absent_cash_limits_without_defaulting_a_b
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is not None
@@ -286,6 +295,7 @@ async def test_source_loader_keeps_manage_evidence_when_cash_snapshot_fails() ->
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.mandate is not None
@@ -307,6 +317,7 @@ async def test_source_loader_rejects_invalid_cash_business_date() -> None:
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-1",
         as_of_date="2026-05-03",
+        tenant_id="tenant-sg",
     )
 
     assert sources.cash is None

@@ -1,41 +1,9 @@
 from typing import Any
 
+from app.clients.dpm_client_call_surface import DpmClientCallSurfaceMixin
 
-class DpmWaveClientBaseMixin:
-    def _headers(
-        self,
-        correlation_id: str,
-        extras: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
 
-    async def _get(
-        self,
-        path: str,
-        params: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _post(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _put(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
+class DpmWaveClientBaseMixin(DpmClientCallSurfaceMixin):
     def _clean_params(self, params: dict[str, Any]) -> dict[str, Any]:
         return {key: value for key, value in params.items() if value is not None}
 

@@ -8,10 +8,11 @@ from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_executio
 def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_command_center(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_get_command_center(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["params"] = params
         captured["correlation_id"] = correlation_id
+        captured["tenant_id"] = tenant_id
         return 200, {
             "health_distribution": {"READY": 3, "PENDING_REVIEW": 1},
             "evaluated_mandates": 4,
@@ -30,6 +31,10 @@ def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(mo
 
     client = governed_dpm_client(app)
     response = client.get(
+        # `tenant_id=default` is sent deliberately and must NOT reach lotus-manage:
+        # the route's tenant is the admitted X-Tenant-Id header, and the query
+        # selector this route used to carry was removed because two selectors for
+        # one aggregate let a caller read one tenant while naming another.
         "/api/v1/dpm/command-center"
         "?tenant_id=default&portfolio_manager_id=PM_SG_DPM_001"
         "&book_id=BOOK_SG_BALANCED_DPM&health_state=PENDING_REVIEW&limit=25",
@@ -40,13 +45,13 @@ def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(mo
     assert captured == {
         "params": {
             "portfolio_manager_id": "PM_SG_DPM_001",
-            "tenant_id": "default",
             "as_of_date": None,
             "book_id": "BOOK_SG_BALANCED_DPM",
             "health_state": "PENDING_REVIEW",
             "limit": 25,
         },
         "correlation_id": "corr-command-router-1",
+        "tenant_id": "tenant-sg",
     }
     payload = response.json()
     assert payload["supportability"]["state"] == "PARTIAL"
@@ -107,6 +112,7 @@ def test_dpm_command_center_exception_resolution_forwards_reason(monkeypatch) ->
         exception_id,
         body,
         correlation_id,
+        tenant_id,
     ):  # noqa: ANN001
         _ = self
         captured["exception_id"] = exception_id
@@ -142,7 +148,7 @@ def test_dpm_command_center_exception_resolution_forwards_reason(monkeypatch) ->
 def test_dpm_command_center_mandate_health_drilldown_preserves_dimensions(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_mandate_health(self, mandate_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_mandate_health(self, mandate_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["mandate_id"] = mandate_id
         captured["correlation_id"] = correlation_id
@@ -1057,6 +1063,7 @@ def test_dpm_command_center_outcome_review_boundary_is_preserved_in_handoffs(
         self,
         outcome_review_id,
         correlation_id,
+        tenant_id,
     ):  # noqa: ANN001
         _ = self
         captured["report_input"] = {
@@ -1074,6 +1081,7 @@ def test_dpm_command_center_outcome_review_boundary_is_preserved_in_handoffs(
         self,
         outcome_review_id,
         correlation_id,
+        tenant_id,
     ):  # noqa: ANN001
         _ = self
         captured["ai_evidence_input"] = {
@@ -1172,6 +1180,7 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
         self,
         outcome_review_id,
         correlation_id,
+        tenant_id,
     ):  # noqa: ANN001
         _ = self
         captured["manage"] = {
@@ -1231,7 +1240,7 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
 def test_dpm_command_center_exception_summary_executes_lotus_ai(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_list_monitoring_exceptions(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_list_monitoring_exceptions(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["manage"] = {
             "params": params,

@@ -5,6 +5,7 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_ai_common import UPSTREAM_WAVE_AI_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
@@ -16,6 +17,7 @@ router = APIRouter(
 
 async def _request_wave_pm_memo(
     *,
+    tenant_id: str,
     wave_id: str,
     request: DpmWaveMemoRequest,
 ) -> DpmWaveMemoGatewayResponse:
@@ -23,6 +25,7 @@ async def _request_wave_pm_memo(
         wave_id=wave_id,
         request=request,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -41,6 +44,7 @@ async def _request_wave_pm_memo(
     responses=UPSTREAM_WAVE_AI_ERROR_RESPONSES,
 )
 async def request_wave_pm_memo(
+    tenant_id: DpmManageTenantId,
     request: DpmWaveMemoRequest,
     wave_id: str = Path(
         ...,
@@ -49,6 +53,7 @@ async def request_wave_pm_memo(
     ),
 ) -> DpmWaveMemoGatewayResponse:
     return await _request_wave_pm_memo(
+        tenant_id=tenant_id,
         wave_id=wave_id,
         request=request,
     )

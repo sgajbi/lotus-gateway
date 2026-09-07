@@ -5,6 +5,7 @@ from app.contracts.dpm_waves import (
     DpmOperationsHandoffSummaryRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_ai_common import UPSTREAM_WAVE_AI_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
@@ -16,6 +17,7 @@ router = APIRouter(
 
 async def _request_operations_handoff_summary(
     *,
+    tenant_id: str,
     wave_id: str,
     request: DpmOperationsHandoffSummaryRequest,
 ) -> DpmOperationsHandoffSummaryGatewayResponse:
@@ -23,6 +25,7 @@ async def _request_operations_handoff_summary(
         wave_id=wave_id,
         request=request,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -42,6 +45,7 @@ async def _request_operations_handoff_summary(
     responses=UPSTREAM_WAVE_AI_ERROR_RESPONSES,
 )
 async def request_operations_handoff_summary(
+    tenant_id: DpmManageTenantId,
     request: DpmOperationsHandoffSummaryRequest,
     wave_id: str = Path(
         ...,
@@ -50,6 +54,7 @@ async def request_operations_handoff_summary(
     ),
 ) -> DpmOperationsHandoffSummaryGatewayResponse:
     return await _request_operations_handoff_summary(
+        tenant_id=tenant_id,
         wave_id=wave_id,
         request=request,
     )

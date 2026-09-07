@@ -13,7 +13,7 @@ class _FakeDpmClient:
         self.result = result
         self.calls: list[dict[str, object]] = []
 
-    async def generate_proof_pack(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def generate_proof_pack(self, body, idempotency_key, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "proof_pack_generate",
@@ -44,7 +44,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_proof_pack_report_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def get_proof_pack_report_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "proof_pack_report_input",
@@ -54,7 +54,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_proof_pack_ai_evidence_input(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def get_proof_pack_ai_evidence_input(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "proof_pack_ai_evidence_input",
@@ -85,6 +85,7 @@ async def test_dpm_proof_pack_generation_preserves_manage_payload() -> None:
         body={"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_001"},
         idempotency_key="idem-proof-pack-1",
         correlation_id="corr-proof-pack-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-proof-pack-1"
@@ -184,12 +185,14 @@ async def test_dpm_proof_pack_handoff_inputs_preserve_manage_payloads() -> None:
     ).get_proof_pack_report_input(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-report-input-1",
+        tenant_id="tenant-sg",
     )
     ai_response = await DpmProofPackService(
         dpm_client=_FakeDpmClient((200, ai_payload))
     ).get_proof_pack_ai_evidence_input(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-ai-input-1",
+        tenant_id="tenant-sg",
     )
 
     assert report_response.data == report_payload
@@ -244,6 +247,7 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
             audience=["portfolio_manager"],
         ),
         correlation_id="corr-proof-pack-memo-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-ai"
@@ -292,6 +296,7 @@ async def test_dpm_proof_pack_pm_memo_requires_lotus_ai_client() -> None:
             proof_pack_id="dpp_rr_001",
             request=DpmProofPackMemoRequest(),
             correlation_id="corr-proof-pack-memo-missing-ai",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 503
@@ -314,6 +319,7 @@ async def test_dpm_proof_pack_pm_memo_preserves_lotus_ai_error() -> None:
             proof_pack_id="dpp_rr_001",
             request=DpmProofPackMemoRequest(),
             correlation_id="corr-proof-pack-memo-ai-error",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 422

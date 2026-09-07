@@ -4,6 +4,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskConcentrationResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import OptionalDpmManageTenantId
 from app.routers.workbench_risk_common import RISK_PERIOD_QUERY_DESCRIPTION
 from app.services.workbench_service_provider import risk_workspace_service
 
@@ -56,6 +57,7 @@ async def _get_risk_concentration(
     *,
     portfolio_id: str,
     query: RiskConcentrationQuery,
+    tenant_id: str | None,
 ) -> WorkbenchRiskConcentrationResponse:
     service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -68,6 +70,7 @@ async def _get_risk_concentration(
         report_end_date=query.report_end_date,
         reporting_currency=query.reporting_currency,
         benchmark_code=query.benchmark_code,
+        tenant_id=tenant_id,
     )
 
 
@@ -86,6 +89,7 @@ async def _get_risk_concentration(
     ),
 )
 async def get_workbench_risk_concentration(
+    tenant_id: OptionalDpmManageTenantId = None,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -110,4 +114,5 @@ async def get_workbench_risk_concentration(
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
         ),
+        tenant_id=tenant_id,
     )

@@ -2102,12 +2102,12 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "get_outcome_review_report_input",
-            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/outcome-reviews/or_1/report-input",
         ),
         (
             "get_outcome_review_ai_evidence_input",
-            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/outcome-reviews/or_1/ai-evidence-input",
         ),
         (
@@ -2127,12 +2127,12 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "get_proof_pack_report_input",
-            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/report-input",
         ),
         (
             "get_proof_pack_ai_evidence_input",
-            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/ai-evidence-input",
         ),
         (
@@ -2221,12 +2221,13 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "params": {"state": "HANDOFF_READY", "trigger_type": None},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves",
         ),
         (
             "get_wave",
-            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            {"wave_id": "dwv_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/waves/dwv_001",
         ),
         (
@@ -2494,22 +2495,22 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "get_wave_items",
-            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            {"wave_id": "dwv_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/items",
         ),
         (
             "get_wave_proof_pack_posture",
-            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            {"wave_id": "dwv_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/proof-pack",
         ),
         (
             "get_wave_supportability",
-            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            {"wave_id": "dwv_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/supportability",
         ),
         (
             "get_wave_report_input",
-            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            {"wave_id": "dwv_001", "correlation_id": "corr-5", "tenant_id": "tenant-sg"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/report-input",
         ),
     ],
@@ -2629,11 +2630,19 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         ),
         (
             client.get_outcome_review_report_input,
-            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "outcome_review_id": "or_1",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_outcome_review_ai_evidence_input,
-            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "outcome_review_id": "or_1",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_run_outcome_review,
@@ -2652,6 +2661,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2660,19 +2670,35 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
                 "idempotency_key": "idem-wave-canonical",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
             client.list_waves,
-            {"params": {"state": "HANDOFF_READY"}, "correlation_id": "corr-rfc36-canonical"},
+            {
+                "params": {"state": "HANDOFF_READY"},
+                "correlation_id": "corr-rfc36-canonical",
+                # `list_waves` takes the tenant as a HEADER, so it is its own
+                # argument rather than a query filter -- lotus-manage unified the
+                # wave aggregate onto one selector in their #677.
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_wave,
-            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "wave_id": "dwv_001",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_wave_items,
-            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "wave_id": "dwv_001",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.source_check_wave,
@@ -2680,6 +2706,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2688,6 +2715,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "item_inputs": []},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2697,6 +2725,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_item_id": "dwi_001",
                 "body": {"alternative_id": "alt_1", "actor_id": "pm_sg_1"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2733,15 +2762,27 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         ),
         (
             client.get_wave_proof_pack_posture,
-            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "wave_id": "dwv_001",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_wave_supportability,
-            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "wave_id": "dwv_001",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_wave_report_input,
-            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+            {
+                "wave_id": "dwv_001",
+                "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
+            },
         ),
         (
             client.get_campaign_operating_queue,
@@ -2822,6 +2863,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_1"},
                 "idempotency_key": "idem-rfc40-canonical",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2843,6 +2885,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "proof_pack_id": "dpp_rr_001",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2850,6 +2893,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "proof_pack_id": "dpp_rr_001",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2981,12 +3025,17 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_1"},
                 "idempotency_key": "idem-proof-pack-1",
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/proof-packs",
         ),
         (
             "preview_wave",
-            {"body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"}, "correlation_id": "corr-5"},
+            {
+                "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/preview",
         ),
         (
@@ -2995,6 +3044,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
                 "idempotency_key": "idem-wave-1",
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves",
         ),
@@ -3004,6 +3054,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/source-check",
         ),
@@ -3013,6 +3064,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "item_inputs": []},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/simulate",
         ),
@@ -3023,6 +3075,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_item_id": "dwi_001",
                 "body": {"alternative_id": "alt_1", "actor_id": "pm_sg_1"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/items/dwi_001/select",
         ),
@@ -3260,12 +3313,15 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
         (
             "get_command_center",
             {
+                # `params` carries business filters; the tenant is its own
+                # argument now, because lotus-manage reads it as the scope
+                # selector rather than as one filter among others.
                 "params": {
-                    "tenant_id": "default",
                     "portfolio_manager_id": "PM_SG_DPM_001",
                     "book_id": None,
                 },
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/dpm/command-center",
             "GET",
@@ -3299,6 +3355,7 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
             {
                 "params": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "state": "ACTIVE"},
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/dpm/exceptions",
             "GET",
@@ -3309,25 +3366,38 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
                 "exception_id": "me_1",
                 "body": {"resolution_reason": "SOURCE_REPAIRED"},
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/dpm/exceptions/me_1/resolve",
             "POST",
         ),
         (
             "get_mandate_by_portfolio",
-            {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/mandates/by-portfolio/PB_SG_GLOBAL_BAL_001",
             "GET",
         ),
         (
             "get_mandate",
-            {"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            {
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001",
             "GET",
         ),
         (
             "get_mandate_health",
-            {"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            {
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/health",
             "GET",
         ),
@@ -3337,6 +3407,7 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
                 "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
                 "params": {"from_version": "2", "to_version": "3"},
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/diff",
             "GET",
@@ -3387,11 +3458,18 @@ async def test_dpm_mandate_reads_forward_optional_business_date(
         **{
             identifier_name: identifier_value,
             "correlation_id": "corr-mandate-as-of",
+            "tenant_id": "tenant-sg",
             "as_of_date": "2026-04-10",
         }
     )
 
-    assert _FakeAsyncClient.calls[0]["params"] == {"as_of_date": "2026-04-10"}
+    # The tenant travels as a query parameter beside the business date, so this
+    # asserts the whole parameter set rather than only the optional one -- an
+    # equality that ignored the tenant would pass with it absent.
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "tenant_id": "tenant-sg",
+        "as_of_date": "2026-04-10",
+    }
 
 
 @pytest.mark.asyncio

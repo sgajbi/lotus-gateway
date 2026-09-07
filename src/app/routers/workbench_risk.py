@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path
 
 from app.contracts.risk_workspace import WorkbenchRiskSummaryResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import OptionalDpmManageTenantId
 from app.routers.workbench_caller_context import workbench_caller_context_dependency
 from app.routers.workbench_risk_common import (
     RiskAsOfDateQuery,
@@ -50,11 +51,20 @@ def build_risk_summary_query(
     )
 
 
-async def _get_risk_summary(
+async def _get_workbench_risk_summary(
     *,
     portfolio_id: str,
     query: RiskSummaryQuery,
+    caller_headers: dict[str, str],
+    tenant_id: str | None,
 ) -> WorkbenchRiskSummaryResponse:
+    # `tenant_id` is declared optional here even though this route cannot be
+    # reached without one: the caller-context dependency already fails closed on
+    # a missing X-Tenant-Id and answers 400 `missing_caller_context` naming every
+    # header that was absent. Declaring the header required as well would make
+    # FastAPI's 422 fire first and replace that answer with a less useful one,
+    # so admission stays with the dependency and this only carries the value.
+    _ = caller_headers
     return await risk_workspace_service().get_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
@@ -65,19 +75,7 @@ async def _get_risk_summary(
         report_start_date=query.report_start_date,
         report_end_date=query.report_end_date,
         reporting_currency=query.reporting_currency,
-    )
-
-
-async def _get_workbench_risk_summary(
-    *,
-    portfolio_id: str,
-    query: RiskSummaryQuery,
-    caller_headers: dict[str, str],
-) -> WorkbenchRiskSummaryResponse:
-    _ = caller_headers
-    return await _get_risk_summary(
-        portfolio_id=portfolio_id,
-        query=query,
+        tenant_id=tenant_id,
     )
 
 
@@ -97,6 +95,7 @@ async def _get_workbench_risk_summary(
     ),
 )
 async def get_workbench_risk_summary(
+    tenant_id: OptionalDpmManageTenantId = None,
     portfolio_id: str = Path(
         ...,
         description="Canonical portfolio identifier for the stateful workbench risk summary.",
@@ -109,4 +108,5 @@ async def get_workbench_risk_summary(
         portfolio_id=portfolio_id,
         query=query,
         caller_headers=caller_headers,
+        tenant_id=tenant_id,
     )

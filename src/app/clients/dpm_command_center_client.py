@@ -1,38 +1,17 @@
 from typing import Any
 
+from app.clients.dpm_client_call_surface import DpmClientCallSurfaceMixin
 
-class DpmCommandCenterClientMixin:
-    def _headers(
-        self,
-        correlation_id: str,
-        extras: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
 
-    async def _get(
-        self,
-        path: str,
-        params: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _post(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
+class DpmCommandCenterClientMixin(DpmClientCallSurfaceMixin):
     async def get_command_center(
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
+        cleaned_params["tenant_id"] = tenant_id
         return await self._get(
             "/api/v1/dpm/command-center",
             params=cleaned_params,
@@ -57,7 +36,7 @@ class DpmCommandCenterClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/dpm/monitoring/runs",
             params=cleaned_params,
@@ -81,8 +60,10 @@ class DpmCommandCenterClientMixin:
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
+        cleaned_params["tenant_id"] = tenant_id
         return await self._get(
             "/api/v1/dpm/exceptions",
             params=cleaned_params,
@@ -95,11 +76,13 @@ class DpmCommandCenterClientMixin:
         exception_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/dpm/exceptions/{exception_id}/resolve",
             body=body,
             headers=self._headers(correlation_id),
+            params={"tenant_id": tenant_id},
             operation="manage.dpm.exceptions.resolve",
         )
 
@@ -107,11 +90,15 @@ class DpmCommandCenterClientMixin:
         self,
         portfolio_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/mandates/by-portfolio/{portfolio_id}",
-            params={"as_of_date": as_of_date} if as_of_date is not None else {},
+            params={
+                "tenant_id": tenant_id,
+                **({"as_of_date": as_of_date} if as_of_date is not None else {}),
+            },
             headers=self._headers(correlation_id),
             operation="manage.mandates.by_portfolio.get",
         )
@@ -120,10 +107,11 @@ class DpmCommandCenterClientMixin:
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/mandates/{mandate_id}",
-            params={},
+            params={"tenant_id": tenant_id},
             headers=self._headers(correlation_id),
             operation="manage.mandates.get",
         )
@@ -132,11 +120,15 @@ class DpmCommandCenterClientMixin:
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/mandates/{mandate_id}/health",
-            params={"as_of_date": as_of_date} if as_of_date is not None else {},
+            params={
+                "tenant_id": tenant_id,
+                **({"as_of_date": as_of_date} if as_of_date is not None else {}),
+            },
             headers=self._headers(correlation_id),
             operation="manage.mandates.health.get",
         )
@@ -146,8 +138,10 @@ class DpmCommandCenterClientMixin:
         mandate_id: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
+        cleaned_params["tenant_id"] = tenant_id
         return await self._get(
             f"/api/v1/mandates/{mandate_id}/diff",
             params=cleaned_params,
@@ -161,7 +155,7 @@ class DpmCommandCenterClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             f"/api/v1/rebalance/portfolio-memory/{portfolio_id}",
             params=cleaned_params,
@@ -174,7 +168,7 @@ class DpmCommandCenterClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/portfolio-memory/search",
             params=cleaned_params,

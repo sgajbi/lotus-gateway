@@ -8,6 +8,7 @@ class RiskMandateManageClient(Protocol):
         self,
         portfolio_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -15,6 +16,7 @@ class RiskMandateManageClient(Protocol):
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 

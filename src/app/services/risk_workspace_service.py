@@ -69,6 +69,7 @@ class RiskWorkspaceService(
         report_start_date: str | None = None,
         report_end_date: str | None = None,
         reporting_currency: str | None,
+        tenant_id: str | None,
     ) -> WorkbenchRiskSummaryResponse:
         context = build_summary_request_context(
             portfolio_id=portfolio_id,
@@ -80,6 +81,7 @@ class RiskWorkspaceService(
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
+            tenant_id=tenant_id,
         )
 
         response, cache_hit = await self._cache.get_or_set_with_status(
@@ -106,6 +108,7 @@ class RiskWorkspaceService(
         report_end_date: str | None = None,
         reporting_currency: str | None,
         benchmark_code: str | None,
+        tenant_id: str | None,
     ) -> WorkbenchRiskConcentrationResponse:
         context = build_concentration_request_context(
             portfolio_id=portfolio_id,
@@ -116,6 +119,7 @@ class RiskWorkspaceService(
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
+            tenant_id=tenant_id,
         )
 
         response, cache_hit = await self._cache.get_or_set_with_status(

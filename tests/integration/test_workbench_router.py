@@ -796,7 +796,10 @@ def test_workbench_risk_summary_router_composes_manage_mandate_evidence(monkeypa
             }
         }
 
-    async def _mandate(self, portfolio_id, correlation_id, as_of_date=None):  # noqa: ARG001
+    manage_tenants: list[str] = []
+
+    async def _mandate(self, portfolio_id, correlation_id, tenant_id, as_of_date=None):  # noqa: ARG001
+        manage_tenants.append(tenant_id)
         return 200, {
             "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
             "portfolio_id": portfolio_id,
@@ -824,7 +827,8 @@ def test_workbench_risk_summary_router_composes_manage_mandate_evidence(monkeypa
             ],
         }
 
-    async def _health(self, mandate_id, correlation_id, as_of_date=None):  # noqa: ARG001
+    async def _health(self, mandate_id, correlation_id, tenant_id, as_of_date=None):  # noqa: ARG001
+        manage_tenants.append(tenant_id)
         return 200, {
             "health_snapshot_id": "mh_1",
             "mandate_id": mandate_id,
@@ -895,6 +899,8 @@ def test_workbench_risk_summary_router_composes_manage_mandate_evidence(monkeypa
     )
 
     assert response.status_code == 200
+    # The tenant the caller presented is the tenant both manage reads ran under.
+    assert manage_tenants == ["tenant-sg", "tenant-sg"]
     comparison = response.json()["mandate_comparison"]
     assert comparison["risk_profile"] == "BALANCED"
     assert comparison["date_alignment_state"] == "aligned"
@@ -1093,6 +1099,9 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     assert response.status_code == 200
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
+    # No X-Tenant-Id was sent, and this route does not require one: the lotus-risk
+    # concentration answer is returned in full, and the manage-owned mandate limits
+    # are reported as needing a tenant rather than being silently omitted.
     assert body["state"] == "ready"
     assert body["payload"]["portfolio_concentration"]["hhi_current"] == 1200.0
     assert body["payload"]["portfolio_concentration"]["hhi_delta"] == 25.0
@@ -1102,6 +1111,12 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     )
     assert body["payload"]["single_position_concentration"]["top_position_weight_current"] == 0.2
     assert body["payload"]["single_position_concentration"]["top_position_weight_proposed"] == 0.21
+    assert body["mandate_comparison"]["constraints"] == []
+    assert body["mandate_comparison"]["supportability"]["state"] == "unavailable"
+    assert body["mandate_comparison"]["supportability"]["reason"] == (
+        "Mandate comparison requires a tenant: lotus-manage stores mandate evidence "
+        "per tenant and this request did not name one."
+    )
     assert body["payload"]["single_position_concentration"]["top_position_weight_delta"] == 0.01
     assert (
         body["payload"]["single_position_concentration"]["top_position_proposed"]["security_id"]

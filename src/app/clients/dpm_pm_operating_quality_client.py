@@ -1,41 +1,9 @@
 from typing import Any
 
+from app.clients.dpm_client_call_surface import DpmClientCallSurfaceMixin
 
-class DpmPmOperatingQualityClientMixin:
-    def _headers(
-        self,
-        correlation_id: str,
-        extras: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
 
-    async def _get(
-        self,
-        path: str,
-        params: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _post(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _put(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
+class DpmPmOperatingQualityClientMixin(DpmClientCallSurfaceMixin):
     async def preview_pm_operating_quality_score_run(
         self,
         body: dict[str, Any],
@@ -89,7 +57,7 @@ class DpmPmOperatingQualityClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/pm-operating-quality/fairness-analyses",
             params=cleaned_params,
@@ -138,7 +106,7 @@ class DpmPmOperatingQualityClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/pm-operating-quality/review-actions",
             params=cleaned_params,
@@ -187,7 +155,7 @@ class DpmPmOperatingQualityClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/pm-operating-quality/summary-invocations",
             params=cleaned_params,
@@ -212,7 +180,7 @@ class DpmPmOperatingQualityClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/pm-operating-quality/score-runs",
             params=cleaned_params,
@@ -254,7 +222,7 @@ class DpmPmOperatingQualityClientMixin:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/pm-operating-quality/policies",
             params=cleaned_params,

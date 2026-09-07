@@ -7,6 +7,10 @@ from app.contracts.workbench import (
     WorkbenchOverviewSummary,
     WorkbenchPortfolioSummary,
 )
+from app.middleware.caller_identity import (
+    admit_caller_tenant,
+    release_caller_identity,
+)
 from app.services.risk_workspace_service import RiskWorkspaceService
 
 
@@ -48,10 +52,16 @@ class _ManageClient:
         self,
         portfolio_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         self.calls.append(
-            {"method": "mandate", "correlation_id": correlation_id, "as_of_date": as_of_date}
+            {
+                "method": "mandate",
+                "correlation_id": correlation_id,
+                "as_of_date": as_of_date,
+                "tenant_id": tenant_id,
+            }
         )
         return 200, {
             "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
@@ -75,10 +85,16 @@ class _ManageClient:
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         self.calls.append(
-            {"method": "health", "correlation_id": correlation_id, "as_of_date": as_of_date}
+            {
+                "method": "health",
+                "correlation_id": correlation_id,
+                "as_of_date": as_of_date,
+                "tenant_id": tenant_id,
+            }
         )
         return 200, {
             "health_snapshot_id": "mh_1",
@@ -147,6 +163,7 @@ async def test_summary_composes_and_caches_risk_manage_and_cash_sources_together
         benchmark_code="BMK_1",
         as_of_date="2026-05-03",
         reporting_currency="SGD",
+        tenant_id="tenant-sg",
     )
     second = await service.get_summary(
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -156,10 +173,14 @@ async def test_summary_composes_and_caches_risk_manage_and_cash_sources_together
         benchmark_code="BMK_1",
         as_of_date="2026-05-03",
         reporting_currency="SGD",
+        tenant_id="tenant-sg",
     )
 
     assert len(risk.calls) == 1
     assert [call["method"] for call in manage.calls] == ["mandate", "health"]
+    # Both manage reads run under the tenant the request admitted -- the mandate
+    # lookup and the health lookup that follows it from the mandate it returned.
+    assert [call["tenant_id"] for call in manage.calls] == ["tenant-sg", "tenant-sg"]
     assert len(cash.calls) == 1
     assert first.mandate_comparison is not None
     assert first.mandate_comparison.supportability.state == "ready"
@@ -181,6 +202,7 @@ async def test_summary_without_configured_sources_is_explicitly_unavailable() ->
         benchmark_code="BMK_1",
         as_of_date="2026-05-03",
         reporting_currency="SGD",
+        tenant_id="tenant-sg",
     )
 
     assert response.payload is not None
@@ -189,3 +211,93 @@ async def test_summary_without_configured_sources_is_explicitly_unavailable() ->
     assert response.mandate_comparison.supportability.reason == (
         "Mandate comparison sources are not configured for this runtime."
     )
+
+
+@pytest.mark.asyncio
+async def test_summary_without_a_tenant_keeps_risk_measures_and_names_the_missing_scope() -> None:
+    """A tenantless request still gets its lotus-risk answer.
+
+    lotus-manage stores mandate evidence per tenant, so a request that named no
+    tenant cannot have a mandate comparison composed for it. The failure mode
+    worth refusing is Gateway picking one -- a seeded default, or the first
+    tenant a portfolio appears under -- which would show one tenant's mandate
+    against another's positions. So the mandate section says why it is empty and
+    no lotus-manage call is made, while the risk measures, which are
+    lotus-risk-owned and need no tenant, are returned exactly as before.
+    """
+
+    manage = _ManageClient()
+    service = RiskWorkspaceService(
+        _RiskClient(),
+        manage_client=manage,
+        cash_source=_CashSource(),
+        cache_ttl_seconds=60,
+    )
+
+    response = await service.get_summary(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-no-tenant",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-05-03",
+        reporting_currency="SGD",
+        tenant_id=None,
+    )
+
+    assert manage.calls == []
+    assert response.payload is not None
+    assert response.mandate_comparison is not None
+    assert response.mandate_comparison.supportability.state == "unavailable"
+    assert response.mandate_comparison.supportability.reason == (
+        "Mandate comparison requires a tenant: lotus-manage stores mandate evidence "
+        "per tenant and this request did not name one."
+    )
+
+
+@pytest.mark.asyncio
+async def test_two_tenants_do_not_share_a_cached_summary() -> None:
+    """The tenant is part of what was asked, so it is part of the cache key.
+
+    Without this the second tenant is served the first tenant's mandate
+    comparison from cache, with no lotus-manage call made under its own scope --
+    a cross-tenant read that leaves no trace upstream to find it by.
+    """
+
+    manage = _ManageClient()
+    service = RiskWorkspaceService(
+        _RiskClient(),
+        manage_client=manage,
+        cash_source=_CashSource(),
+        cache_ttl_seconds=60,
+    )
+    request = {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "correlation_id": "corr-tenant-partition",
+        "period": "YTD",
+        "detail_basis": "NET",
+        "benchmark_code": "BMK_1",
+        "as_of_date": "2026-05-03",
+        "reporting_currency": "SGD",
+    }
+
+    first_token = admit_caller_tenant("tenant-sg")
+    try:
+        first = await service.get_summary(**request, tenant_id="tenant-sg")
+    finally:
+        release_caller_identity(first_token)
+
+    second_token = admit_caller_tenant("tenant-hk")
+    try:
+        second = await service.get_summary(**request, tenant_id="tenant-hk")
+    finally:
+        release_caller_identity(second_token)
+
+    assert first.metadata.cache_status == "miss"
+    assert second.metadata.cache_status == "miss"
+    assert [call["tenant_id"] for call in manage.calls] == [
+        "tenant-sg",
+        "tenant-sg",
+        "tenant-hk",
+        "tenant-hk",
+    ]

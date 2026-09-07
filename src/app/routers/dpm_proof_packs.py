@@ -5,6 +5,7 @@ from app.contracts.dpm_proof_packs import (
     DpmProofPackGenerateRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_proof_pack_common import UPSTREAM_PROOF_PACK_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_proof_pack_service
 
@@ -16,11 +17,13 @@ router = APIRouter(
 
 async def _generate_proof_pack(
     request: DpmProofPackGenerateRequest,
+    tenant_id: str,
 ) -> DpmProofPackGatewayResponse:
     return await dpm_proof_pack_service().generate_proof_pack(
         body=request.body,
         idempotency_key=request.idempotency_key,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -40,5 +43,6 @@ async def _generate_proof_pack(
 )
 async def generate_proof_pack(
     request: DpmProofPackGenerateRequest,
+    tenant_id: DpmManageTenantId,
 ) -> DpmProofPackGatewayResponse:
-    return await _generate_proof_pack(request)
+    return await _generate_proof_pack(request, tenant_id=tenant_id)
