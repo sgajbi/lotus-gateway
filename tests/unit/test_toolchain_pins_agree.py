@@ -75,6 +75,17 @@ EXPECTED_HOOK_REPOSITORIES = {"ruff": "https://github.com/astral-sh/ruff-pre-com
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 
+# Flags that make a tool report success without judging the tree. The hook is
+# listed, its entry is right, its version agrees — and its verdict is green
+# whatever the code says. This is a NAMED SET, not a model of either tool's CLI:
+# an exhaustive one would be reimplementing ruff's and mypy's argument parsers,
+# the scope this file already declined for file selection. It names the flags
+# whose PURPOSE is to suppress a verdict, which is the degenerate case worth
+# failing on.
+VERDICT_NEUTRALISING_ARGS = frozenset(
+    {"--exit-zero", "--exit-zero-even-if-changed", "--version", "--help"}
+)
+
 # A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
 # lets the newest matching release arrive without a commit.
 _EXACT_PIN = re.compile(
@@ -105,6 +116,20 @@ def _runs_on_commit(stages: object) -> bool:
         return True
     names = {str(stage).strip() for stage in stages}
     return bool(names & {"pre-commit", "commit"})
+
+
+def _reports_a_verdict(hook: dict[str, object]) -> bool:
+    """Whether a hook's arguments still let its findings fail the commit.
+
+    `--exit-zero` leaves ruff running, reading every file and printing every
+    violation, then exiting 0. Crediting a revision for such a hook says
+    developers are covered by a checker that cannot refuse anything — the same
+    error as crediting a stanza for being listed, one level further in.
+
+    A flag written `--flag=value` is compared by its name.
+    """
+    names = {str(argument).split("=", 1)[0] for argument in hook.get("args") or []}
+    return not (names & VERDICT_NEUTRALISING_ARGS)
 
 
 def _config() -> dict[str, object]:
@@ -162,8 +187,12 @@ def _hook_revisions() -> dict[str, str]:
             identifier = str(hook.get("id", ""))
             if not identifier:
                 continue
-            runs[identifier] = runs.get(identifier, False) or _runs_on_commit(
-                hook.get("stages", default_stages)
+            # A hook counts only if it both runs and can still refuse: an
+            # occurrence carrying `--exit-zero` executes and reports success
+            # regardless. OR-ing across occurrences stays correct — a second,
+            # un-neutralised occurrence does fail the commit.
+            runs[identifier] = runs.get(identifier, False) or (
+                _runs_on_commit(hook.get("stages", default_stages)) and _reports_a_verdict(hook)
             )
         for tool, required in REV_PINNED_HOOKS.items():
             if source.rstrip("/") != EXPECTED_HOOK_REPOSITORIES[tool]:
@@ -563,6 +592,36 @@ repos:
     assert _parse_config(split, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
         "hooks split across stanzas at the same revision still cover the tool"
     )
+
+
+def test_a_hook_that_cannot_refuse_is_not_credited(tmp_path, monkeypatch) -> None:
+    """`--exit-zero` leaves ruff running and unable to fail the commit.
+
+    The stanza is listed, the hook is present, the revision agrees, and every
+    violation is printed — then the hook exits 0. Crediting it says developers
+    are covered by a checker that refuses nothing.
+
+    The accept side is asserted as explicitly as the reject side: the SAME
+    configuration without the flag must be credited, so the case cannot pass
+    because of some unrelated defect in the stanza.
+    """
+    template = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        args: [{args}]
+      - id: ruff-format
+"""
+    assert (
+        _parse_config(template.format(args='"--fix"'), tmp_path, monkeypatch).get("ruff")
+        == "0.15.22"
+    ), "a hook that can still fail the commit is credited"
+
+    assert "ruff" not in _parse_config(
+        template.format(args='"--fix", "--exit-zero"'), tmp_path, monkeypatch
+    ), "a hook that always exits 0 does not cover the tool"
 
 
 def test_neutralising_args_are_rejected(tmp_path, monkeypatch) -> None:
