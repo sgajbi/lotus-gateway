@@ -68,7 +68,11 @@ REV_PINNED_HOOKS: dict[str, tuple[str, ...]] = {"ruff": ("ruff", "ruff-format")}
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 
-_EXACT_PIN = re.compile(r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[0-9][^\s,;]*)$")
+# A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
+# lets the newest matching release arrive without a commit.
+_EXACT_PIN = re.compile(
+    r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[0-9]+(?:\.[0-9]+)*(?:[abrc][0-9]+)?)$"
+)
 
 
 def _declared_pins() -> dict[str, str]:
@@ -142,11 +146,17 @@ def _hook_revisions() -> dict[str, str]:
         if not revision:
             continue
         # A per-hook `stages` OVERRIDES the file default; absent, it inherits.
-        runs = {
-            str(hook.get("id", "")): _runs_on_commit(hook.get("stages", default_stages))
-            for hook in hooks
-            if hook.get("id")
-        }
+        # OR across occurrences, not last-wins: pre-commit executes every hook
+        # entry, so an id listed twice runs if ANY of its occurrences does.
+        # Collapsing by id would let a manual duplicate mask a running one.
+        runs: dict[str, bool] = {}
+        for hook in hooks:
+            identifier = str(hook.get("id", ""))
+            if not identifier:
+                continue
+            runs[identifier] = runs.get(identifier, False) or _runs_on_commit(
+                hook.get("stages", default_stages)
+            )
         for tool, required in REV_PINNED_HOOKS.items():
             if tool not in source:
                 continue
@@ -262,12 +272,11 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
         # The residual is real and is the same contract `make lint` already has
         # -- run from the environment the project was installed into. A hook
         # cannot enforce that; it can only avoid making it worse.
-        assert str(hook.get("entry", "")).startswith("python -m "), (
-            f"the local {tool} hook must invoke the interpreter, not a PATH executable; "
+        entry_parts = str(hook.get("entry", "")).split()
+        assert entry_parts[:3] == ["python", "-m", tool], (
+            f"the local {tool} hook must invoke `python -m {tool}` exactly; "
+            f"`python -m mypyc` and similar contain the name without being the tool. "
             f"entry is {hook.get('entry')!r}"
-        )
-        assert tool in str(hook.get("entry", "")), (
-            f"the local {tool} hook must actually invoke {tool}; entry is {hook.get('entry')!r}"
         )
 
 
@@ -424,4 +433,38 @@ repos:
     )
     assert _parse_config(disabled_stale, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
         "a stale stanza that does not run on commit is not a conflict"
+    )
+
+
+def test_a_wildcard_equality_is_not_an_exact_pin() -> None:
+    """`mypy==2.3.*` is a range wearing `==`.
+
+    It still lets the newest matching release arrive without a commit, which is
+    the drift this file exists to remove — so accepting it would defeat the
+    check while looking like a pin.
+    """
+    assert _EXACT_PIN.match("mypy==2.3.1")
+    assert _EXACT_PIN.match("ruff==0.15.22")
+    assert not _EXACT_PIN.match("mypy==2.3.*")
+    assert not _EXACT_PIN.match("ruff>=0.15.0")
+
+
+def test_a_duplicate_hook_id_runs_if_any_occurrence_does(tmp_path, monkeypatch) -> None:
+    """pre-commit executes every hook entry, not the last one with a given id.
+
+    Collapsing occurrences by id would let a manual duplicate mask a running one,
+    or the reverse, depending on file order.
+    """
+    duplicated_ids = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        stages: [manual]
+      - id: ruff
+      - id: ruff-format
+"""
+    assert _parse_config(duplicated_ids, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "one manual occurrence does not disable a sibling that runs on commit"
     )
