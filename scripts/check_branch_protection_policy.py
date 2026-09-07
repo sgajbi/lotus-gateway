@@ -240,6 +240,15 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     for key in ("strict", "checks"):
         if key not in checks:
             issues.append(f"expected.required_status_checks.{key} must be declared")
+    if "contexts" in checks:
+        # `checks` REPLACED `contexts`; nothing reads the old field. Left beside
+        # the new one it is a list of required gates that looks authoritative and
+        # is compared against nothing -- so a migration that adds `checks` and
+        # forgets to remove `contexts` can name a context the audit ignores.
+        issues.append(
+            "expected.required_status_checks.contexts is retired and is read by nothing: "
+            "remove it, and declare every required context in `checks` with its app_id"
+        )
     if "checks" in checks:
         issues.extend(_required_check_issues(checks["checks"]))
     if "strict" in checks and not isinstance(checks["strict"], bool):

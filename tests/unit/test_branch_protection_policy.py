@@ -219,6 +219,25 @@ def test_a_context_reported_twice_by_live_protection_is_reported() -> None:
     )
 
 
+def test_the_retired_contexts_field_is_refused_when_left_beside_checks() -> None:
+    """A half-finished migration must fail, not look complete.
+
+    `checks` replaced `contexts` and nothing reads the old field. An adopter who
+    adds `checks` and leaves `contexts` behind has a table that names required
+    gates in a list compared against nothing — it reads as authoritative and is
+    inert. That is the same class this whole change removes, arriving through the
+    migration itself.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["contexts"] = [
+        "PR Merge Gate / A Gate Nobody Compares"
+    ]
+
+    issues = validate_policy_document(policy)
+
+    assert any("retired" in issue for issue in issues), issues
+
+
 def test_a_context_declared_twice_is_refused() -> None:
     """One context has one binding; a repeat is discarded, not compared.
 
