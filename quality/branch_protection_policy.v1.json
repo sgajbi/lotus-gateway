@@ -16,14 +16,35 @@
     "required_conversation_resolution": true,
     "required_status_checks": {
       "strict": true,
-      "contexts": [
-        "PR Merge Gate / Workflow Lint",
-        "PR Merge Gate / Lint Typecheck Unit",
-        "PR Merge Gate / Integration Tests",
-        "PR Merge Gate / Coverage Gate",
-        "PR Merge Gate / Validate Docker Build",
-        "PR Merge Gate / CI Local Docker Parity",
-        "Quality Baseline / Ratcheted Trend Gate"
+      "checks": [
+        {
+          "context": "PR Merge Gate / Workflow Lint",
+          "app_id": 15368
+        },
+        {
+          "context": "PR Merge Gate / Lint Typecheck Unit",
+          "app_id": 15368
+        },
+        {
+          "context": "PR Merge Gate / Integration Tests",
+          "app_id": 15368
+        },
+        {
+          "context": "PR Merge Gate / Coverage Gate",
+          "app_id": 15368
+        },
+        {
+          "context": "PR Merge Gate / Validate Docker Build",
+          "app_id": 15368
+        },
+        {
+          "context": "PR Merge Gate / CI Local Docker Parity",
+          "app_id": 15368
+        },
+        {
+          "context": "Quality Baseline / Ratcheted Trend Gate",
+          "app_id": 15368
+        }
       ]
     },
     "required_pull_request_reviews": {
@@ -50,7 +71,7 @@
       "field": "required_pull_request_reviews.required_approving_review_count",
       "value": 0,
       "reason": "the repository has a single accepted collaborator; requiring a non-author approval would hard-lock main rather than strengthen it, and naming that collaborator in CODEOWNERS would record an independent-review control that does not exist",
-      "compensating_controls": "seven required green contexts, enforce_admins, strict up-to-date branches, required conversation resolution, and linear history apply to every merge including the administrator's",
+      "compensating_controls": "seven required green contexts each pinned to the GitHub Actions app that may satisfy it, enforce_admins, strict up-to-date branches, required conversation resolution, and linear history apply to every merge including the administrator's",
       "retires_when": "a second accepted reviewer identity exists; then raise required_approving_review_count to 1, add CODEOWNERS, and update this policy in the same change"
     }
   ]

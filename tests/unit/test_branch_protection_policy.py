@@ -40,7 +40,9 @@ def _live_matching_policy(policy: dict[str, Any]) -> dict[str, Any]:
         **{key: {"enabled": expected[key]} for key in MERGEABILITY_KEYS},
         "required_status_checks": {
             "strict": expected["required_status_checks"]["strict"],
-            "contexts": list(expected["required_status_checks"]["contexts"]),
+            # Mirrors the API shape, derived from the table so the double cannot
+            # drift from what it stands in for.
+            "checks": [dict(check) for check in expected["required_status_checks"]["checks"]],
         },
         "required_pull_request_reviews": (
             {
@@ -81,12 +83,12 @@ def test_weakened_live_protection_fails() -> None:
     policy = load_policy()
     live = _live_matching_policy(policy)
     live["enforce_admins"] = {"enabled": False}
-    live["required_status_checks"]["contexts"] = live["required_status_checks"]["contexts"][:-1]
+    live["required_status_checks"]["checks"] = live["required_status_checks"]["checks"][:-1]
 
     issues = compare_live_to_policy(policy, live)
 
     assert any(issue.startswith("enforce_admins") for issue in issues)
-    assert any("contexts differ" in issue for issue in issues)
+    assert any("missing from live protection" in issue for issue in issues)
 
 
 @pytest.mark.parametrize("control", MERGEABILITY_KEYS)
@@ -131,6 +133,80 @@ def test_a_policy_omitting_a_mergeability_control_is_refused(control: str) -> No
     assert any(control in issue for issue in issues), (
         f"a policy without {control} was accepted: {issues}"
     )
+
+
+def test_a_rebound_context_is_reported_though_its_name_is_unchanged() -> None:
+    """The #740 defect: a required check can change WHO may satisfy it.
+
+    Removing or replacing a context's source binding leaves its name in the
+    response, so a name-only comparison reports a clean match while a different
+    GitHub App -- or a legacy commit status -- satisfies branch protection in its
+    place. Without a binding the name is the whole credential.
+    """
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    rebound = live["required_status_checks"]["checks"][0]
+    original = rebound["app_id"]
+    rebound["app_id"] = 99999
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("app binding differs" in issue for issue in issues), issues
+    assert any(rebound["context"] in issue for issue in issues), (
+        "the report must name the context whose binding moved"
+    )
+    assert original != 99999
+
+
+def test_an_unpinned_live_binding_is_reported() -> None:
+    """`app_id: null` live against a pinned declaration means any app may report it."""
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    live["required_status_checks"]["checks"][0]["app_id"] = None
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("app binding differs" in issue for issue in issues), issues
+
+
+def test_a_check_without_a_declared_app_id_is_refused() -> None:
+    """Absent is not the same as null, and must not resolve to the weaker one.
+
+    GitHub uses `null` for "any app may report this context" -- a real, weaker
+    posture. If omitting the key silently meant that, the weakest binding would
+    be what you get by writing nothing.
+    """
+    policy = copy.deepcopy(load_policy())
+    del policy["expected"]["required_status_checks"]["checks"][0]["app_id"]
+
+    issues = validate_policy_document(policy)
+
+    assert any("does not declare app_id" in issue for issue in issues), issues
+
+
+def test_an_explicit_null_app_id_is_accepted() -> None:
+    """Opting into "any app" deliberately is allowed; doing it by omission is not.
+
+    The accept side matters as much as the reject side: a validator that refused
+    every `null` would force adopters to misdeclare a genuinely unpinned context.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = None
+
+    assert validate_policy_document(policy) == []
+
+
+def test_an_undeclared_live_context_is_reported() -> None:
+    """A context required live but absent from the table is drift in the other direction."""
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    live["required_status_checks"]["checks"].append(
+        {"context": "Some Other Gate / Added Quietly", "app_id": 15368}
+    )
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("undeclared" in issue for issue in issues), issues
 
 
 def test_absent_reviews_block_is_distinguished_from_zero_count() -> None:
@@ -180,11 +256,11 @@ def test_offline_validation_rejects_a_policy_missing_expected_fields() -> None:
         )
 
 
-def test_offline_validation_rejects_an_empty_required_context_list() -> None:
+def test_offline_validation_rejects_an_empty_required_check_list() -> None:
     policy = copy.deepcopy(load_policy())
-    policy["expected"]["required_status_checks"]["contexts"] = []
+    policy["expected"]["required_status_checks"]["checks"] = []
     issues = validate_policy_document(policy)
-    assert any("contexts is empty" in issue for issue in issues)
+    assert any("checks is empty" in issue for issue in issues)
 
 
 def test_offline_validation_rejects_missing_nested_fields() -> None:
@@ -192,7 +268,7 @@ def test_offline_validation_rejects_missing_nested_fields() -> None:
     policy = load_policy()
     cases = [
         (("required_status_checks", "strict"), "expected.required_status_checks.strict"),
-        (("required_status_checks", "contexts"), "expected.required_status_checks.contexts"),
+        (("required_status_checks", "checks"), "expected.required_status_checks.checks"),
         (
             ("required_pull_request_reviews", "present"),
             "expected.required_pull_request_reviews.present",
@@ -233,8 +309,14 @@ def test_offline_validation_requires_each_bypass_category() -> None:
 def test_offline_validation_rejects_wrong_value_types() -> None:
     """A bare string would be compared character by character after merge."""
     policy = copy.deepcopy(load_policy())
-    policy["expected"]["required_status_checks"]["contexts"] = "PR Merge Gate / Coverage"
-    assert any("must be a list of strings" in issue for issue in validate_policy_document(policy))
+    policy["expected"]["required_status_checks"]["checks"] = "PR Merge Gate / Coverage"
+    assert any("must be a list of" in issue for issue in validate_policy_document(policy))
+
+    # A list of bare strings is the pre-#740 shape: it declares contexts with no
+    # bindings at all, and must be refused rather than read as unpinned.
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"] = ["PR Merge Gate / Coverage"]
+    assert any("must be an object" in issue for issue in validate_policy_document(policy))
 
     policy = copy.deepcopy(load_policy())
     policy["expected"]["required_status_checks"]["strict"] = "true"

@@ -139,6 +139,53 @@ def detect_repository(repo_root: Path) -> str | None:
     return f"{parts[-2]}/{parts[-1]}"
 
 
+def _required_check_issues(declared: Any) -> list[str]:
+    """Each required context must name the app permitted to satisfy it.
+
+    The table mirrors the API's own `required_status_checks.checks` shape --
+    `[{"context": ..., "app_id": ...}]` -- so the declaration compares against
+    the response with no translation between them. A normaliser sitting between
+    the declared and the measured is a place where the two can be made to agree.
+
+    `app_id: null` is MEANINGFUL: GitHub uses it for "any app may report this
+    context", which is a real and deliberately weaker posture. So an ABSENT
+    `app_id` is refused and an explicit `null` is required to opt into it.
+    Otherwise the weakest binding would be the one you get by writing nothing --
+    the same failure removed from the four mergeability controls, in a new place.
+
+    Without a binding the context name is the whole credential: any GitHub App
+    able to post a status by that name satisfies the required check.
+    """
+    if not isinstance(declared, list):
+        return [
+            "expected.required_status_checks.checks must be a list of "
+            '{"context": ..., "app_id": ...} objects'
+        ]
+    if not declared:
+        return ["expected.required_status_checks.checks is empty: nothing would be required"]
+
+    issues: list[str] = []
+    for index, check in enumerate(declared):
+        if not isinstance(check, dict):
+            issues.append(f"required_status_checks.checks[{index}] must be an object")
+            continue
+        context = check.get("context")
+        label = context if isinstance(context, str) and context.strip() else f"[{index}]"
+        if not isinstance(context, str) or not context.strip():
+            issues.append(f"required_status_checks.checks[{index}] must name a context")
+        if "app_id" not in check:
+            issues.append(
+                f"required_status_checks.checks {label!r} does not declare app_id: "
+                "name the app permitted to satisfy this context, or declare null "
+                "to allow any app deliberately"
+            )
+        elif check["app_id"] is not None and not isinstance(check["app_id"], int):
+            issues.append(
+                f"required_status_checks.checks {label!r} app_id must be an integer or null"
+            )
+    return issues
+
+
 def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     """Offline shape check: the document must be complete enough to gate against."""
     issues: list[str] = []
@@ -163,20 +210,11 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         if key not in expected:
             issues.append(f"expected.{key} must be declared")
     checks = expected.get("required_status_checks", {})
-    for key in ("strict", "contexts"):
+    for key in ("strict", "checks"):
         if key not in checks:
             issues.append(f"expected.required_status_checks.{key} must be declared")
-    contexts = checks.get("contexts")
-    if "contexts" in checks:
-        if not isinstance(contexts, list) or not all(isinstance(c, str) for c in contexts):
-            issues.append(
-                "expected.required_status_checks.contexts must be a list of strings: "
-                "a bare string would be compared character by character"
-            )
-        elif not contexts:
-            issues.append(
-                "expected.required_status_checks.contexts is empty: nothing would be required"
-            )
+    if "checks" in checks:
+        issues.extend(_required_check_issues(checks["checks"]))
     if "strict" in checks and not isinstance(checks["strict"], bool):
         issues.append("expected.required_status_checks.strict must be a boolean")
     for key in _BOOLEAN_EXPECTED_KEYS:
@@ -254,6 +292,37 @@ def _enabled(node: Any) -> Any:
     return node.get("enabled") if isinstance(node, dict) else node
 
 
+def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> list[str]:
+    """Compare required contexts AND the app bound to each.
+
+    A required check whose source binding is removed or replaced keeps its name
+    in the response, so comparing names alone reports a clean match while a
+    different GitHub App -- or a legacy commit status -- satisfies branch
+    protection in its place.
+    """
+    live_bindings = {
+        str(check.get("context")): check.get("app_id")
+        for check in (live or [])
+        if isinstance(check, dict)
+    }
+    policy_bindings = {str(check["context"]): check.get("app_id") for check in declared}
+
+    issues: list[str] = []
+    missing = sorted(set(policy_bindings) - set(live_bindings))
+    extra = sorted(set(live_bindings) - set(policy_bindings))
+    if missing:
+        issues.append(f"required_status_checks.checks missing from live protection: {missing}")
+    if extra:
+        issues.append(f"required_status_checks.checks present live but undeclared: {extra}")
+    for context in sorted(set(policy_bindings) & set(live_bindings)):
+        if live_bindings[context] != policy_bindings[context]:
+            issues.append(
+                f"required_status_checks.checks {context!r} app binding differs: "
+                f"live={live_bindings[context]!r} policy={policy_bindings[context]!r}"
+            )
+    return issues
+
+
 def compare_live_to_policy(policy: dict[str, Any], live: dict[str, Any]) -> list[str]:
     expected = policy["expected"]
     issues: list[str] = []
@@ -274,12 +343,12 @@ def compare_live_to_policy(policy: dict[str, Any], live: dict[str, Any]) -> list
     checks = live.get("required_status_checks") or {}
     if checks.get("strict") != expected["required_status_checks"]["strict"]:
         issues.append(f"required_status_checks.strict: live={checks.get('strict')!r}")
-    live_contexts = sorted(checks.get("contexts") or [])
-    policy_contexts = sorted(expected["required_status_checks"]["contexts"])
-    if live_contexts != policy_contexts:
-        issues.append(
-            f"required_status_checks.contexts differ: live={live_contexts} policy={policy_contexts}"
+    issues.extend(
+        _compare_required_checks(
+            live=checks.get("checks"),
+            declared=expected["required_status_checks"]["checks"],
         )
+    )
 
     reviews = live.get("required_pull_request_reviews")
     expected_reviews = expected["required_pull_request_reviews"]
