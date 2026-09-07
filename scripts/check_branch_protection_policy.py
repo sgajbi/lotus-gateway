@@ -336,11 +336,37 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     different GitHub App -- or a legacy commit status -- satisfies branch
     protection in its place.
     """
-    live_checks = [check for check in (live or []) if isinstance(check, dict)]
+    entries = list(live or [])
+    live_checks = [check for check in entries if isinstance(check, dict)]
     live_bindings = {str(check.get("context")): check.get("app_id") for check in live_checks}
     policy_bindings = {str(check["context"]): check.get("app_id") for check in declared}
 
     issues: list[str] = []
+    # A malformed element is not an absent one. Filtering non-objects would let a
+    # changed payload lose an entry and still compare cleanly against a table
+    # that happens to match what survived.
+    malformed = len(entries) - len(live_checks)
+    if malformed:
+        issues.append(
+            f"live protection returned {malformed} required-check entr"
+            f"{'y' if malformed == 1 else 'ies'} that are not objects: "
+            "the payload cannot be fully interpreted, so it is not compared as if it could"
+        )
+    # `15368.0 == 15368` in Python and `True == 1`, so a float or boolean binding
+    # compares EQUAL to the declared integer. Type the measured value rather than
+    # trusting equality to mean the same thing on both sides.
+    mistyped = sorted(
+        str(check.get("context"))
+        for check in live_checks
+        if "app_id" in check
+        and check["app_id"] is not None
+        and (isinstance(check["app_id"], bool) or not isinstance(check["app_id"], int))
+    )
+    if mistyped:
+        issues.append(
+            f"live protection reports non-integer app_id values for: {mistyped}; "
+            "a float or boolean can compare equal to the declared integer"
+        )
     # Absent is not null on the MEASURED side either. `.get()` returns None for
     # both, so a live check omitting `app_id` would read as the deliberate
     # "any app permitted" posture and match a table that declares it. GitHub
