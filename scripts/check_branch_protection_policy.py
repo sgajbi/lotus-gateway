@@ -274,10 +274,35 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
             "change can retire it"
         ]
 
+    if field.startswith("required_pull_request_reviews.") and field != (
+        "required_pull_request_reviews.present"
+    ):
+        # With the review block declared absent, the live comparison skips every
+        # nested field -- so an exception naming one is bound to something no
+        # observed drift can retire, exactly like an unaudited control.
+        present_found, present = _resolve_expected(
+            expected, "required_pull_request_reviews.present"
+        )
+        if present_found and present is not True:
+            return [
+                f"documented exception names {field!r} while "
+                "required_pull_request_reviews.present is not true: the live comparison "
+                "skips every nested review field, so nothing can retire this exception"
+            ]
+
     if field == "required_status_checks.checks":
         found, declared = _resolve_expected(expected, field)
         if not found or not isinstance(declared, list):
             return []
+        if not isinstance(value, str) or not value.strip():
+            # Membership against a set of context names. A non-string is never in
+            # it, so the exception would apply forever; an unhashable value would
+            # raise TypeError inside the validator rather than report an issue.
+            return [
+                f"documented exception for {field} must name a required context as a "
+                f"non-blank string, not {value!r}: no context can ever match it, so "
+                "adding the check would not retire the exception"
+            ]
         contexts = {check.get("context") for check in declared if isinstance(check, dict)}
         if value in contexts:
             return [

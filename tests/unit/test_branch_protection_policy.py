@@ -86,6 +86,45 @@ def test_an_exception_that_outlives_its_weakness_is_refused() -> None:
     assert any("no longer exists" in issue for issue in issues), issues
 
 
+def test_a_review_exception_is_refused_when_the_review_block_is_absent() -> None:
+    """With `present: false` the live comparison skips every nested review field.
+
+    An exception naming one is then bound to something no observed drift can
+    retire — the unaudited-control case again, reached through a value rather
+    than a field name.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_pull_request_reviews"]["present"] = False
+
+    issues = validate_policy_document(policy)
+
+    assert any("skips every nested review field" in issue for issue in issues), issues
+
+
+@pytest.mark.parametrize("value", [None, 123, ["a"], {"context": "a"}, "", "   "])
+def test_an_omitted_context_exception_must_name_a_context_string(value: object) -> None:
+    """Membership against context names: a non-string can never match one.
+
+    The exception would apply forever, and an unhashable value raises TypeError
+    inside the validator rather than reporting an issue — a crash where a
+    finding belongs.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"].append(
+        {
+            "field": "required_status_checks.checks",
+            "value": value,
+            "reason": "malformed target",
+            "compensating_controls": "none",
+            "retires_when": "never",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("must name a required context" in issue for issue in issues), issues
+
+
 def test_an_exception_naming_an_unaudited_control_is_refused() -> None:
     """Resolving inside `expected` is not enough — it must be a field the gate reads.
 
