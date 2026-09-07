@@ -113,6 +113,10 @@ _AUDITED_EXCEPTION_FIELDS = frozenset(
         "required_status_checks.checks",
         "required_pull_request_reviews.present",
         *(f"required_pull_request_reviews.{key}" for key in _REQUIRED_REVIEW_KEYS),
+        *(
+            f"required_pull_request_reviews.bypass_pull_request_allowances.{category}"
+            for category in _BYPASS_CATEGORIES
+        ),
     }
 )
 
@@ -287,6 +291,51 @@ def _undocumented_weakness_issues(
     # it had already made. Third instance of that shape on this PR.
     documented = {str(e.get("field", "")) for e in exceptions if isinstance(e, dict)}
     issues: list[str] = []
+
+    # Two weaknesses that are not scalar postures and so cannot live in the map.
+    #
+    # An UNBOUND required check -- `app_id: null` -- is the explicitly weaker
+    # "any app may report this context" posture, and the omitted-context
+    # exception form cannot document it: that form reads its value as a context
+    # NOT required, and retires once the context is declared, which is the
+    # opposite condition.
+    _found, declared_checks = _resolve_expected(expected, "required_status_checks.checks")
+    unbound = sorted(
+        check["context"]
+        for check in (declared_checks or [])
+        if isinstance(check, dict)
+        and isinstance(check.get("context"), str)
+        and "app_id" in check
+        and check["app_id"] is None
+    )
+    for context in unbound:
+        if f"required_status_checks.checks.app_id:{context}" not in documented:
+            issues.append(
+                f"required_status_checks.checks {context!r} permits any app (app_id: null) "
+                "without a documented exception: name it as "
+                f"'required_status_checks.checks.app_id:{context}' or pin the app"
+            )
+
+    # A NON-EMPTY bypass lets the named principal evade the review requirement
+    # entirely, so its reason and retirement condition matter as much as any
+    # scalar's.
+    _found, bypass = _resolve_expected(
+        expected, "required_pull_request_reviews.bypass_pull_request_allowances"
+    )
+    if isinstance(bypass, dict):
+        populated = sorted(
+            category
+            for category in _BYPASS_CATEGORIES
+            if isinstance(bypass.get(category), list) and bypass[category]
+        )
+        for category in populated:
+            field = f"required_pull_request_reviews.bypass_pull_request_allowances.{category}"
+            if field not in documented:
+                issues.append(
+                    f"{field} is non-empty without a documented exception: the named "
+                    f"{category} can evade the review requirement"
+                )
+
     for field, weak_value in _WEAK_POSTURES.items():
         found, actual = _resolve_expected(expected, field)
         if not found:
@@ -334,6 +383,29 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
     """
     field = str(exception.get("field", ""))
     value = exception.get("value")
+
+    if field.startswith("required_status_checks.checks.app_id:"):
+        # A per-context binding exception. Its target is the unpinned check, so
+        # it retires when that context gains an app_id rather than when a value
+        # changes; handled here rather than by the scalar rules below.
+        context = field.partition(":")[2]
+        _found, declared = _resolve_expected(expected, "required_status_checks.checks")
+        bindings = {
+            check["context"]: check.get("app_id")
+            for check in (declared or [])
+            if isinstance(check, dict) and isinstance(check.get("context"), str)
+        }
+        if context not in bindings:
+            return [
+                f"documented exception names an unpinned binding for {context!r}, which is "
+                "not a declared required context"
+            ]
+        if bindings[context] is not None:
+            return [
+                f"documented exception says {context!r} permits any app, but it is now pinned "
+                f"to {bindings[context]!r}: the deviation has been retired, so remove it"
+            ]
+        return []
 
     if field not in _AUDITED_EXCEPTION_FIELDS:
         # Resolving inside `expected` is not enough: an adopter can add a control
@@ -390,6 +462,18 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
                 "context: the deviation it documents has been retired, so remove the exception"
             ]
         return []
+
+    if field in _WEAK_POSTURES:
+        weak = _WEAK_POSTURES[field]
+        if value != weak or type(value) is not type(weak):
+            # An exception declaring the STRONG value documents no deviation and
+            # can sit there permanently while the control is already safe --
+            # contradicting the promise that exceptions bind to weaknesses.
+            return [
+                f"documented exception for {field!r} declares {value!r}, which is not the "
+                f"weak posture {weak!r} this control is registered with: an exception must "
+                "document a deviation, not the safe value"
+            ]
 
     found, actual = _resolve_expected(expected, field)
     if not found:

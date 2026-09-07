@@ -165,6 +165,73 @@ def test_the_shipped_policy_documents_every_weakness_it_declares() -> None:
     ] == []
 
 
+def test_a_nonempty_bypass_requires_a_documented_exception() -> None:
+    """A named principal that can evade review is a concrete weakness.
+
+    Its reason and retirement condition matter as much as any scalar's, and
+    nothing required them because the map holds scalars only.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_pull_request_reviews"]["bypass_pull_request_allowances"][
+        "apps"
+    ] = ["some-release-bot"]
+
+    issues = validate_policy_document(policy)
+
+    assert any("is non-empty without a documented exception" in issue for issue in issues), issues
+
+
+def test_an_unpinned_check_requires_a_documented_exception() -> None:
+    """`app_id: null` is the explicitly weaker posture and needs documenting.
+
+    The omitted-context exception form cannot cover it: that form reads its value
+    as a context NOT required and retires once the context is declared, which is
+    the opposite condition. So this needs its own per-context target, asserted in
+    both directions — required without one, accepted with it, refused once pinned.
+    """
+    policy = copy.deepcopy(load_policy())
+    context = policy["expected"]["required_status_checks"]["checks"][0]["context"]
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = None
+
+    assert any("permits any app" in i for i in validate_policy_document(policy))
+
+    exception = {
+        "field": f"required_status_checks.checks.app_id:{context}",
+        "value": None,
+        "reason": "more than one app reports this context during migration",
+        "compensating_controls": "the context itself remains required and must be green",
+        "retires_when": "a single app reports it",
+    }
+    policy["documented_exceptions"].append(exception)
+    assert validate_policy_document(policy) == []
+
+    # Pin it again: the exception must retire.
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = 15368
+    assert any("has been retired" in i for i in validate_policy_document(policy))
+
+
+def test_an_exception_declaring_the_strong_value_is_refused() -> None:
+    """An exception documents a deviation, not the safe value.
+
+    `allow_force_pushes: false` is the safe posture; an exception naming it
+    documents nothing and would sit there permanently.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"].append(
+        {
+            "field": "allow_force_pushes",
+            "value": False,
+            "reason": "documenting the safe value",
+            "compensating_controls": "none",
+            "retires_when": "never",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("is not the weak posture" in issue for issue in issues), issues
+
+
 def test_an_exception_that_outlives_its_weakness_is_refused() -> None:
     """The retirement half, which nothing enforced for any exception but one.
 
@@ -278,6 +345,23 @@ def test_every_audited_field_is_a_valid_exception_target() -> None:
         # Appended rather than replacing the list: removing the shipped
         # zero-approval exception would trip its own required-direction rule and
         # be mistaken for this field being refused.
+        # A registered weak posture accepts an exception naming its WEAK value
+        # only, and only while the table declares it -- so put the table there.
+        if field in WEAK_POSTURES:
+            parts = field.split(".")
+            node = policy["expected"]
+            for part in parts[:-1]:
+                node = node[part]
+            node[parts[-1]] = WEAK_POSTURES[field]
+            actual = WEAK_POSTURES[field]
+        if field == "required_pull_request_reviews.present":
+            # With the block declared absent, every OTHER review exception is
+            # correctly refused. Drop them so this case measures `present`.
+            policy["documented_exceptions"] = [
+                e
+                for e in policy["documented_exceptions"]
+                if not str(e.get("field", "")).startswith("required_pull_request_reviews.")
+            ]
         policy["documented_exceptions"].append(
             {
                 "field": field,
@@ -298,12 +382,14 @@ def test_an_exception_bound_to_nothing_is_refused() -> None:
     live deviation forever — the rot this rule exists to prevent, wearing the
     shape of documentation.
     """
-    # An AUDITED field that the table omits. A field the gate does not audit is
-    # refused earlier and by a different rule; this is the remaining case where a
+    # An AUDITED field that the table omits, and NOT a registered weak posture --
+    # a field the gate does not audit is refused earlier by one rule, and a weak
+    # posture is intercepted by another. This is the remaining case where a
     # resolvable-looking exception points at nothing.
     policy = copy.deepcopy(load_policy())
-    policy["documented_exceptions"][0]["field"] = "required_status_checks.strict"
-    del policy["expected"]["required_status_checks"]["strict"]
+    policy["documented_exceptions"][0]["field"] = "lock_branch"
+    policy["documented_exceptions"][0]["value"] = False
+    del policy["expected"]["lock_branch"]
 
     issues = validate_policy_document(policy)
 
@@ -353,7 +439,13 @@ def test_an_exception_value_of_the_wrong_type_does_not_bind(value: object) -> No
 
     issues = validate_policy_document(policy)
 
-    assert any("no longer exists" in issue for issue in issues), issues
+    # For a REGISTERED weak posture the mismatch is caught by the weak-value
+    # rule, which fires first and names the registered value; for any other
+    # field the generic retirement rule reports it. Either way the wrong type
+    # does not bind.
+    assert any(
+        "is not the weak posture" in issue or "no longer exists" in issue for issue in issues
+    ), issues
 
 
 def test_zero_approval_count_requires_a_documented_exception() -> None:
@@ -483,8 +575,23 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     every `null` would force adopters to misdeclare a genuinely unpinned context.
     """
     policy = copy.deepcopy(load_policy())
+    context = policy["expected"]["required_status_checks"]["checks"][0]["context"]
     policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = None
 
+    # Unpinned is the weaker posture, so it is accepted only WITH its exception.
+    assert any("permits any app" in issue for issue in validate_policy_document(policy)), (
+        "an unpinned check must require a documented exception"
+    )
+
+    policy["documented_exceptions"].append(
+        {
+            "field": f"required_status_checks.checks.app_id:{context}",
+            "value": None,
+            "reason": "more than one app reports this context during migration",
+            "compensating_controls": "the context itself remains required and must be green",
+            "retires_when": "the migration completes and a single app reports it",
+        }
+    )
     assert validate_policy_document(policy) == []
 
 
