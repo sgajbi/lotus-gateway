@@ -1,5 +1,7 @@
 from typing import Any, Protocol
 
+from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
+
 
 class AdvisoryPolicyClient(Protocol):
     async def list_policy_packs(
@@ -24,6 +26,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def activate_policy_pack_version(
@@ -34,6 +37,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def create_policy_evaluation(
@@ -44,6 +48,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_policy_review_queue(
@@ -76,6 +81,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_policy_evaluation_lineage(
@@ -106,6 +112,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def request_policy_report_package(
@@ -115,6 +122,7 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def request_policy_ai_evidence(
@@ -124,4 +132,5 @@ class AdvisoryPolicyClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]: ...

@@ -3,20 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.clients.advise_policy_authority import (
-    ADVISOR_ROLE,
-    COMPLIANCE_REVIEWER_ROLE,
-    POLICY_CHECKER_ROLE,
-    POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
-    POLICY_EVALUATION_FINALIZE_CAPABILITY,
-    POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
-    POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
-    POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
-    body_actor,
     build_policy_control_headers,
     build_policy_evaluation_control_headers,
     evidence_portfolio_id,
 )
 from app.clients.advise_policy_pack_client import AdvisePolicyPackClientMixin
+from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
 
 
 class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
@@ -27,6 +19,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
@@ -34,9 +27,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
             headers=build_policy_control_headers(
                 self._headers,
                 correlation_id,
-                actor_id=body_actor(body, "created_by", fallback="advisor_1"),
-                role=ADVISOR_ROLE,
-                capability=POLICY_EVALUATION_FINALIZE_CAPABILITY,
+                caller=caller,
                 idempotency_key=idempotency_key,
                 authorized_proposal_id=proposal_id,
                 authorized_portfolio_id=evidence_portfolio_id(body),
@@ -93,6 +84,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_policy_evaluation_action(
             evaluation_id=evaluation_id,
@@ -101,10 +93,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
             correlation_id=correlation_id,
             body=body,
             idempotency_key=idempotency_key,
-            actor_key="actor_id",
-            actor_fallback="compliance_1",
-            role=COMPLIANCE_REVIEWER_ROLE,
-            capability=POLICY_EVALUATION_REVIEW_EVENT_CAPABILITY,
+            caller=caller,
         )
 
     async def get_policy_evaluation_lineage(
@@ -149,6 +138,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_policy_evaluation_action(
             evaluation_id=evaluation_id,
@@ -157,10 +147,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
             correlation_id=correlation_id,
             body=body,
             idempotency_key=idempotency_key,
-            actor_key="decided_by",
-            actor_fallback="policy_checker_1",
-            role=POLICY_CHECKER_ROLE,
-            capability=POLICY_EVALUATION_SIGN_OFF_CAPABILITY,
+            caller=caller,
         )
 
     async def request_policy_report_package(
@@ -169,6 +156,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_policy_evaluation_action(
             evaluation_id=evaluation_id,
@@ -177,10 +165,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
             correlation_id=correlation_id,
             body=body,
             idempotency_key=idempotency_key,
-            actor_key="requested_by",
-            actor_fallback="policy_checker_1",
-            role=POLICY_CHECKER_ROLE,
-            capability=POLICY_EVALUATION_REPORT_PACKAGE_CAPABILITY,
+            caller=caller,
         )
 
     async def request_policy_ai_evidence(
@@ -189,6 +174,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_policy_evaluation_action(
             evaluation_id=evaluation_id,
@@ -197,10 +183,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
             correlation_id=correlation_id,
             body=body,
             idempotency_key=idempotency_key,
-            actor_key="requested_by",
-            actor_fallback="compliance_1",
-            role=COMPLIANCE_REVIEWER_ROLE,
-            capability=POLICY_EVALUATION_AI_EVIDENCE_CAPABILITY,
+            caller=caller,
         )
 
     async def _post_policy_evaluation_action(
@@ -212,19 +195,14 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         correlation_id: str,
         body: dict[str, Any],
         idempotency_key: str | None,
-        actor_key: str,
-        actor_fallback: str,
-        role: str,
-        capability: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         headers = await build_policy_evaluation_control_headers(
             read_policy_evaluation=self.get_policy_evaluation,
             headers_factory=self._headers,
             evaluation_id=evaluation_id,
             correlation_id=correlation_id,
-            actor_id=body_actor(body, actor_key, fallback=actor_fallback),
-            role=role,
-            capability=capability,
+            caller=caller,
             idempotency_key=idempotency_key,
         )
         if isinstance(headers, tuple):

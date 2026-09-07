@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.contracts.advisory_policy import AdvisoryPolicyEnvelopeResponse
+from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
 from app.services.advisory_policy_client_protocols import AdvisoryPolicyClient
 from app.services.upstream_envelope import (
     ProductSafeServiceErrorConfig,
@@ -49,6 +50,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.validate_policy_pack_version(
             policy_pack_id=policy_pack_id,
@@ -56,6 +58,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -68,6 +71,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.activate_policy_pack_version(
             policy_pack_id=policy_pack_id,
@@ -75,6 +79,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -87,6 +92,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.create_policy_evaluation(
             proposal_id=proposal_id,
@@ -94,6 +100,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -148,6 +155,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         (
             upstream_status,
@@ -157,6 +165,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -213,6 +222,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         (
             upstream_status,
@@ -222,6 +232,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -233,6 +244,7 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         (
             upstream_status,
@@ -242,6 +254,7 @@ class AdvisoryPolicyService:
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -253,12 +266,14 @@ class AdvisoryPolicyService:
         body: dict[str, Any],
         idempotency_key: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.request_policy_ai_evidence(
             evaluation_id=evaluation_id,
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)

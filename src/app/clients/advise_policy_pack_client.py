@@ -2,14 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.clients.advise_policy_authority import (
-    POLICY_CHECKER_ROLE,
-    POLICY_PACK_ACTIVATE_CAPABILITY,
-    POLICY_PACK_VALIDATE_CAPABILITY,
-    POLICY_STEWARD_ROLE,
-    body_actor,
-    build_policy_control_headers,
-)
+from app.clients.advise_policy_authority import build_policy_control_headers
+from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
 
 
 class AdvisePolicyPackClientMixin:
@@ -44,6 +38,7 @@ class AdvisePolicyPackClientMixin:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/policy-packs/{policy_pack_id}/versions/{policy_version}/validate",
@@ -51,9 +46,7 @@ class AdvisePolicyPackClientMixin:
             headers=build_policy_control_headers(
                 self._headers,
                 correlation_id,
-                actor_id=body_actor(body, "requested_by", fallback="policy_steward_1"),
-                role=POLICY_STEWARD_ROLE,
-                capability=POLICY_PACK_VALIDATE_CAPABILITY,
+                caller=caller,
                 idempotency_key=idempotency_key,
             ),
             operation="advise.advisory.policy-packs.validate",
@@ -66,6 +59,7 @@ class AdvisePolicyPackClientMixin:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/policy-packs/{policy_pack_id}/versions/{policy_version}/activate",
@@ -73,9 +67,7 @@ class AdvisePolicyPackClientMixin:
             headers=build_policy_control_headers(
                 self._headers,
                 correlation_id,
-                actor_id=body_actor(body, "activated_by", fallback="policy_checker_1"),
-                role=POLICY_CHECKER_ROLE,
-                capability=POLICY_PACK_ACTIVATE_CAPABILITY,
+                caller=caller,
                 idempotency_key=idempotency_key,
             ),
             operation="advise.advisory.policy-packs.activate",
