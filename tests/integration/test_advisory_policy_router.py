@@ -27,6 +27,7 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
         body,
         idempotency_key,
         correlation_id,  # noqa: ANN001
+        caller,
     ):
         _ = self
         captured["validate"] = {
@@ -45,6 +46,7 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
         body,
         idempotency_key,
         correlation_id,  # noqa: ANN001
+        caller,
     ):
         _ = self
         captured["activate"] = {
@@ -85,6 +87,11 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
         headers={
             "Idempotency-Key": "idem-policy-validate",
             "X-Correlation-Id": "corr-policy-validate",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "POLICY_STEWARD",
+            "X-Caller-Capabilities": "advisory.policy_pack.validate",
         },
     )
     activate_response = client.post(
@@ -93,6 +100,11 @@ def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
         headers={
             "Idempotency-Key": "idem-policy-activate",
             "X-Correlation-Id": "corr-policy-activate",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "POLICY_CHECKER",
+            "X-Caller-Capabilities": "advisory.policy_pack.activate",
         },
     )
 
@@ -135,6 +147,7 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         body,
         idempotency_key,
         correlation_id,  # noqa: ANN001
+        caller,
     ):
         _ = self
         captured["create"] = {
@@ -181,6 +194,7 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         body,
         idempotency_key,
         correlation_id,  # noqa: ANN001
+        caller,
     ):
         _ = self
         captured["ai_evidence"] = {
@@ -229,6 +243,11 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         headers={
             "Idempotency-Key": "idem-policy-create",
             "X-Correlation-Id": "corr-policy-create",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "ADVISOR",
+            "X-Caller-Capabilities": "advisory.policy_evaluation.finalize",
         },
     )
     queue_response = client.get(
@@ -250,6 +269,11 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         headers={
             "Idempotency-Key": "idem-policy-ai",
             "X-Correlation-Id": "corr-policy-ai",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "COMPLIANCE_REVIEWER",
+            "X-Caller-Capabilities": "advisory.policy_evaluation.ai_evidence",
         },
     )
 
@@ -308,7 +332,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         }
         return 200, {"evaluation_id": evaluation_id, "replay_status": "MATCHED"}
 
-    async def _fake_event(self, evaluation_id, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_event(self, evaluation_id, body, idempotency_key, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["event"] = {
             "evaluation_id": evaluation_id,
@@ -323,7 +347,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         captured["lineage"] = {"evaluation_id": evaluation_id, "correlation_id": correlation_id}
         return 200, {"evaluation_id": evaluation_id, "source_hashes": ["sha256:abc"]}
 
-    async def _fake_decision(self, evaluation_id, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_decision(self, evaluation_id, body, idempotency_key, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["decision"] = {
             "evaluation_id": evaluation_id,
@@ -333,7 +357,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         }
         return 200, {"evaluation_id": evaluation_id, "decision_status": "RECORDED"}
 
-    async def _fake_report(self, evaluation_id, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_report(self, evaluation_id, body, idempotency_key, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["report"] = {
             "evaluation_id": evaluation_id,
@@ -384,6 +408,11 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         headers={
             "Idempotency-Key": "idem-policy-event",
             "X-Correlation-Id": "corr-policy-event",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "COMPLIANCE_REVIEWER",
+            "X-Caller-Capabilities": "advisory.policy_evaluation.review_event",
         },
     )
     lineage_response = client.get(
@@ -396,6 +425,11 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         headers={
             "Idempotency-Key": "idem-policy-decision",
             "X-Correlation-Id": "corr-policy-decision",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "POLICY_CHECKER",
+            "X-Caller-Capabilities": "advisory.policy_evaluation.sign_off",
         },
     )
     report_response = client.post(
@@ -404,6 +438,11 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         headers={
             "Idempotency-Key": "idem-policy-report",
             "X-Correlation-Id": "corr-policy-report",
+            "X-Actor-Id": "advisor_zoe",
+            "X-Tenant-Id": "tenant_ch_004",
+            "X-Legal-Entity-Code": "CH_ZURICH",
+            "X-Role": "POLICY_CHECKER",
+            "X-Caller-Capabilities": "advisory.policy_evaluation.report_package",
         },
     )
 

@@ -16,6 +16,7 @@ from app.clients.lotus_core_transaction_params import build_portfolio_transactio
 from app.clients.lotus_idea_client import LotusIdeaClient
 from app.clients.reporting_client import ReportingClient
 from app.middleware.correlation import trace_id_var
+from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
 from app.services.dpm_manage_request_authority import (
     DpmManageRequestAuthority,
     dpm_manage_request_authority_scope,
@@ -3629,14 +3630,36 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
     }
 
 
+POLICY_CALLER_ACTOR = "advisor_zoe"
+POLICY_CALLER_TENANT = "tenant_ch_004"
+POLICY_CALLER_LEGAL_ENTITY = "CH_ZURICH"
+
+
+def _policy_caller(role: str, capability: str) -> AdvisoryPolicyCallerContext:
+    """The scope a route would have admitted, for a client-level test.
+
+    These tests assert what leaves Gateway. They previously asserted
+    `X-Tenant-Id: tenant_sg_001` and `X-Legal-Entity-Code: REFERENCE` -- pinning
+    the minted constants as correct behaviour, which is why the defect survived
+    having coverage. They now assert that the admitted caller's own scope is what
+    travels.
+    """
+    return AdvisoryPolicyCallerContext(
+        actor_id=POLICY_CALLER_ACTOR,
+        tenant_id=POLICY_CALLER_TENANT,
+        legal_entity_code=POLICY_CALLER_LEGAL_ENTITY,
+        role=role,
+        capability=capability,
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("method_name", "kwargs", "expected_method", "expected_url"),
+    ("method_name", "kwargs", "expected_url"),
     [
         (
             "list_policy_packs",
             {"correlation_id": "corr-policy"},
-            "GET",
             "http://advise/advisory/policy-packs",
         ),
         (
@@ -3646,9 +3669,42 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
                 "policy_version": "2026.05",
                 "correlation_id": "corr-policy",
             },
-            "GET",
             "http://advise/advisory/policy-packs/policy_pack_sg_private_banking/versions/2026.05",
         ),
+    ],
+)
+async def test_advise_client_policy_reads_send_no_authority_headers(
+    method_name,
+    kwargs,
+    expected_url,
+):
+    """Policy reads carry correlation only — and that is a known, separate gap.
+
+    Pinned deliberately rather than left unstated: these routes send no tenant at
+    all, so lotus-advise cannot scope them to a caller. That is a different defect
+    from the minted authority this slice removes from the WRITES, and it has its
+    own issue. If a read starts carrying scope, this test fails and the claim is
+    revisited rather than quietly becoming untrue.
+    """
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, payload = await getattr(client, method_name)(**kwargs)
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    call = _FakeAsyncClient.calls[0]
+    assert call["method"] == "GET"
+    assert call["url"] == expected_url
+    assert call["headers"]["X-Correlation-Id"] == "corr-policy"
+    for authority_header in ("X-Tenant-Id", "X-Actor-Id", "X-Role", "X-Capabilities"):
+        assert authority_header not in call["headers"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "kwargs", "expected_url", "role", "capability"),
+    [
         (
             "validate_policy_pack_version",
             {
@@ -3658,9 +3714,10 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
                 "idempotency_key": "idem-policy-validate",
                 "correlation_id": "corr-policy",
             },
-            "POST",
             "http://advise/advisory/policy-packs/"
             "policy_pack_sg_private_banking/versions/2026.05/validate",
+            "POLICY_STEWARD",
+            "advisory.policy_pack.validate",
         ),
         (
             "activate_policy_pack_version",
@@ -3671,9 +3728,10 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
                 "idempotency_key": "idem-policy-activate",
                 "correlation_id": "corr-policy",
             },
-            "POST",
             "http://advise/advisory/policy-packs/"
             "policy_pack_sg_private_banking/versions/2026.05/activate",
+            "POLICY_CHECKER",
+            "advisory.policy_pack.activate",
         ),
         (
             "create_policy_evaluation",
@@ -3693,52 +3751,55 @@ async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_bod
                 "idempotency_key": "idem-policy-evaluation",
                 "correlation_id": "corr-policy",
             },
-            "POST",
             "http://advise/advisory/proposals/pp_001/versions/ppv_001/policy-evaluations",
+            "ADVISOR",
+            "advisory.policy_evaluation.finalize",
         ),
     ],
 )
-async def test_advise_client_policy_routes_forward_correlation_and_idempotency(
+async def test_advise_client_policy_writes_carry_the_admitted_caller(
     method_name,
     kwargs,
-    expected_method,
     expected_url,
+    role,
+    capability,
 ):
+    """What leaves Gateway is the caller's scope, not a constant.
+
+    This test previously asserted `X-Tenant-Id: tenant_sg_001` and
+    `X-Legal-Entity-Code: REFERENCE` -- it pinned the minted constants as correct
+    behaviour, which is why the defect survived having coverage.
+    """
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"ok": True})
 
-    method = getattr(client, method_name)
-    status_code, payload = await method(**kwargs)
+    status_code, payload = await getattr(client, method_name)(
+        **kwargs, caller=_policy_caller(role, capability)
+    )
 
     assert status_code == 200
     assert payload["ok"] is True
     call = _FakeAsyncClient.calls[0]
-    assert call["method"] == expected_method
+    assert call["method"] == "POST"
     assert call["url"] == expected_url
+    assert call["json"] == kwargs["body"]
     assert call["headers"]["X-Correlation-Id"] == "corr-policy"
-    if expected_method == "POST":
-        assert call["json"] == kwargs["body"]
-    if "idempotency_key" in kwargs:
-        assert call["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
-    if method_name == "validate_policy_pack_version":
-        assert call["headers"]["X-Actor-Id"] == "policy_steward_1"
-        assert call["headers"]["X-Role"] == "POLICY_STEWARD"
-        assert call["headers"]["X-Tenant-Id"] == "tenant_sg_001"
-        assert call["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
-        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
-        assert call["headers"]["X-Capabilities"] == "advisory.policy_pack.validate"
-    if method_name == "activate_policy_pack_version":
-        assert call["headers"]["X-Actor-Id"] == "policy_checker_1"
-        assert call["headers"]["X-Role"] == "POLICY_CHECKER"
-        assert call["headers"]["X-Tenant-Id"] == "tenant_sg_001"
-        assert call["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
-        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
-        assert call["headers"]["X-Capabilities"] == "advisory.policy_pack.activate"
+    assert call["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+
+    # The admitted caller's own scope. Each body still carries the seeded name in
+    # the field the old code read the actor from, so a regression that goes back
+    # to the body fails here.
+    assert call["headers"]["X-Actor-Id"] == POLICY_CALLER_ACTOR
+    assert call["headers"]["X-Tenant-Id"] == POLICY_CALLER_TENANT
+    assert call["headers"]["X-Legal-Entity-Code"] == POLICY_CALLER_LEGAL_ENTITY
+    assert call["headers"]["X-Role"] == role
+    assert call["headers"]["X-Capabilities"] == capability
+    # Gateway really is the calling service, so this claim survives.
+    assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
+
     if method_name == "create_policy_evaluation":
-        assert call["headers"]["X-Actor-Id"] == "advisor_1"
-        assert call["headers"]["X-Role"] == "ADVISOR"
-        assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
-        assert call["headers"]["X-Capabilities"] == "advisory.policy_evaluation.finalize"
+        # Business scope derived from the payload, which is legitimate: these say
+        # what the evaluation is ABOUT, not who may act.
         assert call["headers"]["X-Authorized-Proposal-Id"] == "pp_001"
         assert call["headers"]["X-Authorized-Portfolio-Id"] == "PB_SG_GLOBAL_BAL_001"
 
@@ -3819,6 +3880,7 @@ async def test_advise_client_policy_support_actions_bind_trusted_scope_from_reco
         body=body,
         idempotency_key=idempotency_key,
         correlation_id="corr-policy",
+        caller=_policy_caller(expected_role, expected_capability),
     )
 
     assert status_code == 200
@@ -3832,10 +3894,12 @@ async def test_advise_client_policy_support_actions_bind_trusted_scope_from_reco
     assert mutation["json"] == body
     assert mutation["headers"]["Idempotency-Key"] == idempotency_key
     assert mutation["headers"]["X-Correlation-Id"] == "corr-policy"
-    assert mutation["headers"]["X-Actor-Id"] == expected_actor
+    assert mutation["headers"]["X-Actor-Id"] == POLICY_CALLER_ACTOR
     assert mutation["headers"]["X-Role"] == expected_role
-    assert mutation["headers"]["X-Tenant-Id"] == "tenant_sg_001"
-    assert mutation["headers"]["X-Legal-Entity-Code"] == "REFERENCE"
+    assert mutation["headers"]["X-Tenant-Id"] == POLICY_CALLER_TENANT
+    assert mutation["headers"]["X-Legal-Entity-Code"] == POLICY_CALLER_LEGAL_ENTITY
+    # The body's own actor field is deliberately different from the admitted one.
+    assert mutation["headers"]["X-Actor-Id"] != expected_actor
     assert mutation["headers"]["X-Service-Identity"] == "lotus-gateway"
     assert mutation["headers"]["X-Capabilities"] == expected_capability
     assert mutation["headers"]["X-Authorized-Proposal-Id"] == "pp_001"
@@ -3852,6 +3916,7 @@ async def test_advise_client_policy_support_action_returns_scope_read_failure() 
         body={"decision": "APPROVE", "decided_by": "policy_checker_1"},
         idempotency_key="idem-policy-signoff-missing",
         correlation_id="corr-policy",
+        caller=_policy_caller("POLICY_CHECKER", "advisory.policy_evaluation.sign_off"),
     )
 
     assert status_code == 404
