@@ -15,7 +15,13 @@ from typing import Any
 import pytest
 
 from scripts.check_branch_protection_policy import (
+    _AUDITED_EXCEPTION_FIELDS as AUDITED_FIELDS,
+)
+from scripts.check_branch_protection_policy import (
     _MERGEABILITY_EXPECTED_KEYS as MERGEABILITY_KEYS,
+)
+from scripts.check_branch_protection_policy import (
+    _resolve_expected as resolve_expected,
 )
 from scripts.check_branch_protection_policy import (
     compare_live_to_policy,
@@ -80,6 +86,53 @@ def test_an_exception_that_outlives_its_weakness_is_refused() -> None:
     assert any("no longer exists" in issue for issue in issues), issues
 
 
+def test_an_exception_naming_an_unaudited_control_is_refused() -> None:
+    """Resolving inside `expected` is not enough — it must be a field the gate reads.
+
+    An adopter can add a control the live comparison never looks at, point an
+    exception at it, and have both resolve cleanly. The exception is then bound to
+    something no observed drift can ever retire: the same rot the binding rule
+    removes, with one more step in front of it.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["invented_control"] = False
+    policy["documented_exceptions"][0]["field"] = "invented_control"
+    policy["documented_exceptions"][0]["value"] = False
+
+    issues = validate_policy_document(policy)
+
+    assert any("does not audit" in issue for issue in issues), issues
+
+
+def test_every_audited_field_is_a_valid_exception_target() -> None:
+    """The accept side, asserted against the real table rather than a list.
+
+    A restriction that refused a legitimate field would be found only by the
+    adopter it blocked, so each audited control is exercised as an exception
+    target using the value the shipped policy actually declares.
+    """
+    for field in sorted(AUDITED_FIELDS):
+        policy = copy.deepcopy(load_policy())
+        found, actual = resolve_expected(policy["expected"], field)
+        assert found, f"{field} is advertised as audited but is not in the shipped table"
+        if field == "required_status_checks.checks":
+            continue  # membership semantics, covered by its own case
+        # Appended rather than replacing the list: removing the shipped
+        # zero-approval exception would trip its own required-direction rule and
+        # be mistaken for this field being refused.
+        policy["documented_exceptions"].append(
+            {
+                "field": field,
+                "value": actual,
+                "reason": "exercising the accept side",
+                "compensating_controls": "none",
+                "retires_when": "never",
+            }
+        )
+        issues = [i for i in validate_policy_document(policy) if field in i]
+        assert issues == [], f"{field} was refused as an exception target: {issues}"
+
+
 def test_an_exception_bound_to_nothing_is_refused() -> None:
     """An exception naming a field outside `expected` can never be retired.
 
@@ -87,8 +140,12 @@ def test_an_exception_bound_to_nothing_is_refused() -> None:
     live deviation forever — the rot this rule exists to prevent, wearing the
     shape of documentation.
     """
+    # An AUDITED field that the table omits. A field the gate does not audit is
+    # refused earlier and by a different rule; this is the remaining case where a
+    # resolvable-looking exception points at nothing.
     policy = copy.deepcopy(load_policy())
-    policy["documented_exceptions"][0]["field"] = "some.field.that.does.not.exist"
+    policy["documented_exceptions"][0]["field"] = "required_status_checks.strict"
+    del policy["expected"]["required_status_checks"]["strict"]
 
     issues = validate_policy_document(policy)
 
