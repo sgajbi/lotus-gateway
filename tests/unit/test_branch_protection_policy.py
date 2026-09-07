@@ -196,6 +196,39 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     assert validate_policy_document(policy) == []
 
 
+def test_a_malformed_live_check_entry_is_not_silently_dropped() -> None:
+    """Filtering non-objects would let a changed payload lose an entry quietly.
+
+    The seven expected records plus one malformed element must not compare
+    cleanly merely because the seven that survived the filter happen to match.
+    """
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    live["required_status_checks"]["checks"].append("PR Merge Gate / Not An Object")
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("not objects" in issue for issue in issues), issues
+
+
+@pytest.mark.parametrize("value", [15368.0, True])
+def test_a_live_app_id_that_is_not_an_integer_is_reported(value: object) -> None:
+    """`15368.0 == 15368` and `True == 1`, so equality alone is not agreement.
+
+    The declared side already refuses these. Trusting Python equality on the
+    measured side would let a changed payload match the table while carrying a
+    different type — the comparison would be right about the number and wrong
+    about what it is.
+    """
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    live["required_status_checks"]["checks"][0]["app_id"] = value
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("non-integer app_id" in issue for issue in issues), issues
+
+
 def test_a_live_check_without_an_app_id_is_not_read_as_unpinned() -> None:
     """Absent is not null on the measured side either.
 
