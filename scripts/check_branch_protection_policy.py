@@ -173,6 +173,7 @@ def _required_check_issues(declared: Any) -> list[str]:
         return ["expected.required_status_checks.checks is empty: nothing would be required"]
 
     issues: list[str] = []
+    seen: set[str] = set()
     for index, check in enumerate(declared):
         if not isinstance(check, dict):
             issues.append(f"required_status_checks.checks[{index}] must be an object")
@@ -181,13 +182,31 @@ def _required_check_issues(declared: Any) -> list[str]:
         label = context if isinstance(context, str) and context.strip() else f"[{index}]"
         if not isinstance(context, str) or not context.strip():
             issues.append(f"required_status_checks.checks[{index}] must name a context")
+        else:
+            # A context declared twice collapses to one binding when compared, so
+            # the discarded declaration is never checked against anything: a table
+            # naming both 99999 and 15368 would compare cleanly against live
+            # protection holding only 15368. Two declarations for one context are
+            # not a field-by-field audit of either.
+            if context in seen:
+                issues.append(
+                    f"required_status_checks.checks declares {context!r} more than once: "
+                    "one context has one binding, and a repeated declaration is silently "
+                    "discarded rather than compared"
+                )
+            seen.add(context)
         if "app_id" not in check:
             issues.append(
                 f"required_status_checks.checks {label!r} does not declare app_id: "
                 "name the app permitted to satisfy this context, or declare null "
                 "to allow any app deliberately"
             )
-        elif check["app_id"] is not None and not isinstance(check["app_id"], int):
+        elif check["app_id"] is not None and (
+            # `bool` is a subclass of `int` in Python, so `True` would satisfy an
+            # int check and then compare EQUAL to app id 1. The declaration would
+            # pass the blocking offline gate and match the wrong app.
+            isinstance(check["app_id"], bool) or not isinstance(check["app_id"], int)
+        ):
             issues.append(
                 f"required_status_checks.checks {label!r} app_id must be an integer or null"
             )
