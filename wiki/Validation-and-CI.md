@@ -137,6 +137,14 @@ The live field-by-field comparison — failing when protection weakens **and** w
 exception is removed without the configuration strengthening — runs daily in Main Gate Coverage
 Audit.
 
+That comparison now covers four controls it previously ignored: `lock_branch`, `required_signatures`,
+`block_creations` and `allow_fork_syncing`. They matter more than their obscurity suggests, because
+two of them decide whether `main` can be merged to at all — `lock_branch` makes the branch
+read-only and `required_signatures` fails every unsigned merge. Enabling either used to leave the
+audit reporting a clean match. All four are **required** entries in the policy table rather than
+optional ones: an undeclared control is an unmeasured control, and a table omitting one fails
+offline validation rather than passing quietly.
+
 The live comparison is scheduled rather than blocking because it authenticates with a PAT
 carrying `administration: read` (the workflow token cannot), and that secret is not yet
 provisioned: the step fails closed daily until an operator creates it. A blocking step before
