@@ -121,10 +121,20 @@ def _exact_pin(requirement: str) -> tuple[str, str] | None:
 
     The name is canonicalised the way the index does it, so `MyPy` and
     `type_checker` are not different tools from `mypy` and `type-checker`.
+
+    An ENVIRONMENT MARKER disqualifies it, however exact the version. Under
+    `mypy==2.3.1 ; python_version >= "3.12"` the CI lane installs Python 3.11,
+    pip omits mypy entirely, and a guard reading the specifier alone reports the
+    tool as pinned — green, immediately before `make typecheck` fails because the
+    tool is not there. A pin that may not apply is not a pin; a marker that is
+    genuinely wanted has to be reckoned with here rather than read past.
     """
     try:
         parsed = Requirement(requirement)
     except InvalidRequirement:
+        return None
+
+    if parsed.marker is not None:
         return None
 
     specifiers = list(parsed.specifier)
@@ -364,8 +374,9 @@ def test_every_output_defining_tool_is_exactly_pinned() -> None:
 
     missing = [tool for tool in OUTPUT_DEFINING_TOOLS if tool not in pins]
     assert not missing, (
-        f"{', '.join(missing)} must be pinned exactly in pyproject's dev extra "
-        "(name==version); a range lets CI resolve a version nobody chose"
+        f"{', '.join(missing)} must be pinned exactly and unconditionally in pyproject's "
+        "dev extra (name==version, no environment marker); a range lets CI resolve a "
+        "version nobody chose, and a marker lets CI install nothing at all"
     )
 
 
@@ -652,7 +663,11 @@ repos:
         ("ruff[extra]==0.15.22", ("ruff", "0.15.22")),
         # The index treats these as one name, so this file must too.
         ("MyPy==2.3.1", ("mypy", "2.3.1")),
-        ('mypy==2.3.1 ; python_version >= "3.12"', ("mypy", "2.3.1")),
+        # Exact, and conditional. Under the CI lane's Python 3.11 pip omits it
+        # entirely, so reading the specifier alone reports a tool that is not
+        # installed as pinned.
+        ('mypy==2.3.1 ; python_version >= "3.12"', None),
+        ('ruff==0.15.22 ; sys_platform == "win32"', None),
         # Ranges, including the one wearing `==`.
         ("mypy==2.3.*", None),
         ("ruff>=0.15.0", None),
