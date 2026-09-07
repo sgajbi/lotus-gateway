@@ -213,6 +213,67 @@ def _required_check_issues(declared: Any) -> list[str]:
     return issues
 
 
+def _resolve_expected(expected: dict[str, Any], field: str) -> tuple[bool, Any]:
+    """Resolve a dotted `field` inside `expected`. Returns (found, value)."""
+    node: Any = expected
+    for part in field.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return False, None
+        node = node[part]
+    return True, node
+
+
+def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any]) -> list[str]:
+    """An exception must document a deviation that is still present.
+
+    The zero-approval rule already binds ONE exception to its setting: a table
+    claiming `required_approving_review_count: 0` without the exception fails.
+    That invariant is what makes the table's promise true -- an exception cannot
+    be silently deleted while the configuration stays weak.
+
+    Nothing bound any OTHER exception, in either direction. So an exception could
+    outlive the weakness it documents, which is how a policy accumulates
+    permanent "temporary" text, and the reason, compensating controls and
+    retirement condition would keep asserting something no longer true.
+
+    This binds every exception generically rather than adding a second special
+    case: the deviation it names must still be visible in `expected`.
+
+    `required_status_checks.checks` is membership rather than equality -- an
+    exception there documents a context deliberately NOT required, so it retires
+    when that context is declared.
+    """
+    field = str(exception.get("field", ""))
+    value = exception.get("value")
+
+    if field == "required_status_checks.checks":
+        found, declared = _resolve_expected(expected, field)
+        if not found or not isinstance(declared, list):
+            return []
+        contexts = {check.get("context") for check in declared if isinstance(check, dict)}
+        if value in contexts:
+            return [
+                f"documented exception for {field} names {value!r}, which IS now a required "
+                "context: the deviation it documents has been retired, so remove the exception"
+            ]
+        return []
+
+    found, actual = _resolve_expected(expected, field)
+    if not found:
+        # An exception bound to nothing is the rot itself: it cannot be checked,
+        # cannot be retired by any change, and reads as a live deviation forever.
+        return [
+            f"documented exception names {field!r}, which is not a field of `expected`: "
+            "an exception bound to nothing can never be retired by a configuration change"
+        ]
+    if actual != value or isinstance(actual, bool) != isinstance(value, bool):
+        return [
+            f"documented exception for {field!r} claims {value!r} but the policy declares "
+            f"{actual!r}: the deviation it documents no longer exists, so remove the exception"
+        ]
+    return []
+
+
 def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     """Offline shape check: the document must be complete enough to gate against."""
     issues: list[str] = []
@@ -288,6 +349,8 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
         missing = _REQUIRED_EXCEPTION_KEYS - set(exception)
         if missing:
             issues.append(f"documented exception is missing keys: {sorted(missing)}")
+        else:
+            issues.extend(_exception_binding_issues(expected, exception))
     if declared_reviews.get("required_approving_review_count") == 0 and not any(
         e.get("field") == "required_pull_request_reviews.required_approving_review_count"
         for e in policy.get("documented_exceptions", [])

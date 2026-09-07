@@ -64,6 +64,78 @@ def test_policy_document_is_complete() -> None:
     assert validate_policy_document(load_policy()) == []
 
 
+def test_an_exception_that_outlives_its_weakness_is_refused() -> None:
+    """The retirement half, which nothing enforced for any exception but one.
+
+    An exception claiming `required_approving_review_count: 0` must go when the
+    count rises. Left behind, its reason, compensating controls and retirement
+    condition keep asserting something that is no longer true — which is how a
+    policy accumulates permanent "temporary" text.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_pull_request_reviews"]["required_approving_review_count"] = 1
+
+    issues = validate_policy_document(policy)
+
+    assert any("no longer exists" in issue for issue in issues), issues
+
+
+def test_an_exception_bound_to_nothing_is_refused() -> None:
+    """An exception naming a field outside `expected` can never be retired.
+
+    It cannot be checked, no configuration change removes it, and it reads as a
+    live deviation forever — the rot this rule exists to prevent, wearing the
+    shape of documentation.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"][0]["field"] = "some.field.that.does.not.exist"
+
+    issues = validate_policy_document(policy)
+
+    assert any("bound to nothing can never be retired" in issue for issue in issues), issues
+
+
+def test_an_omitted_context_exception_retires_when_the_context_is_required() -> None:
+    """Membership, not equality: this exception documents a context NOT required.
+
+    The adopters' transition-state exception — the gate's own context not yet
+    self-anchored — must be refused once that context is declared, so the
+    retirement condition is enforceable rather than aspirational.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"].append(
+        {
+            "field": "required_status_checks.checks",
+            "value": "Main Gate Coverage Audit / Enforce Branch Protection Policy",
+            "reason": "the gate's own context is not yet self-anchored",
+            "compensating_controls": "the scheduled audit reports its own failure",
+            "retires_when": "the context is added to the required set",
+        }
+    )
+    assert validate_policy_document(policy) == [], "an omitted context is a live deviation"
+
+    # Now require it: the exception must retire.
+    policy["expected"]["required_status_checks"]["checks"].append(
+        {
+            "context": "Main Gate Coverage Audit / Enforce Branch Protection Policy",
+            "app_id": 15368,
+        }
+    )
+    issues = validate_policy_document(policy)
+
+    assert any("has been retired" in issue for issue in issues), issues
+
+
+def test_a_boolean_exception_is_not_satisfied_by_a_numeric_value() -> None:
+    """`False == 0` in Python, so an exception claiming one must not bind the other."""
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"][0]["value"] = False
+
+    issues = validate_policy_document(policy)
+
+    assert any("no longer exists" in issue for issue in issues), issues
+
+
 def test_zero_approval_count_requires_a_documented_exception() -> None:
     policy = copy.deepcopy(load_policy())
     policy["documented_exceptions"] = []
