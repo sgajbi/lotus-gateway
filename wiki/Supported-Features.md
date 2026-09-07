@@ -571,12 +571,50 @@ Supported routes:
 14. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages`
 15. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/ai-evidence`
 
+Required caller context on the seven write routes:
+
+The seven `POST` routes above require trusted caller context and refuse without it **before any
+request is made to `lotus-advise`**. Reads require none.
+
+| Header | Meaning |
+| --- | --- |
+| `X-Actor-Id` | The acting identity. Gateway forwards it unchanged; a body field such as `created_by` or `decided_by` does not supply it. |
+| `X-Tenant-Id` | The tenant the write executes under, forwarded unchanged. |
+| `X-Legal-Entity-Code` | The legal entity, forwarded unchanged. |
+| `X-Role` | The caller's role. Must be the one the operation requires. |
+| `X-Caller-Capabilities` | Comma-separated capabilities. Must include the operation's capability. |
+
+| Operation | Required role | Required capability |
+| --- | --- | --- |
+| policy-pack validate | `POLICY_STEWARD` | `advisory.policy_pack.validate` |
+| policy-pack activate | `POLICY_CHECKER` | `advisory.policy_pack.activate` |
+| create policy evaluation | `ADVISOR` | `advisory.policy_evaluation.finalize` |
+| record evaluation event | `COMPLIANCE_REVIEWER` | `advisory.policy_evaluation.review_event` |
+| record sign-off decision | `POLICY_CHECKER` | `advisory.policy_evaluation.sign_off` |
+| request report package | `POLICY_CHECKER` | `advisory.policy_evaluation.report_package` |
+| request AI evidence | `COMPLIANCE_REVIEWER` | `advisory.policy_evaluation.ai_evidence` |
+
+Refusals, both raised by Gateway with no upstream call:
+
+1. `400 advisory_policy_caller_context_missing` — one or more headers absent, or
+   `advisory_policy_caller_context_invalid` when the actor, tenant, or legal entity is malformed.
+2. `403 advisory_policy_access_denied` — role or capability does not cover the operation. The
+   message is deliberately identical for both so it cannot be used to enumerate roles or
+   capabilities.
+
+This perimeter trusts the headers it is given. It is **not** production authentication: it
+propagates the scope a caller presents rather than verifying who they are. Verified principal and
+capability authority is owned by `lotus-platform#775`.
+
 Authority and integrations:
 
 1. `lotus-advise` remains the policy-pack, policy-evaluation, workflow, sign-off, report-package,
    lineage, replay, event, and AI-evidence authority.
 2. Gateway forwards policy ids, proposal ids, proposal-version ids, evaluation ids, request bodies,
-   idempotency keys, and correlation context to `lotus-advise`.
+   idempotency keys, correlation context, and the admitted caller's tenant, legal entity, actor and
+   role to `lotus-advise`. It also sends `X-Service-Identity: lotus-gateway`, which describes the
+   calling service and not who authorised the call. Gateway does not substitute a tenant, legal
+   entity, role, or capability of its own.
 3. Gateway preserves Advise-owned supportability, degraded posture, blocked posture,
    maker-checker state, client-ready blockers, source hashes, AI non-authoritative posture, and
    report-package state.
