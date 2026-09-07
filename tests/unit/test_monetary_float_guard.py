@@ -29,6 +29,42 @@ def test_scan_repo_ignores_local_virtualenv_directories(tmp_path: Path) -> None:
     assert findings == ["src/app/services/portfolio_service.py:1:market_value: float = 1.0"]
 
 
+def test_a_comment_naming_the_hazard_is_not_a_use_of_it(tmp_path: Path) -> None:
+    """Prose explaining the rule must not trip the rule.
+
+    A comment cannot introduce a monetary float, and flagging one teaches authors
+    to reword explanations to satisfy the guard rather than trust it. This exact
+    line failed CI: an explanation of why a float value must not bind an integer
+    setting, in a file about branch protection, with no money anywhere in it.
+
+    Both directions are asserted, because a guard that stopped catching real
+    usage would be a worse outcome than the false positive it fixes.
+    """
+    guard = _load_guard_module()
+    source = tmp_path / "src" / "app" / "services" / "policy.py"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "\n".join(
+            (
+                "# a float value would bind an integer setting and be treated as equal",
+                "    # indented prose about market_value as a float is still prose",
+                "market_value: float = 1.0",
+                "price: float = 2.0  # a trailing comment leaves real code before the hash",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    findings = guard.scan_repo(tmp_path)
+
+    assert findings == [
+        "src/app/services/policy.py:3:market_value: float = 1.0",
+        "src/app/services/policy.py:4:price: float = 2.0  "
+        "# a trailing comment leaves real code before the hash",
+    ], findings
+
+
 def test_allowlist_matching_tolerates_line_number_shift(tmp_path: Path) -> None:
     guard = _load_guard_module()
     product_file = tmp_path / "src" / "app" / "services" / "portfolio_service.py"

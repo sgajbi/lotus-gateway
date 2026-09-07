@@ -69,6 +69,14 @@ def scan_repo(repo_root: Path) -> list[str]:
         rel = file_path.relative_to(repo_root).as_posix()
         for line_no, line in enumerate(file_path.read_text(encoding="utf-8").splitlines(), start=1):
             lowered = line.lower()
+            # A comment cannot introduce a monetary float. Scanning them flagged
+            # prose that merely NAMES the hazard -- "a float value would bind an
+            # integer setting" is an explanation, not a use -- which teaches
+            # authors to reword comments to satisfy the guard rather than trust
+            # it. A trailing comment on a real line still leaves code before the
+            # `#`, so that line is still scanned.
+            if lowered.lstrip().startswith("#"):
+                continue
             if not any(k in lowered for k in KEYWORDS):
                 continue
             if not FLOAT_ANNOTATION.search(lowered):
