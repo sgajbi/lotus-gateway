@@ -137,6 +137,15 @@ The live field-by-field comparison — failing when protection weakens **and** w
 exception is removed without the configuration strengthening — runs daily in Main Gate Coverage
 Audit.
 
+The table pins each required context to the **app permitted to satisfy it**, mirroring the API's
+own `required_status_checks.checks` shape rather than listing context names alone. Without a
+binding the name is the whole credential: any GitHub App able to post a status called
+`PR Merge Gate / Integration Tests` satisfies that required check, and removing or replacing a
+context's source leaves its name in place so a name-only comparison reports a clean match.
+`app_id: null` is a real, weaker posture meaning *any app may report this context* — so it must be
+declared explicitly, and a check that omits `app_id` fails offline validation rather than
+defaulting to the weaker reading.
+
 That comparison now covers four controls it previously ignored: `lock_branch`, `required_signatures`,
 `block_creations` and `allow_fork_syncing`. They matter more than their obscurity suggests, because
 two of them decide whether `main` can be merged to at all — `lock_branch` makes the branch
