@@ -64,6 +64,13 @@ OUTPUT_DEFINING_TOOLS = ("ruff", "mypy")
 # leaves the formatter unenforced locally.
 REV_PINNED_HOOKS: dict[str, tuple[str, ...]] = {"ruff": ("ruff", "ruff-format")}
 
+# The repository each rev-pinned tool must come from. Matching on a URL
+# SUBSTRING would accept any fork, mirror or unrelated project whose address
+# happens to contain the tool's name, and then compare ITS revision against our
+# pin — reporting agreement between the pinned version and something else
+# entirely.
+EXPECTED_HOOK_REPOSITORIES = {"ruff": "https://github.com/astral-sh/ruff-pre-commit"}
+
 # Tools that must run from the project environment instead, because they need
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
@@ -158,7 +165,7 @@ def _hook_revisions() -> dict[str, str]:
                 hook.get("stages", default_stages)
             )
         for tool, required in REV_PINNED_HOOKS.items():
-            if tool not in source:
+            if source.rstrip("/") != EXPECTED_HOOK_REPOSITORIES[tool]:
                 continue
             # ANY runnable required hook makes this stanza's version one that
             # developers actually execute. Asking only for stanzas carrying ALL
@@ -257,27 +264,34 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
         ]
         assert local_hooks, f"{tool} must be declared as a local hook"
 
-        hook = local_hooks[0]
         default_stages = _config().get("default_stages")
-        assert _runs_on_commit(hook.get("stages", default_stages)), (
+        running_local = [
+            hook for hook in local_hooks if _runs_on_commit(hook.get("stages", default_stages))
+        ]
+        assert running_local, (
             f"the local {tool} hook is configured but does not run on an ordinary commit, "
             "so the environment it would have used is irrelevant"
         )
-        assert hook.get("language") == "system", (
-            f"{tool} must use language: system so it runs in the environment the project "
-            "was installed into, not one pre-commit builds for it"
-        )
-        # `python -m mypy` rather than a bare `mypy` executable: it follows the
-        # interpreter running pre-commit instead of whatever is first on PATH.
-        # The residual is real and is the same contract `make lint` already has
-        # -- run from the environment the project was installed into. A hook
-        # cannot enforce that; it can only avoid making it worse.
-        entry_parts = str(hook.get("entry", "")).split()
-        assert entry_parts[:3] == ["python", "-m", tool], (
-            f"the local {tool} hook must invoke `python -m {tool}` exactly; "
-            f"`python -m mypyc` and similar contain the name without being the tool. "
-            f"entry is {hook.get('entry')!r}"
-        )
+
+        # EVERY running occurrence, not the first. pre-commit executes them all,
+        # so a second hook invoking something else would run unexamined behind a
+        # correct one.
+        for hook in running_local:
+            assert hook.get("language") == "system", (
+                f"{tool} must use language: system so it runs in the environment the "
+                "project was installed into, not one pre-commit builds for it"
+            )
+            # The WHOLE entry, not a prefix: trailing tokens change what runs,
+            # and `python -m mypyc` contains the name without being the tool.
+            # `python -m` rather than a bare executable so it follows the
+            # interpreter running pre-commit instead of whatever is first on
+            # PATH. The residual — that the interpreter must BE the project's —
+            # is the same contract `make lint` already has; a hook cannot
+            # enforce it, only avoid making it worse.
+            assert str(hook.get("entry", "")).split() == ["python", "-m", tool], (
+                f"the local {tool} hook must invoke `python -m {tool}` exactly; "
+                f"entry is {hook.get('entry')!r}"
+            )
 
 
 def _parse_config(text: str, tmp_path, monkeypatch) -> dict[str, str]:
@@ -468,3 +482,47 @@ repos:
     assert _parse_config(duplicated_ids, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
         "one manual occurrence does not disable a sibling that runs on commit"
     )
+
+
+def test_ruff_must_come_from_its_own_repository(tmp_path, monkeypatch) -> None:
+    """A URL containing the tool's name is not the tool's repository.
+
+    Matching on a substring would accept a fork or an unrelated project and then
+    compare its revision against our pin — reporting agreement between the pinned
+    version and something else entirely.
+    """
+    impostor = """
+repos:
+  - repo: https://github.com/someone/ruff-lookalike
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+"""
+    assert _parse_config(impostor, tmp_path, monkeypatch) == {}, (
+        "a repository that merely contains 'ruff' must not be credited"
+    )
+
+
+def test_a_trailing_token_changes_what_runs(tmp_path, monkeypatch) -> None:
+    """The whole entry is compared, not a prefix.
+
+    `python -m mypy --follow-imports=skip` starts with the right three tokens and
+    resolves every import to Any — a hook that runs, reports success, and checks
+    nothing.
+    """
+    weakened = """
+repos:
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: python -m mypy --follow-imports=skip
+        language: system
+"""
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(weakened, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+
+    with pytest.raises(AssertionError, match="exactly"):
+        test_dependency_aware_tools_run_from_the_project_environment()
