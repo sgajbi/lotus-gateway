@@ -39,7 +39,11 @@
       }
     },
     "restrictions_present": false,
-    "codeowners_present": false
+    "codeowners_present": false,
+    "lock_branch": false,
+    "required_signatures": false,
+    "block_creations": false,
+    "allow_fork_syncing": false
   },
   "documented_exceptions": [
     {
