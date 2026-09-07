@@ -286,10 +286,15 @@ def test_an_omitted_context_exception_retires_when_the_context_is_required() -> 
     assert any("has been retired" in issue for issue in issues), issues
 
 
-def test_a_boolean_exception_is_not_satisfied_by_a_numeric_value() -> None:
-    """`False == 0` in Python, so an exception claiming one must not bind the other."""
+@pytest.mark.parametrize("value", [False, 0.0])
+def test_an_exception_value_of_the_wrong_type_does_not_bind(value: object) -> None:
+    """`False == 0` and `0.0 == 0`, so equality alone is not agreement.
+
+    Both would otherwise bind the integer zero-approval setting and be treated as
+    documenting it, while declaring something the table does not say.
+    """
     policy = copy.deepcopy(load_policy())
-    policy["documented_exceptions"][0]["value"] = False
+    policy["documented_exceptions"][0]["value"] = value
 
     issues = validate_policy_document(policy)
 

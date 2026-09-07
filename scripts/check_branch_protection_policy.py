@@ -271,8 +271,9 @@ def _undocumented_weakness_issues(
         found, actual = _resolve_expected(expected, field)
         if not found:
             continue
-        # `False == 0` in Python, so compare boolean-ness alongside value.
-        if actual == weak_value and isinstance(actual, bool) == isinstance(weak_value, bool):
+        # `False == 0` and `0.0 == 0`, so the type must match exactly for a
+        # declared value to count as this weak posture.
+        if actual == weak_value and type(actual) is type(weak_value):
             if field not in documented:
                 issues.append(
                     f"expected.{field} is {actual!r} without a documented exception: "
@@ -378,7 +379,10 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
             f"documented exception names {field!r}, which is not a field of `expected`: "
             "an exception bound to nothing can never be retired by a configuration change"
         ]
-    if actual != value or isinstance(actual, bool) != isinstance(value, bool):
+    # Exact types, not just equality and boolean-ness. `0.0 == 0` and neither is
+    # a bool, so a float exception value would bind an integer setting and be
+    # treated as documenting it -- the same trap as `False == 0`, one type along.
+    if actual != value or type(actual) is not type(value):
         return [
             f"documented exception for {field!r} claims {value!r} but the policy declares "
             f"{actual!r}: the deviation it documents no longer exists, so remove the exception"
