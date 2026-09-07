@@ -50,6 +50,18 @@ _BOOLEAN_REVIEW_KEYS = (
     "require_last_push_approval",
 )
 
+# Controls the branch-protection API returns that decide whether main can be
+# merged to at all. `lock_branch` makes the branch read-only; `required_signatures`
+# fails every unsigned merge; `block_creations` changes what may be created.
+# Absent from this list they were never compared, so an administrator could
+# enable any of them and the scheduled audit still reported a clean match.
+_MERGEABILITY_EXPECTED_KEYS = (
+    "lock_branch",
+    "required_signatures",
+    "block_creations",
+    "allow_fork_syncing",
+)
+
 _BOOLEAN_EXPECTED_KEYS = (
     "enforce_admins",
     "required_linear_history",
@@ -58,6 +70,7 @@ _BOOLEAN_EXPECTED_KEYS = (
     "required_conversation_resolution",
     "restrictions_present",
     "codeowners_present",
+    *_MERGEABILITY_EXPECTED_KEYS,
 )
 
 _REQUIRED_EXPECTED_KEYS = (
@@ -70,6 +83,11 @@ _REQUIRED_EXPECTED_KEYS = (
     "required_pull_request_reviews",
     "restrictions_present",
     "codeowners_present",
+    # REQUIRED, not optional. An undeclared control is an unmeasured one, and
+    # silence is precisely the defect this list closes: an adopter cannot fix it
+    # by declaring the field unless the checker reads it, and the checker must
+    # not pass a table that omits it.
+    *_MERGEABILITY_EXPECTED_KEYS,
 )
 
 
@@ -247,6 +265,7 @@ def compare_live_to_policy(policy: dict[str, Any], live: dict[str, Any]) -> list
         "allow_deletions": _enabled(live.get("allow_deletions")),
         "required_conversation_resolution": _enabled(live.get("required_conversation_resolution")),
         "restrictions_present": live.get("restrictions") is not None,
+        **{key: _enabled(live.get(key)) for key in _MERGEABILITY_EXPECTED_KEYS},
     }
     for name, actual in scalar_fields.items():
         if actual != expected[name]:

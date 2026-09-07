@@ -15,6 +15,9 @@ from typing import Any
 import pytest
 
 from scripts.check_branch_protection_policy import (
+    _MERGEABILITY_EXPECTED_KEYS as MERGEABILITY_KEYS,
+)
+from scripts.check_branch_protection_policy import (
     compare_live_to_policy,
     detect_repository,
     load_policy,
@@ -34,6 +37,7 @@ def _live_matching_policy(policy: dict[str, Any]) -> dict[str, Any]:
             "enabled": expected["required_conversation_resolution"]
         },
         "restrictions": {"users": []} if expected["restrictions_present"] else None,
+        **{key: {"enabled": expected[key]} for key in MERGEABILITY_KEYS},
         "required_status_checks": {
             "strict": expected["required_status_checks"]["strict"],
             "contexts": list(expected["required_status_checks"]["contexts"]),
@@ -83,6 +87,50 @@ def test_weakened_live_protection_fails() -> None:
 
     assert any(issue.startswith("enforce_admins") for issue in issues)
     assert any("contexts differ" in issue for issue in issues)
+
+
+@pytest.mark.parametrize("control", MERGEABILITY_KEYS)
+def test_each_mergeability_control_is_actually_compared(control: str) -> None:
+    """Enabling any of these must be reported, one field at a time.
+
+    Parametrized per field rather than asserted as a group: a group assertion is
+    satisfied by ONE of them being compared, which is how three could stay
+    unread behind a fourth that works. Each case flips exactly one control, so
+    the case that fails names the control nobody is looking at.
+
+    These four are worth their own test because they decide whether main can be
+    merged to at all. `lock_branch` makes the branch read-only and
+    `required_signatures` fails every unsigned merge -- an administrator could
+    enable either and the scheduled audit reported a clean match.
+    """
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    live[control] = {"enabled": not policy["expected"][control]}
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any(issue.startswith(f"{control}:") for issue in issues), (
+        f"{control} drifted and the comparison reported: {issues}"
+    )
+
+
+@pytest.mark.parametrize("control", MERGEABILITY_KEYS)
+def test_a_policy_omitting_a_mergeability_control_is_refused(control: str) -> None:
+    """An undeclared control is an unmeasured one, so the table must not omit it.
+
+    This is the half an adopter cannot supply on their own: before this change
+    an unknown key in `expected` was simply never read, so declaring the field
+    did nothing. Requiring it means a lifted table fails loudly until it is
+    updated, which is the intended way a fix reaches every adopter.
+    """
+    policy = copy.deepcopy(load_policy())
+    del policy["expected"][control]
+
+    issues = validate_policy_document(policy)
+
+    assert any(control in issue for issue in issues), (
+        f"a policy without {control} was accepted: {issues}"
+    )
 
 
 def test_absent_reviews_block_is_distinguished_from_zero_count() -> None:
