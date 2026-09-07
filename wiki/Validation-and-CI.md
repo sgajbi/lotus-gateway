@@ -137,6 +137,14 @@ The live field-by-field comparison — failing when protection weakens **and** w
 exception is removed without the configuration strengthening — runs daily in Main Gate Coverage
 Audit.
 
+Every documented exception is bound to the deviation it describes, in **both** directions. An
+exception must accompany the weak setting, and it must be removed once that setting strengthens: a
+table whose approval count rises to 1 while still carrying the zero-approval exception fails, as
+does an exception naming a context that has since become required. An exception naming a field
+outside `expected` is refused outright, because one bound to nothing can never be retired by any
+configuration change and reads as a live deviation forever. That is how a policy stops accumulating
+permanent "temporary" text.
+
 The table pins each required context to the **app permitted to satisfy it**, mirroring the API's
 own `required_status_checks.checks` shape rather than listing context names alone. Without a
 binding the name is the whole credential: any GitHub App able to post a status called
