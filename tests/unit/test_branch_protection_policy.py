@@ -196,6 +196,29 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     assert validate_policy_document(policy) == []
 
 
+def test_a_context_reported_twice_by_live_protection_is_reported() -> None:
+    """The same collapsing hazard, in the direction the gate actually audits.
+
+    Rejecting duplicates in the DECLARED table left the LIVE side collapsing:
+    an undeclared 99999 binding followed by the declared 15368 one keyed to the
+    same context, and only the last survived the comparison. The extra binding
+    disappeared from the audit whose purpose is to notice exactly that.
+    """
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    declared_first = live["required_status_checks"]["checks"][0]
+    live["required_status_checks"]["checks"].insert(
+        0, {"context": declared_first["context"], "app_id": 99999}
+    )
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("more than once" in issue for issue in issues), issues
+    assert any(declared_first["context"] in issue for issue in issues), (
+        "the report must name the repeated context"
+    )
+
+
 def test_a_context_declared_twice_is_refused() -> None:
     """One context has one binding; a repeat is discarded, not compared.
 

@@ -327,14 +327,29 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     different GitHub App -- or a legacy commit status -- satisfies branch
     protection in its place.
     """
-    live_bindings = {
-        str(check.get("context")): check.get("app_id")
-        for check in (live or [])
-        if isinstance(check, dict)
-    }
+    live_checks = [check for check in (live or []) if isinstance(check, dict)]
+    live_bindings = {str(check.get("context")): check.get("app_id") for check in live_checks}
     policy_bindings = {str(check["context"]): check.get("app_id") for check in declared}
 
     issues: list[str] = []
+    # The same collapsing hazard as the declared side, in the direction the gate
+    # is actually auditing. If live protection reports one context twice -- an
+    # undeclared binding followed by the declared one -- keying by context keeps
+    # only the last, and the extra binding disappears from a comparison whose
+    # whole purpose is to notice it.
+    if len(live_bindings) != len(live_checks):
+        repeated = sorted(
+            {
+                str(check.get("context"))
+                for index, check in enumerate(live_checks)
+                if str(check.get("context"))
+                in {str(other.get("context")) for other in live_checks[:index]}
+            }
+        )
+        issues.append(
+            f"live protection reports these contexts more than once: {repeated}; "
+            "each carries its own app binding and only the last would be compared"
+        )
     missing = sorted(set(policy_bindings) - set(live_bindings))
     extra = sorted(set(live_bindings) - set(policy_bindings))
     if missing:
