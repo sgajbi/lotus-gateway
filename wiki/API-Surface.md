@@ -540,6 +540,16 @@ consumer migration remain tracked by parent issue #569.
   suitability or best-interest rules, infer supportability, approve sign-off, override
   client-ready blockers, generate AI evidence, or promote blocked/degraded evaluations to client
   output.
+- the seven advisory-policy **write** routes require trusted caller context — `X-Actor-Id`,
+  `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Role`, and `X-Caller-Capabilities` — and refuse
+  `400 advisory_policy_caller_context_missing` / `..._invalid` or `403
+  advisory_policy_access_denied` **before any request reaches `lotus-advise`**. The write executes
+  under the caller's own tenant, legal entity and actor, forwarded unchanged; Gateway substitutes
+  none of its own and asserts only `X-Service-Identity: lotus-gateway`. Per-operation roles and
+  capabilities are listed in Supported-Features. The advisory-policy **read** routes require no
+  caller context and send no tenant, which is a known gap tracked separately. This perimeter
+  trusts the headers it is given and is not production authentication; verified principal
+  authority is owned by `lotus-platform#775`.
 - advisor cockpit routes call `lotus-advise` `/advisory/cockpit/*` through
   `/api/v1/advisor-cockpit/actions`, `/api/v1/advisor-cockpit/preparation-packets`,
   `/api/v1/advisor-cockpit/snapshot`, `/api/v1/advisor-cockpit/supportability`, and
