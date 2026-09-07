@@ -196,6 +196,49 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     assert validate_policy_document(policy) == []
 
 
+def test_a_context_declared_twice_is_refused() -> None:
+    """One context has one binding; a repeat is discarded, not compared.
+
+    The comparison keys by context, so a second declaration for the same context
+    silently replaces the first. A table naming both 99999 and 15368 for one
+    context would then validate AND compare cleanly against live protection
+    holding only 15368 -- two declarations, one of them never checked against
+    anything.
+    """
+    policy = copy.deepcopy(load_policy())
+    checks = policy["expected"]["required_status_checks"]["checks"]
+    checks.append({"context": checks[0]["context"], "app_id": 99999})
+
+    issues = validate_policy_document(policy)
+
+    assert any("more than once" in issue for issue in issues), issues
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_a_boolean_app_id_is_refused(value: bool) -> None:
+    """`bool` is a subclass of `int`, so a naive integer check accepts it.
+
+    Worse than a type slip: `True == 1`, so a boolean binding would compare EQUAL
+    to app id 1 rather than merely being malformed.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = value
+
+    issues = validate_policy_document(policy)
+
+    assert any("must be an integer or null" in issue for issue in issues), issues
+
+
+def test_a_boolean_app_id_would_have_matched_app_one() -> None:
+    """The consequence, not merely the shape: True compares equal to app id 1.
+
+    Stated as its own case because "the validator rejects it" is a weaker claim
+    than "here is what it would otherwise have matched".
+    """
+    assert True == 1  # noqa: E712 -- the point of the test is this equality
+    assert isinstance(True, int)
+
+
 def test_an_undeclared_live_context_is_reported() -> None:
     """A context required live but absent from the table is drift in the other direction."""
     policy = load_policy()
