@@ -77,25 +77,23 @@ _REQUIRED_HOOK_IDS = {hook for hooks in REV_PINNED_HOOKS.values() for hook in ho
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 
-# Flags that make a tool report success without judging the tree. The hook is
-# listed, its entry is right, its version agrees — and its verdict is green
-# whatever the code says. This is a NAMED SET, not a model of either tool's CLI:
-# an exhaustive one would be reimplementing ruff's and mypy's argument parsers,
-# the scope this file already declined for file selection. It names the flags
-# whose PURPOSE is to suppress a verdict, which is the degenerate case worth
-# failing on.
-VERDICT_NEUTRALISING_ARGS = frozenset(
-    {
-        "--exit-zero",
-        "--exit-zero-even-if-changed",
-        # Fixes what it can and exits 0 on the rest, so an UNFIXABLE violation
-        # passes the commit and fails `ruff check .` in CI. The green local run
-        # is the part that makes it worse than no hook at all.
-        "--fix-only",
-        "--version",
-        "--help",
-    }
-)
+# The arguments a rev-pinned hook may carry. An ALLOWLIST, after a blocklist of
+# neutralising flags was extended three times by review — `--exit-zero`, then
+# `--fix-only`, then `--isolated` — each addition correct and each proving the
+# same thing: enumerating the ways to break agreement is unbounded, because it
+# means enumerating ruff's CLI.
+#
+# The three named here narrow or strengthen what the hook refuses and leave the
+# program and its configuration alone. Everything else diverges from CI in one of
+# two ways: it suppresses a verdict (`--exit-zero`, `--fix-only`), or it changes
+# the configuration producing one (`--isolated` discards this repository's
+# `line-length` and `lint.select`, so the SAME pinned version formats and lints
+# differently on the two sides).
+#
+# An argument outside this set may be perfectly reasonable. It just has to be
+# added here deliberately, having checked the CI lane agrees — which is the whole
+# subject of this file.
+PERMITTED_HOOK_ARGS = frozenset({"--fix", "--force-exclude", "--exit-non-zero-on-fix"})
 
 # A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
 # lets the newest matching release arrive without a commit.
@@ -129,18 +127,19 @@ def _runs_on_commit(stages: object) -> bool:
     return bool(names & {"pre-commit", "commit"})
 
 
-def _reports_a_verdict(hook: dict[str, object]) -> bool:
-    """Whether a hook's arguments still let its findings fail the commit.
+def _agrees_with_ci(hook: dict[str, object]) -> bool:
+    """Whether a hook's arguments leave it judging the same tree the CI lane does.
 
-    `--exit-zero` leaves ruff running, reading every file and printing every
-    violation, then exiting 0. Crediting a revision for such a hook says
-    developers are covered by a checker that cannot refuse anything — the same
-    error as crediting a stanza for being listed, one level further in.
+    The pin promises one PROGRAM. Arguments decide whether it is also one CHECK:
+    `--exit-zero` leaves ruff reading every file, printing every violation and
+    exiting 0, while `--isolated` discards this repository's `line-length` and
+    `lint.select` so the same pinned version reaches a different verdict. Both
+    end with a green commit and a red CI run on one tree.
 
-    A flag written `--flag=value` is compared by its name.
+    A flag written `--flag=value` is judged by its name.
     """
     names = {str(argument).split("=", 1)[0] for argument in hook.get("args") or []}
-    return not (names & VERDICT_NEUTRALISING_ARGS)
+    return names <= PERMITTED_HOOK_ARGS
 
 
 def _repository_identity(source: str) -> str:
@@ -240,9 +239,7 @@ def _hook_revisions() -> dict[str, str]:
             # restores what a bad one gave up: a hook that never runs, and a hook
             # that runs but cannot refuse, both leave the commit gated as long as
             # a sibling does the job.
-            runs[identifier] = runs.get(identifier, False) or (
-                on_commit and _reports_a_verdict(hook)
-            )
+            runs[identifier] = runs.get(identifier, False) or (on_commit and _agrees_with_ci(hook))
             # An override does NOT or away, and that asymmetry is the point. A
             # sound sibling adds a gate; an overridden occurrence ADDS AN
             # EXECUTION — `entry: ruff` with `language: system` runs whatever
@@ -808,25 +805,58 @@ repos:
     )
 
 
-def test_fix_only_is_verdict_neutralising(tmp_path, monkeypatch) -> None:
-    """`--fix-only` exits 0 on the violations it could not fix.
+@pytest.mark.parametrize(
+    ("argument", "why"),
+    [
+        ("--fix-only", "exits 0 on the violations it could not fix"),
+        ("--isolated", "discards this repository's line-length and lint.select"),
+        ("--config=/tmp/other.toml", "judges the tree against a different configuration"),
+        ("--line-length=200", "overrides a setting CI reads from pyproject"),
+    ],
+)
+def test_arguments_that_diverge_from_ci_are_refused(argument, why, tmp_path, monkeypatch) -> None:
+    """Divergence has two shapes, and the allowlist covers both.
 
-    The commit passes and `ruff check .` in CI fails on the same tree. A hook
-    that is green where CI is red is worse than no hook: it is evidence pointing
-    the wrong way.
+    A flag can suppress the verdict (`--fix-only` exits 0 on what it could not
+    fix) or change the configuration producing it (`--isolated` drops this
+    repository's settings). Either way the commit is green and `ruff check .` is
+    red on one unchanged tree — a hook that is evidence pointing the wrong way.
     """
-    fix_only = """
+    diverging = f"""
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.22
     hooks:
       - id: ruff
-        args: ["--fix-only"]
+        args: ["{argument}"]
       - id: ruff-format
 """
-    assert "ruff" not in _parse_config(fix_only, tmp_path, monkeypatch), (
-        "a hook that exits 0 on unfixable violations does not cover the tool"
+    assert "ruff" not in _parse_config(diverging, tmp_path, monkeypatch), (
+        f"`{argument}` {why}, so the hook does not cover the tool"
     )
+
+
+def test_the_configured_arguments_are_permitted(tmp_path, monkeypatch) -> None:
+    """The allowlist must admit what this repository actually configures.
+
+    An allowlist that refused the shipped config would be found immediately; one
+    that refuses a reasonable neighbour is the failure worth guarding, so the
+    arguments a hook may legitimately want are asserted acceptable rather than
+    discovered later by someone whose correct change was rejected.
+    """
+    for argument in sorted(PERMITTED_HOOK_ARGS):
+        permitted = f"""
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        args: ["{argument}"]
+      - id: ruff-format
+"""
+        assert _parse_config(permitted, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+            f"`{argument}` narrows or strengthens the hook and must stay acceptable"
+        )
 
 
 def test_a_manual_mirrored_hook_is_not_a_conflict(tmp_path, monkeypatch) -> None:
