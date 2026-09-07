@@ -400,10 +400,33 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
                 f"documented exception names an unpinned binding for {context!r}, which is "
                 "not a declared required context"
             ]
+        if value is not None:
+            # The exception documents "any app may report this", which IS the
+            # null binding. Any other value describes a posture the table does
+            # not hold, so nothing could ever retire it.
+            return [
+                f"documented exception for {field} must declare null, not {value!r}: "
+                "it documents the unpinned binding itself"
+            ]
         if bindings[context] is not None:
             return [
                 f"documented exception says {context!r} permits any app, but it is now pinned "
                 f"to {bindings[context]!r}: the deviation has been retired, so remove it"
+            ]
+        return []
+
+    if field.startswith("required_pull_request_reviews.bypass_pull_request_allowances."):
+        category = field.rpartition(".")[2]
+        _found, bypass = _resolve_expected(
+            expected, "required_pull_request_reviews.bypass_pull_request_allowances"
+        )
+        entries = bypass.get(category) if isinstance(bypass, dict) else None
+        if not isinstance(entries, list) or not entries:
+            # The retirement direction: with the allowance emptied, nobody can
+            # evade review through it and the exception documents nothing.
+            return [
+                f"documented exception for {field} but that allowance is empty: "
+                "the deviation it documents has been retired, so remove the exception"
             ]
         return []
 
@@ -436,7 +459,13 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
     if field == "required_status_checks.checks":
         found, declared = _resolve_expected(expected, field)
         if not found or not isinstance(declared, list):
-            return []
+            # Returning nothing here made the exception unverifiable AND silent:
+            # `_required_check_issues` reports the malformed table, but this
+            # exception then binds to something that cannot be read at all.
+            return [
+                f"documented exception for {field} cannot be checked because the declared "
+                "checks are missing or not a list"
+            ]
         if not isinstance(value, str) or not value.strip():
             # Membership against a set of context names. A non-string is never in
             # it, so the exception would apply forever; an unhashable value would
