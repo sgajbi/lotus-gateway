@@ -341,6 +341,17 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     policy_bindings = {str(check["context"]): check.get("app_id") for check in declared}
 
     issues: list[str] = []
+    # Absent is not null on the MEASURED side either. `.get()` returns None for
+    # both, so a live check omitting `app_id` would read as the deliberate
+    # "any app permitted" posture and match a table that declares it. GitHub
+    # always returns the key, so its absence means the payload changed or is
+    # malformed -- fail closed rather than resolve to the weaker reading.
+    unbound = sorted(str(check.get("context")) for check in live_checks if "app_id" not in check)
+    if unbound:
+        issues.append(
+            f"live protection reports these contexts without an app_id field: {unbound}; "
+            "an absent binding is not the same as an explicit null and is not compared as one"
+        )
     # The same collapsing hazard as the declared side, in the direction the gate
     # is actually auditing. If live protection reports one context twice -- an
     # undeclared binding followed by the declared one -- keying by context keeps
