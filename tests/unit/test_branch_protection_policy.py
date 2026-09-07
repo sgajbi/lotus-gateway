@@ -196,6 +196,28 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     assert validate_policy_document(policy) == []
 
 
+def test_a_live_check_without_an_app_id_is_not_read_as_unpinned() -> None:
+    """Absent is not null on the measured side either.
+
+    `.get("app_id")` returns None for both an explicit null and a missing key, so
+    a live check omitting the field would read as the deliberate "any app
+    permitted" posture and compare EQUAL to a table declaring it. GitHub always
+    returns the key, so its absence means the payload changed or is malformed.
+
+    Third instance of one shape in this change: a distinction enforced on the
+    declared side and collapsed on the measured side. The declared side is
+    reviewed before it lands; the measured side is the thing that moved.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = None
+    live = _live_matching_policy(policy)
+    del live["required_status_checks"]["checks"][0]["app_id"]
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("without an app_id field" in issue for issue in issues), issues
+
+
 def test_a_context_reported_twice_by_live_protection_is_reported() -> None:
     """The same collapsing hazard, in the direction the gate actually audits.
 
