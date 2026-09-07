@@ -21,6 +21,9 @@ from scripts.check_branch_protection_policy import (
     _MERGEABILITY_EXPECTED_KEYS as MERGEABILITY_KEYS,
 )
 from scripts.check_branch_protection_policy import (
+    _WEAK_POSTURES as WEAK_POSTURES,
+)
+from scripts.check_branch_protection_policy import (
     _resolve_expected as resolve_expected,
 )
 from scripts.check_branch_protection_policy import (
@@ -70,6 +73,43 @@ def test_policy_document_is_complete() -> None:
     assert validate_policy_document(load_policy()) == []
 
 
+@pytest.mark.parametrize("field", sorted(WEAK_POSTURES))
+def test_every_weak_posture_requires_its_own_documented_exception(field: str) -> None:
+    """Deleting ANY exception must leave the weakness reported, not just one.
+
+    Retirement was enforced for every exception and this direction for exactly
+    one, so removing any other left a live weakness silently undocumented — its
+    reason, compensating controls and retirement condition gone while the
+    configuration stayed weak. Parametrized per posture: a single case would be
+    satisfied by one entry working while the rest went unread.
+    """
+    policy = copy.deepcopy(load_policy())
+    found, weak_value = resolve_expected(policy["expected"], field)
+    assert found, f"{field} is named as a weak posture but is not in the shipped table"
+
+    # Put the table on the weak side and remove every exception.
+    parts = field.split(".")
+    node = policy["expected"]
+    for part in parts[:-1]:
+        node = node[part]
+    node[parts[-1]] = WEAK_POSTURES[field]
+    policy["documented_exceptions"] = []
+
+    issues = validate_policy_document(policy)
+
+    assert any(f"expected.{field} is" in issue for issue in issues), issues
+    assert weak_value is not None or True
+
+
+def test_the_shipped_policy_documents_every_weakness_it_declares() -> None:
+    """The accept side, against the real table rather than a constructed one."""
+    assert [
+        issue
+        for issue in validate_policy_document(load_policy())
+        if "without a documented" in issue
+    ] == []
+
+
 def test_an_exception_that_outlives_its_weakness_is_refused() -> None:
     """The retirement half, which nothing enforced for any exception but one.
 
@@ -99,6 +139,30 @@ def test_a_review_exception_is_refused_when_the_review_block_is_absent() -> None
     issues = validate_policy_document(policy)
 
     assert any("skips every nested review field" in issue for issue in issues), issues
+
+
+def test_an_unhashable_declared_context_fails_through_the_gate() -> None:
+    """A malformed declared context must be reported, not raise inside the validator.
+
+    `_required_check_issues` records it correctly and the membership set then
+    crashed on it — the gate that exists to report findings falling over on the
+    very input it is reporting about.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"][0]["context"] = ["not", "a", "string"]
+    policy["documented_exceptions"].append(
+        {
+            "field": "required_status_checks.checks",
+            "value": "Some Omitted Context",
+            "reason": "documented omission",
+            "compensating_controls": "none",
+            "retires_when": "the context is required",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("must name a context" in issue for issue in issues), issues
 
 
 @pytest.mark.parametrize("value", [None, 123, ["a"], {"context": "a"}, "", "   "])

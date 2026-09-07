@@ -117,6 +117,29 @@ _AUDITED_EXCEPTION_FIELDS = frozenset(
 )
 
 
+# Postures that must be DOCUMENTED when chosen: the value is weaker than the
+# alternative and an undocumented deviation is indistinguishable from a mistake.
+# This generalises the zero-approval rule rather than sitting beside it -- that
+# rule was the only one binding a weak setting to its exception, so deleting any
+# OTHER exception left a live weakness silently undocumented.
+#
+# Deliberately NOT exhaustive. `lock_branch`, `required_signatures`,
+# `block_creations`, `allow_fork_syncing`, `restrictions_present` and
+# `codeowners_present` are absent because their safe direction is a policy choice
+# rather than a universal, and asserting one here would be inventing policy for
+# every adopter. Drift in them is still compared against the declared table; what
+# is not claimed is which value they ought to hold.
+_WEAK_POSTURES: dict[str, Any] = {
+    "enforce_admins": False,
+    "required_linear_history": False,
+    "allow_force_pushes": True,
+    "allow_deletions": True,
+    "required_conversation_resolution": False,
+    "required_pull_request_reviews.present": False,
+    "required_pull_request_reviews.required_approving_review_count": 0,
+}
+
+
 def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     policy: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return policy
@@ -231,6 +254,33 @@ def _required_check_issues(declared: Any) -> list[str]:
     return issues
 
 
+def _undocumented_weakness_issues(
+    expected: dict[str, Any], exceptions: list[dict[str, Any]]
+) -> list[str]:
+    """Every weak posture must carry an exception, not only the zero-approval one.
+
+    Retirement was enforced for all exceptions and this direction for exactly
+    one, so deleting any OTHER exception left the weakness live and undocumented
+    -- losing its reason, compensating controls and retirement condition while
+    the configuration stayed weak. That is the half of the promise that was not
+    true.
+    """
+    documented = {str(e.get("field", "")) for e in exceptions}
+    issues: list[str] = []
+    for field, weak_value in _WEAK_POSTURES.items():
+        found, actual = _resolve_expected(expected, field)
+        if not found:
+            continue
+        # `False == 0` in Python, so compare boolean-ness alongside value.
+        if actual == weak_value and isinstance(actual, bool) == isinstance(weak_value, bool):
+            if field not in documented:
+                issues.append(
+                    f"expected.{field} is {actual!r} without a documented exception: "
+                    "either strengthen protection or document the deliberate deviation"
+                )
+    return issues
+
+
 def _resolve_expected(expected: dict[str, Any], field: str) -> tuple[bool, Any]:
     """Resolve a dotted `field` inside `expected`. Returns (found, value)."""
     node: Any = expected
@@ -303,7 +353,16 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
                 f"non-blank string, not {value!r}: no context can ever match it, so "
                 "adding the check would not retire the exception"
             ]
-        contexts = {check.get("context") for check in declared if isinstance(check, dict)}
+        # Only validated strings. An unhashable declared context -- a list or
+        # object -- would raise TypeError building this set, so `_required_check_issues`
+        # would correctly record the malformed entry and then the validator would
+        # crash before returning it. A gate that exists to report findings must
+        # not fall over on the input it is reporting about.
+        contexts = {
+            check["context"]
+            for check in declared
+            if isinstance(check, dict) and isinstance(check.get("context"), str)
+        }
         if value in contexts:
             return [
                 f"documented exception for {field} names {value!r}, which IS now a required "
@@ -404,14 +463,7 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
             issues.append(f"documented exception is missing keys: {sorted(missing)}")
         else:
             issues.extend(_exception_binding_issues(expected, exception))
-    if declared_reviews.get("required_approving_review_count") == 0 and not any(
-        e.get("field") == "required_pull_request_reviews.required_approving_review_count"
-        for e in policy.get("documented_exceptions", [])
-    ):
-        issues.append(
-            "required_approving_review_count is 0 without a documented exception: "
-            "either strengthen protection or document the deliberate deviation"
-        )
+    issues.extend(_undocumented_weakness_issues(expected, policy.get("documented_exceptions", [])))
     return issues
 
 
