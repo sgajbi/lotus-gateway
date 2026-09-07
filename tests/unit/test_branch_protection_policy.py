@@ -73,6 +73,41 @@ def test_policy_document_is_complete() -> None:
     assert validate_policy_document(load_policy()) == []
 
 
+def test_the_weak_postures_named_here_are_the_ones_that_must_be_documented() -> None:
+    """Pinned explicitly, because the parametrized test below cannot catch a gap.
+
+    That test derives its cases FROM `_WEAK_POSTURES`, so deleting an entry
+    deletes its own case and the suite stays green — the self-referential trap:
+    a test generated from the thing under test can prove the wiring and never the
+    contents.
+
+    Listed literally here. Adding a posture is a deliberate act that updates this
+    line; removing one fails.
+    """
+    assert set(WEAK_POSTURES) == {
+        "enforce_admins",
+        "required_linear_history",
+        "allow_force_pushes",
+        "allow_deletions",
+        "required_conversation_resolution",
+        "required_status_checks.strict",
+        "required_pull_request_reviews.present",
+        "required_pull_request_reviews.required_approving_review_count",
+    }
+    # The omissions are deliberate: their safe direction is a policy choice
+    # rather than a universal, so asserting one would invent policy for every
+    # adopter. Named so a future reader sees a decision, not an oversight.
+    for policy_choice in (
+        "lock_branch",
+        "required_signatures",
+        "block_creations",
+        "allow_fork_syncing",
+        "restrictions_present",
+        "codeowners_present",
+    ):
+        assert policy_choice not in WEAK_POSTURES
+
+
 @pytest.mark.parametrize("field", sorted(WEAK_POSTURES))
 def test_every_weak_posture_requires_its_own_documented_exception(field: str) -> None:
     """Deleting ANY exception must leave the weakness reported, not just one.
@@ -99,6 +134,21 @@ def test_every_weak_posture_requires_its_own_documented_exception(field: str) ->
 
     assert any(f"expected.{field} is" in issue for issue in issues), issues
     assert weak_value is not None or True
+
+
+def test_a_malformed_exception_entry_does_not_crash_the_collector() -> None:
+    """The missing-keys check reports it; the collector then called .get() on a string.
+
+    The gate crashed instead of returning the finding it had already made — the
+    third instance of that shape on this change.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_pull_request_reviews"]["required_approving_review_count"] = 1
+    policy["documented_exceptions"] = ["not a mapping"]
+
+    issues = validate_policy_document(policy)
+
+    assert any("missing keys" in issue for issue in issues), issues
 
 
 def test_the_shipped_policy_documents_every_weakness_it_declares() -> None:

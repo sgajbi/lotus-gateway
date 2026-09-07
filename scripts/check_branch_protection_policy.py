@@ -135,6 +135,9 @@ _WEAK_POSTURES: dict[str, Any] = {
     "allow_force_pushes": True,
     "allow_deletions": True,
     "required_conversation_resolution": False,
+    # `strict: false` drops the up-to-date-branch requirement, so a merge can be
+    # approved against a base it was never tested on.
+    "required_status_checks.strict": False,
     "required_pull_request_reviews.present": False,
     "required_pull_request_reviews.required_approving_review_count": 0,
 }
@@ -259,13 +262,25 @@ def _undocumented_weakness_issues(
 ) -> list[str]:
     """Every weak posture must carry an exception, not only the zero-approval one.
 
+    LIMIT, stated rather than left to be discovered: this covers scalar postures
+    only. An omitted-context exception cannot be required in this direction,
+    because "which contexts ought to be present" is not derivable from the table
+    -- `checks` IS the declaration of what must be required, so an omitted
+    context is indistinguishable from one that was never wanted. Such an
+    exception is still checked in the retirement direction: it is refused once
+    the context it names becomes required.
+
     Retirement was enforced for all exceptions and this direction for exactly
     one, so deleting any OTHER exception left the weakness live and undocumented
     -- losing its reason, compensating controls and retirement condition while
     the configuration stayed weak. That is the half of the promise that was not
     true.
     """
-    documented = {str(e.get("field", "")) for e in exceptions}
+    # Only mapping entries. A malformed one -- a bare string -- is already
+    # reported by the missing-keys check above, and calling `.get()` on it here
+    # raised AttributeError: the gate crashing instead of returning the finding
+    # it had already made. Third instance of that shape on this PR.
+    documented = {str(e.get("field", "")) for e in exceptions if isinstance(e, dict)}
     issues: list[str] = []
     for field, weak_value in _WEAK_POSTURES.items():
         found, actual = _resolve_expected(expected, field)
