@@ -1,10 +1,15 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Header, Path
+from fastapi import Depends, Header, Path
 from fastapi.responses import JSONResponse
 
-from app.contracts.advisory_policy import AdvisoryPolicyErrorResponse
+from app.contracts.advisory_policy import (
+    AdvisoryPolicyEnvelopeResponse,
+    AdvisoryPolicyErrorResponse,
+)
+from app.middleware.correlation import correlation_id_var
 from app.services.advisory_policy_access_policy import (
     AdvisoryPolicyCallerContext,
     AdvisoryPolicyCallerContextError,
@@ -65,6 +70,18 @@ def advisory_policy_caller_headers(
     )
 
 
+# The dependency and the return type, named once. Seven routes were each
+# re-deriving `Annotated[AdvisoryPolicyCallerHeaders, Depends(...)]` and
+# `... | JSONResponse`, which is four identical import lines and two identical
+# annotations per file -- enough for the duplicate-code detector to see the
+# import blocks themselves as clones. One canonical alias is both less code and
+# one place to change when platform#775 replaces trusted headers.
+AdmittedCallerHeaders = Annotated[
+    AdvisoryPolicyCallerHeaders, Depends(advisory_policy_caller_headers)
+]
+AdvisoryPolicyRouteResponse = AdvisoryPolicyEnvelopeResponse | JSONResponse
+
+
 def admit_advisory_policy_caller(
     *,
     operation: AdvisoryPolicyOperation,
@@ -79,6 +96,31 @@ def admit_advisory_policy_caller(
         role=caller_headers.role,
         capabilities=caller_headers.capabilities,
     )
+
+
+async def admitted_policy_write(
+    *,
+    operation: AdvisoryPolicyOperation,
+    caller_headers: AdvisoryPolicyCallerHeaders,
+    call: Callable[[AdvisoryPolicyCallerContext, str], Awaitable[AdvisoryPolicyEnvelopeResponse]],
+) -> AdvisoryPolicyEnvelopeResponse | JSONResponse:
+    """Admit, refuse, or perform one advisory-policy write.
+
+    Seven routes need exactly this sequence, and writing it seven times is how one
+    of them eventually gets it subtly wrong -- refusing after the upstream call,
+    or losing the correlation id that the refusal is reported under. The
+    duplicate-code ratchet caught the first four copies of it, which is the gate
+    working: the repair it forced is better than the code it rejected.
+
+    `call` receives the admitted caller and the correlation id, so a route
+    supplies only what is specific to it.
+    """
+    correlation_id = correlation_id_var.get()
+    try:
+        caller = admit_advisory_policy_caller(operation=operation, caller_headers=caller_headers)
+    except AdvisoryPolicyCallerContextError as exc:
+        return advisory_policy_error_response(error=exc, correlation_id=correlation_id)
+    return await call(caller, correlation_id)
 
 
 def advisory_policy_error_response(
