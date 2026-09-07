@@ -336,6 +336,41 @@ def test_a_malformed_tenant_is_refused(monkeypatch) -> None:
     assert transport.posts == []
 
 
+def test_replay_is_an_unfenced_write_and_is_pinned_as_one(monkeypatch) -> None:
+    """The EIGHTH write. It mutates through lotus-advise carrying no scope at all.
+
+    `POST /advisory-policy-evaluations/{id}/replay` reaches Advise by the same
+    `_post` path as the seven admitted writes and sends only correlation context.
+    It was missed when this slice was scoped, and the documentation that said
+    "seven write routes" made that omission invisible: a list naming seven, with
+    only reads called out as a gap, reads as though every write is fenced.
+
+    Pinned rather than quietly fixed, because the repair needs a capability name
+    and inventing one here would be Gateway choosing authority vocabulary — the
+    exact thing this slice removed. Tracked as #760 for the lotus-advise
+    owner's decision.
+
+    If replay starts carrying scope, this test fails and the claim gets revisited.
+    """
+    transport = _Transport()
+    transport.install(monkeypatch)
+
+    response = TestClient(app).post(
+        "/api/v1/advisory-policy-evaluations/pev_001/replay",
+        json={"body": {"reason": "supervisory review"}},
+        headers={"X-Correlation-Id": "corr-policy-replay"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert len(transport.posts) == 1, "replay is a write and does reach lotus-advise"
+    sent = transport.posts[0]["headers"]
+    for absent in ("X-Tenant-Id", "X-Actor-Id", "X-Role", "X-Capabilities"):
+        assert absent not in sent, (
+            f"replay now sends {absent}; it has been fenced, so update the "
+            "documentation that records it as a gap"
+        )
+
+
 def test_read_routes_are_unchanged_by_this_slice(monkeypatch) -> None:
     """Reads still require no caller context — deliberately, and it is a known gap.
 

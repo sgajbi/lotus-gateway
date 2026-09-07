@@ -571,10 +571,15 @@ Supported routes:
 14. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages`
 15. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/ai-evidence`
 
-Required caller context on the seven write routes:
+Required caller context on the write routes:
 
-The seven `POST` routes above require trusted caller context and refuse without it **before any
-request is made to `lotus-advise`**. Reads require none.
+Of the **eight** `POST` routes above, **seven** require trusted caller context and refuse without
+it **before any request is made to `lotus-advise`**. Reads require none.
+
+**`POST /api/v1/advisory-policy-evaluations/{evaluation_id}/replay` is the eighth, and it is not
+fenced.** It mutates through `lotus-advise` while carrying only correlation context — no tenant,
+actor, role or capability. That is a known gap tracked as #760, stated here rather than left
+for a reader to infer from a list that names seven.
 
 | Header | Meaning |
 | --- | --- |
