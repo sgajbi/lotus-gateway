@@ -338,10 +338,25 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     """
     entries = list(live or [])
     live_checks = [check for check in entries if isinstance(check, dict)]
-    live_bindings = {str(check.get("context")): check.get("app_id") for check in live_checks}
+    # No coercion. `str(123)` would normalise a malformed numeric context into
+    # the string key a policy declares and compare cleanly -- a normaliser making
+    # the two sides agree, which is the one thing a drift audit must never do.
+    named = [
+        check
+        for check in live_checks
+        if isinstance(check.get("context"), str) and check["context"].strip()
+    ]
+    live_bindings = {check["context"]: check.get("app_id") for check in named}
     policy_bindings = {str(check["context"]): check.get("app_id") for check in declared}
 
     issues: list[str] = []
+    unnamed = len(live_checks) - len(named)
+    if unnamed:
+        issues.append(
+            f"live protection returned {unnamed} required-check record"
+            f"{'' if unnamed == 1 else 's'} without a usable context name: "
+            "an absent, blank or non-string context is not coerced into one"
+        )
     # A malformed element is not an absent one. Filtering non-objects would let a
     # changed payload lose an entry and still compare cleanly against a table
     # that happens to match what survived.
@@ -356,8 +371,8 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     # compares EQUAL to the declared integer. Type the measured value rather than
     # trusting equality to mean the same thing on both sides.
     mistyped = sorted(
-        str(check.get("context"))
-        for check in live_checks
+        check["context"]
+        for check in named
         if "app_id" in check
         and check["app_id"] is not None
         and (isinstance(check["app_id"], bool) or not isinstance(check["app_id"], int))
@@ -372,7 +387,7 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     # "any app permitted" posture and match a table that declares it. GitHub
     # always returns the key, so its absence means the payload changed or is
     # malformed -- fail closed rather than resolve to the weaker reading.
-    unbound = sorted(str(check.get("context")) for check in live_checks if "app_id" not in check)
+    unbound = sorted(check["context"] for check in named if "app_id" not in check)
     if unbound:
         issues.append(
             f"live protection reports these contexts without an app_id field: {unbound}; "
@@ -383,13 +398,12 @@ def _compare_required_checks(*, live: Any, declared: list[dict[str, Any]]) -> li
     # undeclared binding followed by the declared one -- keying by context keeps
     # only the last, and the extra binding disappears from a comparison whose
     # whole purpose is to notice it.
-    if len(live_bindings) != len(live_checks):
+    if len(live_bindings) != len(named):
         repeated = sorted(
             {
-                str(check.get("context"))
-                for index, check in enumerate(live_checks)
-                if str(check.get("context"))
-                in {str(other.get("context")) for other in live_checks[:index]}
+                check["context"]
+                for index, check in enumerate(named)
+                if check["context"] in {other["context"] for other in named[:index]}
             }
         )
         issues.append(

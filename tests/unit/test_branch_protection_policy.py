@@ -196,6 +196,27 @@ def test_an_explicit_null_app_id_is_accepted() -> None:
     assert validate_policy_document(policy) == []
 
 
+@pytest.mark.parametrize("bad_context", [123, None, "", "   "])
+def test_a_live_context_is_never_coerced_into_the_declared_name(bad_context: object) -> None:
+    """`str(123)` would normalise a malformed context into the key a table declares.
+
+    A policy declaring the string context "123" would then compare cleanly
+    against a live record holding numeric 123 — a normaliser making the two sides
+    agree, which is the one thing a drift audit must never do.
+    """
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"] = [{"context": "123", "app_id": 15368}]
+    live = _live_matching_policy(policy)
+    live["required_status_checks"]["checks"][0]["context"] = bad_context
+
+    issues = compare_live_to_policy(policy, live)
+
+    assert any("without a usable context name" in issue for issue in issues), issues
+    assert not any("app binding differs" in issue for issue in issues), (
+        "a malformed context must not be matched against the declared one at all"
+    )
+
+
 def test_a_malformed_live_check_entry_is_not_silently_dropped() -> None:
     """Filtering non-objects would let a changed payload lose an entry quietly.
 
