@@ -99,6 +99,24 @@ _REQUIRED_EXPECTED_KEYS = (
 )
 
 
+# Exactly the fields `compare_live_to_policy` reads. DERIVED from the same
+# constants it uses rather than listed again, so the two cannot drift apart.
+#
+# An exception may only name one of these. Pointing one at an invented control --
+# `expected.invented_control: false` plus a matching exception -- would otherwise
+# validate cleanly while being bound to a field the live gate never reads: the
+# same rot the binding rule removes, with one more step in front of it.
+_AUDITED_EXCEPTION_FIELDS = frozenset(
+    {
+        *_BOOLEAN_EXPECTED_KEYS,
+        "required_status_checks.strict",
+        "required_status_checks.checks",
+        "required_pull_request_reviews.present",
+        *(f"required_pull_request_reviews.{key}" for key in _REQUIRED_REVIEW_KEYS),
+    }
+)
+
+
 def load_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     policy: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
     return policy
@@ -245,6 +263,16 @@ def _exception_binding_issues(expected: dict[str, Any], exception: dict[str, Any
     """
     field = str(exception.get("field", ""))
     value = exception.get("value")
+
+    if field not in _AUDITED_EXCEPTION_FIELDS:
+        # Resolving inside `expected` is not enough: an adopter can add a control
+        # the live comparison never reads, point an exception at it, and the
+        # exception is bound to something no observed drift can ever retire.
+        return [
+            f"documented exception names {field!r}, which the live comparison does not audit: "
+            "an exception must name a control the gate actually reads, or no configuration "
+            "change can retire it"
+        ]
 
     if field == "required_status_checks.checks":
         found, declared = _resolve_expected(expected, field)
