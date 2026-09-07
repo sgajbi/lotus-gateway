@@ -77,23 +77,32 @@ _REQUIRED_HOOK_IDS = {hook for hooks in REV_PINNED_HOOKS.values() for hook in ho
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 
-# The arguments a rev-pinned hook may carry. An ALLOWLIST, after a blocklist of
+# The arguments each required hook may carry. An ALLOWLIST, after a blocklist of
 # neutralising flags was extended three times by review — `--exit-zero`, then
 # `--fix-only`, then `--isolated` — each addition correct and each proving the
 # same thing: enumerating the ways to break agreement is unbounded, because it
 # means enumerating ruff's CLI.
 #
-# The three named here narrow or strengthen what the hook refuses and leave the
-# program and its configuration alone. Everything else diverges from CI in one of
-# two ways: it suppresses a verdict (`--exit-zero`, `--fix-only`), or it changes
-# the configuration producing one (`--isolated` discards this repository's
-# `line-length` and `lint.select`, so the SAME pinned version formats and lints
-# differently on the two sides).
+# PER HOOK, because `ruff` and `ruff-format` are different subcommands with
+# different vocabularies. One shared set both refused `--check` on the formatter,
+# which is precisely what `make lint` runs, and accepted `--fix` on it, which
+# exits 2 as an unknown argument. A single list looks tidier and describes
+# neither command.
 #
-# An argument outside this set may be perfectly reasonable. It just has to be
-# added here deliberately, having checked the CI lane agrees — which is the whole
+# What is named here narrows or strengthens what the hook refuses while leaving
+# the program and its configuration alone. Everything else diverges from CI in
+# one of two ways: it suppresses a verdict (`--exit-zero`, `--fix-only`), or it
+# changes the configuration producing one (`--isolated` discards this
+# repository's `line-length` and `lint.select`, so the SAME pinned version
+# formats and lints differently on the two sides).
+#
+# An argument outside these sets may be perfectly reasonable. It just has to be
+# added deliberately, having checked the CI lane agrees — which is the whole
 # subject of this file.
-PERMITTED_HOOK_ARGS = frozenset({"--fix", "--force-exclude", "--exit-non-zero-on-fix"})
+PERMITTED_HOOK_ARGS: dict[str, frozenset[str]] = {
+    "ruff": frozenset({"--fix", "--force-exclude", "--exit-non-zero-on-fix"}),
+    "ruff-format": frozenset({"--check", "--diff", "--force-exclude", "--exit-non-zero-on-format"}),
+}
 
 # A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
 # lets the newest matching release arrive without a commit.
@@ -127,7 +136,7 @@ def _runs_on_commit(stages: object) -> bool:
     return bool(names & {"pre-commit", "commit"})
 
 
-def _agrees_with_ci(hook: dict[str, object]) -> bool:
+def _agrees_with_ci(identifier: str, hook: dict[str, object]) -> bool:
     """Whether a hook's arguments leave it judging the same tree the CI lane does.
 
     The pin promises one PROGRAM. Arguments decide whether it is also one CHECK:
@@ -136,10 +145,16 @@ def _agrees_with_ci(hook: dict[str, object]) -> bool:
     `lint.select` so the same pinned version reaches a different verdict. Both
     end with a green commit and a red CI run on one tree.
 
+    Judged against the hook's OWN vocabulary, since `ruff` and `ruff-format` are
+    different subcommands. A hook this file does not govern is not its business.
+
     A flag written `--flag=value` is judged by its name.
     """
+    permitted = PERMITTED_HOOK_ARGS.get(identifier)
+    if permitted is None:
+        return True
     names = {str(argument).split("=", 1)[0] for argument in hook.get("args") or []}
-    return names <= PERMITTED_HOOK_ARGS
+    return names <= permitted
 
 
 def _repository_identity(source: str) -> str:
@@ -249,7 +264,7 @@ def _hook_revisions() -> dict[str, str]:
             # whose arguments diverge from CI, both leave the commit gated as
             # long as a sibling does the job.
             covers[identifier] = covers.get(identifier, False) or (
-                on_commit and _agrees_with_ci(hook)
+                on_commit and _agrees_with_ci(identifier, hook)
             )
             # An override does NOT or away, and that asymmetry is the point. A
             # sound sibling adds a gate; an overridden occurrence ADDS AN
@@ -818,33 +833,44 @@ repos:
 
 
 @pytest.mark.parametrize(
-    ("argument", "why"),
+    ("identifier", "argument", "why"),
     [
-        ("--fix-only", "exits 0 on the violations it could not fix"),
-        ("--isolated", "discards this repository's line-length and lint.select"),
-        ("--config=/tmp/other.toml", "judges the tree against a different configuration"),
-        ("--line-length=200", "overrides a setting CI reads from pyproject"),
+        ("ruff", "--fix-only", "exits 0 on the violations it could not fix"),
+        ("ruff", "--isolated", "discards this repository's line-length and lint.select"),
+        ("ruff", "--config=/tmp/other.toml", "judges the tree against another configuration"),
+        ("ruff", "--line-length=200", "overrides a setting CI reads from pyproject"),
+        # The formatter's own vocabulary. `--fix` is not merely divergent here,
+        # it exits 2 as an unknown argument — the hook that cannot run at all.
+        ("ruff-format", "--fix", "is not an argument `ruff format` accepts"),
+        ("ruff-format", "--isolated", "formats without this repository's line-length"),
     ],
 )
-def test_arguments_that_diverge_from_ci_are_refused(argument, why, tmp_path, monkeypatch) -> None:
-    """Divergence has two shapes, and the allowlist covers both.
+def test_arguments_that_diverge_from_ci_are_refused(
+    identifier, argument, why, tmp_path, monkeypatch
+) -> None:
+    """Divergence has two shapes, and each hook has its own vocabulary.
 
     A flag can suppress the verdict (`--fix-only` exits 0 on what it could not
     fix) or change the configuration producing it (`--isolated` drops this
     repository's settings). Either way the commit is green and `ruff check .` is
     red on one unchanged tree — a hook that is evidence pointing the wrong way.
+
+    Judged per hook, because `ruff` and `ruff-format` are different subcommands:
+    `--fix` is ordinary on the first and unknown to the second.
     """
+    hooks = "\n".join(
+        f"      - id: {each}" + (f'\n        args: ["{argument}"]' if each == identifier else "")
+        for each in sorted(_REQUIRED_HOOK_IDS)
+    )
     diverging = f"""
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.22
     hooks:
-      - id: ruff
-        args: ["{argument}"]
-      - id: ruff-format
+{hooks}
 """
     assert "ruff" not in _parse_config(diverging, tmp_path, monkeypatch), (
-        f"`{argument}` {why}, so the hook does not cover the tool"
+        f"`{argument}` on `{identifier}` {why}, so the hook does not cover the tool"
     )
 
 
@@ -873,27 +899,57 @@ repos:
         _parse_config(stale_and_pinned, tmp_path, monkeypatch)
 
 
-def test_the_configured_arguments_are_permitted(tmp_path, monkeypatch) -> None:
-    """The allowlist must admit what this repository actually configures.
+def test_the_arguments_the_ci_lane_uses_are_permitted(tmp_path, monkeypatch) -> None:
+    """The allowlist must admit what `make lint` itself runs.
 
-    An allowlist that refused the shipped config would be found immediately; one
-    that refuses a reasonable neighbour is the failure worth guarding, so the
-    arguments a hook may legitimately want are asserted acceptable rather than
-    discovered later by someone whose correct change was rejected.
+    Read from the Makefile rather than named here, so it cannot drift: the lane
+    invokes `ruff format --check`, and an allowlist refusing `--check` on the
+    formatter would reject a hook doing precisely what CI does.
+
+    This is the assertion that is NOT self-referential. Iterating the allowlist
+    below can only catch one that is wired wrong; only an outside source can
+    catch one that is missing something — and the first version of this file was
+    missing exactly this.
     """
-    for argument in sorted(PERMITTED_HOOK_ARGS):
-        permitted = f"""
+    lint = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "ruff format --check" in lint, (
+        "the Makefile no longer runs `ruff format --check`; this test is asserting "
+        "against a lane that has moved"
+    )
+    assert "--check" in PERMITTED_HOOK_ARGS["ruff-format"], (
+        "`make lint` runs `ruff format --check`, so a hook doing the same must be acceptable"
+    )
+
+
+def test_every_permitted_argument_is_accepted(tmp_path, monkeypatch) -> None:
+    """Each named argument must actually be admitted by the code that reads it.
+
+    A weaker assertion than it looks, and deliberately kept: iterating the
+    allowlist proves the wiring, not the contents. An allowlist missing an
+    argument passes this and is caught by the Makefile case above.
+    """
+    assert set(PERMITTED_HOOK_ARGS) == _REQUIRED_HOOK_IDS, (
+        "every required hook needs its own vocabulary; one with no entry is waved "
+        "through with any arguments at all"
+    )
+
+    for identifier, arguments in sorted(PERMITTED_HOOK_ARGS.items()):
+        for argument in sorted(arguments):
+            hooks = "\n".join(
+                f"      - id: {each}"
+                + (f'\n        args: ["{argument}"]' if each == identifier else "")
+                for each in sorted(_REQUIRED_HOOK_IDS)
+            )
+            permitted = f"""
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.22
     hooks:
-      - id: ruff
-        args: ["{argument}"]
-      - id: ruff-format
+{hooks}
 """
-        assert _parse_config(permitted, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
-            f"`{argument}` narrows or strengthens the hook and must stay acceptable"
-        )
+            assert _parse_config(permitted, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+                f"`{argument}` narrows or strengthens `{identifier}` and must stay acceptable"
+            )
 
 
 def test_a_manual_mirrored_hook_is_not_a_conflict(tmp_path, monkeypatch) -> None:
