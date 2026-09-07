@@ -336,6 +336,17 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
                 f"the local {tool} hook must check `src`, as the CI lane does; "
                 f"args are {hook.get('args')!r}"
             )
+            # `args` alone does not fix the command either: with filenames passed,
+            # pre-commit appends each changed path AFTER `src`, so the tool sees
+            # the same module twice — once through the tree and once by name —
+            # and fails on a duplicate while `make lint` stays clean. A local gate
+            # that fails where CI passes gets disabled, so the argument list has
+            # to be the whole argument list.
+            assert hook.get("pass_filenames") is False, (
+                f"the local {tool} hook must set pass_filenames: false, or "
+                "pre-commit appends changed paths after `src`; "
+                f"pass_filenames is {hook.get('pass_filenames')!r}"
+            )
 
 
 def _parse_config(text: str, tmp_path, monkeypatch) -> dict[str, str]:
@@ -645,4 +656,31 @@ repos:
     monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
 
     with pytest.raises(AssertionError, match="must check `src`"):
+        test_dependency_aware_tools_run_from_the_project_environment()
+
+
+def test_passing_filenames_is_rejected(tmp_path, monkeypatch) -> None:
+    """`args: ["src"]` is not the command unless it is the WHOLE command.
+
+    With filenames passed, pre-commit appends each changed path after `src`, so
+    the tool sees the same module through the tree and again by name and fails on
+    a duplicate — a local gate red where `make lint` is green. That gets the hook
+    disabled, which is how the drift this file exists to catch starts.
+    """
+    passing = """
+repos:
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        args: ["src"]
+        language: system
+        pass_filenames: true
+"""
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(passing, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+
+    with pytest.raises(AssertionError, match="pass_filenames"):
         test_dependency_aware_tools_run_from_the_project_environment()
