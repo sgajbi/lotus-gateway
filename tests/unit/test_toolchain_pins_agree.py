@@ -71,6 +71,8 @@ REV_PINNED_HOOKS: dict[str, tuple[str, ...]] = {"ruff": ("ruff", "ruff-format")}
 # entirely.
 EXPECTED_HOOK_REPOSITORIES = {"ruff": "https://github.com/astral-sh/ruff-pre-commit"}
 
+_REQUIRED_HOOK_IDS = {hook for hooks in REV_PINNED_HOOKS.values() for hook in hooks}
+
 # Tools that must run from the project environment instead, because they need
 # the resolved dependency graph to produce a correct verdict.
 PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
@@ -83,7 +85,16 @@ PROJECT_ENVIRONMENT_TOOLS = ("mypy",)
 # whose PURPOSE is to suppress a verdict, which is the degenerate case worth
 # failing on.
 VERDICT_NEUTRALISING_ARGS = frozenset(
-    {"--exit-zero", "--exit-zero-even-if-changed", "--version", "--help"}
+    {
+        "--exit-zero",
+        "--exit-zero-even-if-changed",
+        # Fixes what it can and exits 0 on the rest, so an UNFIXABLE violation
+        # passes the commit and fails `ruff check .` in CI. The green local run
+        # is the part that makes it worse than no hook at all.
+        "--fix-only",
+        "--version",
+        "--help",
+    }
 )
 
 # A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
@@ -207,9 +218,14 @@ def _hook_revisions() -> dict[str, str]:
     revisions: dict[str, str] = {}
     running: dict[str, set[str]] = {}
     covered: dict[tuple[str, str], set[str]] = {}
+    overridden: list[str] = []
     for source, revision, hooks in _hooks_by_repository():
         if not revision:
             continue
+        pinned_repository = any(
+            _repository_identity(source) == _repository_identity(expected)
+            for expected in EXPECTED_HOOK_REPOSITORIES.values()
+        )
         # A per-hook `stages` OVERRIDES the file default; absent, it inherits.
         # OR across occurrences, not last-wins: pre-commit executes every hook
         # entry, so an id listed twice runs if ANY of its occurrences does.
@@ -219,15 +235,28 @@ def _hook_revisions() -> dict[str, str]:
             identifier = str(hook.get("id", ""))
             if not identifier:
                 continue
-            # Three conditions, each one a way for a listed hook to be no
-            # evidence: it must run on a commit, still be able to refuse, and
-            # still be the program the revision names. OR-ing across occurrences
-            # stays correct — a second, sound occurrence does gate the commit.
+            on_commit = _runs_on_commit(hook.get("stages", default_stages))
+            # Two conditions that OR correctly, because a second sound occurrence
+            # restores what a bad one gave up: a hook that never runs, and a hook
+            # that runs but cannot refuse, both leave the commit gated as long as
+            # a sibling does the job.
             runs[identifier] = runs.get(identifier, False) or (
-                _runs_on_commit(hook.get("stages", default_stages))
-                and _reports_a_verdict(hook)
-                and _runs_the_pinned_tool(hook)
+                on_commit and _reports_a_verdict(hook)
             )
+            # An override does NOT or away, and that asymmetry is the point. A
+            # sound sibling adds a gate; an overridden occurrence ADDS AN
+            # EXECUTION — `entry: ruff` with `language: system` runs whatever
+            # version is on PATH, on every commit, no matter how correct its
+            # neighbour is. Nothing a sibling does takes that back, so it is
+            # collected rather than OR'd.
+            if (
+                pinned_repository
+                and identifier in _REQUIRED_HOOK_IDS
+                and on_commit
+                and not _runs_the_pinned_tool(hook)
+            ):
+                overridden.append(identifier)
+
         for tool, required in REV_PINNED_HOOKS.items():
             # Both sides normalised, so the constant cannot be written in a form
             # that never matches anything.
@@ -251,6 +280,13 @@ def _hook_revisions() -> dict[str, str]:
                 running.setdefault(tool, set()).add(revision)
             if covered[(tool, revision)] >= set(required):
                 revisions[tool] = revision
+
+    if overridden:
+        raise AssertionError(
+            f"{', '.join(sorted(set(overridden)))} overrides the pinned command or language "
+            "while still running on commit, so pre-commit executes a version this repository "
+            "never chose. A correct sibling hook does not take that back"
+        )
 
     for tool, found in running.items():
         if len(found) > 1:
@@ -736,8 +772,60 @@ repos:
         entry: python -c 'pass'
       - id: ruff-format
 """
-    assert "ruff" not in _parse_config(overridden, tmp_path, monkeypatch), (
-        "a hook whose entry was replaced does not run the version its rev names"
+    with pytest.raises(AssertionError, match="overrides the pinned command"):
+        _parse_config(overridden, tmp_path, monkeypatch)
+
+
+def test_a_sound_hook_does_not_excuse_an_overriding_sibling(tmp_path, monkeypatch) -> None:
+    """An override adds an execution; a correct sibling only adds a gate.
+
+    A duplicate `- id: ruff` with `entry: ruff` and `language: system` runs
+    whatever version is on PATH, on every commit, however correct the hook above
+    it is. OR-ing the two — which is right for stages and for neutralised args,
+    where a sound sibling restores the gate — lets the good one hide the bad one.
+    """
+    masked = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+      - id: ruff
+        entry: ruff
+        language: system
+"""
+    with pytest.raises(AssertionError, match="overrides the pinned command"):
+        _parse_config(masked, tmp_path, monkeypatch)
+
+    # The same override held off the commit stage runs nothing, so it is not a
+    # finding — the check is about execution, not about the text.
+    staged = masked.replace(
+        "        language: system", "        language: system\n        stages: [manual]"
+    )
+    assert _parse_config(staged, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "an override that never runs on commit executes nothing"
+    )
+
+
+def test_fix_only_is_verdict_neutralising(tmp_path, monkeypatch) -> None:
+    """`--fix-only` exits 0 on the violations it could not fix.
+
+    The commit passes and `ruff check .` in CI fails on the same tree. A hook
+    that is green where CI is red is worse than no hook: it is evidence pointing
+    the wrong way.
+    """
+    fix_only = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        args: ["--fix-only"]
+      - id: ruff-format
+"""
+    assert "ruff" not in _parse_config(fix_only, tmp_path, monkeypatch), (
+        "a hook that exits 0 on unfixable violations does not cover the tool"
     )
 
 
