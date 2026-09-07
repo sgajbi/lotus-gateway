@@ -210,6 +210,63 @@ def test_an_unpinned_check_requires_a_documented_exception() -> None:
     assert any("has been retired" in i for i in validate_policy_document(policy))
 
 
+def test_a_bypass_exception_retires_when_the_allowance_empties() -> None:
+    """The other direction: with nobody named, the exception documents nothing."""
+    policy = copy.deepcopy(load_policy())
+    policy["documented_exceptions"].append(
+        {
+            "field": "required_pull_request_reviews.bypass_pull_request_allowances.apps",
+            "value": ["some-release-bot"],
+            "reason": "a release bot merges its own version bumps",
+            "compensating_controls": "the bot cannot change source files",
+            "retires_when": "the bot is removed",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("that allowance is empty" in issue for issue in issues), issues
+
+
+def test_an_unpinned_check_exception_must_declare_null() -> None:
+    """It documents the null binding itself, so any other value describes nothing."""
+    policy = copy.deepcopy(load_policy())
+    context = policy["expected"]["required_status_checks"]["checks"][0]["context"]
+    policy["expected"]["required_status_checks"]["checks"][0]["app_id"] = None
+    policy["documented_exceptions"].append(
+        {
+            "field": f"required_status_checks.checks.app_id:{context}",
+            "value": 15368,
+            "reason": "wrong value form",
+            "compensating_controls": "none",
+            "retires_when": "never",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("must declare null" in issue for issue in issues), issues
+
+
+def test_an_omitted_context_exception_reports_an_unreadable_check_list() -> None:
+    """Returning nothing made the exception unverifiable AND silent."""
+    policy = copy.deepcopy(load_policy())
+    policy["expected"]["required_status_checks"]["checks"] = "not a list"
+    policy["documented_exceptions"].append(
+        {
+            "field": "required_status_checks.checks",
+            "value": "Some Omitted Context",
+            "reason": "documented omission",
+            "compensating_controls": "none",
+            "retires_when": "the context is required",
+        }
+    )
+
+    issues = validate_policy_document(policy)
+
+    assert any("cannot be checked because the declared checks" in issue for issue in issues), issues
+
+
 def test_an_exception_declaring_the_strong_value_is_refused() -> None:
     """An exception documents a deviation, not the safe value.
 
@@ -354,6 +411,14 @@ def test_every_audited_field_is_a_valid_exception_target() -> None:
                 node = node[part]
             node[parts[-1]] = WEAK_POSTURES[field]
             actual = WEAK_POSTURES[field]
+        if field.startswith("required_pull_request_reviews.bypass_pull_request_allowances."):
+            # A bypass exception documents a POPULATED allowance; with the list
+            # empty there is no deviation to document, so populate it first.
+            category = field.rpartition(".")[2]
+            policy["expected"]["required_pull_request_reviews"]["bypass_pull_request_allowances"][
+                category
+            ] = ["some-principal"]
+            actual = ["some-principal"]
         if field == "required_pull_request_reviews.present":
             # With the block declared absent, every OTHER review exception is
             # correctly refused. Drop them so this case measures `present`.
