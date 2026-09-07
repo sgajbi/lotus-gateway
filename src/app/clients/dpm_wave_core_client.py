@@ -8,11 +8,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/api/v1/rebalance/waves/preview",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.preview",
         )
 
@@ -21,11 +25,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/api/v1/rebalance/waves",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=self._headers(
+                correlation_id,
+                {"Idempotency-Key": idempotency_key, "X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.create",
         )
 
@@ -33,11 +41,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             "/api/v1/rebalance/waves",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.list",
         )
 
@@ -45,11 +57,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/{wave_id}",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.get",
         )
 
@@ -73,11 +89,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/{wave_id}/items",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.items",
         )
 
@@ -86,11 +106,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/source-check",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.source_check",
         )
 
@@ -99,11 +123,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/simulate",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.simulate",
         )
 
@@ -113,11 +141,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_item_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/items/{wave_item_id}/select",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.items.select",
         )
 
@@ -177,11 +209,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/{wave_id}/proof-pack",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.proof_pack",
         )
 
@@ -189,11 +225,15 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/{wave_id}/supportability",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.supportability",
         )
 
@@ -201,10 +241,14 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/{wave_id}/report-input",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(
+                correlation_id,
+                extras={"X-Tenant-Id": tenant_id},
+            ),
             operation="manage.rebalance.waves.report_input",
         )

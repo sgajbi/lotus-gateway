@@ -50,7 +50,7 @@ class DpmClient(
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        cleaned_params = self._clean_params(params)
         return await self._get(
             "/api/v1/rebalance/runs",
             params=cleaned_params,
@@ -146,6 +146,7 @@ class DpmClient(
         body: dict[str, Any],
         headers: dict[str, str],
         operation: str,
+        params: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         return await request_observed_fanout(
@@ -158,6 +159,7 @@ class DpmClient(
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             headers=authorize_dpm_manage_mutation_headers(headers),
+            params=params,
             json_body=body,
         )
 

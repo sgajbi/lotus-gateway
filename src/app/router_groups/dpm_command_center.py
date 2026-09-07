@@ -30,17 +30,14 @@ from app.routers.dpm_command_center_monitoring_commands import (
 from app.routers.dpm_command_center_monitoring_detail import (
     router as dpm_command_center_monitoring_detail_router,
 )
-from app.routers.dpm_command_center_outcome_review_ai_evidence_input import (
-    router as dpm_command_center_outcome_review_ai_evidence_input_router,
-)
 from app.routers.dpm_command_center_outcome_review_detail import (
     router as dpm_command_center_outcome_review_detail_router,
 )
 from app.routers.dpm_command_center_outcome_review_evidence import (
     router as dpm_command_center_outcome_review_evidence_router,
 )
-from app.routers.dpm_command_center_outcome_review_handoff import (
-    router as dpm_command_center_outcome_review_handoff_router,
+from app.routers.dpm_command_center_outcome_review_inputs import (
+    router as dpm_command_center_outcome_review_inputs_router,
 )
 from app.routers.dpm_command_center_outcome_review_lookup import (
     router as dpm_command_center_outcome_review_lookup_router,
@@ -147,8 +144,7 @@ DPM_COMMAND_CENTER_ROUTERS: RouterGroup = (
     dpm_command_center_outcome_review_detail_router,
     dpm_command_center_outcome_review_lookup_router,
     dpm_command_center_outcome_review_evidence_router,
-    dpm_command_center_outcome_review_ai_evidence_input_router,
-    dpm_command_center_outcome_review_handoff_router,
+    dpm_command_center_outcome_review_inputs_router,
     dpm_command_center_outcome_review_narratives_router,
     dpm_command_center_outcome_review_lookups_router,
     dpm_command_center_outcome_review_supportability_router,

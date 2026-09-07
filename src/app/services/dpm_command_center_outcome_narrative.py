@@ -44,6 +44,7 @@ class DpmCommandCenterOutcomeNarrativeMixin:
         outcome_review_id: str,
         request: DpmOutcomeReviewNarrativeRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmOutcomeReviewNarrativeGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
@@ -51,6 +52,7 @@ class DpmCommandCenterOutcomeNarrativeMixin:
             outcome_review_id=outcome_review_id,
             request=request,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         ai_status, ai_execution = await self._execute_outcome_review_narrative_pack(
             lotus_ai_client=lotus_ai_client,
@@ -76,10 +78,12 @@ class DpmCommandCenterOutcomeNarrativeMixin:
         outcome_review_id: str,
         request: DpmOutcomeReviewNarrativeRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmOutcomeReviewNarrativeContext:
         manage_status, manage_payload = await self._dpm_client.get_outcome_review_ai_evidence_input(
             outcome_review_id=outcome_review_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         raise_manage_command_center_error(
             manage_status,

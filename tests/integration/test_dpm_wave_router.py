@@ -7,7 +7,7 @@ from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_executio
 
 
 def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
-    async def _fake_preview_wave(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_preview_wave(self, body, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         return 200, {
             "wave": {"wave_id": "dwv_preview_001", "state": "PREVIEWED"},
@@ -45,7 +45,7 @@ def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
 def test_dpm_wave_preview_forwards_core_candidate_source_without_portfolios(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_preview_wave(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_preview_wave(self, body, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["body"] = body
         captured["correlation_id"] = correlation_id
@@ -131,7 +131,7 @@ def test_dpm_wave_preview_rejects_core_candidate_source_with_caller_portfolios()
 def test_dpm_wave_create_forwards_body_and_idempotency_key(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_create_wave(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_create_wave(self, body, idempotency_key, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["body"] = body
         captured["idempotency_key"] = idempotency_key
@@ -179,7 +179,7 @@ def test_dpm_wave_create_forwards_body_and_idempotency_key(monkeypatch) -> None:
 def test_dpm_wave_list_passes_filters_without_reconstructing_state(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_list_waves(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_list_waves(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["params"] = params
         captured["correlation_id"] = correlation_id
@@ -1027,7 +1027,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
 def test_dpm_wave_actions_preserve_manage_payload(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_select_wave_item(self, wave_id, wave_item_id, body, correlation_id):  # noqa: ANN001
+    async def _fake_select_wave_item(self, wave_id, wave_item_id, body, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["wave_id"] = wave_id
         captured["wave_item_id"] = wave_item_id
@@ -1083,7 +1083,7 @@ def test_dpm_wave_actions_preserve_manage_payload(monkeypatch) -> None:
 
 
 def test_dpm_wave_error_is_not_marked_ready(monkeypatch) -> None:
-    async def _fake_get_wave(self, wave_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_wave(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self, wave_id, correlation_id
         return 404, {"detail": "Wave dwv_missing was not found."}
 
@@ -1098,7 +1098,7 @@ def test_dpm_wave_error_is_not_marked_ready(monkeypatch) -> None:
 
 
 def test_dpm_wave_report_input_preserves_manage_evidence(monkeypatch) -> None:
-    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         return 200, {
             "wave_id": wave_id,
@@ -1132,7 +1132,7 @@ def test_dpm_wave_report_input_preserves_manage_evidence(monkeypatch) -> None:
 def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["manage_wave_id"] = wave_id
         captured["manage_correlation_id"] = correlation_id
@@ -1196,7 +1196,7 @@ def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
 def test_dpm_wave_operations_handoff_summary_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["manage_wave_id"] = wave_id
         captured["manage_correlation_id"] = correlation_id

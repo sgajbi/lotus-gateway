@@ -42,6 +42,67 @@ async def load_risk_mandate_sources(
     portfolio_id: str,
     correlation_id: str,
     as_of_date: str,
+    tenant_id: str | None,
+) -> RiskMandateSources:
+    if tenant_id is None:
+        return await _sources_without_a_tenant(
+            cash_source=cash_source,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+    return await _sources_under_tenant(
+        manage_client=manage_client,
+        cash_source=cash_source,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        as_of_date=as_of_date,
+        tenant_id=tenant_id,
+    )
+
+
+async def _sources_without_a_tenant(
+    *,
+    cash_source: RiskMandateCashSource,
+    portfolio_id: str,
+    correlation_id: str,
+    as_of_date: str,
+) -> RiskMandateSources:
+    """Everything that does not need a tenant, and a reason for what does.
+
+    lotus-manage stores mandate and health evidence per tenant and refuses a read
+    that does not name one. Calling anyway would return a 422 that surfaces as a
+    failed risk summary; returning an empty comparison would read as "no mandate
+    breaches". Neither is true, so say which it is. Cash is Core-backed and needs
+    no tenant here, so it is still loaded.
+    """
+
+    cash_result = await _load_cash(
+        cash_source=cash_source,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        as_of_date=as_of_date,
+    )
+    return RiskMandateSources(
+        mandate=None,
+        health=None,
+        cash=cash_result.cash,
+        mandate_failure_reason=(
+            "Mandate comparison requires a tenant: lotus-manage stores mandate evidence "
+            "per tenant and this request did not name one."
+        ),
+        cash_failure_reason=cash_result.failure_reason,
+    )
+
+
+async def _sources_under_tenant(
+    *,
+    manage_client: RiskMandateManageClient,
+    cash_source: RiskMandateCashSource,
+    portfolio_id: str,
+    correlation_id: str,
+    as_of_date: str,
+    tenant_id: str,
 ) -> RiskMandateSources:
     mandate_result, cash_result = await asyncio.gather(
         _load_mandate(
@@ -49,6 +110,7 @@ async def load_risk_mandate_sources(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
+            tenant_id=tenant_id,
         ),
         _load_cash(
             cash_source=cash_source,
@@ -64,6 +126,7 @@ async def load_risk_mandate_sources(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
+            tenant_id=tenant_id,
         )
         if mandate_result.mandate is not None
         else _HealthLoadResult(
@@ -87,10 +150,12 @@ async def _load_mandate(
     portfolio_id: str,
     correlation_id: str,
     as_of_date: str,
+    tenant_id: str,
 ) -> _MandateLoadResult:
     upstream_status, upstream_payload = await manage_client.get_mandate_by_portfolio(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
+        tenant_id=tenant_id,
         as_of_date=as_of_date,
     )
     if upstream_status >= status.HTTP_400_BAD_REQUEST:
@@ -120,10 +185,12 @@ async def _load_health(
     portfolio_id: str,
     correlation_id: str,
     as_of_date: str,
+    tenant_id: str,
 ) -> _HealthLoadResult:
     upstream_status, upstream_payload = await manage_client.get_mandate_health(
         mandate_id=mandate_id,
         correlation_id=correlation_id,
+        tenant_id=tenant_id,
         as_of_date=as_of_date,
     )
     if upstream_status >= status.HTTP_400_BAD_REQUEST:

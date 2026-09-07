@@ -2,6 +2,7 @@ from fastapi import APIRouter, Path
 
 from app.contracts.dpm_waves import DpmWaveForwardRequest, DpmWaveGatewayResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_action_common import UPSTREAM_WAVE_ACTION_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
@@ -13,6 +14,7 @@ router = APIRouter(
 
 async def _select_wave_item(
     *,
+    tenant_id: str,
     wave_id: str,
     wave_item_id: str,
     request: DpmWaveForwardRequest,
@@ -22,6 +24,7 @@ async def _select_wave_item(
         wave_item_id=wave_item_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -38,11 +41,13 @@ async def _select_wave_item(
     responses=UPSTREAM_WAVE_ACTION_ERROR_RESPONSES,
 )
 async def select_wave_item(
+    tenant_id: DpmManageTenantId,
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
     wave_item_id: str = Path(..., description="Manage-owned rebalance-wave item identifier."),
 ) -> DpmWaveGatewayResponse:
     return await _select_wave_item(
+        tenant_id=tenant_id,
         wave_id=wave_id,
         wave_item_id=wave_item_id,
         request=request,

@@ -35,6 +35,7 @@ class DpmProofPackClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_proof_pack(
@@ -56,6 +57,7 @@ class DpmProofPackClient(Protocol):
         *,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_proof_pack_ai_evidence_input(
@@ -63,6 +65,7 @@ class DpmProofPackClient(Protocol):
         *,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
 
@@ -71,6 +74,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def run_monitoring_once(
@@ -95,6 +99,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def resolve_monitoring_exception(
@@ -102,12 +107,14 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         exception_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_mandate_by_portfolio(
         self,
         portfolio_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -115,12 +122,14 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_mandate_health(
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -129,6 +138,7 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         mandate_id: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def preview_outcome_review(
@@ -174,12 +184,14 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         outcome_review_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_outcome_review_ai_evidence_input(
         self,
         outcome_review_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_run_outcome_review(

@@ -6,6 +6,7 @@ class DpmWaveClient(Protocol):
         self,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def create_wave(
@@ -13,18 +14,21 @@ class DpmWaveClient(Protocol):
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def list_waves(
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_wave(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def put_campaign_definition(
@@ -219,6 +223,7 @@ class DpmWaveClient(Protocol):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def source_check_wave(
@@ -226,6 +231,7 @@ class DpmWaveClient(Protocol):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def simulate_wave(
@@ -233,6 +239,7 @@ class DpmWaveClient(Protocol):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def select_wave_item(
@@ -241,6 +248,7 @@ class DpmWaveClient(Protocol):
         wave_item_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def approve_wave(
@@ -275,16 +283,19 @@ class DpmWaveClient(Protocol):
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_wave_supportability(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_wave_report_input(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...

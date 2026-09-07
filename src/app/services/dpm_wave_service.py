@@ -32,10 +32,12 @@ class DpmWaveService(
         self,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.preview_wave(
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -44,11 +46,13 @@ class DpmWaveService(
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.create_wave(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -56,10 +60,12 @@ class DpmWaveService(
         self,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.list_waves(
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -67,10 +73,12 @@ class DpmWaveService(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_wave(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -78,10 +86,12 @@ class DpmWaveService(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_wave_items(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -90,11 +100,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.source_check_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -103,11 +115,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.simulate_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -117,12 +131,14 @@ class DpmWaveService(
         wave_item_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.select_wave_item(
             wave_id=wave_id,
             wave_item_id=wave_item_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -182,10 +198,12 @@ class DpmWaveService(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_wave_proof_pack_posture(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -193,10 +211,12 @@ class DpmWaveService(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_wave_supportability(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -204,10 +224,12 @@ class DpmWaveService(
         self,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 

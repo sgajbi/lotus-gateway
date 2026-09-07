@@ -1,32 +1,12 @@
 from typing import Any
 
+from app.clients.dpm_client_call_surface import DpmClientCallSurfaceMixin
 
-class DpmProofPackClientMixin:
-    def _headers(
-        self,
-        correlation_id: str,
-        extras: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
 
-    async def _get(
-        self,
-        path: str,
-        params: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _post(
-        self,
-        path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
+class DpmProofPackClientMixin(DpmClientCallSurfaceMixin):
+    # Declared here rather than on the shared call surface: the proof-pack
+    # markdown rendition is the only lotus-manage response that is not JSON, so
+    # this is the one aggregate that reaches for this transport.
     async def _get_binary_text(
         self,
         path: str,
@@ -40,11 +20,13 @@ class DpmProofPackClientMixin:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/api/v1/rebalance/proof-packs",
             body=body,
             headers=self._headers(correlation_id, extras={"Idempotency-Key": idempotency_key}),
+            params={"tenant_id": tenant_id},
             operation="manage.rebalance.proof_packs.generate",
         )
 
@@ -75,10 +57,11 @@ class DpmProofPackClientMixin:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/proof-packs/{proof_pack_id}/report-input",
-            params={},
+            params={"tenant_id": tenant_id},
             headers=self._headers(correlation_id),
             operation="manage.rebalance.proof_packs.report_input",
         )
@@ -87,10 +70,11 @@ class DpmProofPackClientMixin:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/proof-packs/{proof_pack_id}/ai-evidence-input",
-            params={},
+            params={"tenant_id": tenant_id},
             headers=self._headers(correlation_id),
             operation="manage.rebalance.proof_packs.ai_evidence_input",
         )

@@ -47,10 +47,12 @@ class DpmWaveAiHandoffMixin:
         wave_id: str,
         request: DpmWaveMemoRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveMemoGatewayResponse:
         report_input = await self._load_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         memo_request = wave_pm_memo_request_payload(request)
         ai_status, ai_payload = await self._execute_wave_pm_memo_workflow(
@@ -117,10 +119,12 @@ class DpmWaveAiHandoffMixin:
         wave_id: str,
         request: DpmOperationsHandoffSummaryRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmOperationsHandoffSummaryGatewayResponse:
         report_input = await self._load_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         handoff_summary_request = operations_handoff_summary_request_payload(request)
         ai_status, ai_payload = await self._execute_operations_handoff_summary_workflow(
@@ -187,10 +191,12 @@ class DpmWaveAiHandoffMixin:
         *,
         wave_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> WaveReportInput:
         manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         if manage_status >= status.HTTP_400_BAD_REQUEST:
             _raise_manage_wave_upstream_error(manage_status, manage_payload)

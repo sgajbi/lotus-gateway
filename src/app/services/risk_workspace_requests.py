@@ -97,6 +97,10 @@ class RiskSummaryRequestContext:
     report_start_date: str | None
     report_end_date: str | None
     reporting_currency: str | None
+    # The tenant admitted for the composed lotus-manage mandate evidence.
+    # None means the request named none, and the mandate comparison reports
+    # itself unavailable rather than Gateway choosing a tenant to read under.
+    tenant_id: str | None
 
 
 @dataclass(frozen=True)
@@ -109,6 +113,10 @@ class RiskConcentrationRequestContext:
     report_start_date: str | None
     report_end_date: str | None
     reporting_currency: str | None
+    # The tenant admitted for the composed lotus-manage mandate evidence.
+    # None means the request named none, and the mandate comparison reports
+    # itself unavailable rather than Gateway choosing a tenant to read under.
+    tenant_id: str | None
 
 
 def latest_business_day(today: date | None = None) -> date:
@@ -135,6 +143,7 @@ def build_summary_request_context(
     report_start_date: str | None,
     report_end_date: str | None,
     reporting_currency: str | None,
+    tenant_id: str | None,
 ) -> RiskSummaryRequestContext:
     return RiskSummaryRequestContext(
         portfolio_id=portfolio_id,
@@ -146,6 +155,7 @@ def build_summary_request_context(
         report_start_date=report_start_date,
         report_end_date=report_end_date,
         reporting_currency=reporting_currency,
+        tenant_id=tenant_id,
     )
 
 
@@ -159,6 +169,7 @@ def build_concentration_request_context(
     report_start_date: str | None,
     report_end_date: str | None,
     reporting_currency: str | None,
+    tenant_id: str | None,
 ) -> RiskConcentrationRequestContext:
     return RiskConcentrationRequestContext(
         portfolio_id=portfolio_id,
@@ -169,6 +180,7 @@ def build_concentration_request_context(
         report_start_date=report_start_date,
         report_end_date=report_end_date,
         reporting_currency=reporting_currency,
+        tenant_id=tenant_id,
     )
 
 

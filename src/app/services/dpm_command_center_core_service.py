@@ -12,10 +12,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_command_center(
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -72,10 +74,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.list_monitoring_exceptions(
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -88,11 +92,13 @@ class DpmCommandCenterCoreServiceMixin:
         exception_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.resolve_monitoring_exception(
             exception_id=exception_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -104,10 +110,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         portfolio_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_mandate_by_portfolio(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -119,10 +127,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_mandate(
             mandate_id=mandate_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -134,10 +144,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         mandate_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_mandate_health(
             mandate_id=mandate_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -150,11 +162,13 @@ class DpmCommandCenterCoreServiceMixin:
         mandate_id: str,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_mandate_diff(
             mandate_id=mandate_id,
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,

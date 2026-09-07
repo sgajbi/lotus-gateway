@@ -42,12 +42,14 @@ class DpmCommandCenterExceptionSummaryMixin:
         exception_id: str,
         request: DpmExceptionSummaryRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmExceptionSummaryGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
         summary_context = await self._load_exception_summary_context(
             exception_id,
             request,
             correlation_id,
+            tenant_id,
         )
         ai_status, ai_payload = await self._execute_exception_summary_workflow(
             lotus_ai_client,
@@ -68,10 +70,12 @@ class DpmCommandCenterExceptionSummaryMixin:
         exception_id: str,
         request: DpmExceptionSummaryRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmExceptionSummaryContext:
         manage_status, manage_payload = await self._dpm_client.list_monitoring_exceptions(
             params=_exception_summary_manage_params(request),
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         raise_manage_command_center_error(
             manage_status,

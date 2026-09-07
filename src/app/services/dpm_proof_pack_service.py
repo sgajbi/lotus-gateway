@@ -40,11 +40,13 @@ class DpmProofPackService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.generate_proof_pack(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -86,10 +88,12 @@ class DpmProofPackService:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_proof_pack_report_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -97,10 +101,12 @@ class DpmProofPackService:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -109,11 +115,13 @@ class DpmProofPackService:
         proof_pack_id: str,
         request: DpmProofPackMemoRequest,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackMemoGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
         ai_evidence_input = await self._load_proof_pack_ai_evidence_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         memo_request = build_proof_pack_pm_memo_request(request)
         ai_status, ai_payload = await execute_proof_pack_pm_memo_workflow(
@@ -137,10 +145,12 @@ class DpmProofPackService:
         *,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> ProofPackAiEvidenceInput:
         manage_status, manage_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         if manage_status >= status.HTTP_400_BAD_REQUEST:
             _raise_manage_upstream_error(manage_status, manage_payload)
