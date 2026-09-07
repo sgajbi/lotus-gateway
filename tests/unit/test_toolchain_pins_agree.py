@@ -43,12 +43,13 @@ semantics and is deliberately out of scope.
 
 from __future__ import annotations
 
-import re
 import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -104,11 +105,35 @@ PERMITTED_HOOK_ARGS: dict[str, frozenset[str]] = {
     "ruff-format": frozenset({"--check", "--diff", "--force-exclude", "--exit-non-zero-on-format"}),
 }
 
-# A wildcard equality such as `mypy==2.3.*` is a RANGE wearing `==`: it still
-# lets the newest matching release arrive without a commit.
-_EXACT_PIN = re.compile(
-    r"^(?P<name>[A-Za-z0-9_.-]+)==(?P<version>[0-9]+(?:\.[0-9]+)*(?:[abrc][0-9]+)?)$"
-)
+
+def _exact_pin(requirement: str) -> tuple[str, str] | None:
+    """The (name, version) a requirement pins to exactly, or None.
+
+    Parsed by `packaging` rather than by a grammar written here. A hand-rolled
+    one refused `ruff == 0.15.22` and `mypy==2.3.1.post1` — both valid, both
+    resolving to one deterministic version — and refusing a correct pin is worse
+    than the drift this file exists to catch, because the developer's fix is to
+    delete the guard.
+
+    Exact means ONE version: a single `==` specifier with no wildcard. `==2.3.*`
+    is a range wearing `==`, and `!=`/`>=` are ranges outright; both let the
+    newest matching release arrive without a commit.
+
+    The name is canonicalised the way the index does it, so `MyPy` and
+    `type_checker` are not different tools from `mypy` and `type-checker`.
+    """
+    try:
+        parsed = Requirement(requirement)
+    except InvalidRequirement:
+        return None
+
+    specifiers = list(parsed.specifier)
+    if len(specifiers) != 1:
+        return None
+    (only,) = specifiers
+    if only.operator != "==" or "*" in only.version:
+        return None
+    return str(canonicalize_name(parsed.name)), only.version
 
 
 def _declared_pins() -> dict[str, str]:
@@ -118,9 +143,9 @@ def _declared_pins() -> dict[str, str]:
 
     pins: dict[str, str] = {}
     for requirement in dev:
-        match = _EXACT_PIN.match(requirement.strip())
-        if match and match.group("name").lower() in OUTPUT_DEFINING_TOOLS:
-            pins[match.group("name").lower()] = match.group("version")
+        pin = _exact_pin(requirement)
+        if pin and pin[0] in OUTPUT_DEFINING_TOOLS:
+            pins[pin[0]] = pin[1]
     return pins
 
 
@@ -148,13 +173,16 @@ def _agrees_with_ci(identifier: str, hook: dict[str, object]) -> bool:
     Judged against the hook's OWN vocabulary, since `ruff` and `ruff-format` are
     different subcommands. A hook this file does not govern is not its business.
 
-    A flag written `--flag=value` is judged by its name.
+    Compared WHOLE. Every permitted argument is a value-less switch, so anything
+    carrying a value is a different argument: `--fix=false` exits 2 with
+    `unexpected value 'false'`, and reducing it to `--fix` credited a hook that
+    cannot run at all. Splitting on `=` was an attempt to be lenient about a form
+    none of these arguments has.
     """
     permitted = PERMITTED_HOOK_ARGS.get(identifier)
     if permitted is None:
         return True
-    names = {str(argument).split("=", 1)[0] for argument in hook.get("args") or []}
-    return names <= permitted
+    return {str(argument) for argument in hook.get("args") or []} <= permitted
 
 
 def _repository_identity(source: str) -> str:
@@ -612,17 +640,38 @@ repos:
     )
 
 
-def test_a_wildcard_equality_is_not_an_exact_pin() -> None:
-    """`mypy==2.3.*` is a range wearing `==`.
+@pytest.mark.parametrize(
+    ("requirement", "expected"),
+    [
+        # One deterministic version, however it is written. The first hand-rolled
+        # grammar here refused the last three of these.
+        ("mypy==2.3.1", ("mypy", "2.3.1")),
+        ("ruff==0.15.22", ("ruff", "0.15.22")),
+        ("ruff == 0.15.22", ("ruff", "0.15.22")),
+        ("mypy==2.3.1.post1", ("mypy", "2.3.1.post1")),
+        ("ruff[extra]==0.15.22", ("ruff", "0.15.22")),
+        # The index treats these as one name, so this file must too.
+        ("MyPy==2.3.1", ("mypy", "2.3.1")),
+        ('mypy==2.3.1 ; python_version >= "3.12"', ("mypy", "2.3.1")),
+        # Ranges, including the one wearing `==`.
+        ("mypy==2.3.*", None),
+        ("ruff>=0.15.0", None),
+        ("ruff>=0.15.0,<0.16", None),
+        ("mypy!=2.3.0", None),
+        ("ruff", None),
+        ("== 0.15.22", None),
+    ],
+)
+def test_an_exact_pin_is_one_version_however_it_is_written(requirement, expected) -> None:
+    """`mypy==2.3.*` is a range wearing `==`; `ruff == 0.15.22` is a pin with a space.
 
-    It still lets the newest matching release arrive without a commit, which is
-    the drift this file exists to remove — so accepting it would defeat the
-    check while looking like a pin.
+    A range lets the newest matching release arrive without a commit, which is the
+    drift this file exists to remove. But refusing a VALID pin is the worse
+    failure, because the developer's fix for a guard that rejects correct input is
+    to delete the guard — so both directions are asserted against the parser that
+    pip itself resolves with.
     """
-    assert _EXACT_PIN.match("mypy==2.3.1")
-    assert _EXACT_PIN.match("ruff==0.15.22")
-    assert not _EXACT_PIN.match("mypy==2.3.*")
-    assert not _EXACT_PIN.match("ruff>=0.15.0")
+    assert _exact_pin(requirement) == expected
 
 
 def test_a_duplicate_hook_id_runs_if_any_occurrence_does(tmp_path, monkeypatch) -> None:
@@ -839,6 +888,10 @@ repos:
         ("ruff", "--isolated", "discards this repository's line-length and lint.select"),
         ("ruff", "--config=/tmp/other.toml", "judges the tree against another configuration"),
         ("ruff", "--line-length=200", "overrides a setting CI reads from pyproject"),
+        # A value attached to a value-less switch. `ruff check --fix=false .`
+        # exits 2 with `unexpected value 'false'`, so comparing the name before
+        # the `=` credited a hook that cannot run at all.
+        ("ruff", "--fix=false", "exits 2 with an unexpected value"),
         # The formatter's own vocabulary. `--fix` is not merely divergent here,
         # it exits 2 as an unknown argument — the hook that cannot run at all.
         ("ruff-format", "--fix", "is not an argument `ruff format` accepts"),
