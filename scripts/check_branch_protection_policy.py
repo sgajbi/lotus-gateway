@@ -12,6 +12,14 @@ compared as absent, never coerced to false (a missing
 `required_pull_request_reviews` block and `required_approving_review_count: 0`
 are different postures and must be distinguishable).
 
+**This file must pass `mypy --strict` and `ruff` under the strictest settings any
+adopter uses.** Byte-identity is the mechanism by which a fix here reaches every
+adopter, and a local lint or type setting strict enough to force even a cosmetic
+edit forks the control: the copy then diverges permanently and later fixes stop
+propagating. Three adopters already differ by two such edits. Keep the annotations
+explicit rather than relying on inference, so lifting is never a choice between a
+clean local build and a byte-identical control.
+
 Usage:
   python scripts/check_branch_protection_policy.py --offline   # document shape only
   python scripts/check_branch_protection_policy.py             # live comparison (needs gh auth)
