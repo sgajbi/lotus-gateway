@@ -47,7 +47,13 @@ Current repository posture:
    - advisory policy-pack, policy-evaluation,
    review-queue, workflow, sign-off package, sign-off decision, report-package, lineage, replay,
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
-   `/advisory/proposals/*/policy-evaluations`;
+   `/advisory/proposals/*/policy-evaluations`. The seven **write** routes among them require
+   trusted caller context (`X-Actor-Id`, `X-Tenant-Id`, `X-Legal-Entity-Code`, `X-Role`,
+   `X-Caller-Capabilities`) and refuse 400 or 403 before any request reaches `lotus-advise`.
+   Tenant, legal entity and actor are forwarded unchanged; role and capability are checked against
+   the operation rather than chosen by Gateway; `X-Service-Identity: lotus-gateway` is the only
+   identity Gateway asserts. The **read** routes carry no caller context and send no tenant, which
+   is a known gap tracked separately rather than a settled design;
    - advisor-cockpit action, preparation-packet,
    single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
    `/advisory/cockpit/*`. Those Cockpit reads and acknowledgements derive advisor identity, role,
