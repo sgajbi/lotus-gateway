@@ -225,21 +225,32 @@ def _hook_revisions() -> dict[str, str]:
             _repository_identity(source) == _repository_identity(expected)
             for expected in EXPECTED_HOOK_REPOSITORIES.values()
         )
+        # Two different questions, deliberately not one. `executes` asks whether
+        # pre-commit runs the hook at all; `covers` asks whether it also counts
+        # as the check CI performs. Collapsing them let a stale stanza carrying
+        # `--fix-only` disappear from BOTH — dropped from coverage, correctly,
+        # and thereby dropped from the record of which versions execute, so a
+        # second ruff modifying the tree on every commit went unreported.
+        #
         # A per-hook `stages` OVERRIDES the file default; absent, it inherits.
         # OR across occurrences, not last-wins: pre-commit executes every hook
         # entry, so an id listed twice runs if ANY of its occurrences does.
         # Collapsing by id would let a manual duplicate mask a running one.
-        runs: dict[str, bool] = {}
+        executes: dict[str, bool] = {}
+        covers: dict[str, bool] = {}
         for hook in hooks:
             identifier = str(hook.get("id", ""))
             if not identifier:
                 continue
             on_commit = _runs_on_commit(hook.get("stages", default_stages))
-            # Two conditions that OR correctly, because a second sound occurrence
+            executes[identifier] = executes.get(identifier, False) or on_commit
+            # Both conditions OR correctly, because a second sound occurrence
             # restores what a bad one gave up: a hook that never runs, and a hook
-            # that runs but cannot refuse, both leave the commit gated as long as
-            # a sibling does the job.
-            runs[identifier] = runs.get(identifier, False) or (on_commit and _agrees_with_ci(hook))
+            # whose arguments diverge from CI, both leave the commit gated as
+            # long as a sibling does the job.
+            covers[identifier] = covers.get(identifier, False) or (
+                on_commit and _agrees_with_ci(hook)
+            )
             # An override does NOT or away, and that asymmetry is the point. A
             # sound sibling adds a gate; an overridden occurrence ADDS AN
             # EXECUTION — `entry: ruff` with `language: system` runs whatever
@@ -266,14 +277,15 @@ def _hook_revisions() -> dict[str, str]:
             # neither complete and credit nothing -- failing a configuration
             # pre-commit runs correctly.
             covered.setdefault((tool, revision), set()).update(
-                hook for hook in required if runs.get(hook, False)
+                hook for hook in required if covers.get(hook, False)
             )
-            # ANY runnable required hook makes this stanza's version one that
-            # developers actually execute. Asking only for stanzas carrying ALL
-            # of them would let a stale stanza holding just `- id: ruff` keep
-            # running an old checker on every commit, unnoticed because it was
-            # never a candidate to be credited.
-            if any(runs.get(hook, False) for hook in required):
+            # ANY required hook that EXECUTES makes this stanza's version one
+            # developers actually run — whatever its arguments, and whether or
+            # not it counts as coverage. A stale stanza holding `- id: ruff` with
+            # `--fix-only` still applies fixes from another version on every
+            # commit; asking for coverage here would drop it from the record for
+            # the very reason it is dangerous.
+            if any(executes.get(hook, False) for hook in required):
                 running.setdefault(tool, set()).add(revision)
             if covered[(tool, revision)] >= set(required):
                 revisions[tool] = revision
@@ -834,6 +846,31 @@ repos:
     assert "ruff" not in _parse_config(diverging, tmp_path, monkeypatch), (
         f"`{argument}` {why}, so the hook does not cover the tool"
     )
+
+
+def test_a_diverging_stanza_still_counts_as_a_running_version(tmp_path, monkeypatch) -> None:
+    """Dropping a hook from coverage must not drop it from the record of what runs.
+
+    A stale stanza at another revision carrying `--fix-only` does not cover the
+    tool — and still applies fixes from a version this repository never chose, on
+    every commit. Judging both questions with one answer made it vanish for
+    exactly the reason it is dangerous.
+    """
+    stale_and_pinned = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff
+        args: ["--fix-only"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+"""
+    with pytest.raises(AssertionError, match="runnable ruff revisions"):
+        _parse_config(stale_and_pinned, tmp_path, monkeypatch)
 
 
 def test_the_configured_arguments_are_permitted(tmp_path, monkeypatch) -> None:
