@@ -132,6 +132,23 @@ def _reports_a_verdict(hook: dict[str, object]) -> bool:
     return not (names & VERDICT_NEUTRALISING_ARGS)
 
 
+def _repository_identity(source: str) -> str:
+    """A `repo:` reduced to the thing it clones, for comparison against the pin.
+
+    pre-commit treats `repo` as a URL to clone, not as a canonical identifier, so
+    `…/ruff-pre-commit` and `…/ruff-pre-commit.git` are the same upstream and run
+    the same pinned hooks. Comparing the text refused the second and reported no
+    runnable ruff hooks — a checker failing valid configuration, which is the
+    fifth of this kind here and the failure mode that gets a checker ignored.
+
+    Deliberately not a URL parser: case, a trailing slash and a trailing `.git`
+    are the forms of the same address. A different scheme or host is a different
+    address, and the strict comparison this normalises is the point — a fork or
+    mirror must not be credited with the pinned version.
+    """
+    return source.strip().rstrip("/").removesuffix(".git").rstrip("/").lower()
+
+
 def _runs_the_pinned_tool(hook: dict[str, object]) -> bool:
     """Whether a rev-pinned hook still runs the program its revision names.
 
@@ -212,7 +229,11 @@ def _hook_revisions() -> dict[str, str]:
                 and _runs_the_pinned_tool(hook)
             )
         for tool, required in REV_PINNED_HOOKS.items():
-            if source.rstrip("/") != EXPECTED_HOOK_REPOSITORIES[tool]:
+            # Both sides normalised, so the constant cannot be written in a form
+            # that never matches anything.
+            if _repository_identity(source) != _repository_identity(
+                EXPECTED_HOOK_REPOSITORIES[tool]
+            ):
                 continue
             # Hooks may legitimately be split across stanzas that share the same
             # repository and revision. Judging each stanza alone would find
@@ -659,6 +680,44 @@ repos:
     assert "ruff" not in _parse_config(
         template.format(args='"--fix", "--exit-zero"'), tmp_path, monkeypatch
     ), "a hook that always exits 0 does not cover the tool"
+
+
+def test_the_same_repository_written_differently_is_the_same_repository(
+    tmp_path, monkeypatch
+) -> None:
+    """`repo:` is a URL to clone, not a canonical identifier.
+
+    `…/ruff-pre-commit.git` clones the same upstream and runs the same pinned
+    hooks, so refusing it reports that no runnable ruff hook set exists — a
+    checker failing valid configuration, the fifth of that kind here.
+
+    The reject side is asserted in the same case: a fork at a different address
+    must still not be credited with the pinned version, which is the whole reason
+    the comparison is strict rather than a substring.
+    """
+    template = """
+repos:
+  - repo: {source}
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+      - id: ruff-format
+"""
+    for source in (
+        "https://github.com/astral-sh/ruff-pre-commit.git",
+        "https://github.com/astral-sh/ruff-pre-commit/",
+        "https://github.com/Astral-sh/Ruff-Pre-Commit",
+    ):
+        assert (
+            _parse_config(template.format(source=source), tmp_path, monkeypatch).get("ruff")
+            == "0.15.22"
+        ), f"{source} clones the same upstream and runs the same pinned hooks"
+
+    assert "ruff" not in _parse_config(
+        template.format(source="https://github.com/someone/ruff-pre-commit"),
+        tmp_path,
+        monkeypatch,
+    ), "a fork at another address is not the pinned repository"
 
 
 def test_an_overridden_entry_is_not_the_pinned_tool(tmp_path, monkeypatch) -> None:
