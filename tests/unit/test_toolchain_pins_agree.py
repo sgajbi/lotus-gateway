@@ -149,6 +149,7 @@ def _hook_revisions() -> dict[str, str]:
 
     revisions: dict[str, str] = {}
     running: dict[str, set[str]] = {}
+    covered: dict[tuple[str, str], set[str]] = {}
     for source, revision, hooks in _hooks_by_repository():
         if not revision:
             continue
@@ -167,6 +168,13 @@ def _hook_revisions() -> dict[str, str]:
         for tool, required in REV_PINNED_HOOKS.items():
             if source.rstrip("/") != EXPECTED_HOOK_REPOSITORIES[tool]:
                 continue
+            # Hooks may legitimately be split across stanzas that share the same
+            # repository and revision. Judging each stanza alone would find
+            # neither complete and credit nothing -- failing a configuration
+            # pre-commit runs correctly.
+            covered.setdefault((tool, revision), set()).update(
+                hook for hook in required if runs.get(hook, False)
+            )
             # ANY runnable required hook makes this stanza's version one that
             # developers actually execute. Asking only for stanzas carrying ALL
             # of them would let a stale stanza holding just `- id: ruff` keep
@@ -174,7 +182,7 @@ def _hook_revisions() -> dict[str, str]:
             # never a candidate to be credited.
             if any(runs.get(hook, False) for hook in required):
                 running.setdefault(tool, set()).add(revision)
-            if all(runs.get(hook, False) for hook in required):
+            if covered[(tool, revision)] >= set(required):
                 revisions[tool] = revision
 
     for tool, found in running.items():
@@ -291,6 +299,13 @@ def test_dependency_aware_tools_run_from_the_project_environment() -> None:
             assert str(hook.get("entry", "")).split() == ["python", "-m", tool], (
                 f"the local {tool} hook must invoke `python -m {tool}` exactly; "
                 f"entry is {hook.get('entry')!r}"
+            )
+            # The entry alone is not what runs. `args: ['--version']` keeps a
+            # perfect entry and checks nothing, so the arguments must name the
+            # source tree the CI lane checks.
+            assert list(hook.get("args") or []) == ["src"], (
+                f"the local {tool} hook must check `src`, as the CI lane does; "
+                f"args are {hook.get('args')!r}"
             )
 
 
@@ -525,4 +540,50 @@ repos:
     monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
 
     with pytest.raises(AssertionError, match="exactly"):
+        test_dependency_aware_tools_run_from_the_project_environment()
+
+
+def test_required_hooks_may_be_split_across_stanzas(tmp_path, monkeypatch) -> None:
+    """Two stanzas at the same repository and revision are one configuration.
+
+    pre-commit runs both, so the tool is covered. Judging each stanza alone would
+    find neither complete and credit nothing — failing a configuration that works.
+    """
+    split = """
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff-format
+"""
+    assert _parse_config(split, tmp_path, monkeypatch).get("ruff") == "0.15.22", (
+        "hooks split across stanzas at the same revision still cover the tool"
+    )
+
+
+def test_neutralising_args_are_rejected(tmp_path, monkeypatch) -> None:
+    """A perfect entry with `--version` checks nothing.
+
+    The entry says which program runs; the arguments say what it does. Verifying
+    only the first is the same shape as crediting a hook for existing.
+    """
+    neutralised = """
+repos:
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        args: ["--version"]
+        language: system
+"""
+    written = tmp_path / "pre-commit.yaml"
+    written.write_text(neutralised, encoding="utf-8")
+    monkeypatch.setattr("test_toolchain_pins_agree.PRE_COMMIT", written)
+
+    with pytest.raises(AssertionError, match="must check `src`"):
         test_dependency_aware_tools_run_from_the_project_environment()
