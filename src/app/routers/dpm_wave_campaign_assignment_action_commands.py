@@ -1,19 +1,18 @@
-from fastapi import APIRouter, Path
+from fastapi import Path
 
 from app.contracts.dpm_waves import (
     DpmCampaignAssignmentActionRequest,
     DpmCampaignWorkflowGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_campaign_assignment_common import (
     UPSTREAM_CAMPAIGN_ASSIGNMENT_ERROR_RESPONSES,
 )
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _create_campaign_assignment_action(
@@ -21,12 +20,14 @@ async def _create_campaign_assignment_action(
     campaign_id: str,
     campaign_version: str,
     request: DpmCampaignAssignmentActionRequest,
+    tenant_id: str,
 ) -> DpmCampaignWorkflowGatewayResponse:
     return await dpm_wave_service().create_campaign_assignment_action(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body.model_dump(mode="json", exclude_unset=True),
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -43,11 +44,13 @@ async def _create_campaign_assignment_action(
     responses=UPSTREAM_CAMPAIGN_ASSIGNMENT_ERROR_RESPONSES,
 )
 async def create_campaign_assignment_action(
+    tenant_id: DpmManageTenantId,
     request: DpmCampaignAssignmentActionRequest,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
     return await _create_campaign_assignment_action(
+        tenant_id=tenant_id,
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         request=request,

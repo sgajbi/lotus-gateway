@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Header, Query
+from fastapi import Header, Query
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
@@ -9,12 +9,10 @@ from app.contracts.dpm_waves import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     error_model=DpmWaveErrorDetail,
     not_found_description="lotus-manage could not find the requested campaign discovery resource.",

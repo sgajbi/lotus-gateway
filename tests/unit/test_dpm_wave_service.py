@@ -92,7 +92,7 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition_lifecycle_events(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -105,7 +105,7 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition_preview_readiness(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -119,7 +119,7 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition_launch_history(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -133,7 +133,7 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition_launch_package(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -147,7 +147,7 @@ class _FakeDpmClient:
         return self.result
 
     async def launch_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -161,7 +161,7 @@ class _FakeDpmClient:
         return self.result
 
     async def retire_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -175,7 +175,7 @@ class _FakeDpmClient:
         return self.result
 
     async def supersede_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -199,7 +199,7 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_campaign_operating_queue(self, params, correlation_id):  # noqa: ANN001
+    async def get_campaign_operating_queue(self, params, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "get_campaign_operating_queue",
@@ -210,7 +210,7 @@ class _FakeDpmClient:
         return self.result
 
     async def create_campaign_assignment_task(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -224,7 +224,7 @@ class _FakeDpmClient:
         return self.result
 
     async def transition_campaign_assignment_task(  # noqa: ANN001
-        self, campaign_id, campaign_version, task_ref, body, correlation_id
+        self, campaign_id, campaign_version, task_ref, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -239,7 +239,7 @@ class _FakeDpmClient:
         return self.result
 
     async def put_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         self.calls.append(
             {
@@ -336,6 +336,7 @@ async def test_dpm_wave_service_preserves_campaign_definition_payloads() -> None
         campaign_version="2026.05",
         body={"status": "ACTIVE"},
         correlation_id="corr-campaign-definition",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-definition"
@@ -378,6 +379,7 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
         campaign_id="campaign-holdings-202605",
         campaign_version="2026.05",
         correlation_id="corr-campaign-lifecycle",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-lifecycle"
@@ -428,6 +430,7 @@ async def test_dpm_wave_service_preserves_campaign_preview_readiness_payload() -
         campaign_version="2026.05",
         filters={"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"},
         correlation_id="corr-campaign-preview-readiness",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-preview-readiness"
@@ -484,6 +487,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> N
         campaign_version="2026.05",
         filters={"limit": 25, "offset": 0},
         correlation_id="corr-campaign-launch-history",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-launch-history"
@@ -532,6 +536,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_package_payload() -> N
             "correlation_id": "corr-campaign-launch",
         },
         correlation_id="corr-gateway",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-gateway"
@@ -579,6 +584,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_wave_truth() -> None:
         campaign_version="2026.05",
         body=body,
         correlation_id="corr-gateway",
+        tenant_id="tenant-sg",
     )
 
     assert response.upstream_status == 201
@@ -627,6 +633,7 @@ async def test_dpm_wave_service_preserves_campaign_retire_lifecycle_truth() -> N
         campaign_version="2026.05",
         body=body,
         correlation_id="corr-gateway-retire",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-gateway-retire"
@@ -680,6 +687,7 @@ async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -
         campaign_version="2026.05",
         body=body,
         correlation_id="corr-gateway-supersede",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-gateway-supersede"
@@ -782,6 +790,7 @@ async def test_dpm_wave_service_preserves_campaign_workflow_queue_payload() -> N
     response = await service.get_campaign_operating_queue(
         filters={"campaign_status": "ACTIVE", "limit": 25, "offset": 0},
         correlation_id="corr-campaign-operating-queue",
+        tenant_id="tenant-sg",
     )
 
     assert response.correlation_id == "corr-campaign-operating-queue"
@@ -836,6 +845,7 @@ async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_pa
         task_ref="task-review-001",
         body=body,
         correlation_id="corr-campaign-task-transition",
+        tenant_id="tenant-sg",
     )
 
     assert response.upstream_status == 201

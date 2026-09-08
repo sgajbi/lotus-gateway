@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import Request
+from fastapi import APIRouter, Request
 
 from app.contracts.dpm_waves import DpmWaveErrorDetail
 from app.routers.dpm_openapi import manage_upstream_error_responses
@@ -19,3 +19,19 @@ UPSTREAM_CAMPAIGN_WORKFLOW_ERROR_RESPONSES = manage_upstream_error_responses(
 
 def campaign_workflow_query_params(request: Request) -> dict[str, Any]:
     return query_params_with_repeated_values(request.query_params)
+
+
+def campaign_wave_router() -> APIRouter:
+    """One campaign-wave router construction, not twenty-five identical copies.
+
+    The campaign surface is split across twenty-five modules so each route keeps
+    its own OpenAPI description, and every one of them mounts under the same
+    prefix and tag. Repeating that construction is how one module ends up mounted
+    somewhere its siblings are not, which no test would catch because each file
+    is individually correct.
+    """
+
+    return APIRouter(
+        prefix="/api/v1/dpm/command-center/waves",
+        tags=["DPM Command Center"],
+    )

@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Path, Request
+from fastapi import Path, Request
 
 from app.contracts.dpm_waves import DpmCampaignWorkflowGatewayResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_campaign_approval_common import (
     UPSTREAM_CAMPAIGN_APPROVAL_ERROR_RESPONSES,
     campaign_approval_query_params,
 )
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _list_campaign_approval_decisions(
@@ -19,12 +18,14 @@ async def _list_campaign_approval_decisions(
     campaign_id: str,
     campaign_version: str,
     request: Request,
+    tenant_id: str,
 ) -> DpmCampaignWorkflowGatewayResponse:
     return await dpm_wave_service().list_campaign_approval_decisions(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters=campaign_approval_query_params(request),
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -42,11 +43,13 @@ async def _list_campaign_approval_decisions(
     responses=UPSTREAM_CAMPAIGN_APPROVAL_ERROR_RESPONSES,
 )
 async def list_campaign_approval_decisions(
+    tenant_id: DpmManageTenantId,
     request: Request,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
     return await _list_campaign_approval_decisions(
+        tenant_id=tenant_id,
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         request=request,

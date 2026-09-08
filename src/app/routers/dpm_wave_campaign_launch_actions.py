@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Path
+from fastapi import Path
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionLaunchRequest,
     DpmWaveGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_campaign_launch_common import UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _launch_campaign_definition(
@@ -19,12 +18,14 @@ async def _launch_campaign_definition(
     campaign_id: str,
     campaign_version: str,
     request: DpmCampaignDefinitionLaunchRequest,
+    tenant_id: str,
 ) -> DpmWaveGatewayResponse:
     return await dpm_wave_service().launch_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body.model_dump(mode="json", exclude_unset=True),
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -43,11 +44,13 @@ async def _launch_campaign_definition(
     responses=UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES,
 )
 async def launch_campaign_definition(
+    tenant_id: DpmManageTenantId,
     request: DpmCampaignDefinitionLaunchRequest,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmWaveGatewayResponse:
     return await _launch_campaign_definition(
+        tenant_id=tenant_id,
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         request=request,

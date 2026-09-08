@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import Path, Query
 
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_campaign_readiness_common import (
     UPSTREAM_CAMPAIGN_READINESS_ERROR_RESPONSES,
 )
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _get_campaign_definition_preview_readiness(
@@ -19,6 +18,7 @@ async def _get_campaign_definition_preview_readiness(
     campaign_version: str,
     requested_as_of_date: str,
     actor_id: str,
+    tenant_id: str,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().get_campaign_definition_preview_readiness(
         campaign_id=campaign_id,
@@ -28,6 +28,7 @@ async def _get_campaign_definition_preview_readiness(
             "actor_id": actor_id,
         },
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -46,6 +47,7 @@ async def _get_campaign_definition_preview_readiness(
     responses=UPSTREAM_CAMPAIGN_READINESS_ERROR_RESPONSES,
 )
 async def get_campaign_definition_preview_readiness(
+    tenant_id: DpmManageTenantId,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
     requested_as_of_date: str = Query(
@@ -60,6 +62,7 @@ async def get_campaign_definition_preview_readiness(
     ),
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await _get_campaign_definition_preview_readiness(
+        tenant_id=tenant_id,
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         requested_as_of_date=requested_as_of_date,

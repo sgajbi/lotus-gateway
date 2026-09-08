@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import Path, Query
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_manage_tenant import DpmManageTenantId
 from app.routers.dpm_wave_campaign_launch_common import UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _get_campaign_definition_launch_history(
@@ -19,12 +18,14 @@ async def _get_campaign_definition_launch_history(
     campaign_version: str,
     limit: int,
     offset: int,
+    tenant_id: str,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().get_campaign_definition_launch_history(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters={"limit": limit, "offset": offset},
         correlation_id=correlation_id_var.get(),
+        tenant_id=tenant_id,
     )
 
 
@@ -44,12 +45,14 @@ async def _get_campaign_definition_launch_history(
     responses=UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES,
 )
 async def get_campaign_definition_launch_history(
+    tenant_id: DpmManageTenantId,
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
     limit: int = Query(50, ge=1, le=500, description="Maximum launch-history records to return."),
     offset: int = Query(0, ge=0, description="Zero-based launch-history record offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await _get_campaign_definition_launch_history(
+        tenant_id=tenant_id,
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         limit=limit,

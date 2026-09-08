@@ -1,18 +1,16 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path
+from fastapi import Header, Path
 
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_wave_campaign_definition_common import (
     UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES,
 )
+from app.routers.dpm_wave_campaign_workflow_common import campaign_wave_router
 from app.services.dpm_service_provider import dpm_wave_service
 
-router = APIRouter(
-    prefix="/api/v1/dpm/command-center/waves",
-    tags=["DPM Command Center"],
-)
+router = campaign_wave_router()
 
 
 async def _get_campaign_definition(

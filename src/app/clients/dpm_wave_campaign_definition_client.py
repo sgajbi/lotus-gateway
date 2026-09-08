@@ -10,11 +10,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._put(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.put",
         )
 
@@ -56,11 +57,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_id: str,
         campaign_version: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.lifecycle_events",
         )
 
@@ -70,11 +72,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/preview-readiness",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.preview_readiness",
         )
 
@@ -84,11 +87,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.launch_history",
         )
 
@@ -98,11 +102,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.launch_package",
         )
 
@@ -112,11 +117,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.launch",
         )
 
@@ -126,11 +132,12 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/retire",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.retire",
         )
 
@@ -140,10 +147,11 @@ class DpmWaveCampaignDefinitionClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/supersede",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.campaign_definitions.supersede",
         )
