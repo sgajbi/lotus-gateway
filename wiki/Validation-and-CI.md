@@ -164,15 +164,49 @@ offline validation rather than passing quietly.
 
 The live comparison is scheduled rather than blocking because it authenticates with a PAT
 carrying `administration: read` (the workflow token cannot), and that secret is not yet
-provisioned: the step fails closed daily until an operator creates it. A blocking step before
+provisioned: the job fails closed daily until an operator creates it. A blocking step before
 then would deadlock every pull request on an operator action. Restoring the blocking lane is
 tracked in issue #738.
+
+It runs as its own job, `Audit / Live Branch Protection Matches Policy`, rather than as a second
+step inside the coverage audit. As one job the workflow was red every day for the missing
+credential, and a coverage regression landing in an already-red workflow would have been invisible
+at workflow level. The unreadable-posture case exits **4** with a named message — "live protection
+was never read" — kept distinct from exit **1**, which means the comparison ran and found drift.
+Both fail closed; only one says anything about the protection actually configured on `main`.
 
 The two lanes prove different things, and the difference matters when reading a green PR. The
 blocking check proves the policy **document** is complete and well-formed; it reads nothing from
 GitHub and therefore certifies nothing about the protection actually configured on `main`. Only
 the scheduled comparison can do that, and it has not yet succeeded in CI because the credential
 does not exist. A green pull request is not evidence that live protection matches the policy.
+
+## Reading the main gate coverage audit
+
+The audit's other job, `Audit / Every Main Commit Has A Gate Verdict`, answers three questions and
+keeps them separate, because they need opposite responses:
+
+| line | question | what to do about it |
+|---|---|---|
+| `coverage` | did every commit on `main` get a verdict-bearing run? | a gap is a **dispatch** failure — backfill it. This is the only line `--fail-on-gap` acts on |
+| `current outcome` | what does each commit's newest verdict say? | a failing one is a **code** failure that already happened |
+| `history` | did a commit ever fail, even though a re-run went green? | a record; growth here is the review question |
+
+Reporting only the first is how eight commits sat red on `main` while the audit passed: a failing
+verdict is still a verdict, so the commit counted as covered. Failing commits are now **reported,
+never failed on** — failing on them would make those eight a permanent red no dispatch can clear,
+and the answer to that is not to rewrite history to make a gate green.
+
+The unit is the **attempt**, not the run. `gh run rerun` adds an attempt to an existing run rather
+than creating a second one, and the run listing reports only the newest attempt's conclusion — so a
+gate that failed and was re-run green would otherwise read as having never failed. Superseded
+attempts are fetched and counted, and ordering uses each attempt's own start time, so a re-run of an
+older run sorts after a newer run rather than back in the older run's place.
+
+`timed_out` and `startup_failure` count as failing: the gate ran and did not pass. `cancelled`,
+`neutral`, `skipped` and `stale` are not the gate answering at all, so they leave the commit
+unverifiable — which fails closed. So does a run listing saturated at the fetch limit, or a
+superseded attempt that cannot be read: a history that cannot be seen in full cannot be reported on.
 
 ## PR auto-merge posture
 

@@ -7,8 +7,10 @@ while the configuration stays weak.
 """
 
 import copy
+import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -24,14 +26,20 @@ from scripts.check_branch_protection_policy import (
     _WEAK_POSTURES as WEAK_POSTURES,
 )
 from scripts.check_branch_protection_policy import (
-    _resolve_expected as resolve_expected,
-)
-from scripts.check_branch_protection_policy import (
+    EXIT_LIVE_PROTECTION_UNAVAILABLE,
+    LiveProtectionUnavailable,
     compare_live_to_policy,
     detect_repository,
+    fetch_live_protection,
     load_policy,
     resolve_effective_codeowners,
     validate_policy_document,
+)
+from scripts.check_branch_protection_policy import (
+    _resolve_expected as resolve_expected,
+)
+from scripts.check_branch_protection_policy import (
+    main as protection_main,
 )
 
 
@@ -1090,3 +1098,171 @@ def test_identity_is_unknowable_without_a_git_binary(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "run", no_git)
 
     assert detect_repository(tmp_path) is None
+
+
+# --- The live-protection refusal paths -------------------------------------
+#
+# "Never compared" and "compared and found drift" are different facts about the
+# repository's posture, and only the second says anything about it. The
+# distinction is operator-facing -- it decides whether a red scheduled job means
+# "provision a credential" or "someone changed protection on main" -- so it is
+# proved here rather than left to the docstring.
+
+
+class _FakeCompleted:
+    def __init__(self, returncode: int, stdout: str = "", stderr: str = "") -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def _patch_gh(monkeypatch: Any, completed: _FakeCompleted) -> None:
+    monkeypatch.setattr(
+        "scripts.check_branch_protection_policy.subprocess.run",
+        lambda *args, **kwargs: completed,
+    )
+
+
+def test_an_unauthenticated_gh_names_the_missing_credential(monkeypatch) -> None:
+    """gh exits 4 when it has no token. Left unhandled this was a raw
+    CalledProcessError traceback, which reads like a broken script rather than a
+    missing secret -- and this job is red every day for exactly that reason."""
+
+    _patch_gh(
+        monkeypatch,
+        _FakeCompleted(
+            4, stderr="gh: To use GitHub CLI in a GitHub Actions workflow, set GH_TOKEN"
+        ),
+    )
+
+    with pytest.raises(LiveProtectionUnavailable) as refusal:
+        fetch_live_protection("sgajbi/lotus-gateway", "main")
+
+    message = str(refusal.value)
+    assert "not authenticated" in message
+    assert "administration:read" in message
+    assert "never read" in message
+
+
+def test_any_other_gh_failure_still_refuses_rather_than_comparing_nothing(monkeypatch) -> None:
+    """A 404, a rate limit or a network failure are not authentication, and must
+    not be reported as if they were -- but they are equally "never compared"."""
+
+    _patch_gh(monkeypatch, _FakeCompleted(1, stderr="gh: Not Found (HTTP 404)"))
+
+    with pytest.raises(LiveProtectionUnavailable) as refusal:
+        fetch_live_protection("sgajbi/lotus-gateway", "main")
+
+    message = str(refusal.value)
+    assert "exit 1" in message
+    assert "not authenticated" not in message
+    assert "nothing was compared" in message
+
+
+def test_a_successful_call_returning_malformed_json_refuses(monkeypatch) -> None:
+    """Exit zero is not the same as an answer. Letting a JSONDecodeError escape
+    here would be the same unhandled-traceback failure one layer down."""
+
+    _patch_gh(monkeypatch, _FakeCompleted(0, stdout="not json at all"))
+
+    with pytest.raises(LiveProtectionUnavailable):
+        fetch_live_protection("sgajbi/lotus-gateway", "main")
+
+
+@pytest.mark.parametrize("payload", ["[]", "null", '"main"', "42"])
+def test_valid_json_that_is_not_an_object_refuses(monkeypatch, payload: str) -> None:
+    """Parsing cleanly is not the same as being an answer.
+
+    `[]` survives `json.loads`, then fails on the first `.get()` inside the
+    comparison -- surfacing as exit 1, which under this change means "protection
+    drifted". Reporting drift for a comparison that never ran is precisely the
+    confusion the exit-code split exists to prevent, so it must refuse here.
+
+    Parametrized over the JSON types that are not objects: a single `[]` case
+    would be satisfied by a check that special-cases lists.
+    """
+
+    _patch_gh(monkeypatch, _FakeCompleted(0, stdout=payload))
+
+    with pytest.raises(LiveProtectionUnavailable) as refusal:
+        fetch_live_protection("sgajbi/lotus-gateway", "main")
+
+    assert "not an object" in str(refusal.value)
+
+
+def test_a_valid_response_is_returned_unchanged(monkeypatch) -> None:
+    """The accepting half. Without this the refusals above are satisfied by a
+    function that refuses everything."""
+
+    policy = load_policy()
+    live = _live_matching_policy(policy)
+    _patch_gh(monkeypatch, _FakeCompleted(0, stdout=json.dumps(live)))
+
+    assert fetch_live_protection("sgajbi/lotus-gateway", "main") == live
+
+
+def _drive_main(monkeypatch: Any, fetch: Any) -> int:
+    """Run `main()` with only the live fetch standing in.
+
+    Repository detection is pinned to the declared repository as well. `main()`
+    calls `detect_repository()` before it ever reaches the fetch, and in a
+    checkout without an `origin` remote that appends an identity issue and
+    returns 1 -- so the drift case would have passed for a reason unrelated to
+    drift, and the other two would have failed for a reason unrelated to their
+    subject. Whether these tests pass must not depend on the remotes of the
+    checkout running them.
+    """
+
+    monkeypatch.setattr(sys, "argv", ["check_branch_protection_policy.py"])
+    monkeypatch.setattr(
+        "scripts.check_branch_protection_policy.detect_repository",
+        lambda _root: load_policy()["repository"],
+    )
+    monkeypatch.setattr("scripts.check_branch_protection_policy.fetch_live_protection", fetch)
+    return protection_main()
+
+
+def test_main_reports_an_unreadable_posture_separately_from_drift(monkeypatch) -> None:
+    """The exit codes an operator reads. Both fail closed; they mean opposite
+    things about whether anyone has looked at `main`."""
+
+    assert _drive_main(monkeypatch, _raise_unavailable) == EXIT_LIVE_PROTECTION_UNAVAILABLE
+    assert EXIT_LIVE_PROTECTION_UNAVAILABLE != 1
+
+
+def test_main_returns_one_when_the_comparison_actually_finds_drift(monkeypatch) -> None:
+    weakened = _live_matching_policy(load_policy())
+    weakened["enforce_admins"] = {"enabled": False}
+
+    assert _drive_main(monkeypatch, lambda _repository, _branch: weakened) == 1
+
+
+def test_main_passes_when_live_protection_matches(monkeypatch) -> None:
+    live = _live_matching_policy(load_policy())
+
+    assert _drive_main(monkeypatch, lambda _repository, _branch: live) == 0
+
+
+def test_the_main_path_tests_are_not_passing_on_a_detection_failure(monkeypatch) -> None:
+    """Falsifies the three above.
+
+    Without the detection stand-in, `main()` returns 1 from an identity issue in
+    a checkout with no matching `origin`, which is indistinguishable from drift.
+    This asserts the stand-in is what makes the matching case reach 0.
+    """
+
+    live = _live_matching_policy(load_policy())
+    monkeypatch.setattr(sys, "argv", ["check_branch_protection_policy.py"])
+    monkeypatch.setattr(
+        "scripts.check_branch_protection_policy.detect_repository", lambda _root: None
+    )
+    monkeypatch.setattr(
+        "scripts.check_branch_protection_policy.fetch_live_protection",
+        lambda _repository, _branch: live,
+    )
+
+    assert protection_main() == 1
+
+
+def _raise_unavailable(_repository: str, _branch: str) -> dict[str, Any]:
+    raise LiveProtectionUnavailable("live protection was never read")
