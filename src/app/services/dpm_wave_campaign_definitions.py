@@ -20,12 +20,14 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.put_campaign_definition(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -74,6 +76,7 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_id: str,
         campaign_version: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         (
             upstream_status,
@@ -82,6 +85,7 @@ class DpmWaveCampaignDefinitionMixin:
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -95,6 +99,7 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         (
             upstream_status,
@@ -104,6 +109,7 @@ class DpmWaveCampaignDefinitionMixin:
             campaign_version=campaign_version,
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -117,6 +123,7 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         (
             upstream_status,
@@ -126,6 +133,7 @@ class DpmWaveCampaignDefinitionMixin:
             campaign_version=campaign_version,
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -139,6 +147,7 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         (
             upstream_status,
@@ -148,6 +157,7 @@ class DpmWaveCampaignDefinitionMixin:
             campaign_version=campaign_version,
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -161,12 +171,14 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.launch_campaign_definition(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -176,12 +188,14 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.retire_campaign_definition(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,
@@ -195,12 +209,14 @@ class DpmWaveCampaignDefinitionMixin:
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.supersede_campaign_definition(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_campaign_definition_response(
             upstream_status,

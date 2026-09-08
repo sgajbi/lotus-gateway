@@ -147,11 +147,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.approve_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -160,11 +162,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.stage_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -173,11 +177,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.handoff_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -186,11 +192,13 @@ class DpmWaveService(
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmWaveGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.cancel_wave(
             wave_id=wave_id,
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 

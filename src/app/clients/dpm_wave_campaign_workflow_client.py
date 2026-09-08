@@ -8,11 +8,13 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path="/api/v1/rebalance/waves/campaign-operating-queue",
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_operating_queue",
         )
 
@@ -20,11 +22,13 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path="/api/v1/rebalance/waves/campaign-approval-inbox",
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_approval_inbox",
         )
 
@@ -32,11 +36,13 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path="/api/v1/rebalance/waves/campaign-workflow-board",
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_workflow_board",
         )
 
@@ -44,11 +50,13 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path="/api/v1/rebalance/waves/campaign-assignment-plan",
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_plan",
         )
 
@@ -56,11 +64,13 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path="/api/v1/rebalance/waves/campaign-workflow-automation",
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_workflow_automation",
         )
 
@@ -70,6 +80,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path=self._campaign_definition_workflow_path(
@@ -77,6 +88,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_approval_decisions.list",
         )
 
@@ -86,6 +98,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_campaign_workflow_write(
             path=self._campaign_definition_workflow_path(
@@ -93,6 +106,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_approval_decisions.create",
         )
 
@@ -102,6 +116,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path=self._campaign_definition_workflow_path(
@@ -109,6 +124,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_actions.list",
         )
 
@@ -118,6 +134,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_campaign_workflow_write(
             path=self._campaign_definition_workflow_path(
@@ -125,6 +142,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_actions.create",
         )
 
@@ -134,6 +152,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path=self._campaign_definition_workflow_path(
@@ -141,6 +160,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_tasks.list",
         )
 
@@ -150,6 +170,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_campaign_workflow_write(
             path=self._campaign_definition_workflow_path(
@@ -157,6 +178,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_tasks.create",
         )
 
@@ -167,6 +189,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         task_ref: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_campaign_workflow_write(
             path=(
@@ -177,6 +200,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_assignment_tasks.transitions.create",
         )
 
@@ -186,6 +210,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_campaign_workflow_read(
             path=self._campaign_definition_workflow_path(
@@ -193,6 +218,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             params=params,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_maker_checker_controls.list",
         )
 
@@ -202,6 +228,7 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
         campaign_version: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post_campaign_workflow_write(
             path=self._campaign_definition_workflow_path(
@@ -209,5 +236,6 @@ class DpmWaveCampaignWorkflowClientMixin(DpmWaveClientBaseMixin):
             ),
             body=body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
             operation="manage.rebalance.waves.campaign_maker_checker_controls.create",
         )

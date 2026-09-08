@@ -158,11 +158,12 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/approve",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.approve",
         )
 
@@ -171,11 +172,12 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/stage",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.stage",
         )
 
@@ -184,11 +186,12 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/handoff",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.handoff",
         )
 
@@ -197,11 +200,12 @@ class DpmWaveCoreClientMixin(DpmWaveClientBaseMixin):
         wave_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/api/v1/rebalance/waves/{wave_id}/cancel",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.rebalance.waves.cancel",
         )
 

@@ -2256,6 +2256,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/lifecycle-events",
@@ -2267,6 +2268,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/preview-readiness",
@@ -2278,6 +2280,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25, "offset": 0},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/launch-history",
@@ -2293,6 +2296,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-launch",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/launch-package",
@@ -2308,6 +2312,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-launch",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/launch",
@@ -2323,6 +2328,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-retire",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/retire",
@@ -2339,6 +2345,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-supersede",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/supersede",
@@ -2354,27 +2361,47 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "get_campaign_operating_queue",
-            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            {
+                "params": {"campaign_id": "campaign-holdings-202605", "tenant_id": "tenant-sg"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/campaign-operating-queue",
         ),
         (
             "get_campaign_approval_inbox",
-            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            {
+                "params": {"campaign_id": "campaign-holdings-202605", "tenant_id": "tenant-sg"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/campaign-approval-inbox",
         ),
         (
             "get_campaign_workflow_board",
-            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            {
+                "params": {"campaign_id": "campaign-holdings-202605", "tenant_id": "tenant-sg"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/campaign-workflow-board",
         ),
         (
             "get_campaign_assignment_plan",
-            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            {
+                "params": {"campaign_id": "campaign-holdings-202605", "tenant_id": "tenant-sg"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/campaign-assignment-plan",
         ),
         (
             "get_campaign_workflow_automation",
-            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            {
+                "params": {"campaign_id": "campaign-holdings-202605", "tenant_id": "tenant-sg"},
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/waves/campaign-workflow-automation",
         ),
         (
@@ -2384,6 +2411,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/approval-decisions",
@@ -2395,6 +2423,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "body": {"decision": "ACKNOWLEDGED"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/approval-decisions",
@@ -2406,6 +2435,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/assignment-actions",
@@ -2417,6 +2447,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "body": {"action_type": "ASSIGN"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/assignment-actions",
@@ -2428,6 +2459,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/assignment-tasks",
@@ -2448,6 +2480,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-task",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/assignment-tasks",
@@ -2466,6 +2499,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                     "correlation_id": "corr-transition",
                 },
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/assignment-tasks/"
@@ -2478,6 +2512,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/maker-checker-controls",
@@ -2489,6 +2524,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "campaign_version": "2026.05",
                 "body": {"control_type": "MAKER_CHECKER_REVIEW"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
             "campaign-holdings-202605/versions/2026.05/maker-checker-controls",
@@ -2734,6 +2770,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "reason_code": "APPROVED"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2742,6 +2779,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "ops_sg_1", "reason_code": "STAGED"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2750,6 +2788,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "ops_sg_1", "reason_code": "HANDOFF_READY"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2758,6 +2797,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "reason_code": "CANCELLED"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2789,6 +2829,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "params": {"campaign_id": "campaign-holdings-202605"},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2807,6 +2848,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                     "correlation_id": "corr-task",
                 },
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2823,6 +2865,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                     "correlation_id": "corr-transition",
                 },
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2832,6 +2875,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "campaign_version": "2026.05",
                 "params": {"limit": 25},
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -3085,6 +3129,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "reason_code": "APPROVED"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/approve",
         ),
@@ -3094,6 +3139,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "ops_sg_1", "reason_code": "STAGED"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/stage",
         ),
@@ -3103,6 +3149,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "ops_sg_1", "reason_code": "HANDOFF_READY"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/handoff",
         ),
@@ -3112,6 +3159,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "wave_id": "dwv_001",
                 "body": {"actor_id": "pm_sg_1", "reason_code": "CANCELLED"},
                 "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/cancel",
         ),
@@ -3216,6 +3264,7 @@ async def test_dpm_client_put_campaign_definition_uses_manage_contract():
         campaign_version="2026.05",
         body={"status": "ACTIVE"},
         correlation_id="corr-5",
+        tenant_id="tenant-sg",
     )
 
     assert status_code == 200

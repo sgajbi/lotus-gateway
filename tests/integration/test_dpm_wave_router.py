@@ -224,7 +224,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     captured: dict[str, object] = {}
 
     async def _fake_put_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         _ = self
         captured["put"] = {
@@ -281,7 +281,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition_lifecycle_events(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, correlation_id, tenant_id
     ):
         _ = self
         captured["lifecycle_events"] = {
@@ -306,7 +306,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition_preview_readiness(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         _ = self
         captured["preview_readiness"] = {
@@ -341,7 +341,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition_launch_history(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         _ = self
         captured["launch_history"] = {
@@ -378,7 +378,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition_launch_package(  # noqa: ANN001
-        self, campaign_id, campaign_version, params, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id, tenant_id
     ):
         _ = self
         captured["launch_package"] = {
@@ -400,7 +400,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_launch_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         _ = self
         captured["launch"] = {
@@ -421,7 +421,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_retire_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         _ = self
         captured["retire"] = {
@@ -449,7 +449,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_supersede_campaign_definition(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         _ = self
         captured["supersede"] = {
@@ -818,7 +818,7 @@ def test_campaign_reads_fail_closed_without_governed_caller_context(path: str) -
 def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_campaign_operating_queue(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_get_campaign_operating_queue(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["operating_queue"] = {"params": params, "correlation_id": correlation_id}
         return 200, {
@@ -840,7 +840,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
             ],
         }
 
-    async def _fake_get_campaign_workflow_automation(self, params, correlation_id):  # noqa: ANN001
+    async def _fake_get_campaign_workflow_automation(self, params, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["workflow_automation"] = {"params": params, "correlation_id": correlation_id}
         return 200, {
@@ -851,7 +851,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
         }
 
     async def _fake_create_campaign_assignment_task(  # noqa: ANN001
-        self, campaign_id, campaign_version, body, correlation_id
+        self, campaign_id, campaign_version, body, correlation_id, tenant_id
     ):
         _ = self
         captured["assignment_task"] = {
@@ -872,7 +872,7 @@ def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) ->
         }
 
     async def _fake_transition_campaign_assignment_task(  # noqa: ANN001
-        self, campaign_id, campaign_version, task_ref, body, correlation_id
+        self, campaign_id, campaign_version, task_ref, body, correlation_id, tenant_id
     ):
         _ = self
         captured["assignment_task_transition"] = {
