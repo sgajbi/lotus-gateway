@@ -36,6 +36,14 @@ from typing import Any
 
 POLICY_PATH = Path(__file__).resolve().parents[1] / "quality" / "branch_protection_policy.v1.json"
 
+# gh reports "not authenticated" as exit 4. Named so the caller can tell a
+# missing credential from a real refusal without parsing gh's wording.
+_GH_NOT_AUTHENTICATED = 4
+
+# Distinct from 1 (drift found). A caller reading only "non-zero" still fails
+# closed; one that wants to route the two conditions differently now can.
+EXIT_LIVE_PROTECTION_UNAVAILABLE = 4
+
 _REQUIRED_EXCEPTION_KEYS = {"field", "value", "reason", "compensating_controls", "retires_when"}
 
 # Every field the live comparison reads. Without these lists an edit could drop
@@ -604,15 +612,56 @@ def validate_policy_document(policy: dict[str, Any]) -> list[str]:
     return issues
 
 
+class LiveProtectionUnavailable(RuntimeError):
+    """Live protection could not be read, so nothing was compared.
+
+    Distinct from drift on purpose. "Protection disagrees with policy" and "we
+    never saw protection" are both failures, but only the first says anything
+    about the repository's posture; reporting them as one leaves a workflow red
+    for a missing credential and hides the day the posture actually changes.
+    """
+
+
 def fetch_live_protection(repository: str, branch: str) -> dict[str, Any]:
     result = subprocess.run(
         ["gh", "api", f"repos/{repository}/branches/{branch}/protection"],
         capture_output=True,
         text=True,
-        check=True,
     )
-    payload: dict[str, Any] = json.loads(result.stdout)
-    return payload
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        reason = detail[0] if detail else "no diagnostic returned"
+        if result.returncode == _GH_NOT_AUTHENTICATED:
+            raise LiveProtectionUnavailable(
+                f"gh is not authenticated for {repository} (exit "
+                f"{_GH_NOT_AUTHENTICATED}), so live branch protection was never "
+                "read. The protection endpoint requires administration:read, "
+                "which github.token cannot carry; this needs an ops-issued token "
+                f"to be provisioned. Reported by gh as: {reason}"
+            )
+        raise LiveProtectionUnavailable(
+            f"gh could not read branch protection for {repository} (exit "
+            f"{result.returncode}), so nothing was compared: {reason}"
+        )
+    try:
+        payload: Any = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise LiveProtectionUnavailable(
+            f"branch protection for {repository} was not valid JSON, so nothing "
+            f"was compared: {error}"
+        ) from error
+    if not isinstance(payload, dict):
+        # Valid JSON that is not a mapping -- `[]`, `null`, a bare string --
+        # parses cleanly and then fails on the first `.get()` downstream, which
+        # surfaces as exit 1. That would report "protection drifted" for a
+        # comparison that never happened, which is the one confusion this
+        # exit-code split exists to prevent.
+        raise LiveProtectionUnavailable(
+            f"branch protection for {repository} came back as "
+            f"{type(payload).__name__}, not an object, so nothing was compared"
+        )
+    live: dict[str, Any] = payload
+    return live
 
 
 def resolve_effective_codeowners(repo_root: Path) -> Path | None:
@@ -823,7 +872,17 @@ def main() -> int:
             "repository would validate the wrong repository and pass"
         )
     if not args.offline and not issues:
-        live = fetch_live_protection(policy["repository"], policy["protected_branch"])
+        try:
+            live = fetch_live_protection(policy["repository"], policy["protected_branch"])
+        except LiveProtectionUnavailable as unavailable:
+            print("Branch-protection policy gate could not compare live configuration:")
+            print(f"  - {unavailable}")
+            print(
+                "  Failing closed: an unread posture is not a verified one. This is "
+                "reported separately from drift so a missing credential cannot be "
+                "mistaken for a clean comparison, or hide one that is not clean."
+            )
+            return EXIT_LIVE_PROTECTION_UNAVAILABLE
         issues.extend(compare_live_to_policy(policy, live))
 
     if issues:

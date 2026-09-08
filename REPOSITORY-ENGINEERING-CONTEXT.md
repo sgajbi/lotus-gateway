@@ -578,14 +578,20 @@ Important validation expectations:
    needs no credentials and therefore blocks every pull request: it refuses a policy missing
    any field the live comparison reads, a non-list context set, a wrong value type, or a
    zero-approval count whose documented exception has been deleted. The **live field-by-field
-   comparison runs daily in Main Gate Coverage Audit**, invoked bare so a missing credential
-   stops the run rather than passing it, and independent of the audit step before it so a
-   coverage failure cannot skip it. It authenticates with a PAT carrying `administration: read`
-   because the workflow token cannot read branch protection; that secret is not provisioned in
-   any Lotus repository, so the step fails closed daily and no live comparison has yet
-   succeeded in CI. **An offline shape check certifies nothing about live protection** — the
-   document being well-formed is not evidence that `main` matches it. Restoring a blocking
-   live comparison is tracked in issue #738 and needs an operator to provision the credential,
+   comparison runs daily in Main Gate Coverage Audit as its own job**, `Audit / Live Branch
+   Protection Matches Policy`, invoked bare so a missing credential stops it rather than
+   passing it. It is a separate job rather than a second step so the two report independently:
+   as one job the workflow was red every day for the missing credential, and a coverage
+   regression landing in an already-red workflow would have been invisible at workflow level.
+   It authenticates with a PAT carrying `administration: read` because the workflow token
+   cannot read branch protection; that secret is not provisioned in any Lotus repository, so
+   the job fails closed daily and no live comparison has yet succeeded in CI. That refusal is
+   **exit 4 with a named message** — "live protection was never read" — kept distinct from
+   exit 1, which means the comparison ran and found drift. Both fail closed; only one says
+   anything about the repository's posture. **An offline shape check certifies nothing about
+   live protection** — the document being well-formed is not evidence that `main` matches it.
+   Restoring a blocking live comparison is tracked in issue #738 and needs an operator to
+   provision the credential,
 13. Docker parity matters because the gateway is a live integration boundary,
 14. Gateway Docker images are tagged with the Git SHA, stamped with non-secret build-time OCI
    labels, scanned with Trivy before any main-lane push, inventoried with an SBOM, and recorded in a
@@ -650,6 +656,22 @@ step in this repository needs them:
 revision. That is load-bearing: `scripts/audit_main_gate_coverage.py` matches with
 `gh run list --commit <sha>`, so dispatching against `main` would leave every ancestor reading
 UNGATED however correctly the job checked out the revision.
+
+The audit reports three questions separately, because they need opposite responses and reporting
+only the first is how eight commits sat red on `main` while it passed (#774). **Coverage** — a
+commit with no verdict-bearing run — is a dispatch failure and the only thing `--fail-on-gap` acts
+on. **Current outcome** is what each commit's newest verdict says. **History** is whether a commit
+ever failed, even if a re-run later went green. Failing commits are reported, never failed on:
+failing on them would make the eight already on `main` a permanent red no dispatch can clear, and
+the answer to that is not to rewrite history.
+
+The unit is the **attempt**, not the run. `gh run rerun` adds an attempt to an existing run rather
+than creating a second one, and the listing reports only the newest attempt's conclusion — so a
+gate that failed and was re-run green would otherwise read as having never failed. Superseded
+attempts are fetched and counted, and ordering uses each attempt's own start time so a re-run of an
+older run sorts after a newer run. `timed_out` and `startup_failure` are terminal failures, not
+absent verdicts. A listing saturated at the fetch limit, or a superseded attempt that cannot be
+read, is unverifiable and fails closed: a history that cannot be seen in full cannot be reported on.
 
 The tag write is refused when the tagged commit's workflow tree differs from the default branch
 tip's. Land workflow-touching pull requests here as a single commit, or edit workflow files in the
