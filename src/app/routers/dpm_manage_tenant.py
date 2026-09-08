@@ -8,9 +8,19 @@ tenant to those routes and never substitutes one of its own — the rule Gateway
 module constant, so every write executed under one tenant's identity whoever
 called it.
 
-Declared as one annotated type rather than repeated per route because 23 call
-sites forward it, and a route that spells the constraint slightly differently is
+Declared as one annotated type rather than repeated per route because dozens of
+routes forward it, and a route that spells the constraint slightly differently is
 a route with a different contract.
+
+No count is written here on purpose. This docstring said "23 call sites" while
+the measured number was 54, which is the fourth stale enumeration found in this
+family: #763 named 23 call sites, #770 found four more a commit later, #771
+found twenty-two campaign operations whose requirement never reaches the served
+OpenAPI. A number in prose is true of the revision it was taken from and of
+nothing else. Where a count is load-bearing it is derived and asserted —
+`test_manage_tenant_forwarding_population.py` walks the client classes, and
+`test_campaign_tenant_documentation.py` derives the campaign figure the
+documentation states.
 
 **`pattern=r"\\S"`, not `min_length=1` alone.** Whitespace is a character, so a
 length check admits `X-Tenant-Id: %20`. lotus-manage refuses that value — but it

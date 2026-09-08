@@ -399,8 +399,9 @@ consumer migration remain tracked by parent issue #569.
   task-transition, and maker-checker write has a distinct closed request schema. Gateway rejects
   obsolete fields and unsupported bounded values before calling Manage; Manage remains the sole
   authority for command eligibility, lifecycle rules, and resulting source evidence.
-  Campaign-definition list/get and campaign-discovery reads require `X-Tenant-Id`; requests
-  without trusted tenant scope fail closed with `422`.
+  All 25 campaign operations require `X-Tenant-Id` — definition, workflow and discovery, reads
+  and writes alike, not only list/get and discovery. Requests without trusted tenant scope fail
+  closed with `422`.
   For bounded Core-owned campaign candidate discovery, Gateway preserves
   `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE`,
   `model_portfolio_ids`, `include_inactive_mandates`, and `campaign_candidate_page_size` for
