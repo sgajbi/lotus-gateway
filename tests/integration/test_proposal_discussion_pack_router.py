@@ -68,15 +68,14 @@ def test_discussion_pack_route_binds_selected_identity_and_returns_closed_eviden
         _get_delivery,
     )
 
-    with TestClient(app) as client:
-        response = client.get(
-            "/api/v1/proposals/pp_discussion_001/discussion-pack-review",
-            params={
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "version_no": 2,
-            },
-            headers={"X-Correlation-Id": "corr-discussion-router"},
-        )
+    response = TestClient(app).get(
+        "/api/v1/proposals/pp_discussion_001/discussion-pack-review",
+        params={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "version_no": 2,
+        },
+        headers={"X-Correlation-Id": "corr-discussion-router"},
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -96,10 +95,9 @@ def test_discussion_pack_route_binds_selected_identity_and_returns_closed_eviden
 
 
 def test_discussion_pack_route_requires_portfolio_and_version_identity() -> None:
-    with TestClient(app) as client:
-        response = client.get(
-            "/api/v1/proposals/pp_discussion_001/discussion-pack-review",
-        )
+    response = TestClient(app).get(
+        "/api/v1/proposals/pp_discussion_001/discussion-pack-review",
+    )
 
     assert response.status_code == 422
     missing = {tuple(item["loc"]) for item in response.json()["detail"]}

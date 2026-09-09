@@ -87,12 +87,14 @@ class DpmCommandCenterClient(DpmPmOperatingQualityClient, Protocol):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_monitoring_run(
         self,
         monitoring_run_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def list_monitoring_exceptions(

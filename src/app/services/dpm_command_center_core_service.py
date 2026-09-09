@@ -44,10 +44,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         filters: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.list_monitoring_runs(
             params=filters,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -59,10 +61,12 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         monitoring_run_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_monitoring_run(
             monitoring_run_id=monitoring_run_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
