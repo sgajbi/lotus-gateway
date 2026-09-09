@@ -2122,7 +2122,11 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "get_proof_pack",
-            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            {
+                "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-5",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001",
         ),
         (
@@ -2915,6 +2919,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "proof_pack_id": "dpp_rr_001",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -2922,6 +2927,7 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {
                 "proof_pack_id": "dpp_rr_001",
                 "correlation_id": "corr-rfc36-canonical",
+                "tenant_id": "tenant-sg",
             },
         ),
         (
@@ -3335,6 +3341,7 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
     status_code, markdown, error_payload = await client.get_proof_pack_markdown(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-proof-pack-md-client-1",
+        tenant_id="tenant-sg",
     )
 
     assert status_code == 200
@@ -3348,6 +3355,7 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == (
         "corr-proof-pack-md-client-1"
     )
+    assert _FakeAsyncClient.calls[0]["params"] == {"tenant_id": "tenant-sg"}
     assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "pm_sg_001"
     assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
     assert _FakeAsyncClient.calls[0]["headers"]["X-Role"] == "PORTFOLIO_MANAGER"

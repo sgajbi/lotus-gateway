@@ -54,10 +54,12 @@ class DpmProofPackService:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackGatewayResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_proof_pack(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
@@ -65,6 +67,7 @@ class DpmProofPackService:
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmProofPackMarkdownResponse:
         (
             upstream_status,
@@ -73,6 +76,7 @@ class DpmProofPackService:
         ) = await self._dpm_client.get_proof_pack_markdown(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         if upstream_status >= status.HTTP_400_BAD_REQUEST:
             _raise_manage_upstream_error(upstream_status, error_payload)

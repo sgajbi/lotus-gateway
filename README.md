@@ -57,7 +57,7 @@ Supported business journeys:
 - proposal lifecycle: policy evaluation, reviewed narrative, delivery posture
 - advisor book and advisor cockpit
 - bank-demo proof APIs
-- DPM command center: construction, waves and campaigns, proof packs, outcome reviews,
+- DPM command center: construction, waves and campaigns, tenant-fenced proof packs, outcome reviews,
   portfolio memory, PM operating quality
 - report ordering options at `/api/v1/report-ordering/options` — eligibility only, never
   membership proof

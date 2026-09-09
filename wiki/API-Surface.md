@@ -291,7 +291,9 @@ consumer migration remain tracked by parent issue #569.
   `/api/v1/dpm/command-center/proof-packs*`. Gateway exposes generate, get, Markdown,
   report-input, AI-evidence-input, and AI PM memo routes for Workbench, preserving manage
   `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
-  report refs, and AI refs. The AI PM memo action reads manage-owned
+  report refs, and AI refs. Every Manage proof-pack call receives the admitted
+  `DpmManageTenantId`; Gateway does not accept a body-selected tenant or omit the owner query on
+  detail and Markdown reads. The AI PM memo action reads manage-owned
   `DpmProofPackAiEvidenceInput` and calls `lotus-ai` `dpm_pm_memo.pack@v1` as `lotus-gateway`.
   Gateway must not build proof-pack sections, recalculate hashes, infer source readiness, render
   reports, generate AI narrative or PM memos locally, score PMs, approve trades, contact clients,

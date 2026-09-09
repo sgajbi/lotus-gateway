@@ -85,6 +85,12 @@ def test_dpm_proof_pack_openapi_contract_registered() -> None:
         assert "When:" in operation["description"]
         assert "How:" in operation["description"]
 
+        tenant_header = next(
+            parameter for parameter in operation["parameters"] if parameter["name"] == "X-Tenant-Id"
+        )
+        assert tenant_header["in"] == "header"
+        assert tenant_header["required"] is True
+
 
 def test_dpm_proof_pack_openapi_models_are_described() -> None:
     client = TestClient(app)

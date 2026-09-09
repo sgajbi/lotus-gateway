@@ -12,6 +12,7 @@ class DpmProofPackClientMixin(DpmClientCallSurfaceMixin):
         path: str,
         headers: dict[str, str],
         operation: str,
+        params: dict[str, Any] | None = None,
     ) -> tuple[int, str, dict[str, Any]]:
         raise NotImplementedError
 
@@ -34,10 +35,11 @@ class DpmProofPackClientMixin(DpmClientCallSurfaceMixin):
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/rebalance/proof-packs/{proof_pack_id}",
-            params={},
+            params={"tenant_id": tenant_id},
             headers=self._headers(correlation_id),
             operation="manage.rebalance.proof_packs.get",
         )
@@ -46,11 +48,13 @@ class DpmProofPackClientMixin(DpmClientCallSurfaceMixin):
         self,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, str, dict[str, Any]]:
         return await self._get_binary_text(
             f"/api/v1/rebalance/proof-packs/{proof_pack_id}/summary.md",
             headers=self._headers(correlation_id),
             operation="manage.rebalance.proof_packs.markdown",
+            params={"tenant_id": tenant_id},
         )
 
     async def get_proof_pack_report_input(

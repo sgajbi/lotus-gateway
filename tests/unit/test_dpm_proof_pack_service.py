@@ -24,22 +24,26 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def get_proof_pack(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def get_proof_pack(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
             {
                 "method": "proof_pack_get",
                 "proof_pack_id": proof_pack_id,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
 
-    async def get_proof_pack_markdown(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def get_proof_pack_markdown(  # noqa: ANN001
+        self, proof_pack_id, correlation_id, tenant_id
+    ):
         self.calls.append(
             {
                 "method": "proof_pack_markdown",
                 "proof_pack_id": proof_pack_id,
                 "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
             }
         )
         return self.result
@@ -126,6 +130,7 @@ async def test_dpm_proof_pack_lookup_does_not_reconstruct_sections_or_hashes() -
     response = await service.get_proof_pack(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-proof-pack-get-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.data == manage_payload
@@ -141,6 +146,7 @@ async def test_dpm_proof_pack_lookup_does_not_reconstruct_sections_or_hashes() -
             "method": "proof_pack_get",
             "proof_pack_id": "dpp_rr_001",
             "correlation_id": "corr-proof-pack-get-1",
+            "tenant_id": "tenant-sg",
         }
     ]
 
@@ -153,6 +159,7 @@ async def test_dpm_proof_pack_markdown_preserves_manage_text() -> None:
     response = await service.get_proof_pack_markdown(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-proof-pack-md-1",
+        tenant_id="tenant-sg",
     )
 
     assert response.source_service == "lotus-manage"
@@ -163,6 +170,7 @@ async def test_dpm_proof_pack_markdown_preserves_manage_text() -> None:
             "method": "proof_pack_markdown",
             "proof_pack_id": "dpp_rr_001",
             "correlation_id": "corr-proof-pack-md-1",
+            "tenant_id": "tenant-sg",
         }
     ]
 
@@ -340,6 +348,7 @@ async def test_dpm_proof_pack_forwards_manage_errors_as_product_safe_detail() ->
         await service.get_proof_pack(
             proof_pack_id="dpp_missing",
             correlation_id="corr-proof-pack-error-1",
+            tenant_id="tenant-sg",
         )
 
     assert exc_info.value.status_code == 503
