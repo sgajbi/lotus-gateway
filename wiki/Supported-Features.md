@@ -989,8 +989,9 @@ Supported routes:
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0040 proof-pack authority.
-2. Gateway forwards generation payloads, idempotency keys, proof-pack ids, and correlation context
-   to manage.
+2. Gateway forwards generation payloads, idempotency keys, proof-pack ids, correlation context,
+   and the admitted `DpmManageTenantId` to every Manage proof-pack operation. Detail, Markdown,
+   report-input, and AI-evidence reads therefore share the same owner fence.
 3. Gateway preserves manage-owned `proof_pack_id`, section states, reason codes, `content_hash`,
    `source_hashes`, source refs, report refs, AI refs, deterministic Markdown, report-input
    payloads, and AI-evidence payloads.

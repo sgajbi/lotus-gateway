@@ -807,7 +807,8 @@ reporting unit from portfolio base currency.
     choose alternatives locally.
 13. RFC-0040 proof-pack Gateway routes are active under
     `/api/v1/dpm/command-center/proof-packs*`. Gateway forwards generation, lookup, Markdown,
-    report-input, AI-evidence-input, and AI PM memo requests, preserves manage-owned
+    report-input, AI-evidence-input, and AI PM memo requests, including admitted tenant authority
+    on every Manage proof-pack operation, and preserves manage-owned
     `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
     report refs, and AI refs, and executes `lotus-ai` `dpm_pm_memo.pack@v1` only after reading
     manage-owned AI evidence input. Gateway must not build proof-pack sections, recalculate hashes,

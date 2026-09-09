@@ -48,10 +48,11 @@ def test_dpm_proof_pack_generate_preserves_manage_truth(monkeypatch) -> None:
 def test_dpm_proof_pack_get_uses_manage_identifier(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_proof_pack(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_proof_pack(self, proof_pack_id, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["proof_pack_id"] = proof_pack_id
         captured["correlation_id"] = correlation_id
+        captured["tenant_id"] = tenant_id
         return 200, _proof_pack_payload()
 
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_proof_pack", _fake_get_proof_pack)
@@ -66,6 +67,7 @@ def test_dpm_proof_pack_get_uses_manage_identifier(monkeypatch) -> None:
     assert captured == {
         "proof_pack_id": "dpp_rr_001",
         "correlation_id": "corr-proof-pack-get-router-1",
+        "tenant_id": "tenant-sg",
     }
     assert response.json()["data"]["proof_pack"]["content_hash"] == "sha256:proof-pack"
 
@@ -73,10 +75,13 @@ def test_dpm_proof_pack_get_uses_manage_identifier(monkeypatch) -> None:
 def test_dpm_proof_pack_markdown_is_returned_in_gateway_envelope(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_get_proof_pack_markdown(self, proof_pack_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_proof_pack_markdown(  # noqa: ANN001
+        self, proof_pack_id, correlation_id, tenant_id
+    ):
         _ = self
         captured["proof_pack_id"] = proof_pack_id
         captured["correlation_id"] = correlation_id
+        captured["tenant_id"] = tenant_id
         return 200, "# DPM proof pack\n", {}
 
     monkeypatch.setattr(
@@ -94,6 +99,7 @@ def test_dpm_proof_pack_markdown_is_returned_in_gateway_envelope(monkeypatch) ->
     assert captured == {
         "proof_pack_id": "dpp_rr_001",
         "correlation_id": "corr-proof-pack-md-router-1",
+        "tenant_id": "tenant-sg",
     }
     assert response.json()["markdown"] == "# DPM proof pack\n"
 

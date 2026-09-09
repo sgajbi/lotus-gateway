@@ -43,6 +43,7 @@ class DpmProofPackClient(Protocol):
         *,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_proof_pack_markdown(
@@ -50,6 +51,7 @@ class DpmProofPackClient(Protocol):
         *,
         proof_pack_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, str, dict[str, Any]]: ...
 
     async def get_proof_pack_report_input(

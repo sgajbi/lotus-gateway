@@ -120,6 +120,7 @@ class DpmClient(
         path: str,
         headers: dict[str, str],
         operation: str,
+        params: dict[str, Any] | None = None,
     ) -> tuple[int, str, dict[str, Any]]:
         (
             status_code,
@@ -135,7 +136,7 @@ class DpmClient(
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            params={},
+            params=params or {},
             headers=forward_dpm_manage_read_headers(headers),
         )
         return status_code, content.decode("utf-8", errors="replace"), error_payload
