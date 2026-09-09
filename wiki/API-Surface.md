@@ -347,6 +347,9 @@ consumer migration remain tracked by parent issue #569.
   Workbench command-center consumers. These routes preserve manage-published health distribution,
   health dimensions, source readiness, supportability, latest monitoring run identity, active
   exceptions, reason codes, recommended actions, mandate source lineage, and version diffs.
+  Monitoring-run creation requires the body tenant to match the admitted `X-Tenant-Id` before
+  Gateway calls Manage; the admitted value becomes request ownership and the existing governed
+  mutation header. This is a consistency boundary over caller-asserted scope, not authentication.
   Gateway must not discover PM-book membership, calculate health scores, reconstruct source
   readiness, merge exceptions across monitoring runs, resolve exceptions locally, or let Workbench
   call `lotus-manage` directly.

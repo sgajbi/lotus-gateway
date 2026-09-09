@@ -23,11 +23,12 @@ class DpmCommandCenterClientMixin(DpmClientCallSurfaceMixin):
         self,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/api/v1/dpm/monitoring/run-once",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, extras={"X-Tenant-Id": tenant_id}),
             operation="manage.dpm.monitoring.run_once",
         )
 

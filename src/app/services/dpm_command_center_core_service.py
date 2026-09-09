@@ -1,5 +1,7 @@
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from app.contracts.dpm_command_center import DpmCommandCenterGatewayResponse
 from app.services.dpm_client_protocols import DpmCommandCenterClient
 from app.services.dpm_command_center_response import compose_command_center_response
@@ -29,10 +31,13 @@ class DpmCommandCenterCoreServiceMixin:
         self,
         body: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> DpmCommandCenterGatewayResponse:
+        admitted_body = _monitoring_run_body_for_tenant(body=body, tenant_id=tenant_id)
         upstream_status, upstream_payload = await self._dpm_client.run_monitoring_once(
-            body=body,
+            body=admitted_body,
             correlation_id=correlation_id,
+            tenant_id=tenant_id,
         )
         return self._compose_command_center_response(
             upstream_status,
@@ -187,3 +192,24 @@ class DpmCommandCenterCoreServiceMixin:
         correlation_id: str,
     ) -> DpmCommandCenterGatewayResponse:
         return compose_command_center_response(upstream_status, upstream_payload, correlation_id)
+
+
+def _monitoring_run_body_for_tenant(*, body: dict[str, Any], tenant_id: str) -> dict[str, Any]:
+    requested_tenant = body.get("tenant_id")
+    if not isinstance(requested_tenant, str) or not requested_tenant.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "dpm_monitoring_tenant_required",
+                "message": "The monitoring request tenant_id is required.",
+            },
+        )
+    if requested_tenant.strip() != tenant_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "dpm_monitoring_tenant_mismatch",
+                "message": "The monitoring request tenant does not match the admitted tenant.",
+            },
+        )
+    return {**body, "tenant_id": tenant_id.strip()}

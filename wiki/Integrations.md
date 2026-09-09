@@ -166,7 +166,9 @@ authority remains with the named downstream execution provider as the execution 
 13. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for
-    Workbench. Gateway forwards filters and request bodies to manage, then preserves health
+    Workbench. Gateway forwards filters and request bodies to manage, with monitoring-run
+    creation first binding body ownership to the admitted `X-Tenant-Id` and refusing drift before
+    upstream work. That header is caller-asserted scope, not authentication. Gateway then preserves health
     distribution, monitoring-run state, active exceptions, reason codes, recommended actions,
     mandate source lineage, version diffs, and supportability without calculating health,
     discovering PM books, inferring source readiness, or resolving exceptions locally.

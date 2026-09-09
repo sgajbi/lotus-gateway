@@ -50,9 +50,14 @@ class _FakeDpmClient:
         )
         return self.result
 
-    async def run_monitoring_once(self, body, correlation_id):  # noqa: ANN001
+    async def run_monitoring_once(self, body, correlation_id, tenant_id):  # noqa: ANN001
         self.calls.append(
-            {"method": "run_monitoring_once", "body": body, "correlation_id": correlation_id}
+            {
+                "method": "run_monitoring_once",
+                "body": body,
+                "correlation_id": correlation_id,
+                "tenant_id": tenant_id,
+            }
         )
         return self.result
 
@@ -413,9 +418,10 @@ async def test_dpm_command_center_monitoring_run_forwards_body_without_book_disc
         body={
             "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
             "as_of_date": "2026-05-03",
-            "tenant_id": "default",
+            "tenant_id": " tenant-sg ",
         },
         correlation_id="corr-command-center-run",
+        tenant_id="tenant-sg",
     )
 
     assert response.supportability.state == "UNKNOWN"
@@ -426,11 +432,52 @@ async def test_dpm_command_center_monitoring_run_forwards_body_without_book_disc
             "body": {
                 "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
                 "as_of_date": "2026-05-03",
-                "tenant_id": "default",
+                "tenant_id": "tenant-sg",
             },
             "correlation_id": "corr-command-center-run",
+            "tenant_id": "tenant-sg",
         }
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("body", "status_code", "code"),
+    [
+        ({"as_of_date": "2026-05-03"}, 422, "dpm_monitoring_tenant_required"),
+        (
+            {"as_of_date": "2026-05-03", "tenant_id": "   "},
+            422,
+            "dpm_monitoring_tenant_required",
+        ),
+        (
+            {"as_of_date": "2026-05-03", "tenant_id": 42},
+            422,
+            "dpm_monitoring_tenant_required",
+        ),
+        (
+            {"as_of_date": "2026-05-03", "tenant_id": "tenant-other"},
+            409,
+            "dpm_monitoring_tenant_mismatch",
+        ),
+    ],
+)
+async def test_dpm_command_center_monitoring_run_refuses_unadmitted_body_tenant(
+    body: dict[str, Any], status_code: int, code: str
+) -> None:
+    client = _FakeDpmClient((200, {}))
+    service = DpmCommandCenterService(dpm_client=client)
+
+    with pytest.raises(HTTPException) as captured:
+        await service.run_monitoring_once(
+            body=body,
+            correlation_id="corr-command-center-run",
+            tenant_id="tenant-sg",
+        )
+
+    assert captured.value.status_code == status_code
+    assert captured.value.detail["code"] == code
+    assert client.calls == []
 
 
 @pytest.mark.asyncio

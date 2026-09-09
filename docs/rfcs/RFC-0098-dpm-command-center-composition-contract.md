@@ -1219,6 +1219,9 @@ Implementation boundaries:
 2. Mandate command-center routes preserve manage-owned health distribution, health dimensions,
    source readiness, supportability, latest monitoring run identity, monitoring-run state,
    active exceptions, reason codes, recommended actions, mandate source lineage, and version diffs.
+   Monitoring-run creation rejects a missing or mismatched body tenant before upstream work and
+   materializes ownership from the admitted `X-Tenant-Id`; that header remains caller-asserted
+   scope rather than authenticated tenant authority.
 3. Gateway does not discover PM-book membership, calculate mandate health, reconstruct health
    dimensions, infer source readiness, merge exceptions across monitoring runs, or resolve
    exceptions locally.

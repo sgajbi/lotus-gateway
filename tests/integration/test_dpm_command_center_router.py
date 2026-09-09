@@ -59,13 +59,14 @@ def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(mo
     assert payload["data"]["health_distribution"] == {"READY": 3, "PENDING_REVIEW": 1}
 
 
-def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> None:
+def test_dpm_command_center_monitoring_run_action_forwards_admitted_tenant(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
-    async def _fake_run_monitoring_once(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_run_monitoring_once(self, body, correlation_id, tenant_id):  # noqa: ANN001
         _ = self
         captured["body"] = body
         captured["correlation_id"] = correlation_id
+        captured["tenant_id"] = tenant_id
         return 200, {
             "monitoring_run_id": "dmr_1",
             "status": "SUCCEEDED",
@@ -84,7 +85,7 @@ def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> 
             "body": {
                 "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
                 "as_of_date": "2026-05-03",
-                "tenant_id": "default",
+                "tenant_id": "tenant-sg",
                 "portfolio_manager_id": "PM_SG_DPM_001",
             }
         },
@@ -96,12 +97,69 @@ def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> 
         "body": {
             "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
             "as_of_date": "2026-05-03",
-            "tenant_id": "default",
+            "tenant_id": "tenant-sg",
             "portfolio_manager_id": "PM_SG_DPM_001",
         },
         "correlation_id": "corr-command-router-run",
+        "tenant_id": "tenant-sg",
     }
     assert response.json()["data"]["monitoring_run_id"] == "dmr_1"
+
+
+def test_dpm_command_center_monitoring_run_refuses_tenant_mismatch_before_upstream(
+    monkeypatch,
+) -> None:
+    async def _unexpected_run_monitoring_once(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("tenant mismatch reached lotus-manage")
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.run_monitoring_once",
+        _unexpected_run_monitoring_once,
+    )
+
+    response = governed_dpm_client(app).post(
+        "/api/v1/dpm/command-center/monitoring/run-once",
+        json={
+            "body": {
+                "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+                "as_of_date": "2026-05-03",
+                "tenant_id": "tenant-other",
+            }
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "dpm_monitoring_tenant_mismatch"
+
+
+def test_dpm_command_center_monitoring_run_refuses_absent_admitted_tenant_before_upstream(
+    monkeypatch,
+) -> None:
+    async def _unexpected_run_monitoring_once(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("request without an admitted tenant reached lotus-manage")
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.run_monitoring_once",
+        _unexpected_run_monitoring_once,
+    )
+    headers_without_tenant = {
+        name: value for name, value in DPM_CALLER_HEADERS.items() if name != "X-Tenant-Id"
+    }
+
+    response = TestClient(app).post(
+        "/api/v1/dpm/command-center/monitoring/run-once",
+        json={
+            "body": {
+                "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+                "as_of_date": "2026-05-03",
+                "tenant_id": "tenant-sg",
+            }
+        },
+        headers=headers_without_tenant,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "dpm_caller_context_missing"
 
 
 def test_dpm_command_center_monitoring_run_list_forwards_admitted_tenant(monkeypatch) -> None:
