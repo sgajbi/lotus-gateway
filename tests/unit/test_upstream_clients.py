@@ -3389,13 +3389,18 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
             {
                 "params": {"status_filter": "SUCCEEDED", "cursor": None},
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/dpm/monitoring/runs",
             "GET",
         ),
         (
             "get_monitoring_run",
-            {"monitoring_run_id": "dmr_1", "correlation_id": "corr-rfc38"},
+            {
+                "monitoring_run_id": "dmr_1",
+                "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
+            },
             "http://dpm/api/v1/dpm/monitoring/runs/dmr_1",
             "GET",
         ),
@@ -3482,6 +3487,8 @@ async def test_dpm_client_rfc38_command_center_routes(
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-rfc38"
     if expected_method == "GET" and "params" in kwargs:
         assert None not in _FakeAsyncClient.calls[0]["params"].values()
+    if method_name in {"list_monitoring_runs", "get_monitoring_run"}:
+        assert _FakeAsyncClient.calls[0]["params"]["tenant_id"] == "tenant-sg"
     if expected_method == "POST":
         assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
 

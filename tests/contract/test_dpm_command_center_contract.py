@@ -514,6 +514,24 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         assert operation["responses"]["503"]["description"]
 
 
+def test_monitoring_run_reads_require_the_admitted_tenant_header() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    monitoring_read_paths = (
+        "/api/v1/dpm/command-center/monitoring/runs",
+        "/api/v1/dpm/command-center/monitoring/runs/{monitoring_run_id}",
+    )
+
+    for path in monitoring_read_paths:
+        parameters = {
+            (parameter["in"], parameter["name"]): parameter
+            for parameter in spec["paths"][path]["get"]["parameters"]
+        }
+        tenant_header = parameters[("header", "X-Tenant-Id")]
+        assert tenant_header["required"] is True
+        assert tenant_header["schema"]["pattern"] == r"\S"
+        assert ("query", "tenant_id") not in parameters
+
+
 def test_dpm_command_center_openapi_models_are_described() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()

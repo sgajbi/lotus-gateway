@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.support.dpm_caller import governed_dpm_client
+from tests.support.dpm_caller import DPM_CALLER_HEADERS, governed_dpm_client
 from tests.support.lotus_ai_workflow_pack import lotus_ai_workflow_pack_execution_v1
 
 
@@ -102,6 +102,108 @@ def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> 
         "correlation_id": "corr-command-router-run",
     }
     assert response.json()["data"]["monitoring_run_id"] == "dmr_1"
+
+
+def test_dpm_command_center_monitoring_run_list_forwards_admitted_tenant(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_list_monitoring_runs(
+        self,
+        params,
+        correlation_id,
+        tenant_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured.update(
+            params=params,
+            correlation_id=correlation_id,
+            tenant_id=tenant_id,
+        )
+        return 200, {"items": [{"monitoring_run_id": "dmr_1", "status": "SUCCEEDED"}]}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_monitoring_runs",
+        _fake_list_monitoring_runs,
+    )
+
+    response = governed_dpm_client(app).get(
+        "/api/v1/dpm/command-center/monitoring/runs?status_filter=SUCCEEDED&limit=25",
+        headers={"X-Correlation-Id": "corr-monitoring-list"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "params": {"status_filter": "SUCCEEDED", "limit": 25, "cursor": None},
+        "correlation_id": "corr-monitoring-list",
+        "tenant_id": "tenant-sg",
+    }
+    assert response.json()["data"]["items"][0]["monitoring_run_id"] == "dmr_1"
+
+
+def test_dpm_command_center_monitoring_run_detail_forwards_admitted_tenant(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_monitoring_run(
+        self,
+        monitoring_run_id,
+        correlation_id,
+        tenant_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured.update(
+            monitoring_run_id=monitoring_run_id,
+            correlation_id=correlation_id,
+            tenant_id=tenant_id,
+        )
+        return 200, {"monitoring_run_id": monitoring_run_id, "status": "SUCCEEDED"}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_monitoring_run",
+        _fake_get_monitoring_run,
+    )
+
+    response = governed_dpm_client(app).get(
+        "/api/v1/dpm/command-center/monitoring/runs/dmr_1",
+        headers={"X-Correlation-Id": "corr-monitoring-detail"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "monitoring_run_id": "dmr_1",
+        "correlation_id": "corr-monitoring-detail",
+        "tenant_id": "tenant-sg",
+    }
+    assert response.json()["data"]["monitoring_run_id"] == "dmr_1"
+
+
+def test_dpm_command_center_monitoring_reads_refuse_missing_tenant_before_upstream(
+    monkeypatch,
+) -> None:
+    upstream_calls: list[str] = []
+
+    async def _unexpected_upstream_call(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        _ = self, args, kwargs
+        upstream_calls.append("called")
+        raise AssertionError("missing tenant must be refused before the Manage client is called")
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_monitoring_runs",
+        _unexpected_upstream_call,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_monitoring_run",
+        _unexpected_upstream_call,
+    )
+    headers = {key: value for key, value in DPM_CALLER_HEADERS.items() if key != "X-Tenant-Id"}
+    client = TestClient(app, headers=headers)
+
+    responses = (
+        client.get("/api/v1/dpm/command-center/monitoring/runs"),
+        client.get("/api/v1/dpm/command-center/monitoring/runs/dmr_1"),
+    )
+
+    assert [response.status_code for response in responses] == [400, 400]
+    assert upstream_calls == []
 
 
 def test_dpm_command_center_exception_resolution_forwards_reason(monkeypatch) -> None:

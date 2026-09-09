@@ -35,8 +35,10 @@ class DpmCommandCenterClientMixin(DpmClientCallSurfaceMixin):
         self,
         params: dict[str, Any],
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         cleaned_params = self._clean_params(params)
+        cleaned_params["tenant_id"] = tenant_id
         return await self._get(
             "/api/v1/dpm/monitoring/runs",
             params=cleaned_params,
@@ -48,10 +50,11 @@ class DpmCommandCenterClientMixin(DpmClientCallSurfaceMixin):
         self,
         monitoring_run_id: str,
         correlation_id: str,
+        tenant_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/api/v1/dpm/monitoring/runs/{monitoring_run_id}",
-            params={},
+            params={"tenant_id": tenant_id},
             headers=self._headers(correlation_id),
             operation="manage.dpm.monitoring.runs.get",
         )
