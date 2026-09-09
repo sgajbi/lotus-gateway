@@ -798,7 +798,9 @@ reporting unit from portfolio base currency.
     `/api/v1/dpm/command-center/mandates*`. Gateway composes a BFF envelope and supportability
     summary over manage truth, but it must not discover PM books, calculate health scores,
     reconstruct health dimensions, infer source readiness, merge exceptions across monitoring
-    runs, or close exceptions locally.
+    runs, or close exceptions locally. Monitoring-run creation requires the body tenant to match
+    the admitted `X-Tenant-Id` before upstream work and materializes ownership from that admitted
+    value. The header remains caller-asserted scope, not authenticated tenant authority.
 12. RFC-0039 construction-alternative Gateway routes are active under
     `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway forwards generation,
     retrieval, and selection requests to `lotus-manage`, preserves manage-owned alternatives,

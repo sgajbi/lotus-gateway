@@ -532,6 +532,19 @@ def test_monitoring_run_reads_require_the_admitted_tenant_header() -> None:
         assert ("query", "tenant_id") not in parameters
 
 
+def test_monitoring_run_creation_publishes_the_admitted_tenant_header() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+    operation = spec["paths"]["/api/v1/dpm/command-center/monitoring/run-once"]["post"]
+    parameters = {
+        (parameter["in"], parameter["name"]): parameter for parameter in operation["parameters"]
+    }
+
+    tenant_header = parameters[("header", "X-Tenant-Id")]
+    assert tenant_header["required"] is True
+    assert tenant_header["schema"]["pattern"] == r"\S"
+    assert "caller-asserted scope" in operation["description"]
+
+
 def test_dpm_command_center_openapi_models_are_described() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()

@@ -3386,8 +3386,12 @@ async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
         (
             "run_monitoring_once",
             {
-                "body": {"mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"]},
+                "body": {
+                    "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+                    "tenant_id": "tenant-sg",
+                },
                 "correlation_id": "corr-rfc38",
+                "tenant_id": "tenant-sg",
             },
             "http://dpm/api/v1/dpm/monitoring/run-once",
             "POST",
@@ -3497,6 +3501,8 @@ async def test_dpm_client_rfc38_command_center_routes(
         assert None not in _FakeAsyncClient.calls[0]["params"].values()
     if method_name in {"list_monitoring_runs", "get_monitoring_run"}:
         assert _FakeAsyncClient.calls[0]["params"]["tenant_id"] == "tenant-sg"
+    if method_name == "run_monitoring_once":
+        assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
     if expected_method == "POST":
         assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
 

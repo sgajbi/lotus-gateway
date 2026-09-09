@@ -1364,7 +1364,10 @@ Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0038 mandate digital twin, health, monitoring, exception, and
    command-center authority.
-2. Gateway forwards filters, monitoring requests, and exception-resolution reasons to manage.
+2. Gateway binds monitoring-run creation to the admitted `X-Tenant-Id`: the body tenant must
+   match before any upstream call, and Gateway forwards the admitted value as both request
+   ownership and governed mutation authority. This is caller-asserted scope, not authentication.
+   Other filters and exception-resolution reasons remain pass-through Manage inputs.
 3. Gateway preserves health distribution, health dimensions, monitoring-run state, active
    exceptions, reason codes, recommended actions, source lineage, version diffs, and
    supportability.
