@@ -303,11 +303,13 @@ of the same manifest without
 `--allow-unsigned`, and uploads `main-container-release-evidence`. Kubernetes deployment promotion
 must use the manifest `image.digest_ref`; do not deploy mutable tags.
 
-The `/version` endpoint exposes the same non-secret build and deployment metadata recorded in the
-release manifest: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID, and
-version. Build-time OCI labels carry only metadata known before image creation. Image digest is
-captured after push and must be supplied by deployment/runtime configuration; do not bake an
-`unknown` digest into Docker build args, ENV, or OCI labels. Credentials are not passed through
+The `/version` endpoint and release manifest expose non-secret **evaluated-source** build and
+deployment metadata: Git commit SHA, branch, build timestamp, repo URL, image digest, CI run ID,
+and version. The separate workflow-definition SHA is retained in the provenance attestation's
+`configSource` and the exact-revision assertion receipt; it is not currently a manifest or
+`/version` field. Build-time OCI labels carry only metadata known before image creation. Image
+digest is captured after push and must be supplied by deployment/runtime configuration; do not bake
+an `unknown` digest into Docker build args, ENV, or OCI labels. Credentials are not passed through
 Docker build args or runtime environment metadata.
 
 ## Quality baseline lane
