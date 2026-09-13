@@ -674,8 +674,9 @@ passing an immutable `expected_sha`. Each gate checkout pins to that evaluated s
 exact-revision assertion proves it remains main ancestry. This intentionally separates the source
 under evaluation from Actions' `headSha`, which identifies the workflow definition for a
 mainline-ref run. `scripts/audit_main_gate_coverage.py` reads the paginated workflow history once,
-binds mainline verdicts through `Main Releasability · <evaluated-sha>`, retains legacy immutable-ref
-verdicts by matching `headSha`, and fails closed when either association is malformed.
+binds mainline verdicts through `Main Releasability · <evaluated-sha>` only when GitHub also records
+the workflow-definition `headBranch` as `main`, retains legacy immutable-ref verdicts by matching
+`headSha`, and fails closed when either association is malformed or ungoverned.
 
 The audit reports three questions separately, because they need opposite responses and reporting
 only the first is how eight commits sat red on `main` while it passed (#774). **Coverage** — a
