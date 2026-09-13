@@ -56,6 +56,14 @@ class AdvisoryPolicyCallerHeaders:
     authorized_portfolio_id: str | None
 
 
+@dataclass(frozen=True)
+class RequiredEvaluationScopeHeaders:
+    """The resource grants declared as required on finalization's public contract."""
+
+    authorized_proposal_id: str
+    authorized_portfolio_id: str
+
+
 def advisory_policy_caller_headers(
     actor_id: Annotated[
         str | None, Header(alias="X-Actor-Id", description=_CALLER_CONTEXT_DESCRIPTION)
@@ -80,6 +88,29 @@ def advisory_policy_caller_headers(
     )
 
 
+def required_policy_evaluation_scope_headers(
+    authorized_proposal_id: Annotated[
+        str,
+        Header(
+            alias="X-Authorized-Proposal-Id",
+            description="Required admitted proposal scope for policy-evaluation finalization.",
+        ),
+    ],
+    authorized_portfolio_id: Annotated[
+        str,
+        Header(
+            alias="X-Authorized-Portfolio-Id",
+            description="Required admitted portfolio scope for policy-evaluation finalization.",
+        ),
+    ],
+) -> RequiredEvaluationScopeHeaders:
+    """Make action-only resource grants truthful in OpenAPI without widening read routes."""
+    return RequiredEvaluationScopeHeaders(
+        authorized_proposal_id=authorized_proposal_id,
+        authorized_portfolio_id=authorized_portfolio_id,
+    )
+
+
 # The dependency and the return type, named once. Seven routes were each
 # re-deriving `Annotated[AdvisoryPolicyCallerHeaders, Depends(...)]` and
 # `... | JSONResponse`, which is four identical import lines and two identical
@@ -88,6 +119,9 @@ def advisory_policy_caller_headers(
 # one place to change when platform#775 replaces trusted headers.
 AdmittedCallerHeaders = Annotated[
     AdvisoryPolicyCallerHeaders, Depends(advisory_policy_caller_headers)
+]
+RequiredFinalizeScopeHeaders = Annotated[
+    RequiredEvaluationScopeHeaders, Depends(required_policy_evaluation_scope_headers)
 ]
 AdvisoryPolicyRouteResponse = AdvisoryPolicyEnvelopeResponse | JSONResponse
 

@@ -3,13 +3,14 @@ from collections.abc import Mapping
 from fastapi import APIRouter, Header, Path
 
 from app.contracts.advisory_policy import (
-    AdvisoryPolicyBodyRequest,
     AdvisoryPolicyEnvelopeResponse,
+    AdvisoryPolicyEvaluationFinalizeRequest,
 )
 from app.routers.advisory_policy_common import (
     CALLER_CONTEXT_RESPONSES,
     AdmittedCallerHeaders,
     AdvisoryPolicyRouteResponse,
+    RequiredFinalizeScopeHeaders,
     admitted_policy_write,
 )
 from app.services.advisory_policy_access_policy import (
@@ -46,24 +47,25 @@ def _require_finalize_request_scope(
 
 async def _create_policy_evaluation(
     *,
-    request: AdvisoryPolicyBodyRequest,
+    request: AdvisoryPolicyEvaluationFinalizeRequest,
     proposal_id: str,
     proposal_version_id: str,
     idempotency_key: str,
     caller_headers: AdmittedCallerHeaders,
 ) -> AdvisoryPolicyRouteResponse:
+    body = request.body.model_dump(mode="json")
     return await admitted_policy_write(
         operation=POLICY_EVALUATION_FINALIZE,
         caller_headers=caller_headers,
         request_scope_validator=lambda caller: _require_finalize_request_scope(
             caller=caller,
             proposal_id=proposal_id,
-            body=request.body,
+            body=body,
         ),
         call=lambda caller, correlation_id: advisory_policy_service().create_policy_evaluation(
             proposal_id=proposal_id,
             proposal_version_id=proposal_version_id,
-            body=request.body,
+            body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             caller=caller,
@@ -85,8 +87,9 @@ async def _create_policy_evaluation(
     responses=CALLER_CONTEXT_RESPONSES,
 )
 async def create_policy_evaluation(
-    request: AdvisoryPolicyBodyRequest,
+    request: AdvisoryPolicyEvaluationFinalizeRequest,
     caller_headers: AdmittedCallerHeaders,
+    required_scope_headers: RequiredFinalizeScopeHeaders,
     proposal_id: str = Path(..., description="Proposal identifier owned by lotus-advise."),
     proposal_version_id: str = Path(
         ...,

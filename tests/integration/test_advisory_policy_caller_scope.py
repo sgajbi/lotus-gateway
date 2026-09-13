@@ -427,13 +427,21 @@ def test_finalize_forwards_only_matching_admitted_resources_on_idempotent_replay
 
 
 @pytest.mark.parametrize(
-    ("path_proposal", "body_portfolio", "grant_proposal", "grant_portfolio", "expected_code"),
+    (
+        "path_proposal",
+        "body_portfolio",
+        "grant_proposal",
+        "grant_portfolio",
+        "expected_status",
+        "expected_code",
+    ),
     [
         (
             "pp_scope_b",
             "PORT_SCOPE_A",
             "pp_scope_a",
             "PORT_SCOPE_A",
+            403,
             "advisory_policy_evaluation_scope_denied",
         ),
         (
@@ -441,9 +449,10 @@ def test_finalize_forwards_only_matching_admitted_resources_on_idempotent_replay
             "PORT_SCOPE_B",
             "pp_scope_a",
             "PORT_SCOPE_A",
+            403,
             "advisory_policy_evaluation_scope_denied",
         ),
-        ("pp_scope_a", "PORT_SCOPE_A", None, None, "advisory_policy_evaluation_scope_required"),
+        ("pp_scope_a", "PORT_SCOPE_A", None, None, 422, None),
     ],
 )
 def test_finalize_refuses_missing_or_mismatched_resource_scope_before_outbound_io(
@@ -452,6 +461,7 @@ def test_finalize_refuses_missing_or_mismatched_resource_scope_before_outbound_i
     body_portfolio,
     grant_proposal,
     grant_portfolio,
+    expected_status,
     expected_code,
 ) -> None:
     """Path and evidence IDs are checked against grants; neither can mint one."""
@@ -476,10 +486,34 @@ def test_finalize_refuses_missing_or_mismatched_resource_scope_before_outbound_i
         ),
     )
 
-    assert response.status_code == 403, response.text
-    assert response.json()["code"] == expected_code
+    assert response.status_code == expected_status, response.text
+    if expected_code is not None:
+        assert response.json()["code"] == expected_code
+    else:
+        assert {entry["loc"][-1] for entry in response.json()["detail"]} == {
+            "X-Authorized-Proposal-Id",
+            "X-Authorized-Portfolio-Id",
+        }
     assert transport.posts == []
     assert transport.gets == []
+
+
+def test_finalize_openapi_requires_admitted_resource_scope_and_evidence_portfolio() -> None:
+    """The documented contract must not advertise a request Gateway will refuse as valid."""
+    spec = TestClient(app).get("/openapi.json").json()
+    operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations"
+    ]["post"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+
+    assert parameters["X-Authorized-Proposal-Id"]["required"] is True
+    assert parameters["X-Authorized-Portfolio-Id"]["required"] is True
+    request_schema = spec["components"]["schemas"]["AdvisoryPolicyEvaluationFinalizeRequest"]
+    assert request_schema["required"] == ["body"]
+    body_schema = spec["components"]["schemas"]["AdvisoryPolicyEvaluationFinalizeBody"]
+    assert body_schema["required"] == ["evidence_bundle"]
+    snapshot_schema = spec["components"]["schemas"]["AdvisoryPolicyEvaluationPortfolioSnapshot"]
+    assert snapshot_schema["required"] == ["portfolio_id"]
 
 
 def test_replay_forwards_the_producer_owned_read_capability(monkeypatch) -> None:

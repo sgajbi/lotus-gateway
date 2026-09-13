@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AdvisoryPolicyBodyRequest(BaseModel):
@@ -16,6 +16,67 @@ class AdvisoryPolicyBodyRequest(BaseModel):
                 "requested_by": "advisor_1",
                 "source_evaluation_hash": "sha256:policy-evaluation-001",
                 "reason": {"purpose": "advisor and compliance review"},
+            }
+        ],
+    )
+
+
+class AdvisoryPolicyEvaluationPortfolioSnapshot(BaseModel):
+    """The portfolio identifier whose authority must be admitted for finalization."""
+
+    model_config = ConfigDict(extra="allow")
+
+    portfolio_id: str = Field(
+        min_length=1,
+        pattern=r"\S",
+        description="Portfolio identifier selected as evidence for this policy evaluation.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+
+
+class AdvisoryPolicyEvaluationInputs(BaseModel):
+    """The minimum typed evidence inputs needed at Gateway's authorization boundary."""
+
+    model_config = ConfigDict(extra="allow")
+
+    portfolio_snapshot: AdvisoryPolicyEvaluationPortfolioSnapshot = Field(
+        description="Portfolio snapshot whose identifier is matched to admitted portfolio scope."
+    )
+
+
+class AdvisoryPolicyEvaluationEvidenceBundle(BaseModel):
+    """Evaluation evidence while preserving Advise-owned extensions unchanged."""
+
+    model_config = ConfigDict(extra="allow")
+
+    inputs: AdvisoryPolicyEvaluationInputs = Field(
+        description="Evidence inputs containing the portfolio snapshot used for finalization."
+    )
+
+
+class AdvisoryPolicyEvaluationFinalizeBody(BaseModel):
+    """Opaque Advise payload with the resource identifier Gateway must authorize."""
+
+    model_config = ConfigDict(extra="allow")
+
+    evidence_bundle: AdvisoryPolicyEvaluationEvidenceBundle = Field(
+        description="Evidence bundle whose portfolio identifier is checked before outbound I/O."
+    )
+
+
+class AdvisoryPolicyEvaluationFinalizeRequest(BaseModel):
+    """Create-evaluation payload with its authorization-relevant evidence made explicit."""
+
+    body: AdvisoryPolicyEvaluationFinalizeBody = Field(
+        description=(
+            "Advisory-policy finalization payload forwarded to lotus-advise after Gateway verifies "
+            "the path proposal and evidence portfolio against caller-admitted resource scope."
+        ),
+        examples=[
+            {
+                "evidence_bundle": {
+                    "inputs": {"portfolio_snapshot": {"portfolio_id": "PB_SG_GLOBAL_BAL_001"}}
+                }
             }
         ],
     )

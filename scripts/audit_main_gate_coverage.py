@@ -46,7 +46,7 @@ the same liveness defect it exists to catch):
 - a commit whose run listing cannot be fetched (rate limit, token scope,
   transient API failure) is UNVERIFIABLE, and unverifiable commits fail the
   audit under ``--fail-on-gap`` - they are unverified, not implicitly fine;
-- so is a commit whose listing came back saturated at the fetch limit, or one
+- so is a workflow history whose paginated API response is malformed, or one
   superseded attempt of which could not be read: a history we cannot see in full
   is not a history we can report on;
 - only attempts that reached a verdict count as evaluation: one cancelled
@@ -71,13 +71,6 @@ from dataclasses import dataclass
 
 WORKFLOW = "main-releasability.yml"
 _MAINLINE_RUN_TITLE = re.compile(r"^Main Releasability · ([0-9a-f]{40})$")
-
-# `gh run list` fetches 20 by default, and a commit that exceeded that would have
-# its oldest runs silently dropped -- erasing exactly the early failure this
-# audit promises to keep. Raised, and saturation is treated as unverifiable
-# rather than assumed complete: an audit that cannot see all of the history
-# cannot report on it.
-_RUN_FETCH_LIMIT = 100
 
 _SUCCESS_CONCLUSION = "success"
 
@@ -192,7 +185,61 @@ def _evaluated_source_sha(run: dict[str, object]) -> str | None:
     return head_sha if re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None else None
 
 
-def _gate_runs(sha: str) -> list[dict[str, str]] | None:
+def _all_gate_runs() -> list[dict[str, object]] | None:
+    """Fetch the complete gate history once, or return None when it cannot be read.
+
+    GitHub's workflow-runs REST endpoint advertises pagination.  Asking ``gh``
+    to follow every page is materially different from raising ``gh run list``'s
+    global limit: the latter eventually makes every commit unverifiable once
+    more than the cap exists.  ``--slurp`` preserves page boundaries so a
+    malformed page cannot be silently dropped.
+    """
+
+    completed = subprocess.run(
+        [
+            "gh",
+            "api",
+            "--paginate",
+            "--slurp",
+            f"repos/{{owner}}/{{repo}}/actions/workflows/{WORKFLOW}/runs?per_page=100",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        return None
+    try:
+        pages = json.loads(completed.stdout or "[]")
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(pages, list):
+        return None
+
+    runs: list[dict[str, object]] = []
+    for page in pages:
+        if not isinstance(page, dict):
+            return None
+        page_runs = page.get("workflow_runs")
+        if not isinstance(page_runs, list):
+            return None
+        for run in page_runs:
+            if not isinstance(run, dict):
+                return None
+            runs.append(
+                {
+                    "conclusion": run.get("conclusion"),
+                    "status": run.get("status"),
+                    "startedAt": run.get("run_started_at"),
+                    "databaseId": run.get("id"),
+                    "attempt": run.get("run_attempt"),
+                    "headSha": run.get("head_sha"),
+                    "displayTitle": run.get("display_title"),
+                }
+            )
+    return runs
+
+
+def _gate_runs(sha: str, all_runs: list[dict[str, object]] | None) -> list[dict[str, str]] | None:
     """Every gate *attempt* for one evaluated source, or None if unknowable.
 
     Attempts rather than runs, because a re-run is an attempt of the same run
@@ -202,36 +249,11 @@ def _gate_runs(sha: str) -> list[dict[str, str]] | None:
     guarantee holds for every caller rather than only for this path.
     """
 
-    completed = subprocess.run(
-        [
-            "gh",
-            "run",
-            "list",
-            "--workflow",
-            WORKFLOW,
-            "--limit",
-            str(_RUN_FETCH_LIMIT),
-            "--json",
-            "conclusion,status,startedAt,databaseId,attempt,headSha,displayTitle",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    if completed.returncode != 0:
-        return None
-    try:
-        runs = json.loads(completed.stdout or "[]")
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(runs, list):
-        return None
-    if len(runs) >= _RUN_FETCH_LIMIT:
-        # The listing is saturated, so the oldest runs may have been dropped and
-        # an early failure with them. Unverifiable, not complete.
+    if all_runs is None:
         return None
 
     attempts: list[dict[str, str]] = []
-    for run in runs:
+    for run in all_runs:
         if not isinstance(run, dict):
             # Dropping the malformed entry and keeping the rest would let a
             # commit classify from a listing we know is not the listing -- a
@@ -245,8 +267,9 @@ def _gate_runs(sha: str) -> list[dict[str, str]] | None:
         if evaluated_source != sha:
             continue
         run_id = str(run.get("databaseId") or "")
+        attempt = run.get("attempt")
         try:
-            newest = int(run.get("attempt") or 1)
+            newest = int(str(attempt or 1))
         except (TypeError, ValueError):
             return None
         attempts.append(
@@ -360,12 +383,13 @@ def main() -> int:
         return 1 if arguments.fail_on_gap else 0
 
     commits = _git("log", f"-{arguments.limit}", "--format=%H %h %s", "origin/main")
+    all_runs = _all_gate_runs()
     counts = {UNGATED: 0, UNVERIFIABLE: 0, PASSING: 0, RECOVERED: 0, FAILING: 0}
     ungated: list[str] = []
 
     for entry in commits:
         sha, short, subject = entry.split(" ", 2)
-        outcome = classify(_gate_runs(sha))
+        outcome = classify(_gate_runs(sha, all_runs))
         counts[outcome.state] += 1
         if outcome.state == UNGATED:
             ungated.append(short)

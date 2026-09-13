@@ -15,6 +15,7 @@ must not report zero, and an all-green fixture must.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 from scripts import audit_main_gate_coverage as audit
@@ -44,7 +45,7 @@ def run(
 
 def drive(
     monkeypatch,
-    commits: dict[str, list[dict[str, str]] | None],
+    commits: Mapping[str, list[dict[str, str]] | None],
     *,
     fail_on_gap: bool = True,
 ) -> int:
@@ -53,7 +54,8 @@ def drive(
         "_git",
         lambda *args: [f"{sha} {sha[:9]} subject line" for sha in commits],
     )
-    monkeypatch.setattr(audit, "_gate_runs", lambda sha: commits[sha])
+    monkeypatch.setattr(audit, "_all_gate_runs", lambda: [])
+    monkeypatch.setattr(audit, "_gate_runs", lambda sha, all_runs: commits[sha])
     monkeypatch.setattr(audit.shutil, "which", lambda name: "/usr/bin/gh")
     monkeypatch.setattr(
         audit.argparse.ArgumentParser,
@@ -367,30 +369,48 @@ def test_non_verdict_completions_stay_outside_the_verdict_set() -> None:
         assert not outcome.is_covered
 
 
-def test_the_run_listing_is_fetched_past_ghs_default_of_twenty(monkeypatch) -> None:
-    """A commit with more than twenty runs would otherwise lose its oldest ones,
-    and an early failure with them."""
+def test_the_run_history_is_paginated_once_instead_of_capped_per_commit(monkeypatch) -> None:
+    """The audit reads every REST page once, rather than silently aging history out."""
 
     captured: list[list[str]] = []
 
     class _Completed:
         returncode = 0
-        stdout = "[]"
+        stdout = json.dumps([{"workflow_runs": []}])
 
     def _capture(argv, **kwargs):
         captured.append(argv)
         return _Completed()
 
     monkeypatch.setattr(audit.subprocess, "run", _capture)
-    audit._gate_runs("a" * 40)
+    assert audit._all_gate_runs() == []
 
-    assert "--limit" in captured[0]
-    assert int(captured[0][captured[0].index("--limit") + 1]) > 20
-    requested_fields = captured[0][captured[0].index("--json") + 1]
-    assert "attempt" in requested_fields
-    assert "headSha" in requested_fields
-    assert "displayTitle" in requested_fields
-    assert "--commit" not in captured[0]
+    assert captured[0][:4] == ["gh", "api", "--paginate", "--slurp"]
+    assert captured[0][4].endswith(f"actions/workflows/{audit.WORKFLOW}/runs?per_page=100")
+
+
+def test_audit_reuses_the_one_paginated_history_for_every_commit(monkeypatch) -> None:
+    calls = 0
+
+    def _all_runs() -> list[dict[str, object]]:
+        nonlocal calls
+        calls += 1
+        return []
+
+    commits: dict[str, list[dict[str, str]]] = {"a" * 40: [], "b" * 40: []}
+    monkeypatch.setattr(audit, "_all_gate_runs", _all_runs)
+    monkeypatch.setattr(
+        audit, "_git", lambda *args: [f"{sha} {sha[:9]} subject" for sha in commits]
+    )
+    monkeypatch.setattr(audit.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        audit.argparse.ArgumentParser,
+        "parse_args",
+        lambda self: argparse_namespace(limit=60, fail_on_gap=True),
+    )
+
+    assert audit.main() == 1
+    assert calls == 1
 
 
 def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch) -> None:
@@ -428,10 +448,10 @@ def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch
             ]
         )
 
-    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
+    runs = json.loads(_Completed.stdout)
 
-    assert audit.classify(audit._gate_runs(source_a)).state == audit.PASSING
-    assert audit.classify(audit._gate_runs(definition_b)).state == audit.FAILING
+    assert audit.classify(audit._gate_runs(source_a, runs)).state == audit.PASSING
+    assert audit.classify(audit._gate_runs(definition_b, runs)).state == audit.FAILING
 
 
 def test_ambiguous_mainline_title_fails_closed_instead_of_falling_back_to_head(monkeypatch) -> None:
@@ -451,10 +471,10 @@ def test_ambiguous_mainline_title_fails_closed_instead_of_falling_back_to_head(m
             ]
         )
 
-    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
+    runs = json.loads(_Completed.stdout)
 
-    assert audit._gate_runs("a" * 40) is None
-    assert audit.classify(audit._gate_runs("a" * 40)).state == audit.UNVERIFIABLE
+    assert audit._gate_runs("a" * 40, runs) is None
+    assert audit.classify(audit._gate_runs("a" * 40, runs)).state == audit.UNVERIFIABLE
 
 
 def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypatch) -> None:
@@ -482,30 +502,22 @@ def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypat
             ]
         )
 
-    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
-
-    attempts = audit._gate_runs("a" * 40)
+    attempts = audit._gate_runs("a" * 40, json.loads(_Completed.stdout))
     assert attempts is not None
     assert attempts[0]["startedAt"] == ""
     assert audit.classify(attempts).state == audit.UNVERIFIABLE
 
 
-def test_a_saturated_listing_is_unverifiable_rather_than_assumed_complete(monkeypatch) -> None:
-    """At the fetch limit the oldest runs may have been dropped. That is a
-    history we cannot see, not one we can report."""
+def test_a_malformed_paginated_page_is_unverifiable_rather_than_dropped(monkeypatch) -> None:
+    """Pagination may be complete only if every returned page has its run list."""
 
     class _Completed:
         returncode = 0
-        stdout = json.dumps(
-            [
-                {"conclusion": "success", "status": "completed", "databaseId": index, "attempt": 1}
-                for index in range(audit._RUN_FETCH_LIMIT)
-            ]
-        )
+        stdout = json.dumps([{"workflow_runs": []}, {"not_workflow_runs": []}])
 
     monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
 
-    assert audit._gate_runs("a" * 40) is None
+    assert audit._all_gate_runs() is None
     assert audit.classify(None).state == audit.UNVERIFIABLE
 
 
@@ -526,9 +538,7 @@ def test_a_malformed_entry_makes_the_whole_listing_unverifiable(monkeypatch) -> 
             ]
         )
 
-    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
-
-    assert audit._gate_runs("a" * 40) is None
+    assert audit._gate_runs("a" * 40, json.loads(_Completed.stdout)) is None
 
 
 def test_a_non_integer_attempt_count_fails_closed(monkeypatch) -> None:
@@ -538,9 +548,7 @@ def test_a_non_integer_attempt_count_fails_closed(monkeypatch) -> None:
             [{"conclusion": "success", "status": "completed", "databaseId": 1, "attempt": "many"}]
         )
 
-    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
-
-    assert audit._gate_runs("a" * 40) is None
+    assert audit._gate_runs("a" * 40, json.loads(_Completed.stdout)) is None
 
 
 def test_an_unreadable_superseded_attempt_fails_closed(monkeypatch) -> None:
@@ -551,16 +559,9 @@ def test_an_unreadable_superseded_attempt_fails_closed(monkeypatch) -> None:
         [{"conclusion": "success", "status": "completed", "databaseId": 9, "attempt": 3}]
     )
 
-    def _fake(argv, **kwargs):
-        class _Completed:
-            returncode = 0 if argv[1] == "run" else 1
-            stdout = listing if argv[1] == "run" else ""
+    monkeypatch.setattr(audit, "_earlier_attempt", lambda run_id, attempt: None)
 
-        return _Completed()
-
-    monkeypatch.setattr(audit.subprocess, "run", _fake)
-
-    assert audit._gate_runs("a" * 40) is None
+    assert audit._gate_runs("a" * 40, json.loads(listing)) is None
 
 
 def test_superseded_attempts_are_fetched_and_included(monkeypatch) -> None:
@@ -577,24 +578,15 @@ def test_superseded_attempts_are_fetched_and_included(monkeypatch) -> None:
             }
         ]
     )
-    attempt_one = json.dumps(
-        {
-            "conclusion": "failure",
-            "status": "completed",
-            "run_started_at": "2026-09-01T00:00:00Z",
-        }
+    monkeypatch.setattr(
+        audit,
+        "_earlier_attempt",
+        lambda run_id, attempt: audit._record(
+            "failure", "completed", "2026-09-01T00:00:00Z", run_id, str(attempt)
+        ),
     )
 
-    def _fake(argv, **kwargs):
-        class _Completed:
-            returncode = 0
-            stdout = listing if argv[1] == "run" else attempt_one
-
-        return _Completed()
-
-    monkeypatch.setattr(audit.subprocess, "run", _fake)
-
-    attempts = audit._gate_runs("a" * 40)
+    attempts = audit._gate_runs("a" * 40, json.loads(listing))
     assert attempts is not None
     assert len(attempts) == 2
     assert audit.classify(attempts).state == audit.RECOVERED
