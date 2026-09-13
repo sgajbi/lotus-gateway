@@ -539,8 +539,10 @@ Important validation expectations:
    human or release-actor merges as well as token-backed auto-merge; `main-releasability.yml` is
    intentionally `workflow_dispatch`-only so this dispatcher remains the single automatic
    post-merge path and does not duplicate a push-triggered release run; its concurrency identity is
-   always the checked-out `github.sha`, while caller-supplied `expected_sha` remains validation-only,
-   so malformed input and newer merges cannot cancel another revision's evidence,
+   always the evaluated source SHA: the dispatcher starts the workflow from `main` but each release
+   checkout pins to caller-supplied `expected_sha` (or `github.sha` for an operator run), and the
+   assertion proves supplied source remains main ancestry while recording it separately from the
+   workflow-definition SHA,
 10. `make demo-certification` is the current app-level Gateway demo-readiness command; it calls real
    FastAPI routes with deterministic synthetic upstream fixtures, writes
    `output/demo-certification/gateway-demo-certification.json`, and remains report-only in Quality

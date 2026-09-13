@@ -63,12 +63,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 
 WORKFLOW = "main-releasability.yml"
+_MAINLINE_RUN_TITLE = re.compile(r"^Main Releasability · ([0-9a-f]{40})$")
 
 # `gh run list` fetches 20 by default, and a commit that exceeded that would have
 # its oldest runs silently dropped -- erasing exactly the early failure this
@@ -173,8 +175,25 @@ def _earlier_attempt(run_id: str, attempt: int) -> dict[str, str] | None:
     )
 
 
+def _evaluated_source_sha(run: dict[str, object]) -> str | None:
+    """Return the identity a run evaluated, or None when its association is ambiguous.
+
+    Immutable-ref dispatches retain the historical `headSha == source` shape.
+    Mainline-ref dispatches deliberately do not: `headSha` is the workflow
+    definition revision, while the run title carries the source each job checked
+    out and the exact-revision assertion verified. A malformed source-bearing
+    title must not fall back to headSha, because that recreates the mismatch.
+    """
+    title = str(run.get("displayTitle") or "")
+    if title.startswith("Main Releasability · "):
+        matched = _MAINLINE_RUN_TITLE.fullmatch(title)
+        return matched.group(1) if matched is not None else None
+    head_sha = str(run.get("headSha") or "")
+    return head_sha if re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None else None
+
+
 def _gate_runs(sha: str) -> list[dict[str, str]] | None:
-    """Every gate *attempt* for one commit, in any order, or None if unknowable.
+    """Every gate *attempt* for one evaluated source, or None if unknowable.
 
     Attempts rather than runs, because a re-run is an attempt of the same run
     and the listing shows only the newest one.
@@ -190,12 +209,10 @@ def _gate_runs(sha: str) -> list[dict[str, str]] | None:
             "list",
             "--workflow",
             WORKFLOW,
-            "--commit",
-            sha,
             "--limit",
             str(_RUN_FETCH_LIMIT),
             "--json",
-            "conclusion,status,startedAt,databaseId,attempt",
+            "conclusion,status,startedAt,databaseId,attempt,headSha,displayTitle",
         ],
         capture_output=True,
         text=True,
@@ -220,6 +237,13 @@ def _gate_runs(sha: str) -> list[dict[str, str]] | None:
             # commit classify from a listing we know is not the listing -- a
             # PASSING verdict read off evidence with a hole in it. Unverifiable.
             return None
+        evaluated_source = _evaluated_source_sha(run)
+        if evaluated_source is None:
+            # An ambiguous association must not be converted into an apparently
+            # valid verdict for the workflow definition revision.
+            return None
+        if evaluated_source != sha:
+            continue
         run_id = str(run.get("databaseId") or "")
         try:
             newest = int(run.get("attempt") or 1)
@@ -372,9 +396,7 @@ def main() -> int:
     if ungated:
         print(
             "\nBackfill one with:\n"
-            "  gh api repos/OWNER/REPO/git/refs "
-            "-f ref=refs/tags/main-releasability-SHA -f sha=SHA\n"
-            "  gh workflow run main-releasability.yml --ref main-releasability-SHA "
+            "  gh workflow run main-releasability.yml --ref main "
             "-f expected_sha=SHA -f triggering_pr=backfill\n"
         )
     if arguments.fail_on_gap and (counts[UNGATED] or counts[UNVERIFIABLE]):

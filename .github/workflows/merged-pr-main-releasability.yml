@@ -9,7 +9,7 @@ env:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
 
 jobs:
   dispatch-main-releasability:
@@ -261,45 +261,19 @@ jobs:
               echo "::error::Revision $revision is not an ancestor of main; refusing to dispatch."
               exit 1
             fi
-            dispatch_ref="main-releasability-${revision}"
-            # Existence is decided by exit code, never by output: `gh api`
-            # writes a 404 body to stdout, so testing the text reads
-            # '{"message":...}' as a sha.
-            existing_ref_sha=""
-            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$dispatch_ref" \
-                --jq .object.sha >"$RUNNER_TEMP/existing_ref" 2>/dev/null; then
-              existing_ref_sha="$(cat "$RUNNER_TEMP/existing_ref")"
-              if [ "$existing_ref_sha" != "$revision" ]; then
-                echo "::error::Dispatch ref $dispatch_ref points to $existing_ref_sha, expected $revision"
-                exit 1
-              fi
-              # A dispatch tag that already exists means this revision was
-              # already enumerated by an earlier merge. That is the observable
-              # trace of the one case patch identity cannot resolve: when another
-              # PR lands the same change and this PR's now-redundant commit is
-              # dropped by the rebase, the two revisions are identical by every
-              # local measure, so this window can claim one of theirs. Coverage
-              # is unaffected -- the revision receives a verdict either way, and
-              # already had one -- but the attribution recorded against it is
-              # this PR rather than the one that landed it. Saying so leaves a
-              # trail rather than a silent mis-attribution, and dispatch still
-              # proceeds so a previously failed gate run can be re-driven.
-              echo "::notice::Dispatch ref $dispatch_ref already exists for $revision, so an earlier merge enumerated this revision. That proves the ref exists -- NOT that a gate ran for it, and not that any run passed. Release evidence must come from the run for this revision. Re-dispatching under PR #$PR_NUMBER."
-              echo "  tag exists for $revision"
-            fi
-            if [ -z "$existing_ref_sha" ]; then
-              run_gh "POST /repos/$GITHUB_REPOSITORY/git/refs (create $dispatch_ref)" \
-                gh api "repos/$GITHUB_REPOSITORY/git/refs" \
-                -f ref="refs/tags/$dispatch_ref" \
-                -f sha="$revision"
-              echo "  tag created for $revision"
-            fi
-            run_gh "POST /repos/$GITHUB_REPOSITORY/actions/workflows/main-releasability.yml/dispatches (ref $dispatch_ref)" \
+            # Dispatch from main so Actions reads the governed workflow
+            # definition, then pass the immutable source SHA explicitly. Every
+            # release-gate checkout is pinned to expected_sha, and its first job
+            # proves that SHA is still durable main ancestry. This needs only the
+            # normal workflow-dispatch permission: no tag/ref write and no
+            # operator credential are invented to work around workflow-token
+            # restrictions.
+            run_gh "POST /repos/$GITHUB_REPOSITORY/actions/workflows/main-releasability.yml/dispatches (ref main, expected source $revision)" \
               gh workflow run main-releasability.yml \
               --repo "$GITHUB_REPOSITORY" \
-              --ref "$dispatch_ref" \
+              --ref main \
               -f expected_sha="$revision" \
               -f triggering_pr="$PR_NUMBER" \
               -f source_branch="main"
-            echo "Dispatched main releasability for $revision (PR #$PR_NUMBER)"
+            echo "Dispatched main-defined releasability for source $revision (PR #$PR_NUMBER)"
           done

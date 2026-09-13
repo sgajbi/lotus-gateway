@@ -114,6 +114,7 @@ async def admitted_policy_write(
     *,
     operation: AdvisoryPolicyOperation,
     caller_headers: AdvisoryPolicyCallerHeaders,
+    request_scope_validator: Callable[[AdvisoryPolicyCallerContext], None] | None = None,
     call: Callable[[AdvisoryPolicyCallerContext, str], Awaitable[AdvisoryPolicyEnvelopeResponse]],
 ) -> AdvisoryPolicyEnvelopeResponse | JSONResponse:
     """Admit, refuse, or perform one advisory-policy write.
@@ -130,6 +131,8 @@ async def admitted_policy_write(
     correlation_id = correlation_id_var.get()
     try:
         caller = admit_advisory_policy_caller(operation=operation, caller_headers=caller_headers)
+        if request_scope_validator is not None:
+            request_scope_validator(caller)
     except AdvisoryPolicyCallerContextError as exc:
         return advisory_policy_error_response(error=exc, correlation_id=correlation_id)
     return await call(caller, correlation_id)

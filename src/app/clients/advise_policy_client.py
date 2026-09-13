@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.clients.advise_policy_authority import (
-    build_policy_control_headers,
-    evidence_portfolio_id,
-)
+from app.clients.advise_policy_authority import build_policy_control_headers
 from app.clients.advise_policy_pack_client import AdvisePolicyPackClientMixin
 from app.services.advisory_policy_access_policy import AdvisoryPolicyCallerContext
 
@@ -28,8 +25,6 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
                 correlation_id,
                 caller=caller,
                 idempotency_key=idempotency_key,
-                authorized_proposal_id=proposal_id,
-                authorized_portfolio_id=evidence_portfolio_id(body),
             ),
             operation="advise.advisory.policy-evaluations.create",
         )

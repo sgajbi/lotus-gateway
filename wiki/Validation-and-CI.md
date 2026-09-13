@@ -217,16 +217,20 @@ can perform the rebase merge without leaving a false red CI check.
 
 Merged PRs into `main` also trigger the `Merged PR Main Releasability Dispatch` workflow. It listens
 only to closed pull-request events, verifies that the pull request was merged into `main`, and then
-dispatches `main-releasability.yml` through an immutable `main-releasability-<sha>` tag. That keeps
-exact-main release evidence available for authorized human merges and release-actor merges, not only
-token-backed auto-merge. The dispatcher passes `source_branch=main`, so build metadata, provenance,
-manifests, and `/version` describe the merged mainline source rather than the synthetic dispatch tag.
+dispatches `main-releasability.yml` from governed `main` with the merged source SHA as
+`expected_sha`. That keeps exact-main release evidence available for authorized human merges and
+release-actor merges, not only token-backed auto-merge. The dispatcher passes `source_branch=main`,
+so build metadata, provenance, manifests, and `/version` retain the mainline source identity while
+also recording the distinct workflow-definition identity.
 `main-releasability.yml` is intentionally `workflow_dispatch`-only so this dispatcher is the single
 automatic post-merge path and does not race or cancel a duplicate push-triggered release run. Manual
 dispatches intentionally have no `source_branch` default; release metadata inherits the selected
 workflow ref unless an operator explicitly provides a source branch override. Concurrency is
-isolated by the checked-out GitHub SHA; `expected_sha` is validation-only, so only reruns of the
-same actual revision may supersede one another.
+isolated by the evaluated source SHA. The merged-PR dispatcher starts the workflow from `main` so
+Actions reads the governed workflow definition, while every checkout is pinned to `expected_sha`.
+The first job proves that source SHA remains an ancestor of freshly fetched `main`; its receipt
+records the evaluated source SHA separately from the workflow-definition SHA. Only runs evaluating
+the same source revision may supersede one another.
 
 ## What the gates protect
 
@@ -275,9 +279,11 @@ same actual revision may supersede one another.
 
 ## Container release evidence
 
-Main Releasability concurrency is keyed only by the checked-out GitHub SHA. The optional
-`expected_sha` dispatch input is verified after checkout but never controls cancellation identity,
-so an invalid operator input cannot cancel release evidence for another revision.
+For mainline-ref dispatches, `headSha` identifies the workflow definition, not necessarily the
+evaluated source. The coverage audit binds each verdict to the SHA in `Main Releasability · <sha>`
+and fails closed on a malformed source-bearing title; legacy immutable-ref runs remain bound by
+their matching `headSha`. Historical failures remain historical failures even when a later source
+revision succeeds under their workflow definition.
 
 PR Merge Gate builds `ghcr.io/<owner>/lotus-gateway:${{ github.sha }}` locally, also tags
 `lotus-gateway:ci-test` for Docker parity, generates an SBOM with pinned `anchore/syft:v1.42.3`,

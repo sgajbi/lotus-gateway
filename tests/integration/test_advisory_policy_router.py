@@ -250,7 +250,15 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
     client = TestClient(app)
     create_response = client.post(
         "/api/v1/proposals/pp_001/versions/ppv_001/policy-evaluations",
-        json={"body": {"requested_by": "advisor_1", "policy_pack_id": "policy_pack_sg"}},
+        json={
+            "body": {
+                "requested_by": "advisor_1",
+                "policy_pack_id": "policy_pack_sg",
+                "evidence_bundle": {
+                    "inputs": {"portfolio_snapshot": {"portfolio_id": "PB_SG_GLOBAL_BAL_001"}}
+                },
+            }
+        },
         headers={
             "Idempotency-Key": "idem-policy-create",
             "X-Correlation-Id": "corr-policy-create",
@@ -259,6 +267,8 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
             "X-Legal-Entity-Code": "CH_ZURICH",
             "X-Role": "ADVISOR",
             "X-Caller-Capabilities": "advisory.policy_evaluation.finalize",
+            "X-Authorized-Proposal-Id": "pp_001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
         },
     )
     queue_response = client.get(
@@ -305,7 +315,17 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         "create": {
             "proposal_id": "pp_001",
             "proposal_version_id": "ppv_001",
-            "body": {"requested_by": "advisor_1", "policy_pack_id": "policy_pack_sg"},
+            "body": {
+                "requested_by": "advisor_1",
+                "policy_pack_id": "policy_pack_sg",
+                "evidence_bundle": {
+                    "inputs": {
+                        "portfolio_snapshot": {
+                            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                        },
+                    },
+                },
+            },
             "idempotency_key": "idem-policy-create",
             "correlation_id": "corr-policy-create",
         },

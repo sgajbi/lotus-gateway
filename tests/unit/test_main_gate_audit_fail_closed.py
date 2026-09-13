@@ -386,7 +386,75 @@ def test_the_run_listing_is_fetched_past_ghs_default_of_twenty(monkeypatch) -> N
 
     assert "--limit" in captured[0]
     assert int(captured[0][captured[0].index("--limit") + 1]) > 20
-    assert "attempt" in captured[0][captured[0].index("--json") + 1]
+    requested_fields = captured[0][captured[0].index("--json") + 1]
+    assert "attempt" in requested_fields
+    assert "headSha" in requested_fields
+    assert "displayTitle" in requested_fields
+    assert "--commit" not in captured[0]
+
+
+def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch) -> None:
+    """B can fail, then define a successful gate of A, without either being lost.
+
+    This is the mainline-ref shape: when A's dispatch starts after B merges,
+    GitHub records B as the workflow definition `headSha`. A must still receive
+    its own success by evaluated-source identity, while B retains its failure.
+    """
+    source_a = "a" * 40
+    definition_b = "b" * 40
+
+    class _Completed:
+        returncode = 0
+        stdout = json.dumps(
+            [
+                {
+                    "conclusion": "failure",
+                    "status": "completed",
+                    "startedAt": "2026-09-01T00:00:00Z",
+                    "databaseId": 1,
+                    "attempt": 1,
+                    "headSha": definition_b,
+                    "displayTitle": f"Main Releasability · {definition_b}",
+                },
+                {
+                    "conclusion": "success",
+                    "status": "completed",
+                    "startedAt": "2026-09-01T01:00:00Z",
+                    "databaseId": 2,
+                    "attempt": 1,
+                    "headSha": definition_b,
+                    "displayTitle": f"Main Releasability · {source_a}",
+                },
+            ]
+        )
+
+    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
+
+    assert audit.classify(audit._gate_runs(source_a)).state == audit.PASSING
+    assert audit.classify(audit._gate_runs(definition_b)).state == audit.FAILING
+
+
+def test_ambiguous_mainline_title_fails_closed_instead_of_falling_back_to_head(monkeypatch) -> None:
+    class _Completed:
+        returncode = 0
+        stdout = json.dumps(
+            [
+                {
+                    "conclusion": "success",
+                    "status": "completed",
+                    "startedAt": "2026-09-01T00:00:00Z",
+                    "databaseId": 1,
+                    "attempt": 1,
+                    "headSha": "a" * 40,
+                    "displayTitle": "Main Releasability · not-a-sha",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(audit.subprocess, "run", lambda argv, **kwargs: _Completed())
+
+    assert audit._gate_runs("a" * 40) is None
+    assert audit.classify(audit._gate_runs("a" * 40)).state == audit.UNVERIFIABLE
 
 
 def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypatch) -> None:
@@ -408,6 +476,8 @@ def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypat
                     "createdAt": "2026-09-01T00:00:00Z",
                     "databaseId": 1,
                     "attempt": 1,
+                    "headSha": "a" * 40,
+                    "displayTitle": "",
                 }
             ]
         )
@@ -502,6 +572,8 @@ def test_superseded_attempts_are_fetched_and_included(monkeypatch) -> None:
                 "startedAt": "2026-09-01T02:00:00Z",
                 "databaseId": 9,
                 "attempt": 2,
+                "headSha": "a" * 40,
+                "displayTitle": "",
             }
         ]
     )
