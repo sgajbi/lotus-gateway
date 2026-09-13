@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 
-from fastapi import APIRouter, Header, Path
+from fastapi import APIRouter, Depends, Header, Path
 
 from app.contracts.advisory_policy import (
     AdvisoryPolicyEnvelopeResponse,
@@ -10,8 +10,8 @@ from app.routers.advisory_policy_common import (
     CALLER_CONTEXT_RESPONSES,
     AdmittedCallerHeaders,
     AdvisoryPolicyRouteResponse,
-    RequiredFinalizeScopeHeaders,
     admitted_policy_write,
+    required_policy_evaluation_scope_headers,
 )
 from app.services.advisory_policy_access_policy import (
     POLICY_EVALUATION_FINALIZE,
@@ -85,11 +85,11 @@ async def _create_policy_evaluation(
         "unchanged and does not substitute one of its own."
     ),
     responses=CALLER_CONTEXT_RESPONSES,
+    dependencies=[Depends(required_policy_evaluation_scope_headers)],
 )
 async def create_policy_evaluation(
     request: AdvisoryPolicyEvaluationFinalizeRequest,
     caller_headers: AdmittedCallerHeaders,
-    required_scope_headers: RequiredFinalizeScopeHeaders,
     proposal_id: str = Path(..., description="Proposal identifier owned by lotus-advise."),
     proposal_version_id: str = Path(
         ...,
