@@ -1,4 +1,5 @@
 name: Main Releasability Gate
+run-name: Main Releasability · ${{ inputs.expected_sha || github.sha }}
 
 on:
   workflow_dispatch:
@@ -12,12 +13,12 @@ on:
         required: false
         type: string
       source_branch:
-        description: "Source branch name to stamp into release metadata when dispatch uses an immutable tag."
+        description: "Source branch name to stamp into release metadata."
         required: false
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.sha }}
+  group: ${{ github.workflow }}-${{ inputs.expected_sha || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -29,7 +30,13 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   LOTUS_ADVISE_PROPOSAL_DECISION_VOCABULARY_URL: https://api.github.com/repos/sgajbi/lotus-advise/contents/docs/standards/proposal-decision-vocabulary.v1.json?ref=main
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/lotus-gateway
-  IMAGE_TAG: ${{ github.sha }}
+  # `github.sha` identifies the workflow definition selected from `main` for a
+  # dispatched run. `EVALUATED_SHA` identifies the repository tree the gate
+  # actually builds and tests; they intentionally differ when a later merge
+  # arrives before an earlier revision's dispatch starts.
+  EVALUATED_SHA: ${{ inputs.expected_sha || github.sha }}
+  WORKFLOW_DEFINITION_SHA: ${{ github.sha }}
+  IMAGE_TAG: ${{ inputs.expected_sha || github.sha }}
   LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}
   SYFT_IMAGE: anchore/syft:v1.42.3
   TRIVY_IMAGE: aquasec/trivy:0.72.0
@@ -41,6 +48,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
+          fetch-depth: 0
       - name: Assert expected merged PR SHA
         shell: bash
         env:
@@ -48,15 +58,20 @@ jobs:
           TRIGGERING_PR: ${{ inputs.triggering_pr }}
         run: |
           actual_sha="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
           if [ -z "$EXPECTED_SHA" ]; then
-            echo "No expected_sha input supplied; treating this as an operator-dispatched main releasability run."
+            echo "No expected_sha input supplied; treating this as an operator-dispatched main releasability run at $actual_sha."
             exit 0
           fi
           if [ "$actual_sha" != "$EXPECTED_SHA" ]; then
-            echo "::error::Main releasability checkout SHA $actual_sha does not match expected merged PR SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown}."
+            echo "::error::Main releasability checkout SHA $actual_sha does not match expected evaluation SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown}."
             exit 1
           fi
-          echo "Validated exact merged PR SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown}."
+          if ! git merge-base --is-ancestor "$EXPECTED_SHA" FETCH_HEAD; then
+            echo "::error::Expected evaluation SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown} is not an ancestor of freshly fetched main; refusing a run whose claimed source is not durable main history."
+            exit 1
+          fi
+          echo "Validated evaluated source SHA $EXPECTED_SHA for PR ${TRIGGERING_PR:-unknown} as an ancestor of main. Workflow definition SHA: ${GITHUB_SHA}."
 
   duplicate-code:
     name: Main Releasability / Duplicate Code
@@ -65,6 +80,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -90,6 +107,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: reviewdog/action-actionlint@v1
 
   lint-typecheck-unit:
@@ -99,6 +118,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -130,6 +151,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -147,6 +170,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -196,6 +221,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - uses: sigstore/cosign-installer@v4.1.0
       - name: Build image
         run: |
@@ -206,7 +233,7 @@ jobs:
             -t "${IMAGE_NAME}:${IMAGE_TAG}" \
             -t lotus-gateway:ci-test \
             --build-arg LOTUS_APP_VERSION=0.1.0 \
-            --build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}" \
+            --build-arg LOTUS_GIT_COMMIT_SHA="${EVALUATED_SHA}" \
             --build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}" \
             --build-arg LOTUS_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}" \
             --build-arg LOTUS_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
@@ -299,7 +326,7 @@ jobs:
               "configSource": {
                 "uri": "git+${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
                 "digest": {
-                  "sha1": "${GITHUB_SHA}"
+                  "sha1": "${WORKFLOW_DEFINITION_SHA}"
                 },
                 "entryPoint": ".github/workflows/main-releasability.yml"
               },
@@ -325,7 +352,7 @@ jobs:
               {
                 "uri": "git+${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
                 "digest": {
-                  "sha1": "${GITHUB_SHA}"
+                  "sha1": "${EVALUATED_SHA}"
                 }
               },
               {
@@ -348,7 +375,7 @@ jobs:
             --image-name "${IMAGE_NAME}" \
             --image-tag "${IMAGE_TAG}" \
             --image-digest "${LOTUS_IMAGE_DIGEST}" \
-            --git-commit-sha "${GITHUB_SHA}" \
+            --git-commit-sha "${EVALUATED_SHA}" \
             --git-branch "${LOTUS_RELEASE_SOURCE_BRANCH}" \
             --build-timestamp "${LOTUS_BUILD_TIMESTAMP}" \
             --repo-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
@@ -370,6 +397,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha || github.sha }}
       - name: Dockerized local CI parity
         run: make ci-local-docker
       - name: Cleanup

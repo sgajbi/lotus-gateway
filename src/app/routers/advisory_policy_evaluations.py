@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from fastapi import APIRouter, Header, Path
 
 from app.contracts.advisory_policy import (
@@ -10,10 +12,36 @@ from app.routers.advisory_policy_common import (
     AdvisoryPolicyRouteResponse,
     admitted_policy_write,
 )
-from app.services.advisory_policy_access_policy import POLICY_EVALUATION_FINALIZE
+from app.services.advisory_policy_access_policy import (
+    POLICY_EVALUATION_FINALIZE,
+    AdvisoryPolicyCallerContext,
+    AdvisoryPolicyCallerContextError,
+)
 from app.services.advisory_service_provider import advisory_policy_service
 
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
+
+
+def _require_finalize_request_scope(
+    *, caller: AdvisoryPolicyCallerContext, proposal_id: str, body: Mapping[str, object]
+) -> None:
+    """Refuse business identifiers outside the caller's already-admitted scope."""
+    evidence = body.get("evidence_bundle")
+    inputs = evidence.get("inputs") if isinstance(evidence, Mapping) else None
+    snapshot = inputs.get("portfolio_snapshot") if isinstance(inputs, Mapping) else None
+    portfolio_id = (
+        str(snapshot.get("portfolio_id") or "").strip() if isinstance(snapshot, Mapping) else None
+    )
+    if (
+        caller.authorized_proposal_id != proposal_id
+        or not portfolio_id
+        or caller.authorized_portfolio_id != portfolio_id
+    ):
+        raise AdvisoryPolicyCallerContextError(
+            code="advisory_policy_evaluation_scope_denied",
+            message="Advisory-policy evaluation scope does not cover this request.",
+            status_code=403,
+        )
 
 
 async def _create_policy_evaluation(
@@ -27,6 +55,11 @@ async def _create_policy_evaluation(
     return await admitted_policy_write(
         operation=POLICY_EVALUATION_FINALIZE,
         caller_headers=caller_headers,
+        request_scope_validator=lambda caller: _require_finalize_request_scope(
+            caller=caller,
+            proposal_id=proposal_id,
+            body=request.body,
+        ),
         call=lambda caller, correlation_id: advisory_policy_service().create_policy_evaluation(
             proposal_id=proposal_id,
             proposal_version_id=proposal_version_id,

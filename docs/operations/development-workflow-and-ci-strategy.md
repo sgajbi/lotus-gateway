@@ -20,16 +20,19 @@ available, the helper emits a warning and exits successfully so an authorized hu
 can perform the rebase merge without leaving a false red CI check.
 
 Merged PRs into `main` are followed by the `Merged PR Main Releasability Dispatch` workflow, which
-creates or reuses an immutable `main-releasability-<merge-sha>` validation tag and dispatches
-`main-releasability.yml` through that tag after GitHub reports a closed pull request as merged. The
-dispatcher passes `expected_sha=<merge-sha>` and `source_branch=main`, so the workflow validates the
-exact merged commit while release metadata, provenance, manifests, and `/version` continue to
-describe the mainline source branch instead of the synthetic dispatch tag. This preserves exact-main
+dispatches `main-releasability.yml` from governed `main` after GitHub reports a closed pull request
+as merged. It passes `expected_sha=<merge-sha>` with
+`source_branch=main`. The workflow definition is therefore governed main, while every job checks
+out and validates the exact merged source. Release metadata, provenance, manifests, and `/version`
+record their distinct evaluated-source and workflow-definition identities. This preserves exact-main
 Main Releasability evidence across both automated and authorized manual rebase merges without a
-mutable-`main` race. Main Releasability concurrency is always keyed by the checked-out GitHub SHA;
-`expected_sha` is an assertion rather than a scheduling identity. Reruns for one revision therefore
-supersede only that revision, and a malformed manual input cannot cancel evidence for a different
-merged commit.
+mutable-`main` race. Main Releasability concurrency is keyed by the evaluated source SHA;
+`expected_sha` identifies the evaluated source and the scheduling identity. The dispatcher invokes
+the workflow from `main`, so GitHub reads the governed workflow definition, then every release-gate
+checkout pins to that immutable source SHA. The first job proves it remains an ancestor of freshly
+fetched `main` and records it separately from the workflow-definition SHA. Reruns for one revision
+therefore supersede only that revision, while a malformed input is refused before release evidence
+is emitted.
 The main releasability workflow is intentionally `workflow_dispatch`-only; the merged-PR dispatcher
 is the single automatic post-merge path and prevents duplicate push-triggered and dispatch-triggered
 main releasability runs for the same merge.

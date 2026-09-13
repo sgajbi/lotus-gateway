@@ -84,6 +84,7 @@ POLICY_EVALUATION_FINALIZE = AdvisoryPolicyOperation(
     name="policy_evaluation.finalize",
     capability="advisory.policy_evaluation.finalize",
     permitted_roles=frozenset({ADVISOR_ROLE}),
+    requires_evaluation_scope=True,
 )
 POLICY_EVALUATION_REVIEW_EVENT = AdvisoryPolicyOperation(
     name="policy_evaluation.review_event",

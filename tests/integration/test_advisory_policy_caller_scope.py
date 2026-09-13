@@ -58,7 +58,12 @@ WRITE_ROUTES: dict[str, tuple[str, str, dict[str, Any], str, str, str | None]] =
     "policy_evaluation.finalize": (
         "post",
         "/api/v1/proposals/pp_001/versions/ppv_001/policy-evaluations",
-        {"body": {"created_by": "someone_else"}},
+        {
+            "body": {
+                "created_by": "someone_else",
+                "evidence_bundle": {"inputs": {"portfolio_snapshot": {"portfolio_id": "PORT_001"}}},
+            }
+        },
         "ADVISOR",
         "advisory.policy_evaluation.finalize",
         "idem-create-1",
@@ -386,6 +391,95 @@ def test_policy_steward_action_forwards_admitted_resource_scope_without_generic_
     assert write["headers"]["X-Capabilities"] == "advisory.policy_evaluation.review_event"
     assert write["headers"]["X-Authorized-Proposal-Id"] == "pp_steward_001"
     assert write["headers"]["X-Authorized-Portfolio-Id"] == "PB_CH_STEWARD_001"
+
+
+def test_finalize_forwards_only_matching_admitted_resources_on_idempotent_replay(
+    monkeypatch,
+) -> None:
+    """A repeated create does not turn request identifiers into new authority."""
+    transport = _Transport()
+    transport.install(monkeypatch)
+    path = "/api/v1/proposals/pp_scope_a/versions/ppv_001/policy-evaluations"
+    body = {
+        "body": {
+            "evidence_bundle": {"inputs": {"portfolio_snapshot": {"portfolio_id": "PORT_SCOPE_A"}}}
+        }
+    }
+    headers = _headers(
+        role="ADVISOR",
+        capabilities="advisory.policy_evaluation.finalize",
+        idempotency_key="idem-finalize-scope-a",
+        authorized_proposal_id="pp_scope_a",
+        authorized_portfolio_id="PORT_SCOPE_A",
+    )
+
+    client = TestClient(app)
+    first = client.post(path, json=body, headers=headers)
+    replay = client.post(path, json=body, headers=headers)
+
+    assert first.status_code == 200, first.text
+    assert replay.status_code == 200, replay.text
+    assert len(transport.posts) == 2
+    for outbound in transport.posts:
+        assert outbound["headers"]["X-Authorized-Proposal-Id"] == "pp_scope_a"
+        assert outbound["headers"]["X-Authorized-Portfolio-Id"] == "PORT_SCOPE_A"
+        assert outbound["headers"]["Idempotency-Key"] == "idem-finalize-scope-a"
+
+
+@pytest.mark.parametrize(
+    ("path_proposal", "body_portfolio", "grant_proposal", "grant_portfolio", "expected_code"),
+    [
+        (
+            "pp_scope_b",
+            "PORT_SCOPE_A",
+            "pp_scope_a",
+            "PORT_SCOPE_A",
+            "advisory_policy_evaluation_scope_denied",
+        ),
+        (
+            "pp_scope_a",
+            "PORT_SCOPE_B",
+            "pp_scope_a",
+            "PORT_SCOPE_A",
+            "advisory_policy_evaluation_scope_denied",
+        ),
+        ("pp_scope_a", "PORT_SCOPE_A", None, None, "advisory_policy_evaluation_scope_required"),
+    ],
+)
+def test_finalize_refuses_missing_or_mismatched_resource_scope_before_outbound_io(
+    monkeypatch,
+    path_proposal,
+    body_portfolio,
+    grant_proposal,
+    grant_portfolio,
+    expected_code,
+) -> None:
+    """Path and evidence IDs are checked against grants; neither can mint one."""
+    transport = _Transport()
+    transport.install(monkeypatch)
+
+    response = TestClient(app).post(
+        f"/api/v1/proposals/{path_proposal}/versions/ppv_001/policy-evaluations",
+        json={
+            "body": {
+                "evidence_bundle": {
+                    "inputs": {"portfolio_snapshot": {"portfolio_id": body_portfolio}}
+                }
+            }
+        },
+        headers=_headers(
+            role="ADVISOR",
+            capabilities="advisory.policy_evaluation.finalize",
+            idempotency_key="idem-finalize-scope-refused",
+            authorized_proposal_id=grant_proposal,
+            authorized_portfolio_id=grant_portfolio,
+        ),
+    )
+
+    assert response.status_code == 403, response.text
+    assert response.json()["code"] == expected_code
+    assert transport.posts == []
+    assert transport.gets == []
 
 
 def test_replay_forwards_the_producer_owned_read_capability(monkeypatch) -> None:

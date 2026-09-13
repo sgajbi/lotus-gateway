@@ -3926,7 +3926,12 @@ async def test_advise_client_policy_writes_carry_the_admitted_caller(
     _FakeAsyncClient.queue_json(200, {"ok": True})
 
     status_code, payload = await getattr(client, method_name)(
-        **kwargs, caller=_policy_caller(role, capability)
+        **kwargs,
+        caller=_policy_caller(
+            role,
+            capability,
+            requires_evaluation_scope=method_name == "create_policy_evaluation",
+        ),
     )
 
     assert status_code == 200
@@ -3950,8 +3955,8 @@ async def test_advise_client_policy_writes_carry_the_admitted_caller(
     assert call["headers"]["X-Service-Identity"] == "lotus-gateway"
 
     if method_name == "create_policy_evaluation":
-        # Business scope derived from the payload, which is legitimate: these say
-        # what the evaluation is ABOUT, not who may act.
+        # Request identifiers say what the evaluation is about; the route proved
+        # them against these admitted values before the client was called.
         assert call["headers"]["X-Authorized-Proposal-Id"] == "pp_001"
         assert call["headers"]["X-Authorized-Portfolio-Id"] == "PB_SG_GLOBAL_BAL_001"
 
