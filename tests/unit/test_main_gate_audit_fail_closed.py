@@ -454,7 +454,10 @@ def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch
     assert audit.classify(audit._gate_runs(definition_b, runs)).state == audit.FAILING
 
 
-def test_ambiguous_mainline_title_fails_closed_instead_of_falling_back_to_head(monkeypatch) -> None:
+def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypatch) -> None:
+    source_a = "a" * 40
+    source_b = "b" * 40
+
     class _Completed:
         returncode = 0
         stdout = json.dumps(
@@ -465,16 +468,27 @@ def test_ambiguous_mainline_title_fails_closed_instead_of_falling_back_to_head(m
                     "startedAt": "2026-09-01T00:00:00Z",
                     "databaseId": 1,
                     "attempt": 1,
-                    "headSha": "a" * 40,
+                    "headSha": source_b,
                     "displayTitle": "Main Releasability · not-a-sha",
-                }
+                },
+                {
+                    "conclusion": "success",
+                    "status": "completed",
+                    "startedAt": "2026-09-01T01:00:00Z",
+                    "databaseId": 2,
+                    "attempt": 1,
+                    "headSha": source_b,
+                    "displayTitle": f"Main Releasability · {source_a}",
+                },
             ]
         )
 
     runs = json.loads(_Completed.stdout)
 
-    assert audit._gate_runs("a" * 40, runs) is None
-    assert audit.classify(audit._gate_runs("a" * 40, runs)).state == audit.UNVERIFIABLE
+    assert audit.classify(audit._gate_runs(source_a, runs)).state == audit.PASSING
+    # Never manufacture B's authority from the workflow definition SHA: its
+    # malformed title leaves B uncovered, which --fail-on-gap treats as red.
+    assert audit.classify(audit._gate_runs(source_b, runs)).state == audit.UNGATED
 
 
 def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypatch) -> None:

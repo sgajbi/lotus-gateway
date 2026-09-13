@@ -261,8 +261,17 @@ def _gate_runs(sha: str, all_runs: list[dict[str, object]] | None) -> list[dict[
             return None
         evaluated_source = _evaluated_source_sha(run)
         if evaluated_source is None:
-            # An ambiguous association must not be converted into an apparently
-            # valid verdict for the workflow definition revision.
+            if str(run.get("displayTitle") or "").startswith("Main Releasability · "):
+                # A malformed mainline title cannot be associated with *any*
+                # source.  It must not fall back to the workflow-definition
+                # head SHA, but it also must not erase independently verified
+                # verdicts for every other source in the complete history.
+                # Its unknown source remains uncovered, so --fail-on-gap
+                # still fails closed without manufacturing an association.
+                continue
+            # A non-mainline run with no source identity is evidence whose
+            # association is ambiguous for this audit; do not classify from a
+            # listing that contains such a hole.
             return None
         if evaluated_source != sha:
             continue
