@@ -75,9 +75,7 @@ WORKFLOW = "main-releasability.yml"
 # are an exact rendering of the governed title; accepting neither leaves a
 # verified source uncovered, while accepting a loose prefix would manufacture
 # source identity from malformed operator text.
-_MAINLINE_RUN_TITLE = re.compile(
-    r"^Main Releasability (?:\u00b7|\u00c2\u00b7) ([0-9a-f]{40})$"
-)
+_MAINLINE_RUN_TITLE = re.compile(r"^Main Releasability (?:\u00b7|\u00c2\u00b7) ([0-9a-f]{40})$")
 _MAINLINE_RUN_TITLE_PREFIX = "Main Releasability "
 
 _SUCCESS_CONCLUSION = "success"
