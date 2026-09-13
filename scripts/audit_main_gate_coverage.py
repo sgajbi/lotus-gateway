@@ -76,7 +76,7 @@ WORKFLOW = "main-releasability.yml"
 # verified source uncovered, while accepting a loose prefix would manufacture
 # source identity from malformed operator text.
 _MAINLINE_RUN_TITLE = re.compile(r"^Main Releasability (?:\u00b7|\u00c2\u00b7) ([0-9a-f]{40})$")
-_MAINLINE_RUN_TITLE_PREFIX = "Main Releasability "
+_MAINLINE_RUN_TITLE_PREFIX = re.compile(r"^Main Releasability (?:\u00b7|\u00c2\u00b7) ")
 
 _SUCCESS_CONCLUSION = "success"
 
@@ -184,7 +184,7 @@ def _evaluated_source_sha(run: dict[str, object]) -> str | None:
     title must not fall back to headSha, because that recreates the mismatch.
     """
     title = str(run.get("displayTitle") or "")
-    if title.startswith(_MAINLINE_RUN_TITLE_PREFIX):
+    if _MAINLINE_RUN_TITLE_PREFIX.match(title):
         # A workflow_dispatch run can select any ref which carries this file.
         # Only GitHub's recorded main branch proves the title was rendered by
         # the governed workflow definition rather than a mutable feature ref.
@@ -273,7 +273,7 @@ def _gate_runs(sha: str, all_runs: list[dict[str, object]] | None) -> list[dict[
             return None
         evaluated_source = _evaluated_source_sha(run)
         if evaluated_source is None:
-            if str(run.get("displayTitle") or "").startswith(_MAINLINE_RUN_TITLE_PREFIX):
+            if _MAINLINE_RUN_TITLE_PREFIX.match(str(run.get("displayTitle") or "")):
                 # A malformed mainline title cannot be associated with *any*
                 # source.  It must not fall back to the workflow-definition
                 # head SHA, but it also must not erase independently verified

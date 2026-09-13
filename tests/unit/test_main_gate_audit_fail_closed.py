@@ -475,6 +475,24 @@ def test_mainline_source_identity_accepts_the_exact_rest_title_transport_form() 
     assert audit.classify(audit._gate_runs(source, runs)).state == audit.PASSING
 
 
+def test_legacy_workflow_name_keeps_immutable_head_sha_association() -> None:
+    source = "a" * 40
+    runs = [
+        {
+            "conclusion": "success",
+            "status": "completed",
+            "startedAt": "2026-09-01T00:00:00Z",
+            "databaseId": 1,
+            "attempt": 1,
+            "headSha": source,
+            "headBranch": "main",
+            "displayTitle": "Main Releasability Gate",
+        }
+    ]
+
+    assert audit.classify(audit._gate_runs(source, runs)).state == audit.PASSING
+
+
 def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypatch) -> None:
     source_a = "a" * 40
     source_b = "b" * 40
