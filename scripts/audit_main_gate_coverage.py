@@ -179,6 +179,11 @@ def _evaluated_source_sha(run: dict[str, object]) -> str | None:
     """
     title = str(run.get("displayTitle") or "")
     if title.startswith("Main Releasability · "):
+        # A workflow_dispatch run can select any ref which carries this file.
+        # Only GitHub's recorded main branch proves the title was rendered by
+        # the governed workflow definition rather than a mutable feature ref.
+        if run.get("headBranch") != "main":
+            return None
         matched = _MAINLINE_RUN_TITLE.fullmatch(title)
         return matched.group(1) if matched is not None else None
     head_sha = str(run.get("headSha") or "")
@@ -233,6 +238,7 @@ def _all_gate_runs() -> list[dict[str, object]] | None:
                     "databaseId": run.get("id"),
                     "attempt": run.get("run_attempt"),
                     "headSha": run.get("head_sha"),
+                    "headBranch": run.get("head_branch"),
                     "displayTitle": run.get("display_title"),
                 }
             )

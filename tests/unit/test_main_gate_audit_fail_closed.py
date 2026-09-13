@@ -434,6 +434,7 @@ def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch
                     "databaseId": 1,
                     "attempt": 1,
                     "headSha": definition_b,
+                    "headBranch": "main",
                     "displayTitle": f"Main Releasability · {definition_b}",
                 },
                 {
@@ -443,6 +444,7 @@ def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch
                     "databaseId": 2,
                     "attempt": 1,
                     "headSha": definition_b,
+                    "headBranch": "main",
                     "displayTitle": f"Main Releasability · {source_a}",
                 },
             ]
@@ -469,6 +471,7 @@ def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypat
                     "databaseId": 1,
                     "attempt": 1,
                     "headSha": source_b,
+                    "headBranch": "main",
                     "displayTitle": "Main Releasability · not-a-sha",
                 },
                 {
@@ -478,6 +481,7 @@ def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypat
                     "databaseId": 2,
                     "attempt": 1,
                     "headSha": source_b,
+                    "headBranch": "main",
                     "displayTitle": f"Main Releasability · {source_a}",
                 },
             ]
@@ -489,6 +493,24 @@ def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypat
     # Never manufacture B's authority from the workflow definition SHA: its
     # malformed title leaves B uncovered, which --fail-on-gap treats as red.
     assert audit.classify(audit._gate_runs(source_b, runs)).state == audit.UNGATED
+
+
+def test_mainline_title_from_an_ungoverned_branch_cannot_cover_a_source() -> None:
+    source = "a" * 40
+    runs = [
+        {
+            "conclusion": "success",
+            "status": "completed",
+            "startedAt": "2026-09-01T00:00:00Z",
+            "databaseId": 1,
+            "attempt": 1,
+            "headSha": "b" * 40,
+            "headBranch": "feature/weaken-gate",
+            "displayTitle": f"Main Releasability · {source}",
+        }
+    ]
+
+    assert audit.classify(audit._gate_runs(source, runs)).state == audit.UNGATED
 
 
 def test_the_fetcher_does_not_fill_a_missing_start_time_from_createdat(monkeypatch) -> None:
