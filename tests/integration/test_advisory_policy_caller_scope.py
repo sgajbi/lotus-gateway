@@ -118,8 +118,6 @@ class _Transport:
         async def _get(self, path, params, headers, operation) -> tuple[int, dict[str, Any]]:  # noqa: ANN001
             _ = self
             transport.gets.append({"path": path, "headers": headers})
-            # The evaluation-action paths read the record first to derive the
-            # authorized proposal/portfolio headers.
             return 200, {"proposal_id": "pp_001", "portfolio_id": "PORT_001"}
 
         monkeypatch.setattr("app.clients.advise_client.AdviseClient._post", _post)
@@ -134,6 +132,8 @@ def _headers(
     actor: str | None = CALLER_ACTOR,
     legal_entity: str | None = CALLER_LEGAL_ENTITY,
     idempotency_key: str | None,
+    authorized_proposal_id: str | None = "pp_001",
+    authorized_portfolio_id: str | None = "PORT_001",
 ) -> dict[str, str]:
     sent = {
         "X-Correlation-Id": "corr-policy-scope",
@@ -142,6 +142,8 @@ def _headers(
         "X-Legal-Entity-Code": legal_entity,
         "X-Role": role,
         "X-Caller-Capabilities": capabilities,
+        "X-Authorized-Proposal-Id": authorized_proposal_id,
+        "X-Authorized-Portfolio-Id": authorized_portfolio_id,
         "Idempotency-Key": idempotency_key,
     }
     return {name: value for name, value in sent.items() if value is not None}
@@ -208,7 +210,7 @@ def test_the_retired_constant_is_replaced_rather_than_merely_absent(operation, m
         assert call["headers"]["X-Tenant-Id"] == CALLER_TENANT, (
             f"{operation} must forward the caller's tenant, not merely omit the old one"
         )
-    # Absence second, across every outbound call including the scope read.
+    # Absence second, across every outbound call.
     for call in transport.posts + transport.gets:
         assert RETIRED_MINTED_TENANT not in call["headers"].values(), (
             f"{operation} still asserts the seeded tenant: {call['headers']}"
@@ -235,7 +237,7 @@ def test_missing_caller_context_is_refused_before_any_upstream_call(operation, m
     assert response.status_code == 400, response.text
     assert response.json()["code"] == "advisory_policy_caller_context_missing"
     assert transport.posts == [], "refused callers must not reach lotus-advise"
-    assert transport.gets == [], "not even the record read that derives scope headers"
+    assert transport.gets == []
 
 
 @pytest.mark.parametrize("operation", sorted(WRITE_ROUTES))
@@ -336,49 +338,83 @@ def test_a_malformed_tenant_is_refused(monkeypatch) -> None:
     assert transport.posts == []
 
 
-def test_replay_is_an_unfenced_write_and_is_pinned_as_one(monkeypatch) -> None:
-    """The EIGHTH write. It mutates through lotus-advise carrying no scope at all.
+def test_policy_steward_action_requires_admitted_resource_scope_before_upstream_io(
+    monkeypatch,
+) -> None:
+    transport = _Transport()
+    transport.install(monkeypatch)
 
-    `POST /advisory-policy-evaluations/{id}/replay` reaches Advise by the same
-    `_post` path as the seven admitted writes and sends only correlation context.
-    It was missed when this slice was scoped, and the documentation that said
-    "seven write routes" made that omission invisible: a list naming seven, with
-    only reads called out as a gap, reads as though every write is fenced.
+    response = TestClient(app).post(
+        "/api/v1/advisory-policy-evaluations/pev_001/events",
+        json={"body": {"actor_id": "someone_else"}},
+        headers=_headers(
+            role="POLICY_STEWARD",
+            capabilities="advisory.policy_evaluation.review_event",
+            idempotency_key=None,
+            authorized_proposal_id=None,
+            authorized_portfolio_id=None,
+        ),
+    )
 
-    Pinned rather than quietly fixed, because the repair needs a capability name
-    and inventing one here would be Gateway choosing authority vocabulary — the
-    exact thing this slice removed. Tracked as #760 for the lotus-advise
-    owner's decision.
+    assert response.status_code == 403, response.text
+    assert response.json()["code"] == "advisory_policy_evaluation_scope_required"
+    assert transport.posts == []
+    assert transport.gets == []
 
-    If replay starts carrying scope, this test fails and the claim gets revisited.
-    """
+
+def test_policy_steward_action_forwards_admitted_resource_scope_without_generic_read(
+    monkeypatch,
+) -> None:
+    transport = _Transport()
+    transport.install(monkeypatch)
+
+    response = TestClient(app).post(
+        "/api/v1/advisory-policy-evaluations/pev_001/events",
+        json={"body": {"actor_id": "someone_else"}},
+        headers=_headers(
+            role="POLICY_STEWARD",
+            capabilities="advisory.policy_evaluation.review_event",
+            idempotency_key=None,
+            authorized_proposal_id="pp_steward_001",
+            authorized_portfolio_id="PB_CH_STEWARD_001",
+        ),
+    )
+
+    assert response.status_code == 200, response.text
+    assert transport.gets == []
+    [write] = transport.posts
+    assert write["headers"]["X-Capabilities"] == "advisory.policy_evaluation.review_event"
+    assert write["headers"]["X-Authorized-Proposal-Id"] == "pp_steward_001"
+    assert write["headers"]["X-Authorized-Portfolio-Id"] == "PB_CH_STEWARD_001"
+
+
+def test_replay_forwards_the_producer_owned_read_capability(monkeypatch) -> None:
+    """Replay is POST-shaped transport but Advise governs it as a tenant-scoped read."""
     transport = _Transport()
     transport.install(monkeypatch)
 
     response = TestClient(app).post(
         "/api/v1/advisory-policy-evaluations/pev_001/replay",
         json={"body": {"reason": "supervisory review"}},
-        headers={"X-Correlation-Id": "corr-policy-replay"},
+        headers=_headers(
+            role="ADVISOR",
+            capabilities="advisory.policy_evaluation.read",
+            idempotency_key=None,
+        ),
     )
 
     assert response.status_code == 200, response.text
     assert len(transport.posts) == 1, "replay is a write and does reach lotus-advise"
     sent = transport.posts[0]["headers"]
-    for absent in ("X-Tenant-Id", "X-Actor-Id", "X-Role", "X-Capabilities"):
-        assert absent not in sent, (
-            f"replay now sends {absent}; it has been fenced, so update the "
-            "documentation that records it as a gap"
-        )
+    assert sent["X-Tenant-Id"] == CALLER_TENANT
+    assert sent["X-Actor-Id"] == CALLER_ACTOR
+    assert sent["X-Role"] == "ADVISOR"
+    assert sent["X-Capabilities"] == "advisory.policy_evaluation.read"
+    assert "X-Authorized-Proposal-Id" not in sent
+    assert "X-Authorized-Portfolio-Id" not in sent
 
 
-def test_read_routes_are_unchanged_by_this_slice(monkeypatch) -> None:
-    """Reads still require no caller context — deliberately, and it is a known gap.
-
-    This slice corrects the WRITES, which minted authority. The read paths send no
-    tenant at all, which is a separate defect with its own issue rather than
-    something silently folded in here. Pinning the current behaviour keeps that
-    honest: if reads start refusing, this test fails and the claim gets revisited.
-    """
+def test_evaluation_read_refuses_missing_authority_before_upstream_io(monkeypatch) -> None:
     transport = _Transport()
     transport.install(monkeypatch)
 
@@ -387,6 +423,24 @@ def test_read_routes_are_unchanged_by_this_slice(monkeypatch) -> None:
         headers={"X-Correlation-Id": "corr-policy-read"},
     )
 
-    assert response.status_code == 200
-    assert len(transport.gets) == 1
-    assert "X-Tenant-Id" not in transport.gets[0]["headers"]
+    assert response.status_code == 400
+    assert response.json()["code"] == "advisory_policy_caller_context_missing"
+    assert transport.gets == []
+
+
+def test_policy_steward_is_not_promoted_to_a_generic_evaluation_reader(monkeypatch) -> None:
+    transport = _Transport()
+    transport.install(monkeypatch)
+
+    response = TestClient(app).get(
+        "/api/v1/advisory-policy-evaluations/pev_001",
+        headers=_headers(
+            role="POLICY_STEWARD",
+            capabilities="advisory.policy_evaluation.read",
+            idempotency_key=None,
+        ),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "advisory_policy_access_denied"
+    assert transport.gets == []

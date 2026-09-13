@@ -13,7 +13,7 @@ The one identity Gateway still asserts is its own: `X-Service-Identity`.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 
 from app.services.advisory_policy_access_policy import (
@@ -22,7 +22,6 @@ from app.services.advisory_policy_access_policy import (
 )
 
 HeaderFactory = Callable[[str, dict[str, str] | None], dict[str, str]]
-PolicyEvaluationReader = Callable[[str, str], Awaitable[tuple[int, dict[str, Any]]]]
 
 
 def build_policy_control_headers(
@@ -42,6 +41,10 @@ def build_policy_control_headers(
         "X-Service-Identity": POLICY_CONTROL_SERVICE_IDENTITY,
         "X-Capabilities": caller.capability,
     }
+    if caller.authorized_proposal_id is not None:
+        extras["X-Authorized-Proposal-Id"] = caller.authorized_proposal_id
+    if caller.authorized_portfolio_id is not None:
+        extras["X-Authorized-Portfolio-Id"] = caller.authorized_portfolio_id
     if idempotency_key is not None:
         extras["Idempotency-Key"] = idempotency_key
     if authorized_proposal_id is not None:
@@ -49,28 +52,6 @@ def build_policy_control_headers(
     if authorized_portfolio_id is not None:
         extras["X-Authorized-Portfolio-Id"] = authorized_portfolio_id
     return headers_factory(correlation_id, extras)
-
-
-async def build_policy_evaluation_control_headers(
-    *,
-    read_policy_evaluation: PolicyEvaluationReader,
-    headers_factory: HeaderFactory,
-    evaluation_id: str,
-    correlation_id: str,
-    caller: AdvisoryPolicyCallerContext,
-    idempotency_key: str | None,
-) -> dict[str, str] | tuple[int, dict[str, Any]]:
-    status_code, record = await read_policy_evaluation(evaluation_id, correlation_id)
-    if status_code >= 400:
-        return status_code, record
-    return build_policy_control_headers(
-        headers_factory,
-        correlation_id,
-        caller=caller,
-        idempotency_key=idempotency_key,
-        authorized_proposal_id=record_value(record, "proposal_id"),
-        authorized_portfolio_id=record_value(record, "portfolio_id"),
-    )
 
 
 def evidence_portfolio_id(body: dict[str, Any]) -> str | None:
@@ -91,8 +72,3 @@ def evidence_portfolio_id(body: dict[str, Any]) -> str | None:
         return None
     portfolio_id = str(portfolio_snapshot.get("portfolio_id") or "").strip()
     return portfolio_id or None
-
-
-def record_value(record: dict[str, Any], key: str) -> str | None:
-    value = str(record.get(key) or "").strip()
-    return value or None

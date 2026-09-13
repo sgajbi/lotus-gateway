@@ -11,6 +11,7 @@ from app.contracts.advisory_policy import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.advisory_policy_access_policy import (
+    POLICY_EVALUATION_READ,
     AdvisoryPolicyCallerContext,
     AdvisoryPolicyCallerContextError,
     AdvisoryPolicyOperation,
@@ -36,7 +37,8 @@ CALLER_CONTEXT_RESPONSES: dict[int | str, dict[str, object]] = {
     403: {
         "model": AdvisoryPolicyErrorResponse,
         "description": (
-            "The caller's role and capabilities do not cover this advisory-policy operation. "
+            "The caller's role, capability, or required evaluation resource scope does not cover "
+            "this advisory-policy operation. "
             "No request is made to lotus-advise."
         ),
     },
@@ -50,6 +52,8 @@ class AdvisoryPolicyCallerHeaders:
     legal_entity_code: str | None
     role: str | None
     capabilities: str | None
+    authorized_proposal_id: str | None
+    authorized_portfolio_id: str | None
 
 
 def advisory_policy_caller_headers(
@@ -60,6 +64,10 @@ def advisory_policy_caller_headers(
     legal_entity_code: Annotated[str | None, Header(alias="X-Legal-Entity-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
     capabilities: Annotated[str | None, Header(alias="X-Caller-Capabilities")] = None,
+    authorized_proposal_id: Annotated[str | None, Header(alias="X-Authorized-Proposal-Id")] = None,
+    authorized_portfolio_id: Annotated[
+        str | None, Header(alias="X-Authorized-Portfolio-Id")
+    ] = None,
 ) -> AdvisoryPolicyCallerHeaders:
     return AdvisoryPolicyCallerHeaders(
         actor_id=actor_id,
@@ -67,6 +75,8 @@ def advisory_policy_caller_headers(
         legal_entity_code=legal_entity_code,
         role=role,
         capabilities=capabilities,
+        authorized_proposal_id=authorized_proposal_id,
+        authorized_portfolio_id=authorized_portfolio_id,
     )
 
 
@@ -95,6 +105,8 @@ def admit_advisory_policy_caller(
         legal_entity_code=caller_headers.legal_entity_code,
         role=caller_headers.role,
         capabilities=caller_headers.capabilities,
+        authorized_proposal_id=caller_headers.authorized_proposal_id,
+        authorized_portfolio_id=caller_headers.authorized_portfolio_id,
     )
 
 
@@ -121,6 +133,19 @@ async def admitted_policy_write(
     except AdvisoryPolicyCallerContextError as exc:
         return advisory_policy_error_response(error=exc, correlation_id=correlation_id)
     return await call(caller, correlation_id)
+
+
+async def admitted_policy_read(
+    *,
+    caller_headers: AdvisoryPolicyCallerHeaders,
+    call: Callable[[AdvisoryPolicyCallerContext, str], Awaitable[AdvisoryPolicyEnvelopeResponse]],
+) -> AdvisoryPolicyEnvelopeResponse | JSONResponse:
+    """Admit a tenant-owned policy-evaluation read before any outbound I/O."""
+    return await admitted_policy_write(
+        operation=POLICY_EVALUATION_READ,
+        caller_headers=caller_headers,
+        call=call,
+    )
 
 
 def advisory_policy_error_response(

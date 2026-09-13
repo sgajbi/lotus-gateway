@@ -33,20 +33,14 @@ from app.routers.advisory_policy_ai_evidence import (
 from app.routers.advisory_policy_evaluation_actions import (
     router as advisory_policy_evaluation_actions_router,
 )
-from app.routers.advisory_policy_evaluation_detail import (
-    router as advisory_policy_evaluation_detail_router,
-)
 from app.routers.advisory_policy_evaluation_events import (
     router as advisory_policy_evaluation_events_router,
 )
-from app.routers.advisory_policy_evaluation_evidence import (
-    router as advisory_policy_evaluation_evidence_router,
+from app.routers.advisory_policy_evaluation_reads import (
+    router as advisory_policy_evaluation_reads_router,
 )
 from app.routers.advisory_policy_evaluation_support_actions import (
     router as advisory_policy_evaluation_support_actions_router,
-)
-from app.routers.advisory_policy_evaluation_workflow import (
-    router as advisory_policy_evaluation_workflow_router,
 )
 from app.routers.advisory_policy_evaluations import (
     router as advisory_policy_evaluations_router,
@@ -59,9 +53,6 @@ from app.routers.advisory_policy_review_queue import (
 )
 from app.routers.advisory_policy_sign_off_decisions import (
     router as advisory_policy_sign_off_decisions_router,
-)
-from app.routers.advisory_policy_sign_off_package import (
-    router as advisory_policy_sign_off_package_router,
 )
 from app.routers.advisory_policy_validation import (
     router as advisory_policy_validation_router,
@@ -210,14 +201,11 @@ ADVISORY_POLICY_ROUTERS: RouterGroup = (
     advisory_policy_actions_router,
     advisory_policy_evaluations_router,
     advisory_policy_review_queue_router,
-    advisory_policy_evaluation_detail_router,
-    advisory_policy_evaluation_evidence_router,
-    advisory_policy_evaluation_workflow_router,
+    advisory_policy_evaluation_reads_router,
     advisory_policy_evaluation_actions_router,
     advisory_policy_evaluation_events_router,
     advisory_policy_evaluation_support_actions_router,
     advisory_policy_sign_off_decisions_router,
-    advisory_policy_sign_off_package_router,
     advisory_policy_ai_evidence_router,
     advisory_policy_validation_router,
 )

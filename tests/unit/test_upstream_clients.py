@@ -3783,7 +3783,9 @@ POLICY_CALLER_TENANT = "tenant_ch_004"
 POLICY_CALLER_LEGAL_ENTITY = "CH_ZURICH"
 
 
-def _policy_caller(role: str, capability: str) -> AdvisoryPolicyCallerContext:
+def _policy_caller(
+    role: str, capability: str, *, requires_evaluation_scope: bool = False
+) -> AdvisoryPolicyCallerContext:
     """The scope a route would have admitted, for a client-level test.
 
     These tests assert what leaves Gateway. They previously asserted
@@ -3798,6 +3800,8 @@ def _policy_caller(role: str, capability: str) -> AdvisoryPolicyCallerContext:
         legal_entity_code=POLICY_CALLER_LEGAL_ENTITY,
         role=role,
         capability=capability,
+        authorized_proposal_id="pp_001" if requires_evaluation_scope else None,
+        authorized_portfolio_id="PB_SG_GLOBAL_BAL_001" if requires_evaluation_scope else None,
     )
 
 
@@ -3821,12 +3825,12 @@ def _policy_caller(role: str, capability: str) -> AdvisoryPolicyCallerContext:
         ),
     ],
 )
-async def test_advise_client_policy_reads_send_no_authority_headers(
+async def test_advise_client_shared_policy_pack_reads_send_no_authority_headers(
     method_name,
     kwargs,
     expected_url,
 ):
-    """Policy reads carry correlation only — and that is a known, separate gap.
+    """Shared policy-pack catalog reads carry correlation only by producer design.
 
     Pinned deliberately rather than left unstated: these routes send no tenant at
     all, so lotus-advise cannot scope them to a caller. That is a different defect
@@ -3970,7 +3974,7 @@ async def test_advise_client_policy_writes_carry_the_admitted_caller(
             "idem-policy-event",
             "http://advise/advisory/policy-evaluations/pev_001/events",
             "compliance_1",
-            "COMPLIANCE_REVIEWER",
+            "POLICY_STEWARD",
             "advisory.policy_evaluation.review_event",
         ),
         (
@@ -4002,7 +4006,7 @@ async def test_advise_client_policy_writes_carry_the_admitted_caller(
         ),
     ],
 )
-async def test_advise_client_policy_support_actions_bind_trusted_scope_from_record(
+async def test_advise_client_policy_support_actions_preserve_action_only_authority(
     method_name,
     body,
     idempotency_key,
@@ -4012,14 +4016,6 @@ async def test_advise_client_policy_support_actions_bind_trusted_scope_from_reco
     expected_capability,
 ) -> None:
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
-    _FakeAsyncClient.queue_json(
-        200,
-        {
-            "evaluation_id": "pev_001",
-            "proposal_id": "pp_001",
-            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        },
-    )
     _FakeAsyncClient.queue_json(200, {"ok": True})
 
     method = getattr(client, method_name)
@@ -4028,15 +4024,12 @@ async def test_advise_client_policy_support_actions_bind_trusted_scope_from_reco
         body=body,
         idempotency_key=idempotency_key,
         correlation_id="corr-policy",
-        caller=_policy_caller(expected_role, expected_capability),
+        caller=_policy_caller(expected_role, expected_capability, requires_evaluation_scope=True),
     )
 
     assert status_code == 200
     assert payload["ok"] is True
-    scope_read, mutation = _FakeAsyncClient.calls
-    assert scope_read["method"] == "GET"
-    assert scope_read["url"] == "http://advise/advisory/policy-evaluations/pev_001"
-    assert scope_read["headers"]["X-Correlation-Id"] == "corr-policy"
+    [mutation] = _FakeAsyncClient.calls
     assert mutation["method"] == "POST"
     assert mutation["url"] == expected_url
     assert mutation["json"] == body
@@ -4055,7 +4048,7 @@ async def test_advise_client_policy_support_actions_bind_trusted_scope_from_reco
 
 
 @pytest.mark.asyncio
-async def test_advise_client_policy_support_action_returns_scope_read_failure() -> None:
+async def test_advise_client_policy_support_action_forwards_missing_record_to_owner() -> None:
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(404, {"detail": "missing evaluation"})
 
@@ -4064,14 +4057,22 @@ async def test_advise_client_policy_support_action_returns_scope_read_failure() 
         body={"decision": "APPROVE", "decided_by": "policy_checker_1"},
         idempotency_key="idem-policy-signoff-missing",
         correlation_id="corr-policy",
-        caller=_policy_caller("POLICY_CHECKER", "advisory.policy_evaluation.sign_off"),
+        caller=_policy_caller(
+            "POLICY_CHECKER",
+            "advisory.policy_evaluation.sign_off",
+            requires_evaluation_scope=True,
+        ),
     )
 
     assert status_code == 404
     assert payload == {"detail": "missing evaluation"}
     assert len(_FakeAsyncClient.calls) == 1
     assert _FakeAsyncClient.calls[0]["url"] == (
-        "http://advise/advisory/policy-evaluations/pev_missing"
+        "http://advise/advisory/policy-evaluations/pev_missing/sign-off-decisions"
+    )
+    assert _FakeAsyncClient.calls[0]["method"] == "POST"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == (
+        "advisory.policy_evaluation.sign_off"
     )
 
 
@@ -4084,6 +4085,7 @@ async def test_advise_client_policy_review_queue_omits_empty_filters() -> None:
         evaluation_status=None,
         portfolio_id=None,
         correlation_id="corr-policy-queue",
+        caller=_policy_caller("ADVISOR", "advisory.policy_evaluation.read"),
     )
 
     assert status_code == 200
@@ -4092,6 +4094,9 @@ async def test_advise_client_policy_review_queue_omits_empty_filters() -> None:
     )
     assert _FakeAsyncClient.calls[0]["params"] == {}
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-policy-queue"
+    assert (
+        _FakeAsyncClient.calls[0]["headers"]["X-Capabilities"] == "advisory.policy_evaluation.read"
+    )
 
 
 @pytest.mark.asyncio
@@ -4103,6 +4108,7 @@ async def test_advise_client_policy_review_queue_forwards_portfolio_filter() -> 
         evaluation_status="PENDING_REVIEW",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         correlation_id="corr-policy-queue",
+        caller=_policy_caller("ADVISOR", "advisory.policy_evaluation.read"),
     )
 
     assert status_code == 200

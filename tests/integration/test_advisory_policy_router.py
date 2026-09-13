@@ -3,6 +3,17 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def _evaluation_read_headers(correlation_id: str) -> dict[str, str]:
+    return {
+        "X-Correlation-Id": correlation_id,
+        "X-Actor-Id": "advisor_zoe",
+        "X-Tenant-Id": "tenant_ch_004",
+        "X-Legal-Entity-Code": "CH_ZURICH",
+        "X-Role": "ADVISOR",
+        "X-Caller-Capabilities": "advisory.policy_evaluation.read",
+    }
+
+
 def test_policy_pack_routes_forward_to_advise_with_idempotency(monkeypatch):
     captured: dict[str, object] = {}
 
@@ -166,7 +177,7 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
             },
         }
 
-    async def _fake_queue(self, evaluation_status, portfolio_id, correlation_id):  # noqa: ANN001
+    async def _fake_queue(self, evaluation_status, portfolio_id, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["queue"] = {
             "evaluation_status": evaluation_status,
@@ -175,12 +186,12 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         }
         return 200, {"items": [{"evaluation_id": "pev_001", "queue": "Compliance"}]}
 
-    async def _fake_workflow(self, evaluation_id, correlation_id):  # noqa: ANN001
+    async def _fake_workflow(self, evaluation_id, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["workflow"] = {"evaluation_id": evaluation_id, "correlation_id": correlation_id}
         return 200, {"evaluation_id": evaluation_id, "required_roles": ["COMPLIANCE"]}
 
-    async def _fake_sign_off_package(self, evaluation_id, correlation_id):  # noqa: ANN001
+    async def _fake_sign_off_package(self, evaluation_id, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["sign_off_package"] = {
             "evaluation_id": evaluation_id,
@@ -253,15 +264,15 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
     queue_response = client.get(
         "/api/v1/advisory-policy-evaluations/review-queue"
         "?evaluation_status=PENDING_REVIEW&portfolio_id=PB_SG_GLOBAL_BAL_001",
-        headers={"X-Correlation-Id": "corr-policy-queue"},
+        headers=_evaluation_read_headers("corr-policy-queue"),
     )
     workflow_response = client.get(
         "/api/v1/advisory-policy-evaluations/pev_001/workflow",
-        headers={"X-Correlation-Id": "corr-policy-workflow"},
+        headers=_evaluation_read_headers("corr-policy-workflow"),
     )
     sign_off_response = client.get(
         "/api/v1/advisory-policy-evaluations/pev_001/sign-off-package",
-        headers={"X-Correlation-Id": "corr-policy-signoff-package"},
+        headers=_evaluation_read_headers("corr-policy-signoff-package"),
     )
     ai_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/ai-evidence",
@@ -274,6 +285,8 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
             "X-Legal-Entity-Code": "CH_ZURICH",
             "X-Role": "COMPLIANCE_REVIEWER",
             "X-Caller-Capabilities": "advisory.policy_evaluation.ai_evidence",
+            "X-Authorized-Proposal-Id": "pp_001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
         },
     )
 
@@ -318,12 +331,12 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
 def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchanged(monkeypatch):
     captured: dict[str, object] = {}
 
-    async def _fake_get_evaluation(self, evaluation_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_evaluation(self, evaluation_id, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["get"] = {"evaluation_id": evaluation_id, "correlation_id": correlation_id}
         return 200, {"evaluation_id": evaluation_id, "evaluation_status": "BLOCKED"}
 
-    async def _fake_replay(self, evaluation_id, body, correlation_id):  # noqa: ANN001
+    async def _fake_replay(self, evaluation_id, body, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["replay"] = {
             "evaluation_id": evaluation_id,
@@ -342,7 +355,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         }
         return 200, {"evaluation_id": evaluation_id, "event_recorded": True}
 
-    async def _fake_lineage(self, evaluation_id, correlation_id):  # noqa: ANN001
+    async def _fake_lineage(self, evaluation_id, correlation_id, caller):  # noqa: ANN001
         _ = self
         captured["lineage"] = {"evaluation_id": evaluation_id, "correlation_id": correlation_id}
         return 200, {"evaluation_id": evaluation_id, "source_hashes": ["sha256:abc"]}
@@ -395,12 +408,12 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
     client = TestClient(app)
     get_response = client.get(
         "/api/v1/advisory-policy-evaluations/pev_001",
-        headers={"X-Correlation-Id": "corr-policy-get-evaluation"},
+        headers=_evaluation_read_headers("corr-policy-get-evaluation"),
     )
     replay_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/replay",
         json={"body": {"requested_by": "support_1"}},
-        headers={"X-Correlation-Id": "corr-policy-replay"},
+        headers=_evaluation_read_headers("corr-policy-replay"),
     )
     event_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/events",
@@ -413,11 +426,13 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
             "X-Legal-Entity-Code": "CH_ZURICH",
             "X-Role": "COMPLIANCE_REVIEWER",
             "X-Caller-Capabilities": "advisory.policy_evaluation.review_event",
+            "X-Authorized-Proposal-Id": "pp_001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
         },
     )
     lineage_response = client.get(
         "/api/v1/advisory-policy-evaluations/pev_001/lineage",
-        headers={"X-Correlation-Id": "corr-policy-lineage"},
+        headers=_evaluation_read_headers("corr-policy-lineage"),
     )
     decision_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/sign-off-decisions",
@@ -430,6 +445,8 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
             "X-Legal-Entity-Code": "CH_ZURICH",
             "X-Role": "POLICY_CHECKER",
             "X-Caller-Capabilities": "advisory.policy_evaluation.sign_off",
+            "X-Authorized-Proposal-Id": "pp_001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
         },
     )
     report_response = client.post(
@@ -443,6 +460,8 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
             "X-Legal-Entity-Code": "CH_ZURICH",
             "X-Role": "POLICY_CHECKER",
             "X-Caller-Capabilities": "advisory.policy_evaluation.report_package",
+            "X-Authorized-Proposal-Id": "pp_001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
         },
     )
 
