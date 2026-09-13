@@ -456,6 +456,25 @@ def test_mainline_source_identity_beats_workflow_definition_head_sha(monkeypatch
     assert audit.classify(audit._gate_runs(definition_b, runs)).state == audit.FAILING
 
 
+def test_mainline_source_identity_accepts_the_exact_rest_title_transport_form() -> None:
+    """GitHub may return the canonical middle dot as UTF-8-as-Latin-1 text."""
+    source = "a" * 40
+    runs = [
+        {
+            "conclusion": "success",
+            "status": "completed",
+            "startedAt": "2026-09-01T00:00:00Z",
+            "databaseId": 1,
+            "attempt": 1,
+            "headSha": "b" * 40,
+            "headBranch": "main",
+            "displayTitle": f"Main Releasability \u00c2\u00b7 {source}",
+        }
+    ]
+
+    assert audit.classify(audit._gate_runs(source, runs)).state == audit.PASSING
+
+
 def test_malformed_mainline_title_does_not_erase_other_source_verdicts(monkeypatch) -> None:
     source_a = "a" * 40
     source_b = "b" * 40

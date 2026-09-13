@@ -281,8 +281,8 @@ the same source revision may supersede one another.
 ## Container release evidence
 
 For mainline-ref dispatches, `headSha` identifies the workflow definition, not necessarily the
-evaluated source. The coverage audit binds each verdict to the SHA in `Main Releasability · <sha>`
-only when GitHub also records `headBranch` as `main`; it fails closed on malformed or ungoverned
+evaluated source. The coverage audit binds each verdict to the SHA in the exact `Main Releasability · <sha>`
+title (including GitHub REST's observed UTF-8-as-Latin-1 delimiter rendering) only when GitHub also records `headBranch` as `main`; it fails closed on malformed or ungoverned
 source-bearing titles. Legacy immutable-ref runs remain bound by their matching `headSha`. Historical failures remain historical failures even when a later source
 revision succeeds under their workflow definition.
 
