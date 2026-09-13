@@ -29,14 +29,22 @@ def test_gateway_build_metadata_reads_non_secret_runtime_environment() -> None:
     }
 
 
-def test_gateway_build_metadata_defaults_unknowns_without_secrets() -> None:
+def test_image_digest_is_not_supplied_until_a_deployment_resolves_one() -> None:
     metadata = gateway_build_metadata({})
 
     assert metadata["service"] == "lotus-gateway"
     assert metadata["version"] == "0.1.0"
     assert metadata["git_commit_sha"] == "unknown"
+    assert metadata["image_digest"] == "not-supplied"
     assert "secret" not in metadata
     assert "token" not in metadata
+    assert gateway_build_metadata({"LOTUS_IMAGE_DIGEST": ""})["image_digest"] == "not-supplied"
+
+
+def test_runtime_supplied_digest_is_preserved_unchanged() -> None:
+    digest = "sha256:deployment-resolved"
+
+    assert gateway_build_metadata({"LOTUS_IMAGE_DIGEST": digest})["image_digest"] == digest
 
 
 def test_version_endpoint_exposes_build_metadata(monkeypatch) -> None:

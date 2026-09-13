@@ -1,5 +1,7 @@
 .PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check pr-issue-lifecycle demo-certification duplicate-code duplicate-code-protected openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
+COMPOSE_WITH_PROVENANCE = python scripts/compose_provenance.py
+
 install:
 	python -m pip install -e ".[dev]"
 
@@ -108,7 +110,7 @@ test-e2e:
 	python -m pytest tests/e2e -q
 
 e2e-up:
-	docker compose -f docker-compose.e2e.yml up -d --build
+	$(COMPOSE_WITH_PROVENANCE) --profile e2e -- -f docker-compose.e2e.yml up -d --build
 
 e2e-down:
 	docker compose -f docker-compose.e2e.yml down -v --remove-orphans
@@ -125,7 +127,7 @@ ci-local: check test-integration
 CI_LOCAL_COMPOSE_PROJECT ?= $(shell python scripts/ci_local_compose_project.py)
 
 ci-local-docker:
-	docker compose --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
+	$(COMPOSE_WITH_PROVENANCE) --profile gateway -- --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
 
 ci-local-docker-down:
 	docker compose --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" -f docker-compose.ci-local.yml down -v --remove-orphans
@@ -137,7 +139,7 @@ run-canonical:
 	uvicorn app.main:app --reload --app-dir src --host 0.0.0.0 --port 8111
 
 docker-up:
-	docker compose up -d --build
+	$(COMPOSE_WITH_PROVENANCE) --profile gateway -- up -d --build
 
 docker-down:
 	docker compose down

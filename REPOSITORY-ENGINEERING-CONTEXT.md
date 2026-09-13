@@ -27,6 +27,16 @@ It does not replace domain authority in upstream services.
 
 ## Current-State Summary
 
+### Compose image provenance
+
+`make docker-up`, `make e2e-up`, and `make ci-local-docker` derive build provenance from the
+checkout each Compose build actually uses. The helper records a dirty source tree by suffixing its
+own revision with `-dirty`, preserves literal environment overrides without shell evaluation, and
+uses OCI build labels for sibling Dockerfiles that own different argument vocabularies. Gateway's
+`LOTUS_IMAGE_DIGEST` is runtime-only: `not-supplied` means no deployment-resolved digest was
+provided, not that a build argument was omitted. Do not pass a digest as a build argument or stamp
+Gateway's revision on a sibling image.
+
 Current repository posture:
 
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,

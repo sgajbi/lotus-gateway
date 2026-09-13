@@ -40,7 +40,8 @@ def test_ci_local_compose_cleanup_uses_an_isolated_project_identity() -> None:
         in makefile_text
     )
     assert (
-        'docker compose --project-name "$(CI_LOCAL_COMPOSE_PROJECT)" '
+        "$(COMPOSE_WITH_PROVENANCE) --profile gateway -- "
+        '--project-name "$(CI_LOCAL_COMPOSE_PROJECT)" '
         "-f docker-compose.ci-local.yml "
         "up --build --abort-on-container-exit --exit-code-from ci-local ci-local"
     ) in makefile_text
