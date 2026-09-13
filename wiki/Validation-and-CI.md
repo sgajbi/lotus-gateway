@@ -282,8 +282,8 @@ the same source revision may supersede one another.
 
 For mainline-ref dispatches, `headSha` identifies the workflow definition, not necessarily the
 evaluated source. The coverage audit binds each verdict to the SHA in `Main Releasability · <sha>`
-and fails closed on a malformed source-bearing title; legacy immutable-ref runs remain bound by
-their matching `headSha`. Historical failures remain historical failures even when a later source
+only when GitHub also records `headBranch` as `main`; it fails closed on malformed or ungoverned
+source-bearing titles. Legacy immutable-ref runs remain bound by their matching `headSha`. Historical failures remain historical failures even when a later source
 revision succeeds under their workflow definition.
 
 PR Merge Gate builds `ghcr.io/<owner>/lotus-gateway:${{ github.sha }}` locally, also tags
