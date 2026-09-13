@@ -129,7 +129,9 @@ class _FakeAdviseClient:
         evaluation_status: str | None,
         portfolio_id: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("get_policy_review_queue", caller))
         return self._response(
             "get_policy_review_queue",
             {
@@ -144,7 +146,9 @@ class _FakeAdviseClient:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("get_policy_evaluation", caller))
         return self._response(
             "get_policy_evaluation",
             {"evaluation_id": evaluation_id, "correlation_id": correlation_id},
@@ -156,7 +160,9 @@ class _FakeAdviseClient:
         evaluation_id: str,
         body: dict[str, object],
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("replay_policy_evaluation", caller))
         return self._response(
             "replay_policy_evaluation",
             {"evaluation_id": evaluation_id, "body": body, "correlation_id": correlation_id},
@@ -187,7 +193,9 @@ class _FakeAdviseClient:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("get_policy_evaluation_lineage", caller))
         return self._response(
             "get_policy_evaluation_lineage",
             {"evaluation_id": evaluation_id, "correlation_id": correlation_id},
@@ -198,7 +206,9 @@ class _FakeAdviseClient:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("get_policy_sign_off_package", caller))
         return self._response(
             "get_policy_sign_off_package",
             {"evaluation_id": evaluation_id, "correlation_id": correlation_id},
@@ -209,7 +219,9 @@ class _FakeAdviseClient:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, object]]:
+        self.callers.append(("get_policy_evaluation_workflow", caller))
         return self._response(
             "get_policy_evaluation_workflow",
             {"evaluation_id": evaluation_id, "correlation_id": correlation_id},

@@ -4,7 +4,6 @@ from typing import Any
 
 from app.clients.advise_policy_authority import (
     build_policy_control_headers,
-    build_policy_evaluation_control_headers,
     evidence_portfolio_id,
 )
 from app.clients.advise_policy_pack_client import AdvisePolicyPackClientMixin
@@ -40,6 +39,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         evaluation_status: str | None,
         portfolio_id: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         params: dict[str, Any] = {}
         if evaluation_status is not None:
@@ -49,7 +49,7 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         return await self._get(
             "/advisory/policy-evaluations/review-queue",
             params=params,
-            headers=self._headers(correlation_id),
+            headers=build_policy_control_headers(self._headers, correlation_id, caller=caller),
             operation="advise.advisory.policy-evaluations.review-queue",
         )
 
@@ -57,12 +57,13 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         self,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
+        return await self._get_tenant_policy_evaluation_read(
             f"/advisory/policy-evaluations/{evaluation_id}",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.policy-evaluations.get",
+            "advise.advisory.policy-evaluations.get",
+            correlation_id,
+            caller,
         )
 
     async def replay_policy_evaluation(
@@ -70,11 +71,12 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         evaluation_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             f"/advisory/policy-evaluations/{evaluation_id}/replay",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=build_policy_control_headers(self._headers, correlation_id, caller=caller),
             operation="advise.advisory.policy-evaluations.replay",
         )
 
@@ -100,36 +102,39 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         self,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
+        return await self._get_tenant_policy_evaluation_read(
             f"/advisory/policy-evaluations/{evaluation_id}/lineage",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.policy-evaluations.lineage",
+            "advise.advisory.policy-evaluations.lineage",
+            correlation_id,
+            caller,
         )
 
     async def get_policy_sign_off_package(
         self,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
+        return await self._get_tenant_policy_evaluation_read(
             f"/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.policy-evaluations.sign-off-package",
+            "advise.advisory.policy-evaluations.sign-off-package",
+            correlation_id,
+            caller,
         )
 
     async def get_policy_evaluation_workflow(
         self,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
+        return await self._get_tenant_policy_evaluation_read(
             f"/advisory/policy-evaluations/{evaluation_id}/workflow",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.policy-evaluations.workflow",
+            "advise.advisory.policy-evaluations.workflow",
+            correlation_id,
+            caller,
         )
 
     async def record_policy_sign_off_decision(
@@ -197,47 +202,29 @@ class AdvisePolicyClientMixin(AdvisePolicyPackClientMixin):
         idempotency_key: str | None,
         caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        headers = await build_policy_evaluation_control_headers(
-            read_policy_evaluation=self.get_policy_evaluation,
-            headers_factory=self._headers,
-            evaluation_id=evaluation_id,
+        # Advise owns the durable tenant/evaluation scope assertion at each action
+        # endpoint. Do not issue a generic evaluation read here: action-only callers
+        # (notably POLICY_STEWARD review events) are not generic readers, and Gateway
+        # must neither mint nor infer that additional authority.
+        headers = build_policy_control_headers(
+            self._headers,
             correlation_id=correlation_id,
             caller=caller,
             idempotency_key=idempotency_key,
         )
-        if isinstance(headers, tuple):
-            return headers
         return await self._post(path, body=body, headers=headers, operation=operation)
 
-    def _headers(
-        self,
-        correlation_id: str,
-        extras: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
-
-    def _optional_idempotency_headers(
-        self,
-        correlation_id: str,
-        idempotency_key: str | None,
-    ) -> dict[str, str]:
-        raise NotImplementedError
-
-    async def _post(
+    async def _get_tenant_policy_evaluation_read(
         self,
         path: str,
-        body: dict[str, Any],
-        headers: dict[str, str],
         operation: str,
-        params: dict[str, Any] | None = None,
+        correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
-
-    async def _get(
-        self,
-        path: str,
-        params: dict[str, Any],
-        headers: dict[str, str],
-        operation: str,
-    ) -> tuple[int, dict[str, Any]]:
-        raise NotImplementedError
+        """Forward one admitted tenant read with the producer-owned read capability."""
+        return await self._get(
+            path,
+            params={},
+            headers=build_policy_control_headers(self._headers, correlation_id, caller=caller),
+            operation=operation,
+        )

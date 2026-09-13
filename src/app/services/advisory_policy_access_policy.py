@@ -67,6 +67,7 @@ class AdvisoryPolicyOperation:
     name: str
     capability: str
     permitted_roles: frozenset[str]
+    requires_evaluation_scope: bool = False
 
 
 POLICY_PACK_VALIDATE = AdvisoryPolicyOperation(
@@ -87,22 +88,31 @@ POLICY_EVALUATION_FINALIZE = AdvisoryPolicyOperation(
 POLICY_EVALUATION_REVIEW_EVENT = AdvisoryPolicyOperation(
     name="policy_evaluation.review_event",
     capability="advisory.policy_evaluation.review_event",
-    permitted_roles=frozenset({COMPLIANCE_REVIEWER_ROLE}),
+    permitted_roles=frozenset({COMPLIANCE_REVIEWER_ROLE, POLICY_STEWARD_ROLE}),
+    requires_evaluation_scope=True,
 )
 POLICY_EVALUATION_SIGN_OFF = AdvisoryPolicyOperation(
     name="policy_evaluation.sign_off",
     capability="advisory.policy_evaluation.sign_off",
     permitted_roles=frozenset({POLICY_CHECKER_ROLE}),
+    requires_evaluation_scope=True,
 )
 POLICY_EVALUATION_REPORT_PACKAGE = AdvisoryPolicyOperation(
     name="policy_evaluation.report_package",
     capability="advisory.policy_evaluation.report_package",
     permitted_roles=frozenset({POLICY_CHECKER_ROLE}),
+    requires_evaluation_scope=True,
 )
 POLICY_EVALUATION_AI_EVIDENCE = AdvisoryPolicyOperation(
     name="policy_evaluation.ai_evidence",
     capability="advisory.policy_evaluation.ai_evidence",
     permitted_roles=frozenset({COMPLIANCE_REVIEWER_ROLE}),
+    requires_evaluation_scope=True,
+)
+POLICY_EVALUATION_READ = AdvisoryPolicyOperation(
+    name="policy_evaluation.read",
+    capability="advisory.policy_evaluation.read",
+    permitted_roles=frozenset({ADVISOR_ROLE, COMPLIANCE_REVIEWER_ROLE, POLICY_CHECKER_ROLE}),
 )
 
 
@@ -120,6 +130,8 @@ class AdvisoryPolicyCallerContext:
     legal_entity_code: str
     role: str
     capability: str
+    authorized_proposal_id: str | None = None
+    authorized_portfolio_id: str | None = None
 
 
 class AdvisoryPolicyCallerContextError(ValueError):
@@ -138,6 +150,8 @@ def require_advisory_policy_caller_context(
     legal_entity_code: str | None,
     role: str | None,
     capabilities: str | None,
+    authorized_proposal_id: str | None = None,
+    authorized_portfolio_id: str | None = None,
 ) -> AdvisoryPolicyCallerContext:
     """Admit the caller's scope for `operation`, or refuse before any I/O."""
     cleaned = _required_caller_fields(
@@ -153,12 +167,19 @@ def require_advisory_policy_caller_context(
         role=cleaned["X-Role"],
         capabilities=cleaned["X-Caller-Capabilities"],
     )
+    authorized_scope = _evaluation_scope(
+        operation=operation,
+        authorized_proposal_id=authorized_proposal_id,
+        authorized_portfolio_id=authorized_portfolio_id,
+    )
     return AdvisoryPolicyCallerContext(
         actor_id=cleaned["X-Actor-Id"],
         tenant_id=cleaned["X-Tenant-Id"],
         legal_entity_code=cleaned["X-Legal-Entity-Code"],
         role=cleaned["X-Role"],
         capability=operation.capability,
+        authorized_proposal_id=authorized_scope[0],
+        authorized_portfolio_id=authorized_scope[1],
     )
 
 
@@ -219,6 +240,32 @@ def _validate_access(
             message="Advisory-policy access is not available for this caller.",
             status_code=403,
         )
+
+
+def _evaluation_scope(
+    *,
+    operation: AdvisoryPolicyOperation,
+    authorized_proposal_id: str | None,
+    authorized_portfolio_id: str | None,
+) -> tuple[str | None, str | None]:
+    """Admit resource scope required by Advise action endpoints, never derive it."""
+    proposal_id = _clean(authorized_proposal_id)
+    portfolio_id = _clean(authorized_portfolio_id)
+    if not operation.requires_evaluation_scope:
+        return None, None
+    if proposal_id is None or portfolio_id is None:
+        raise AdvisoryPolicyCallerContextError(
+            code="advisory_policy_evaluation_scope_required",
+            message="Advisory-policy evaluation scope is required for this action.",
+            status_code=403,
+        )
+    if not _SCOPE_PATTERN.fullmatch(proposal_id) or not _SCOPE_PATTERN.fullmatch(portfolio_id):
+        raise AdvisoryPolicyCallerContextError(
+            code="advisory_policy_caller_context_invalid",
+            message="Advisory-policy caller context is invalid.",
+            status_code=400,
+        )
+    return proposal_id, portfolio_id
 
 
 def _capability_set(value: str) -> frozenset[str]:

@@ -571,15 +571,20 @@ Supported routes:
 14. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages`
 15. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/ai-evidence`
 
-Required caller context on the write routes:
+Required caller context and tenant-owned evaluation reads:
 
-Of the **eight** `POST` routes above, **seven** require trusted caller context and refuse without
-it **before any request is made to `lotus-advise`**. Reads require none.
+All tenant-owned policy-evaluation reads — review queue, detail, lineage, sign-off package,
+workflow, and POST-shaped replay — require trusted caller context and the Advise-owned
+`advisory.policy_evaluation.read` capability. Permitted reader roles are `ADVISOR`,
+`COMPLIANCE_REVIEWER`, and `POLICY_CHECKER`; missing or invalid context is refused before any
+request reaches `lotus-advise`. The policy-pack list/version catalog is immutable shared reference
+content, so Gateway intentionally forwards no tenant authority for those two routes.
 
-**`POST /api/v1/advisory-policy-evaluations/{evaluation_id}/replay` is the eighth, and it is not
-fenced.** It mutates through `lotus-advise` while carrying only correlation context — no tenant,
-actor, role or capability. That is a known gap tracked as #760, stated here rather than left
-for a reader to infer from a list that names seven.
+Evaluation actions require admitted `X-Authorized-Proposal-Id` and
+`X-Authorized-Portfolio-Id`; Gateway validates and forwards them unchanged, and Advise owns the
+durable tenant/evaluation-scope assertion at the action endpoint. Gateway makes no generic
+evaluation pre-read. In particular, Gateway does not promote `POLICY_STEWARD` review events or
+mint `advisory.policy_evaluation.read`.
 
 | Header | Meaning |
 | --- | --- |
@@ -588,13 +593,16 @@ for a reader to infer from a list that names seven.
 | `X-Legal-Entity-Code` | The legal entity, forwarded unchanged. |
 | `X-Role` | The caller's role. Must be the one the operation requires. |
 | `X-Caller-Capabilities` | Comma-separated capabilities. Must include the operation's capability. |
+| `X-Authorized-Proposal-Id` | Required for evaluation action routes. The admitted proposal scope, forwarded unchanged. |
+| `X-Authorized-Portfolio-Id` | Required for evaluation action routes. The admitted portfolio scope, forwarded unchanged. |
 
 | Operation | Required role | Required capability |
 | --- | --- | --- |
 | policy-pack validate | `POLICY_STEWARD` | `advisory.policy_pack.validate` |
 | policy-pack activate | `POLICY_CHECKER` | `advisory.policy_pack.activate` |
 | create policy evaluation | `ADVISOR` | `advisory.policy_evaluation.finalize` |
-| record evaluation event | `COMPLIANCE_REVIEWER` | `advisory.policy_evaluation.review_event` |
+| record evaluation event | `COMPLIANCE_REVIEWER` or `POLICY_STEWARD` | `advisory.policy_evaluation.review_event` |
+| policy-evaluation read/replay | `ADVISOR`, `COMPLIANCE_REVIEWER`, or `POLICY_CHECKER` | `advisory.policy_evaluation.read` |
 | record sign-off decision | `POLICY_CHECKER` | `advisory.policy_evaluation.sign_off` |
 | request report package | `POLICY_CHECKER` | `advisory.policy_evaluation.report_package` |
 | request AI evidence | `COMPLIANCE_REVIEWER` | `advisory.policy_evaluation.ai_evidence` |

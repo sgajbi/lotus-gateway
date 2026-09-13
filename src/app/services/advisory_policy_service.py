@@ -111,11 +111,13 @@ class AdvisoryPolicyService:
         evaluation_status: str | None,
         portfolio_id: str | None,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_policy_review_queue(
             evaluation_status=evaluation_status,
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -125,10 +127,12 @@ class AdvisoryPolicyService:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_policy_evaluation(
             evaluation_id=evaluation_id,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -139,11 +143,13 @@ class AdvisoryPolicyService:
         evaluation_id: str,
         body: dict[str, Any],
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.replay_policy_evaluation(
             evaluation_id=evaluation_id,
             body=body,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -175,10 +181,12 @@ class AdvisoryPolicyService:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_policy_evaluation_lineage(
             evaluation_id=evaluation_id,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -188,6 +196,7 @@ class AdvisoryPolicyService:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         (
             upstream_status,
@@ -195,6 +204,7 @@ class AdvisoryPolicyService:
         ) = await self._advise_client.get_policy_sign_off_package(
             evaluation_id=evaluation_id,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -204,6 +214,7 @@ class AdvisoryPolicyService:
         *,
         evaluation_id: str,
         correlation_id: str,
+        caller: AdvisoryPolicyCallerContext,
     ) -> AdvisoryPolicyEnvelopeResponse:
         (
             upstream_status,
@@ -211,6 +222,7 @@ class AdvisoryPolicyService:
         ) = await self._advise_client.get_policy_evaluation_workflow(
             evaluation_id=evaluation_id,
             correlation_id=correlation_id,
+            caller=caller,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
