@@ -30,11 +30,10 @@ def _require_finalize_request_scope(
     evidence = body.get("evidence_bundle")
     inputs = evidence.get("inputs") if isinstance(evidence, Mapping) else None
     snapshot = inputs.get("portfolio_snapshot") if isinstance(inputs, Mapping) else None
-    portfolio_id = (
-        str(snapshot.get("portfolio_id") or "").strip() if isinstance(snapshot, Mapping) else None
-    )
+    portfolio_id = snapshot.get("portfolio_id") if isinstance(snapshot, Mapping) else None
     if (
         caller.authorized_proposal_id != proposal_id
+        or not isinstance(portfolio_id, str)
         or not portfolio_id
         or caller.authorized_portfolio_id != portfolio_id
     ):
