@@ -452,6 +452,14 @@ def test_finalize_forwards_only_matching_admitted_resources_on_idempotent_replay
             403,
             "advisory_policy_evaluation_scope_denied",
         ),
+        (
+            "pp_scope_a",
+            " PORT_SCOPE_A ",
+            "pp_scope_a",
+            "PORT_SCOPE_A",
+            403,
+            "advisory_policy_evaluation_scope_denied",
+        ),
         ("pp_scope_a", "PORT_SCOPE_A", None, None, 422, None),
     ],
 )
