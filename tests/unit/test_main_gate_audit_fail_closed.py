@@ -55,7 +55,7 @@ def drive(
         lambda *args: [f"{sha} {sha[:9]} subject line" for sha in commits],
     )
     monkeypatch.setattr(audit, "_all_gate_runs", lambda: [])
-    monkeypatch.setattr(audit, "_gate_runs", lambda sha, all_runs: commits[sha])
+    monkeypatch.setattr(audit, "_gate_runs", lambda sha, _all_runs: commits[sha])
     monkeypatch.setattr(audit.shutil, "which", lambda name: "/usr/bin/gh")
     monkeypatch.setattr(
         audit.argparse.ArgumentParser,
