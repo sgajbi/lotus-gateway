@@ -1,5 +1,13 @@
 # Supported Features
 
+## Local Compose provenance
+
+Gateway's documented Compose entry points build each image with provenance from its owning
+checkout. Gateway exposes its source metadata through `/version`; an image digest is supplied only
+by the deployment runtime, and `/version` reports `not-supplied` when no deployment-resolved digest
+was provided. The E2E Compose composition labels sibling images with their own checkout provenance;
+it never substitutes Gateway's revision for another service's source.
+
 This page lists implementation-backed `lotus-gateway` feature coverage. It is product material for
 developers, business users, operations, sales/pre-sales, and client demos; it must not describe
 future capability as supported until the owning service, Gateway contract, tests, and validation

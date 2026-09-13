@@ -1,3 +1,78 @@
+x-gateway-build-args: &gateway-build-args
+  LOTUS_APP_VERSION: ${GATEWAY_APP_VERSION:-0.1.0}
+  LOTUS_GIT_COMMIT_SHA: ${GATEWAY_GIT_COMMIT_SHA:-unknown}
+  LOTUS_GIT_BRANCH: ${GATEWAY_GIT_BRANCH:-unknown}
+  LOTUS_BUILD_TIMESTAMP: ${GATEWAY_BUILD_TIMESTAMP:-unknown}
+  LOTUS_REPO_URL: ${GATEWAY_REPO_URL:-https://github.com/sgajbi/lotus-gateway}
+  LOTUS_CI_RUN_ID: ${GATEWAY_CI_RUN_ID:-local}
+
+x-core-build-args: &core-build-args
+  LOTUS_GIT_COMMIT_SHA: ${CORE_GIT_COMMIT_SHA:-unknown}
+  LOTUS_GIT_BRANCH: ${CORE_GIT_BRANCH:-unknown}
+  LOTUS_BUILD_TIMESTAMP: ${CORE_BUILD_TIMESTAMP:-unknown}
+  LOTUS_REPO_URL: ${CORE_REPO_URL:-https://github.com/sgajbi/lotus-core}
+  LOTUS_IMAGE_VERSION: ${CORE_APP_VERSION:-0.1.0}
+  LOTUS_CI_RUN_ID: ${CORE_CI_RUN_ID:-local}
+
+x-manage-build-args: &manage-build-args
+  GIT_SHA: ${MANAGE_GIT_COMMIT_SHA:-unknown}
+  GIT_BRANCH: ${MANAGE_GIT_BRANCH:-unknown}
+  BUILD_TIMESTAMP: ${MANAGE_BUILD_TIMESTAMP:-unknown}
+  REPO_URL: ${MANAGE_REPO_URL:-https://github.com/sgajbi/lotus-manage}
+  APP_VERSION: ${MANAGE_APP_VERSION:-0.1.0}
+  CI_PIPELINE_ID: ${MANAGE_CI_RUN_ID:-local}
+
+x-archive-build-args: &archive-build-args
+  LOTUS_ARCHIVE_VERSION: ${ARCHIVE_APP_VERSION:-0.1.0}
+  LOTUS_ARCHIVE_COMMIT_SHA: ${ARCHIVE_GIT_COMMIT_SHA:-unknown}
+  LOTUS_ARCHIVE_REPOSITORY_URL: ${ARCHIVE_REPO_URL:-https://github.com/sgajbi/lotus-archive}
+  LOTUS_ARCHIVE_BUILD_REF: ${ARCHIVE_GIT_BRANCH:-unknown}
+  LOTUS_ARCHIVE_BUILD_TIMESTAMP_UTC: ${ARCHIVE_BUILD_TIMESTAMP:-unknown}
+  LOTUS_ARCHIVE_CI_RUN_ID: ${ARCHIVE_CI_RUN_ID:-local}
+  LOTUS_ARCHIVE_IMAGE_REF: lotus-archive:local
+
+x-gateway-provenance-labels: &gateway-provenance-labels
+  org.opencontainers.image.revision: ${GATEWAY_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${GATEWAY_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${GATEWAY_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${GATEWAY_REPO_URL:-https://github.com/sgajbi/lotus-gateway}
+  com.lotus.ci.run-id: ${GATEWAY_CI_RUN_ID:-local}
+
+x-core-provenance-labels: &core-provenance-labels
+  org.opencontainers.image.revision: ${CORE_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${CORE_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${CORE_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${CORE_REPO_URL:-https://github.com/sgajbi/lotus-core}
+  com.lotus.ci.run-id: ${CORE_CI_RUN_ID:-local}
+
+x-manage-provenance-labels: &manage-provenance-labels
+  org.opencontainers.image.revision: ${MANAGE_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${MANAGE_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${MANAGE_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${MANAGE_REPO_URL:-https://github.com/sgajbi/lotus-manage}
+  com.lotus.ci.run-id: ${MANAGE_CI_RUN_ID:-local}
+
+x-report-provenance-labels: &report-provenance-labels
+  org.opencontainers.image.revision: ${REPORT_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${REPORT_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${REPORT_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${REPORT_REPO_URL:-https://github.com/sgajbi/lotus-report}
+  com.lotus.ci.run-id: ${REPORT_CI_RUN_ID:-local}
+
+x-archive-provenance-labels: &archive-provenance-labels
+  org.opencontainers.image.revision: ${ARCHIVE_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${ARCHIVE_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${ARCHIVE_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${ARCHIVE_REPO_URL:-https://github.com/sgajbi/lotus-archive}
+  com.lotus.ci.run-id: ${ARCHIVE_CI_RUN_ID:-local}
+
+x-workbench-provenance-labels: &workbench-provenance-labels
+  org.opencontainers.image.revision: ${WORKBENCH_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${WORKBENCH_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${WORKBENCH_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${WORKBENCH_REPO_URL:-https://github.com/sgajbi/lotus-workbench}
+  com.lotus.ci.run-id: ${WORKBENCH_CI_RUN_ID:-local}
+
 services:
   zookeeper:
     profiles: ["full-stack"]
@@ -41,6 +116,8 @@ services:
     build:
       context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/persistence_service/Dockerfile
+      args: *core-build-args
+      labels: *core-provenance-labels
     depends_on:
       kafka:
         condition: service_healthy
@@ -66,6 +143,8 @@ services:
     build:
       context: ${LOTUS_MANAGE_REPO_PATH}
       dockerfile: Dockerfile
+      args: *manage-build-args
+      labels: *manage-provenance-labels
     ports:
       - "8000:8000"
     environment:
@@ -110,6 +189,8 @@ services:
     build:
       context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/persistence_service/Dockerfile
+      args: *core-build-args
+      labels: *core-provenance-labels
     environment:
       DATABASE_URL: postgresql://user:password@lotus-core-postgres:5432/portfolio_db
     depends_on:
@@ -122,6 +203,8 @@ services:
     build:
       context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/query_service/Dockerfile
+      args: *core-build-args
+      labels: *core-provenance-labels
     ports:
       - "8201:8001"
     environment:
@@ -148,6 +231,8 @@ services:
     build:
       context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/ingestion_service/Dockerfile
+      args: *core-build-args
+      labels: *core-provenance-labels
     ports:
       - "8200:8000"
     environment:
@@ -201,6 +286,7 @@ services:
     build:
       context: ${LOTUS_REPORT_REPO_PATH}
       dockerfile: Dockerfile
+      labels: *report-provenance-labels
     ports:
       - "8300:8300"
     environment:
@@ -230,6 +316,8 @@ services:
     build:
       context: ${LOTUS_ARCHIVE_REPO_PATH}
       dockerfile: Dockerfile
+      args: *archive-build-args
+      labels: *archive-provenance-labels
     ports:
       - "8150:8150"
     environment:
@@ -251,6 +339,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args: *gateway-build-args
+      labels: *gateway-provenance-labels
     environment:
       DECISIONING_SERVICE_BASE_URL: http://lotus-manage:8000
       PORTFOLIO_DATA_PLATFORM_BASE_URL: http://lotus-core-query:8001
@@ -260,6 +350,7 @@ services:
       ARCHIVE_SERVICE_BASE_URL: http://lotus-archive:8150
       UPSTREAM_TIMEOUT_SECONDS: 10
       CONTRACT_VERSION: v1
+      LOTUS_IMAGE_DIGEST: ${GATEWAY_IMAGE_DIGEST:-not-supplied}
     ports:
       - "8100:8100"
     depends_on:
@@ -294,6 +385,7 @@ services:
     build:
       context: ${UI_REPO_PATH}
       dockerfile: Dockerfile
+      labels: *workbench-provenance-labels
     environment:
       BFF_BASE_URL: http://bff:8100
     ports:

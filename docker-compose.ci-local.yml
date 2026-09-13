@@ -1,8 +1,25 @@
+x-gateway-build-args: &gateway-build-args
+  LOTUS_APP_VERSION: ${GATEWAY_APP_VERSION:-0.1.0}
+  LOTUS_GIT_COMMIT_SHA: ${GATEWAY_GIT_COMMIT_SHA:-unknown}
+  LOTUS_GIT_BRANCH: ${GATEWAY_GIT_BRANCH:-unknown}
+  LOTUS_BUILD_TIMESTAMP: ${GATEWAY_BUILD_TIMESTAMP:-unknown}
+  LOTUS_REPO_URL: ${GATEWAY_REPO_URL:-https://github.com/sgajbi/lotus-gateway}
+  LOTUS_CI_RUN_ID: ${GATEWAY_CI_RUN_ID:-local}
+
+x-gateway-provenance-labels: &gateway-provenance-labels
+  org.opencontainers.image.revision: ${GATEWAY_GIT_COMMIT_SHA:-unknown}
+  org.opencontainers.image.ref.name: ${GATEWAY_GIT_BRANCH:-unknown}
+  org.opencontainers.image.created: ${GATEWAY_BUILD_TIMESTAMP:-unknown}
+  org.opencontainers.image.source: ${GATEWAY_REPO_URL:-https://github.com/sgajbi/lotus-gateway}
+  com.lotus.ci.run-id: ${GATEWAY_CI_RUN_ID:-local}
+
 services:
   ci-local:
     build:
       context: .
       dockerfile: Dockerfile
+      args: *gateway-build-args
+      labels: *gateway-provenance-labels
     image: lotus-gateway:ci-local
     working_dir: /app
     volumes:
@@ -29,3 +46,4 @@ services:
       - MANAGE_SPLIT_ENABLED=true
       - UPSTREAM_TIMEOUT_SECONDS=30
       - CONTRACT_VERSION=v1
+      - LOTUS_IMAGE_DIGEST=${GATEWAY_IMAGE_DIGEST:-not-supplied}

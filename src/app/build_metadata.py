@@ -18,7 +18,7 @@ DEFAULT_BUILD_METADATA = {
     "git_branch": "unknown",
     "build_timestamp": "unknown",
     "repo_url": "unknown",
-    "image_digest": "unknown",
+    "image_digest": "not-supplied",
     "ci_run_id": "unknown",
 }
 
@@ -27,5 +27,7 @@ def gateway_build_metadata(environ: Mapping[str, str] | None = None) -> dict[str
     source = environ if environ is not None else os.environ
     metadata = {"service": "lotus-gateway"}
     for key, env_name in BUILD_METADATA_ENV.items():
-        metadata[key] = source.get(env_name, DEFAULT_BUILD_METADATA[key]).strip() or "unknown"
+        metadata[key] = (
+            source.get(env_name, DEFAULT_BUILD_METADATA[key]).strip() or DEFAULT_BUILD_METADATA[key]
+        )
     return metadata
