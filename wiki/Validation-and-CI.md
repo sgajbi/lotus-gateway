@@ -205,8 +205,9 @@ older run sorts after a newer run rather than back in the older run's place.
 
 `timed_out` and `startup_failure` count as failing: the gate ran and did not pass. `cancelled`,
 `neutral`, `skipped` and `stale` are not the gate answering at all, so they leave the commit
-unverifiable — which fails closed. So does a run listing saturated at the fetch limit, or a
-superseded attempt that cannot be read: a history that cannot be seen in full cannot be reported on.
+unverifiable — which fails closed. The audit reads every page of the workflow-run API once; a
+malformed page or a superseded attempt that cannot be read is likewise unverifiable: a history that
+cannot be seen in full cannot be reported on.
 
 ## PR auto-merge posture
 

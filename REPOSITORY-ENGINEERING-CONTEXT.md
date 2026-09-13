@@ -667,12 +667,15 @@ step in this repository needs them:
 
 `tests/unit/test_workflow_pipeline_exit_codes.py` refuses these at PR time.
 
-### The dispatcher binds evidence by tag, and workflow edits break that
+### The dispatcher binds evidence to its evaluated source
 
-`merged-pr-main-releasability.yml` creates one tag per revision so each run's head SHA **is** the
-revision. That is load-bearing: `scripts/audit_main_gate_coverage.py` matches with
-`gh run list --commit <sha>`, so dispatching against `main` would leave every ancestor reading
-UNGATED however correctly the job checked out the revision.
+`merged-pr-main-releasability.yml` dispatches the governed workflow definition from `main` while
+passing an immutable `expected_sha`. Each gate checkout pins to that evaluated source and the
+exact-revision assertion proves it remains main ancestry. This intentionally separates the source
+under evaluation from Actions' `headSha`, which identifies the workflow definition for a
+mainline-ref run. `scripts/audit_main_gate_coverage.py` reads the paginated workflow history once,
+binds mainline verdicts through `Main Releasability · <evaluated-sha>`, retains legacy immutable-ref
+verdicts by matching `headSha`, and fails closed when either association is malformed.
 
 The audit reports three questions separately, because they need opposite responses and reporting
 only the first is how eight commits sat red on `main` while it passed (#774). **Coverage** — a
@@ -687,12 +690,13 @@ than creating a second one, and the listing reports only the newest attempt's co
 gate that failed and was re-run green would otherwise read as having never failed. Superseded
 attempts are fetched and counted, and ordering uses each attempt's own start time so a re-run of an
 older run sorts after a newer run. `timed_out` and `startup_failure` are terminal failures, not
-absent verdicts. A listing saturated at the fetch limit, or a superseded attempt that cannot be
-read, is unverifiable and fails closed: a history that cannot be seen in full cannot be reported on.
+absent verdicts. A malformed paginated workflow-history response, or a superseded attempt that
+cannot be read, is unverifiable and fails closed: a history that cannot be seen in full cannot be
+reported on.
 
-The tag write is refused when the tagged commit's workflow tree differs from the default branch
-tip's. Land workflow-touching pull requests here as a single commit, or edit workflow files in the
-first commit and never again in that pull request.
+Keep a workflow-touching pull request to one independently reviewable commit until the governed
+dispatcher form has been proven on main. Do not restore a tag write or widen workflow permissions
+merely to make source attribution convenient: the evaluated-source receipt is the authority.
 
 Rebase-only merging is asserted by measuring the commits rather than reading the repository's merge
 settings, which needs a permission the workflow token may not hold: one parent on the merge commit,
