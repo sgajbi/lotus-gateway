@@ -305,7 +305,8 @@ under parent issue #586.
    use the same snapshotted context. Workspace and Advisor Brief cache views namespace the existing
    store by the full admitted context, preserving same-scope reuse and fencing late fills without
    cross-tenant or cross-actor sharing. Missing/blank or repeated identity headers fail before I/O;
-   redirects and foreign result origins cannot forward authority. See
+   redirects and foreign result origins cannot forward authority. Refused JSON redirects must be
+   normalized to `502` before cache/evidence classification, not returned as apparent success. See
    `docs/architecture.md#performance-caller-authority` and
    `tests/integration/test_performance_caller_authority.py`. Performance retains durable job/replay
    ownership; transport proof does not clear the separate canonical acceptance on #692.
