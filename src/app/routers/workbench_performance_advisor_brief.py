@@ -8,7 +8,10 @@ from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
 from app.routers.workbench_performance_advisor_brief_common import (
     AdvisorBriefQuery,
     build_advisor_brief_query,
-    require_advisor_brief_caller_context_dependency,
+)
+from app.routers.workbench_performance_common import (
+    PERFORMANCE_CALLER_OPENAPI,
+    PerformanceCallerContext,
 )
 from app.services.workbench_service_provider import advisor_brief_service
 
@@ -30,8 +33,10 @@ async def _get_advisor_brief(
     *,
     portfolio_id: str,
     query: AdvisorBriefQuery,
+    caller_headers: dict[str, str],
 ) -> AdvisorBriefResponse:
-    return await advisor_brief_service().get_performance_advisor_brief(
+    service = advisor_brief_service().with_caller_headers(caller_headers)
+    return await service.get_performance_advisor_brief(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         period=query.period,
@@ -57,6 +62,7 @@ async def _get_performance_advisor_brief(
         response = await _get_advisor_brief(
             portfolio_id=portfolio_id,
             query=query,
+            caller_headers=_caller_context,
         )
     except HTTPException as exc:
         _emit_advisor_brief_read_audit(status_code=exc.status_code)
@@ -69,12 +75,14 @@ async def _get_performance_advisor_brief(
     "/{portfolio_id}/performance/advisor-brief",
     response_model=AdvisorBriefResponse,
     summary="Get Performance Advisor Brief",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Returns a source-grounded advisor brief assembled from the performance workspace "
         "contract and narrated through lotus-ai with audit and evidence metadata preserved."
     ),
 )
 async def get_performance_advisor_brief(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -83,7 +91,6 @@ async def get_performance_advisor_brief(
         examples=["PF_1001"],
     ),
     query: AdvisorBriefQuery = Depends(build_advisor_brief_query),
-    caller_context: dict[str, str] = Depends(require_advisor_brief_caller_context_dependency),
 ) -> AdvisorBriefResponse:
     return await _get_performance_advisor_brief(
         portfolio_id=portfolio_id,

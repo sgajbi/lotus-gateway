@@ -6,18 +6,15 @@ from app.contracts.performance_attribution_trend import PerformanceAttributionTr
 from app.middleware.correlation import correlation_id_var
 from app.routers.workbench_performance_common import (
     AS_OF_DATE_QUERY,
-    PERFORMANCE_PERIOD_DESCRIPTION,
+    PERFORMANCE_CALLER_OPENAPI,
+    PERIOD_QUERY,
     REPORTING_CURRENCY_QUERY,
+    PerformanceCallerContext,
 )
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
-PERIOD_QUERY = Query(
-    default="YTD",
-    description=PERFORMANCE_PERIOD_DESCRIPTION,
-    examples=["YTD"],
-)
 CHART_FREQUENCY_QUERY = Query(
     default="monthly",
     description=(
@@ -103,8 +100,9 @@ def build_performance_attribution_trend_query(
 async def _get_performance_attribution_trend(
     portfolio_id: str,
     query: PerformanceAttributionTrendQuery,
+    caller_headers: dict[str, str],
 ) -> PerformanceAttributionTrendResponse:
-    service = performance_workspace_service()
+    service = performance_workspace_service().with_caller_headers(caller_headers)
     correlation_id = correlation_id_var.get()
     return await service.get_performance_attribution_trend(
         portfolio_id=portfolio_id,
@@ -125,6 +123,7 @@ async def _get_performance_attribution_trend(
     "/{portfolio_id}/performance/attribution-trend",
     response_model=PerformanceAttributionTrendResponse,
     summary="Get Performance Attribution Trend",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Returns benchmark-relative attribution effects over time for the selected period window "
         "using a dedicated analytical module contract. Use this endpoint when the UI needs "
@@ -134,6 +133,7 @@ async def _get_performance_attribution_trend(
     ),
 )
 async def get_performance_attribution_trend(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -146,4 +146,5 @@ async def get_performance_attribution_trend(
     return await _get_performance_attribution_trend(
         portfolio_id=portfolio_id,
         query=query,
+        caller_headers=caller_context,
     )

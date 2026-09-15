@@ -299,7 +299,17 @@ under parent issue #586.
    X-Actor-Id, X-Tenant-Id, X-Region; 400 missing_caller_context) and thread it as
    explicitly admitted caller_headers
    through the intake service into the ingestion client, so Core writes carry admitted —
-   never ambient — tenant authority. The generic `build_upstream_headers` propagates nothing
+   never ambient — tenant authority. Performance workspace routes likewise retain the admitted
+   actor/tenant/region through request-bound `with_caller_headers` service/client views; do not
+   mutate a shared provider client. Submission, async polling and execution/lineage/artifact reads
+   use the same snapshotted context. Workspace and Advisor Brief cache views namespace the existing
+   store by the full admitted context, preserving same-scope reuse and fencing late fills without
+   cross-tenant or cross-actor sharing. Missing/blank or repeated identity headers fail before I/O;
+   redirects and foreign result origins cannot forward authority. See
+   `docs/architecture.md#performance-caller-authority` and
+   `tests/integration/test_performance_caller_authority.py`. Performance retains durable job/replay
+   ownership; transport proof does not clear the separate canonical acceptance on #692.
+   The generic `build_upstream_headers` propagates nothing
    ambiently, deliberately: other upstream boundaries (for example the DPM/Manage
    read-authority forwarding) classify `X-Tenant-Id` itself as trusted authority, so an
    ambient merge there would turn an unadmitted request header into upstream scope. Never
@@ -512,7 +522,7 @@ Important validation expectations:
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
    `scripts/check_agent_quality_evidence.py`; it keeps the executable 315/49 refactor ratchet, the
-    current evidence-selected `src/app/contracts/dpm_pm_operating_quality.py`
+    current evidence-selected `src/app/clients/lotus_analytics_performance_client.py`
    hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. proposal decision vocabulary governance is part of `make lint` through

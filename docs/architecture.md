@@ -55,6 +55,31 @@ Gateway integrates with:
 5. Service modules should depend on typed protocols where possible.
 6. Public API behavior must be pinned by contract or integration tests.
 
+## Performance Caller Authority
+
+The Workbench Performance summary, details, horizon comparison, attribution trend, Advisor Brief
+and evidence-download routes, plus the portfolio performance snapshot, admit the trusted actor,
+tenant and region before source I/O. Missing/blank context returns `400 missing_caller_context`;
+repeated identity headers return `400 ambiguous_caller_context`. Served OpenAPI declares the
+required trio once. These development/trusted-service headers are not production IAM grants.
+
+Routes bind the admitted context through `with_caller_headers` on request-specific service/client
+views. The shared provider is never mutated. The bound Performance adapter snapshots the admitted
+headers for submission, result polling, execution, lineage and artifacts, including late completions.
+Redirect following is disabled for bound calls, and a foreign result origin is refused. The generic
+upstream header builder still has no ambient authority; the Core-only read fence is unchanged.
+
+`AsyncTtlCache.scoped` supplies an ownership namespace over the existing store, lock and in-flight
+tasks, not a second cache. Workspace and Advisor Brief views partition results by the full admitted
+context. Equal contexts reuse results; different tenants or actors cannot join another context's
+fill. Scoped invalidation preserves other callers and fences late fills using the existing task
+generation rule. Correlation IDs remain observability data, not authority or cache identity.
+
+Performance continues to own durable calculation registration, tenant-bound replay and authorized
+Core reads. Gateway does not manufacture a tenant when a source refuses a request. Repository
+transport tests do not certify the assembled canonical journey; that requires the separately pinned
+Core/Performance/Workbench runtime receipt tracked by issue #692.
+
 ## Quality Baseline
 
 The current architecture baseline is documented in:

@@ -1,5 +1,6 @@
+from copy import copy
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Self, cast
 
 from fastapi import HTTPException, status
 
@@ -104,6 +105,11 @@ class WorkbenchService(WorkbenchSandboxServiceMixin):
         self._analytics_client = analytics_client
         self._dpm_client = dpm_client
         self._advise_client = advise_client or cast(WorkbenchAdviseClient, dpm_client)
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        service = copy(self)
+        service._analytics_client = self._analytics_client.with_caller_headers(caller_headers)
+        return service
 
     async def get_workbench_overview(
         self,

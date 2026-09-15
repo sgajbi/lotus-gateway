@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 
 class PlatformCapabilitiesSourceClient(Protocol):
@@ -96,6 +96,8 @@ class WorkbenchCoreClient(Protocol):
 
 
 class WorkbenchPerformanceClient(Protocol):
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self: ...
+
     async def get_workspace_summary(
         self,
         *,
@@ -151,24 +153,7 @@ class WorkbenchAdviseClient(Protocol):
     ) -> tuple[int, dict[str, Any]]: ...
 
 
-class PerformanceWorkspaceAnalyticsClient(Protocol):
-    async def get_workspace_summary(
-        self,
-        *,
-        portfolio_id: str,
-        report_end_date: str,
-        report_start_date: str | None,
-        period: str,
-        chart_frequency: str,
-        detail_basis: str,
-        benchmark_id: str | None,
-        reporting_currency: str | None,
-        segment: str,
-        correlation_id: str,
-        periods: list[dict[str, Any]] | None = None,
-        include_detail_blocks: bool = False,
-    ) -> tuple[int, dict[str, Any]]: ...
-
+class PerformanceWorkspaceAnalyticsClient(WorkbenchPerformanceClient, Protocol):
     async def get_twr_analytics(
         self,
         *,

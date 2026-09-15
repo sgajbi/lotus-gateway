@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from copy import copy
+from typing import Any, Self
 
 from app.config import settings
 from app.contracts.performance_workspace import (
@@ -93,6 +94,14 @@ class PerformanceWorkspaceService(
 
     def clear_upstream_cache(self) -> None:
         self._upstream_cache.clear()
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        """Keep submission, evidence and cache fills bound to the admitted caller."""
+        service = copy(self)
+        service._analytics_client = self._analytics_client.with_caller_headers(caller_headers)
+        service._workbench_service = self._workbench_service.with_caller_headers(caller_headers)
+        service._upstream_cache = self._upstream_cache.scoped(tuple(sorted(caller_headers.items())))
+        return service
 
     async def get_performance_workspace(
         self,

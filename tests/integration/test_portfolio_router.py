@@ -8,6 +8,7 @@ from app.services.portfolio_service_provider import (
 )
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
+PERFORMANCE_CALLER = {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"}
 
 
 @pytest.fixture(autouse=True)
@@ -2133,6 +2134,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        headers=PERFORMANCE_CALLER,
         params={
             "period": "EXPLICIT",
             "chart_frequency": "quarterly",
@@ -2193,6 +2195,7 @@ def test_portfolio_performance_snapshot_router_supports_deprecated_window_aliase
     client = TestClient(app)
     legacy_response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        headers=PERFORMANCE_CALLER,
         params={
             "period": "EXPLICIT",
             "explicit_start_date": "2026-03-11",
@@ -2201,6 +2204,7 @@ def test_portfolio_performance_snapshot_router_supports_deprecated_window_aliase
     )
     canonical_precedence_response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        headers=PERFORMANCE_CALLER,
         params={
             "period": "EXPLICIT",
             "report_start_date": "2026-03-11",
@@ -2254,7 +2258,9 @@ def test_portfolio_performance_snapshot_router_preserves_unavailable_state(monke
         _snapshot,
     )
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/performance-snapshot")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot", headers=PERFORMANCE_CALLER
+    )
 
     assert response.status_code == 200
     body = response.json()

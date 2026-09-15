@@ -13,16 +13,16 @@
   },
   "metrics": {
     "clone_count": {
-      "baseline": 70,
-      "threshold": 70
+      "baseline": 66,
+      "threshold": 66
     },
     "duplicated_lines": {
-      "baseline": 1388,
-      "threshold": 1388
+      "baseline": 1311,
+      "threshold": 1311
     },
     "duplicated_percentage": {
-      "baseline": 1.47,
-      "threshold": 1.47
+      "baseline": 1.38,
+      "threshold": 1.38
     }
   },
   "allowed_fingerprints": [
@@ -42,9 +42,7 @@
     "328fb331a4e801f000b494d284041fd51492387b4c41166fe6e7f4296fa6dd8c",
     "346d8831491c73e18b65743d929ad5f2d0eb5de02e8b5d4f3a13042c9201738f",
     "419ff5b213f52a04f0ef82dc9aa09c2af4ac822b947d1c65b49d5717e47d8729",
-    "456b290ae69e5bd44ba18dd282b415f562114e7ef5e07e20251aa4445e94909c",
     "48cbd62b233583e20a3a7df8e39bf65203bfdacd818b594c8ce9cf4f78a2b420",
-    "49ea5bbc5823788551dd8eeeac62327c35bcf073e24b586ed33b8a2d4db9f7bc",
     "4b339d5bb22320a4706e891aa3a0b326fa7aa5a3657e9cf00c697cbc3eafa869",
     "4b71a9fdb8faa222383fb731656f9fa26c13a1e641eb12378a0736d2cc9975ce",
     "50cdafa649856b7e3006cac1913f55d93dc48be1c1bc5ac1cf634629840e7bce",
@@ -67,7 +65,6 @@
     "8d080d5707c3397071a63bb3c73eb64f72db3efc38ff215e5f6b87bfe3253a87",
     "8e075f9cffd8d02ec44a7e3b5b12bdcaff274a83c0d0b501aac3ece1ebe0f55c",
     "8e0a586d7575d1f3c54db7293623581f7511d71e08de73b6a1f9eb66976a4902",
-    "8ff74a09631f6466e43ff54c3a99fdaa07b455077f3257008ae87545016bcc46",
     "9a66d189bbb0474a91bbe54aee2dad1457dcb6a54b925c8229a51efa8f5076da",
     "9aef4671e0f9d9117e3e872228f40ed79c0e4132622fdb71712b483bda548ed4",
     "9d82a0ae1ee06db3b3b7a7031571894324d674e91e5604fe100cc739765550fd",
@@ -83,7 +80,6 @@
     "c1a20e05d347f656b97d983455056996b5398dcf2383257a5c540433bc7cc8a6",
     "c2a18975e3e73587e2f295bb8c92c4f7ad839facfb1fd8a24d09672a7b83c3d8",
     "ca4eba0a4abcc46db6e522f5be730b9c266b8ecb6493cf1ecf78ef1496573b6a",
-    "d0c76e43586ec76b8c893f913b666361522b965f281159311c90d5d528e4a418",
     "d5bfe5b53af856be3d9cf9d157627b69f5b1ee973e0b07f8dd885e71f931077a",
     "dbb0a0d144652a7eda904c03602bd93d74bacd8d580882575b5e7ab827e8790b",
     "dd930d230536b27fc110205194943020b22b450f72dd7587d93672ab5b4db459",

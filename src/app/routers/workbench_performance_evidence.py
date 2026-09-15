@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Path, Response
 
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_performance_common import (
+    PERFORMANCE_CALLER_OPENAPI,
+    PerformanceCallerContext,
+)
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -11,9 +15,10 @@ async def _get_performance_evidence_artifact(
     portfolio_id: str,
     calculation_id: str,
     artifact_name: str,
+    caller_headers: dict[str, str],
 ) -> Response:
     _ = portfolio_id
-    service = performance_workspace_service()
+    service = performance_workspace_service().with_caller_headers(caller_headers)
     correlation_id = correlation_id_var.get()
     content, content_type = await service.get_performance_evidence_artifact(
         calculation_id=calculation_id,
@@ -26,6 +31,7 @@ async def _get_performance_evidence_artifact(
 @router.get(
     "/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}",
     summary="Download Performance Evidence Artifact",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Downloads a performance lineage artifact through the gateway boundary. "
         "Artifact links published in `evidence_view.calculations[].artifacts[]` resolve through "
@@ -35,6 +41,7 @@ async def _get_performance_evidence_artifact(
     ),
 )
 async def get_performance_evidence_artifact(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description="Canonical portfolio identifier used to scope the evidence artifact download.",
@@ -55,4 +62,5 @@ async def get_performance_evidence_artifact(
         portfolio_id=portfolio_id,
         calculation_id=calculation_id,
         artifact_name=artifact_name,
+        caller_headers=caller_context,
     )

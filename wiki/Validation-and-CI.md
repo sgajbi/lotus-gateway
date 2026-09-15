@@ -15,7 +15,7 @@ family is current. Per-branch refactoring history is in the commit log, not on t
 | Developer | What should I run before committing? | `make check` for lint, type, contract, and unit proof |
 | Reviewer | Which gate proves PR readiness? | `make ci` plus GitHub PR Merge Gate |
 | Release/operator | What proves image and metadata posture? | Main Releasability and container release manifests |
-| Future agent | What quality ceiling must not regress? | Agent quality evidence: `315/49`, current hotspot `src/app/contracts/dpm_pm_operating_quality.py` |
+| Future agent | What quality ceiling must not regress? | Agent quality evidence: `315/49`, current hotspot `src/app/clients/lotus_analytics_performance_client.py` |
 
 ## Lane model
 
@@ -120,7 +120,7 @@ accepted reviewer identity exists — then the approval count rises to 1, `CODEO
 and the policy updates in the same change.
 
 The complete field-by-field policy lives in
-[`quality/branch_protection_policy.v1.json`](../blob/main/quality/branch_protection_policy.v1.json).
+[`quality/branch_protection_policy.v1.json`](https://github.com/sgajbi/lotus-gateway/blob/main/quality/branch_protection_policy.v1.json).
 Two lanes enforce it. The Quality Baseline lane runs on every PR and needs no credentials. It
 validates the policy document's shape **and corroborates the repository the document names**: the
 running repository is resolved from `GITHUB_REPOSITORY`, or from the `origin` remote when that is
@@ -143,7 +143,7 @@ table whose approval count rises to 1 while still carrying the zero-approval exc
 does an exception naming a context that has since become required. An exception naming a field
 outside `expected` is refused outright, because one bound to nothing can never be retired by any
 configuration change and reads as a live deviation forever. That is how a policy stops accumulating
-permanent "temporary" text.
+permanent time-bounded-exception text.
 
 The table pins each required context to the **app permitted to satisfy it**, mirroring the API's
 own `required_status_checks.checks` shape rather than listing context names alone. Without a
@@ -432,7 +432,7 @@ aligned with what CI actually measures. It enforces two structural ceilings:
 
 | Ceiling | Current value |
 |---|---|
-| Largest source file | **315** lines — `src/app/contracts/dpm_pm_operating_quality.py` |
+| Largest source file | **315** lines — `src/app/clients/lotus_analytics_performance_client.py` |
 | Largest function | **49** lines — `get_portfolio_transactions` in `src/app/clients/lotus_core_portfolio_query_client.py` |
 
 The pair is written `315/49` wherever it appears, and the gate requires that exact string, the
