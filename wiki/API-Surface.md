@@ -110,6 +110,15 @@ consumer migration remain tracked by parent issue #569.
 
 ## Current contract notes
 
+Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tenant-Id` and
+`X-Region`, including details, horizon comparison, attribution trend, Advisor Brief and the portfolio
+performance snapshot. Missing/blank context is refused before source I/O; repeated identity headers
+are ambiguous and refused. The admitted caller stays attached to Performance submission, polling and
+evidence, and cached results are isolated by admitted context. These trusted-header contracts do not
+certify production IAM. See [Performance caller authority](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#performance-caller-authority)
+for ownership and [transport regressions](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_performance_caller_authority.py)
+for the registered-route proof.
+
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. The overview
   also accepts additive `include_performance_snapshot` and `include_rebalance_snapshot` controls,
   both defaulting to `true`; source-evidence consumers can set both to `false` to isolate confirmed

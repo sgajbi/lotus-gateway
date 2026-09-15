@@ -57,6 +57,8 @@ async def fetch_performance_evidence_artifact(
         artifact_name=artifact_name,
         correlation_id=correlation_id,
     )
+    if 300 <= status_code < 400:
+        raise HTTPException(502, detail="Performance evidence artifact redirect was refused.")
     if status_code >= 400:
         raise HTTPException(
             status_code=status_code,

@@ -1842,7 +1842,9 @@ def test_workbench_performance_details_router(monkeypatch):
     )
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/performance/details?period=YTD")
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/details?period=YTD", headers=CALLER_CONTEXT_HEADERS
+    )
 
     assert response.status_code == 200
     assert response.headers["Server-Timing"].startswith("app;dur=")
@@ -2117,7 +2119,7 @@ def test_workbench_performance_details_router_preserves_query_context(monkeypatc
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27"
         "&as_of_date=2026-04-10&reporting_currency=sgd",
-        headers={"X-Correlation-Id": "corr-performance-details"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-performance-details"},
     )
 
     assert response.status_code == 200
@@ -2165,7 +2167,8 @@ def test_workbench_performance_evidence_artifact_router(monkeypatch):
     client = TestClient(app)
     response = client.get(
         "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
-        "calc-workspace-summary/request.json"
+        "calc-workspace-summary/request.json",
+        headers=CALLER_CONTEXT_HEADERS,
     )
 
     assert response.status_code == 200
@@ -2238,7 +2241,8 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     response = client.get(
         "/api/v1/workbench/PF_1001/performance/horizon-comparison"
         "?period=EXPLICIT&detail_basis=NET&benchmark_code=MODEL_60_40"
-        "&report_start_date=2026-01-01&report_end_date=2026-02-24"
+        "&report_start_date=2026-01-01&report_end_date=2026-02-24",
+        headers=CALLER_CONTEXT_HEADERS,
     )
 
     assert response.status_code == 200
@@ -2314,7 +2318,7 @@ def test_workbench_performance_horizon_comparison_router_preserves_query_context
         "/api/v1/workbench/PF_1001/performance/horizon-comparison"
         "?period=EXPLICIT&detail_basis=GROSS&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&chart_frequency=weekly&report_start_date=2026-01-01&report_end_date=2026-03-27",
-        headers={"X-Correlation-Id": "corr-horizon"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-horizon"},
     )
 
     assert response.status_code == 200
@@ -2377,7 +2381,8 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     response = client.get(
         "/api/v1/workbench/PF_1001/performance/attribution-trend"
         "?period=YTD&chart_frequency=monthly&attribution_dimension=asset_class"
-        "&detail_basis=NET&benchmark_code=MODEL_60_40"
+        "&detail_basis=NET&benchmark_code=MODEL_60_40",
+        headers=CALLER_CONTEXT_HEADERS,
     )
 
     assert response.status_code == 200
@@ -2459,7 +2464,7 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         "&detail_basis=GROSS&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27"
         "&as_of_date=2026-04-10&reporting_currency=sgd",
-        headers={"X-Correlation-Id": "corr-attribution-trend"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-attribution-trend"},
     )
 
     assert response.status_code == 200

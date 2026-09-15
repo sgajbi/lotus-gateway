@@ -1,25 +1,20 @@
 from dataclasses import dataclass
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.performance_workspace import PerformanceWorkspaceSummaryResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.workbench_caller_context import require_workbench_caller_context
 from app.routers.workbench_performance_common import (
     AS_OF_DATE_QUERY,
-    PERFORMANCE_PERIOD_DESCRIPTION,
+    PERFORMANCE_CALLER_OPENAPI,
+    PERIOD_QUERY,
     REPORTING_CURRENCY_QUERY,
+    PerformanceCallerContext,
 )
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
-PERIOD_QUERY = Query(
-    default="YTD",
-    description=PERFORMANCE_PERIOD_DESCRIPTION,
-    examples=["YTD"],
-)
 CHART_FREQUENCY_QUERY = Query(
     default="monthly",
     description="Requested chart frequency for summary sparkline and supporting modules.",
@@ -75,24 +70,6 @@ class PerformanceSummaryQuery:
     reporting_currency: str | None
 
 
-def require_performance_summary_caller_context(
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
-) -> None:
-    require_workbench_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
-
-
 def build_performance_summary_query(
     period: str = PERIOD_QUERY,
     chart_frequency: str = CHART_FREQUENCY_QUERY,
@@ -123,8 +100,10 @@ async def _get_performance_summary(
     *,
     portfolio_id: str,
     query: PerformanceSummaryQuery,
+    caller_headers: dict[str, str],
 ) -> PerformanceWorkspaceSummaryResponse:
-    return await performance_workspace_service().get_performance_workspace_summary(
+    service = performance_workspace_service().with_caller_headers(caller_headers)
+    return await service.get_performance_workspace_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         period=query.period,
@@ -144,6 +123,7 @@ async def _get_performance_summary(
     "/{portfolio_id}/performance/summary",
     response_model=PerformanceWorkspaceSummaryResponse,
     summary="Get Performance Workspace Summary",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Returns the first-paint performance workspace payload for overview and benchmark-aware "
         "return panels. Use this route when the consumer needs mandate context, comparative "
@@ -155,6 +135,7 @@ async def _get_performance_summary(
     ),
 )
 async def get_performance_workspace_summary(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -163,9 +144,9 @@ async def get_performance_workspace_summary(
         examples=["PF_1001"],
     ),
     query: PerformanceSummaryQuery = Depends(build_performance_summary_query),
-    _caller_context: None = Depends(require_performance_summary_caller_context),
 ) -> PerformanceWorkspaceSummaryResponse:
     return await _get_performance_summary(
         portfolio_id=portfolio_id,
         query=query,
+        caller_headers=caller_context,
     )

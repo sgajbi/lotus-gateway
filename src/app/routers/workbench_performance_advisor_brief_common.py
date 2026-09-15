@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-from typing import Annotated
 
-from fastapi import Header, Query
+from fastapi import Query
 
-from app.routers.workbench_caller_context import require_workbench_caller_context
 from app.routers.workbench_performance_common import (
     AS_OF_DATE_QUERY,
     PERFORMANCE_PERIOD_DESCRIPTION,
@@ -69,25 +67,6 @@ class AdvisorBriefQuery:
     reporting_currency: str | None
 
 
-def require_advisor_brief_caller_context(
-    *,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
-) -> dict[str, str]:
-    return require_workbench_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
-
-
 def build_advisor_brief_query(
     period: str = PERIOD_QUERY,
     chart_frequency: str = CHART_FREQUENCY_QUERY,
@@ -111,22 +90,4 @@ def build_advisor_brief_query(
         report_end_date=report_end_date,
         as_of_date=as_of_date,
         reporting_currency=reporting_currency.strip().upper() if reporting_currency else None,
-    )
-
-
-def require_advisor_brief_caller_context_dependency(
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
-) -> dict[str, str]:
-    return require_advisor_brief_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
     )

@@ -6,6 +6,10 @@ from app.contracts.performance_workspace import (
     PerformanceHorizonComparisonResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.workbench_performance_common import (
+    PERFORMANCE_CALLER_OPENAPI,
+    PerformanceCallerContext,
+)
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -86,8 +90,9 @@ def build_performance_horizon_comparison_query(
 async def _get_performance_horizon_comparison(
     portfolio_id: str,
     query: PerformanceHorizonComparisonQuery,
+    caller_headers: dict[str, str],
 ) -> PerformanceHorizonComparisonResponse:
-    service = performance_workspace_service()
+    service = performance_workspace_service().with_caller_headers(caller_headers)
     correlation_id = correlation_id_var.get()
     return await service.get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
@@ -105,6 +110,7 @@ async def _get_performance_horizon_comparison(
     "/{portfolio_id}/performance/horizon-comparison",
     response_model=PerformanceHorizonComparisonResponse,
     summary="Get Performance Horizon Comparison",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Returns a compact benchmark-aware comparative return module for front-office-safe "
         "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
@@ -114,6 +120,7 @@ async def _get_performance_horizon_comparison(
     ),
 )
 async def get_performance_horizon_comparison(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -126,4 +133,5 @@ async def get_performance_horizon_comparison(
     return await _get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
         query=query,
+        caller_headers=caller_context,
     )

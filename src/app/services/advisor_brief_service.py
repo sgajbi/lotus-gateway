@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+from copy import copy
+from typing import Any, Protocol, Self
 
 from app.contracts.advisor_brief import (
     AdvisorBriefResponse,
@@ -40,6 +41,8 @@ from app.services.async_ttl_cache import AsyncTtlCache
 
 
 class AdvisorBriefPerformanceWorkspaceService(Protocol):
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self: ...
+
     async def get_performance_workspace(
         self,
         *,
@@ -74,6 +77,14 @@ class AdvisorBriefService:
 
     def clear_cache(self) -> None:
         self._response_cache.clear()
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        service = copy(self)
+        service._performance_workspace_service = (
+            self._performance_workspace_service.with_caller_headers(caller_headers)
+        )
+        service._response_cache = self._response_cache.scoped(tuple(sorted(caller_headers.items())))
+        return service
 
     async def get_performance_advisor_brief(
         self,

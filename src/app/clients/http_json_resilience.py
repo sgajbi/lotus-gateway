@@ -257,6 +257,7 @@ async def request_with_retry_outcome(
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
     retry_ambiguous_request_errors: bool = True,
+    follow_redirects: bool | None = None,
 ) -> JsonRequestOutcome:
     request_method = method.upper()
     if request_method not in _JSON_REQUEST_METHODS:
@@ -278,7 +279,7 @@ async def request_with_retry_outcome(
         # uncontrolled replay — and a post-commit redirect target failure
         # would surface as a ConnectError misread as pre-send. A caller that
         # cannot replay ambiguous losses therefore must not follow redirects.
-        follow_redirects=retry_ambiguous_request_errors,
+        follow_redirects=retry_ambiguous_request_errors and follow_redirects is not False,
     )
     return await _execute_json_request(
         request_kwargs=request_kwargs,

@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from copy import copy
 from functools import partial
 from time import monotonic
 from typing import Generic, TypeVar
@@ -25,6 +26,13 @@ class AsyncTtlCache(Generic[T]):
         self._entries: dict[tuple[object, ...], tuple[float, T]] = {}
         self._inflight: dict[tuple[object, ...], asyncio.Future[T]] = {}
         self._lock = asyncio.Lock()
+        self._scope: tuple[object, ...] = ()
+
+    def scoped(self, scope: tuple[object, ...]) -> "AsyncTtlCache[T]":
+        """View the existing store through an explicit, immutable ownership namespace."""
+        view = copy(self)
+        view._scope = (*self._scope, scope)
+        return view
 
     async def get_or_set(
         self,
@@ -39,6 +47,7 @@ class AsyncTtlCache(Generic[T]):
         key: tuple[object, ...],
         factory: Callable[[], Awaitable[T]],
     ) -> tuple[T, bool]:
+        key = (*self._scope, *key)
         now = monotonic()
         async with self._lock:
             entry = self._entries.get(key)
@@ -72,13 +81,17 @@ class AsyncTtlCache(Generic[T]):
         self._entries[key] = (monotonic() + self._ttl_seconds, task.result())
 
     def clear(self) -> None:
-        self._entries.clear()
-        self._inflight.clear()
+        for entries in (self._entries, self._inflight):
+            for key in list(entries):
+                if key[: len(self._scope)] == self._scope:
+                    del entries[key]
 
     def discard(self, key: tuple[object, ...]) -> None:
+        key = (*self._scope, *key)
         self._entries.pop(key, None)
         self._inflight.pop(key, None)
 
     def set(self, key: tuple[object, ...], value: T) -> None:
+        key = (*self._scope, *key)
         self._inflight.pop(key, None)
         self._entries[key] = (monotonic() + self._ttl_seconds, value)

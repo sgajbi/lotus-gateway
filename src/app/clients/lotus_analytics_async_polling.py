@@ -4,6 +4,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 from app.clients.http_json_resilience import (
     JsonRequestOutcome,
@@ -67,6 +68,7 @@ class LotusAnalyticsAsyncPollingMixin:
     _timeout: float
     _max_retries: int
     _retry_backoff_seconds: float
+    _caller_headers: dict[str, str]
 
     @staticmethod
     def _emit_analytics_read_audit(*, operation: str, status_code: int) -> None:
@@ -111,7 +113,7 @@ class LotusAnalyticsAsyncPollingMixin:
         return _AnalyticsPollContext(
             result_path=result_path,
             url=self._async_result_url(result_path),
-            headers=build_upstream_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id, caller_headers=self._caller_headers),
             service=service,
             operation=operation,
             budget=poll_budget or AnalyticsPollBudget.unbounded(),
@@ -225,6 +227,19 @@ class LotusAnalyticsAsyncPollingMixin:
             return result_path
         return f"{self._base_url}{result_path}"
 
+    def _result_has_same_origin(self, result_path: str) -> bool:
+        try:
+            source = urlsplit(self._base_url)
+            target = urlsplit(self._async_result_url(result_path))
+        except ValueError:
+            return False
+        return (
+            target.scheme == source.scheme
+            and target.netloc == source.netloc
+            and target.username is None
+            and target.password is None
+        )
+
     async def _poll_analytics_result_once(
         self, *, context: _AnalyticsPollContext
     ) -> JsonRequestOutcome:
@@ -238,6 +253,7 @@ class LotusAnalyticsAsyncPollingMixin:
                 backoff_seconds=self._retry_backoff_seconds,
                 headers=context.headers,
                 retry_timeout_exceptions=not context.budget.is_bounded,
+                follow_redirects=not bool(self._caller_headers),
             )
         )
         emit_gateway_analytics_fanout_log(

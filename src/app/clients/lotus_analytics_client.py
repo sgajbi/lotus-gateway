@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+from copy import copy
+from typing import Any, Self
 
 from app.clients.http_json_resilience import (
     JsonRequestOutcome,
@@ -41,6 +42,13 @@ class LotusAnalyticsClient(
         self._workspace_summary_deadline_seconds = workspace_summary_deadline_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
+        self._caller_headers: dict[str, str] = {}
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        """Bind admitted authority without mutating the shared analytics client."""
+        client = copy(self)
+        client._caller_headers = dict(caller_headers)
+        return client
 
     async def _get_analytics_request(
         self,
@@ -56,7 +64,8 @@ class LotusAnalyticsClient(
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             params=params,
-            headers=build_upstream_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id, caller_headers=self._caller_headers),
+            follow_redirects=not bool(self._caller_headers),
         )
         return outcome.as_result()
 
@@ -73,7 +82,7 @@ class LotusAnalyticsClient(
         async_poll_timeout_seconds: float | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
-        headers = build_upstream_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id, caller_headers=self._caller_headers)
         resolved_operation = operation or path.strip("/").replace("/", ".")
         poll_budget = AnalyticsPollBudget.from_timeout(async_poll_timeout_seconds)
         status_code, response_payload = await self._post_observed_analytics_request(
@@ -117,6 +126,8 @@ class LotusAnalyticsClient(
         )
         if result_path is None:
             return None
+        if self._caller_headers and not self._result_has_same_origin(result_path):
+            return 502, {"detail": "Analytics result target is outside the configured source."}
         return await self._poll_async_result(
             result_path=result_path,
             correlation_id=correlation_id,
@@ -158,6 +169,7 @@ class LotusAnalyticsClient(
                     json_body=payload,
                     headers=headers,
                     retry_timeout_exceptions=False,
+                    follow_redirects=not bool(self._caller_headers),
                 )
             )
         except AnalyticsRequestDeadlineExceeded:

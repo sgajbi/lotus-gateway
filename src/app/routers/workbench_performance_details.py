@@ -6,18 +6,15 @@ from app.contracts.performance_workspace import PerformanceWorkspaceDetailsRespo
 from app.middleware.correlation import correlation_id_var
 from app.routers.workbench_performance_common import (
     AS_OF_DATE_QUERY,
-    PERFORMANCE_PERIOD_DESCRIPTION,
+    PERFORMANCE_CALLER_OPENAPI,
+    PERIOD_QUERY,
     REPORTING_CURRENCY_QUERY,
+    PerformanceCallerContext,
 )
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
-PERIOD_QUERY = Query(
-    default="YTD",
-    description=PERFORMANCE_PERIOD_DESCRIPTION,
-    examples=["YTD"],
-)
 CHART_FREQUENCY_QUERY = Query(
     default="monthly",
     description="Requested chart frequency for detail charts and time-series modules.",
@@ -100,8 +97,9 @@ def build_performance_details_query(
 async def _get_performance_workspace_details(
     portfolio_id: str,
     query: PerformanceDetailsQuery,
+    caller_headers: dict[str, str],
 ) -> PerformanceWorkspaceDetailsResponse:
-    service = performance_workspace_service()
+    service = performance_workspace_service().with_caller_headers(caller_headers)
     correlation_id = correlation_id_var.get()
     return await service.get_performance_workspace_details(
         portfolio_id=portfolio_id,
@@ -123,6 +121,7 @@ async def _get_performance_workspace_details(
     "/{portfolio_id}/performance/details",
     response_model=PerformanceWorkspaceDetailsResponse,
     summary="Get Performance Workspace Details",
+    openapi_extra=PERFORMANCE_CALLER_OPENAPI,
     description=(
         "Returns the heavier analytical detail payload for chart history, contribution rows, "
         "attribution rows, and execution evidence. Use this route after the summary route when "
@@ -130,6 +129,7 @@ async def _get_performance_workspace_details(
     ),
 )
 async def get_performance_workspace_details(
+    caller_context: PerformanceCallerContext,
     portfolio_id: str = Path(
         ...,
         description="Canonical portfolio identifier for the stateful performance detail workspace.",
@@ -140,4 +140,5 @@ async def get_performance_workspace_details(
     return await _get_performance_workspace_details(
         portfolio_id=portfolio_id,
         query=query,
+        caller_headers=caller_context,
     )

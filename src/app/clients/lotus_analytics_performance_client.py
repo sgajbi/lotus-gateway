@@ -11,6 +11,7 @@ class LotusAnalyticsPerformanceClientMixin:
     _base_url: str
     _timeout: float
     _workspace_summary_deadline_seconds: float
+    _caller_headers: dict[str, str]
 
     async def _get_analytics_request(
         self,
@@ -65,10 +66,10 @@ class LotusAnalyticsPerformanceClientMixin:
         correlation_id: str,
     ) -> tuple[int, bytes, str | None]:
         url = f"{self._base_url}/performance/lineage/{calculation_id}/artifacts/{artifact_name}"
-        headers = build_upstream_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id, caller_headers=self._caller_headers)
         async with httpx.AsyncClient(
             timeout=self._timeout,
-            follow_redirects=True,
+            follow_redirects=not bool(self._caller_headers),
         ) as client:
             response = await client.get(url, headers=headers)
         return response.status_code, response.content, response.headers.get("content-type")
