@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import httpx
 import pytest
@@ -90,7 +91,8 @@ async def test_bound_clients_keep_concurrent_submission_poll_and_artifact_author
         "https://performance.test:0/result",
     ],
 )
-async def test_authority_is_not_forwarded_to_a_foreign_result_target(monkeypatch, target):
+async def test_authority_is_not_forwarded_to_a_foreign_result_target(monkeypatch, caplog, target):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
     seen = []
 
     def respond(request):
@@ -113,6 +115,16 @@ async def test_authority_is_not_forwarded_to_a_foreign_result_target(monkeypatch
     assert code == 502
     assert "configured source" in body["detail"]
     assert len(seen) == 1
+    events = [record for record in caplog.records if record.name == "analytics_ui.gateway"]
+    failure = next(
+        record for record in events if record.message == "gateway.analytics.fanout.degraded"
+    )
+    assert failure.extra_fields["status_class"] == "5xx"
+    assert failure.extra_fields["operation"].endswith(".poll")
+    assert target not in str(failure.extra_fields)
+    assert not any(
+        record.message == "gateway.analytics.audit.analytics_read_allowed" for record in events
+    )
 
 
 @pytest.mark.asyncio

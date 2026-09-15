@@ -70,7 +70,9 @@ Redirect following is disabled for bound calls, and a foreign result origin is r
 comparison uses normalized hostname and effective HTTP port, accepting equivalent default-port
 spellings while refusing different ports and user-info. Refused
 JSON submission, polling and evidence redirects become explicit `502` source failures; a `3xx`
-payload cannot masquerade as available evidence or a successful result. The generic
+payload cannot masquerade as available evidence or a successful result. Rejected result admission
+also emits the normalized failure through the existing fanout log/metrics path; an earlier `202`
+submission is not the only observed outcome. No raw result URL or caller identity is logged. The generic
 upstream header builder still has no ambient authority; the Core-only read fence is unchanged.
 
 `AsyncTtlCache.scoped` supplies an ownership namespace over the existing store, lock and in-flight

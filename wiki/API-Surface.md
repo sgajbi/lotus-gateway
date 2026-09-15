@@ -115,7 +115,9 @@ Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tena
 performance snapshot. Missing/blank context is refused before source I/O; repeated identity headers
 are ambiguous and refused. The admitted caller stays attached to Performance submission, polling and
 evidence, and cached results are isolated by admitted context. Refused source redirects return an
-explicit `502` failure instead of success-like evidence; caller headers never follow them. These trusted-header contracts do not
+explicit `502` failure instead of success-like evidence; caller headers never follow them.
+Foreign-result refusals also produce normalized failure telemetry after an accepted submission.
+These trusted-header contracts do not
 certify production IAM. See [Performance caller authority](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#performance-caller-authority)
 for ownership and [transport regressions](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_performance_caller_authority.py)
 for the registered-route proof.

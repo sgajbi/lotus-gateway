@@ -127,7 +127,17 @@ class LotusAnalyticsClient(
         if result_path is None:
             return None
         if self._caller_headers and not self._result_has_same_origin(result_path):
-            return 502, {"detail": "Analytics result target is outside the configured source."}
+            refusal = {"detail": "Analytics result target is outside the configured source."}
+            emit_gateway_analytics_fanout_log(
+                logger=logger,
+                started_at=gateway_analytics_fanout_timer(),
+                service=service,
+                operation=f"{operation}.poll",
+                status_code=502,
+                payload=refusal,
+            )
+            self._emit_analytics_read_audit(operation=operation, status_code=502)
+            return 502, refusal
         return await self._poll_async_result(
             result_path=result_path,
             correlation_id=correlation_id,
