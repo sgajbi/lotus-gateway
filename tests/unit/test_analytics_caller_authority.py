@@ -10,7 +10,12 @@ from app.services.performance_calculation_evidence import fetch_performance_evid
 
 
 @pytest.mark.asyncio
-async def test_bound_clients_keep_concurrent_submission_poll_and_artifact_authority(monkeypatch):
+@pytest.mark.parametrize(
+    "result_origin", ["https://performance.test", "HTTPS://PERFORMANCE.TEST:443"]
+)
+async def test_bound_clients_keep_concurrent_submission_poll_and_artifact_authority(
+    monkeypatch, result_origin
+):
     source = LotusAnalyticsClient("https://performance.test", 1, max_retries=0)
     headers = {"X-Tenant-Id": "tenant-a", "X-Actor-Id": "actor-a", "X-Region": "APAC"}
     a = source.with_caller_headers(headers)
@@ -30,7 +35,7 @@ async def test_bound_clients_keep_concurrent_submission_poll_and_artifact_author
                 202,
                 json={
                     "calculation_id": tenant,
-                    "result_path": f"https://performance.test/performance/result/{tenant}",
+                    "result_path": f"{result_origin}/performance/result/{tenant}",
                     "poll_after_seconds": 0.001,
                 },
             )
@@ -80,6 +85,9 @@ async def test_bound_clients_keep_concurrent_submission_poll_and_artifact_author
         "http://performance.test/result",
         "https://[invalid/result",
         "https://user@performance.test/result",
+        "https://performance.test:444/result",
+        "https://performance.test:invalid/result",
+        "https://performance.test:0/result",
     ],
 )
 async def test_authority_is_not_forwarded_to_a_foreign_result_target(monkeypatch, target):

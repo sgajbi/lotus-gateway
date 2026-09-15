@@ -11,13 +11,23 @@ def test_health_live_and_ready_endpoints():
     assert client.get("/health/ready").json() == {"status": "ready"}
 
 
-def test_unhandled_exception_handler_returns_problem_json():
-    @app.get("/_test/error")
-    async def _test_error():
-        raise RuntimeError("boom")
+def test_unhandled_exception_handler_returns_problem_json(monkeypatch):
+    # The synthetic route and any schema generated from it belong to this test,
+    # not to later contract checks against the shared production application.
+    with monkeypatch.context() as local:
+        local.setattr(app.router, "routes", list(app.router.routes))
+        local.setattr(app, "openapi_schema", None)
+        local.setattr(app.state, "is_draining", False, raising=False)
 
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/_test/error")
+        @app.get("/_test/error")
+        async def _test_error():
+            raise RuntimeError("boom")
+
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/_test/error")
+
+    assert not any(getattr(route, "path", None) == "/_test/error" for route in app.routes)
+    assert "/_test/error" not in app.openapi()["paths"]
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("application/problem+json")
     body = response.json()
