@@ -273,11 +273,13 @@ under parent issue #586.
    use the closed `IdeaReasonCode` vocabulary reconciled through
    `contracts/upstream/lotus-idea-reason-codes.v1.json`; feedback uses the separate governed
    `idea-feedback-taxonomy-v1` contract with no legacy aliases. Queue candidates require
-   Idea-owned material/evidence versions so Workbench can bind visible-render receipts without
-   reconstructing source state. Presentation receipt transport preserves Idea `201` accepted,
-   `200` replayed, and allowlisted product-safe failure codes. It preserves Idea global rank
-   independently from Workbench visible-set count and never derives, compares, or rewrites rank,
-   count, digest, policy, version, or presentation time; queue reads never synthesize receipts.
+   Idea-owned material/evidence versions, source revision-vector digest, and source-cut posture so
+   Workbench can bind visible-render receipts without reconstructing source state. Presentation
+   receipt transport preserves Idea `201` accepted, `200` replayed, server-accepted UTC evidence,
+   and allowlisted product-safe failure codes. It preserves Idea global rank independently from
+   Workbench visible-set count and never derives, compares, or rewrites rank, count, digest,
+   policy, version, source lineage, presentation time, or acceptance time; queue reads never
+   synthesize receipts.
    Gateway does not generate, rank, enrich, certify, authorize, or promote
    ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client

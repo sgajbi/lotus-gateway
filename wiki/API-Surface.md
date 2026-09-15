@@ -479,7 +479,9 @@ consumer migration remain tracked by parent issue #569.
   accepted/replayed outcomes, and `supportedFeaturePromoted=false`. Feedback preserves
   `idea-feedback-taxonomy-v1` without aliases. Presentation receipt transport preserves the exact
   Idea-owned global rank and policy/version facts independently from Workbench-authored visible
-  count/digest/time facts, together with Idea `201`/`200` status;
+  count/digest/time facts. Workbench also obtains the Idea-owned source revision-vector digest and
+  source-cut posture from the displayed queue item; Gateway requires and forwards both unchanged,
+  never derives them from business identifiers, and preserves Idea `201`/`200` status;
   queue retrieval produces no receipt. It does not generate, rank, enrich, certify, or promote Idea
   candidates, grant downstream authority, or create downstream delivery/execution records locally
 - Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
@@ -1122,7 +1124,10 @@ caller-context and idempotency posture. Feedback uses the closed `idea-feedback-
 vocabulary without compatibility aliases. A presentation receipt must be authored only after a
 visible Workbench render and carries the Idea global rank independently from the Workbench visible
 count, together with the ordered-set digest, queue/ranking policies, and current candidate
-material/evidence versions. Queue retrieval and prefetch emit no
+material/evidence versions. The v2 path additionally preserves the Idea-owned source
+revision-vector digest and source-cut posture and returns Idea's server-accepted timestamp; Gateway
+does not infer lineage from candidate, tenant, book, portfolio, or client identifiers. Queue
+retrieval and prefetch emit no
 receipt. The `ai-explanations` route forwards a bounded generation request (request id, one of
 three generation purposes, timezone-aware request time) and preserves the Lotus Idea outcome
 verbatim, including the explicit `EXPLANATION_UNAVAILABLE` degraded shape; a served explanation

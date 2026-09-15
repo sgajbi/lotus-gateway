@@ -128,6 +128,18 @@ class IdeaPresentationReceiptFields(BaseModel):
         ge=1,
         strict=True,
     )
+    source_revision_vector_digest: str = Field(
+        ...,
+        alias="sourceRevisionVectorDigest",
+        pattern=_SHA256_DIGEST,
+    )
+    source_cut_posture: Literal[
+        "coherent",
+        "coherent_with_declared_tolerance",
+        "mixed",
+        "partial",
+        "unknown",
+    ] = Field(..., alias="sourceCutPosture")
 
     @field_validator("presented_at_utc")
     @classmethod
@@ -142,18 +154,32 @@ class IdeaCandidatePresentationReceiptRequest(IdeaPresentationReceiptFields):
 
 
 class IdeaPresentationReceiptEvidenceResponse(IdeaPresentationReceiptFields):
+    model_config = ConfigDict(extra="forbid", populate_by_name=False, validate_by_name=False)
+
     receipt_id: str = Field(..., alias="receiptId", pattern=_GOVERNED_REFERENCE)
     candidate_id: str = Field(..., alias="candidateId", pattern=_GOVERNED_REFERENCE)
-    schema_version: Literal["lotus-idea.candidate-presentation-receipt.v1"] = Field(
+    accepted_at_utc: TransportDatetime = Field(..., alias="acceptedAtUtc")
+    acceptance_time_source: Literal["server_accepted"] = Field(
+        ...,
+        alias="acceptanceTimeSource",
+    )
+    schema_version: Literal["lotus-idea.candidate-presentation-receipt.v2"] = Field(
         ...,
         alias="schemaVersion",
     )
     surface: Literal["advisor_review_queue"]
     producer: Literal["lotus-workbench"]
 
+    @field_validator("accepted_at_utc")
+    @classmethod
+    def _accepted_at_must_be_utc(cls, value: datetime) -> datetime:
+        if value.utcoffset() != timedelta(0):
+            raise ValueError("acceptedAtUtc must be a UTC timestamp")
+        return value
+
 
 class IdeaCandidatePresentationReceiptResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=False)
 
     receipt: IdeaPresentationReceiptEvidenceResponse
     persistence_decision: Literal["accepted", "replayed"] = Field(

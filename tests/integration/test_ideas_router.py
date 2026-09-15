@@ -99,6 +99,76 @@ def test_idea_review_queue_route_allows_active_queue_without_evaluation_time(mon
     assert captured["correlation_id"] == "corr-idea-router"
 
 
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("sourceRevisionVectorDigest", None),
+        ("sourceRevisionVectorDigest", "sha256:not-a-digest"),
+        ("sourceCutPosture", None),
+        ("sourceCutPosture", "ready"),
+        ("source_revision_vector_digest", f"sha256:{'c' * 64}"),
+        ("source_cut_posture", "mixed"),
+    ],
+)
+def test_idea_review_queue_route_fails_closed_on_unsafe_source_lineage(
+    monkeypatch,
+    field: str,
+    replacement: str | None,
+) -> None:
+    async def _queue(self, *, evaluated_at_utc, caller_headers, correlation_id):
+        payload = copy.deepcopy(IDEA_REVIEW_QUEUE_EXAMPLE)
+        candidate = payload["items"][0]["candidate"]
+        if replacement is None:
+            candidate.pop(field)
+        else:
+            candidate[field] = replacement
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.get_advisor_review_queue",
+        _queue,
+    )
+
+    response = TestClient(app).get(
+        "/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
+    ("camel_case", "snake_case"),
+    [
+        ("sourceRevisionVectorDigest", "source_revision_vector_digest"),
+        ("sourceCutPosture", "source_cut_posture"),
+    ],
+)
+def test_idea_review_queue_route_refuses_snake_case_only_source_lineage(
+    monkeypatch,
+    camel_case: str,
+    snake_case: str,
+) -> None:
+    async def _queue(self, *, evaluated_at_utc, caller_headers, correlation_id):
+        payload = copy.deepcopy(IDEA_REVIEW_QUEUE_EXAMPLE)
+        candidate = payload["items"][0]["candidate"]
+        candidate[snake_case] = candidate.pop(camel_case)
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.get_advisor_review_queue",
+        _queue,
+    )
+    response = TestClient(app).get(
+        "/api/v1/ideas/review-queues/advisor?evaluatedAtUtc=2026-06-21T10:10:00Z",
+        headers=_headers(),
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
 def test_idea_candidate_detail_route_preserves_source_refs_without_enrichment(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

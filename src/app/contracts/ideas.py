@@ -1,9 +1,12 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.contracts.idea_evidence_identity import IdeaSourceEvidenceIdentity
+from app.contracts.idea_evidence_identity import (
+    IdeaSourceEvidenceIdentity,
+    reject_declared_field_duplicates,
+)
 
 
 class IdeaReasonCode(StrEnum):
@@ -61,7 +64,7 @@ class IdeaGatewayErrorResponse(BaseModel):
 
 
 class IdeaGatewayReviewQueueCandidateResponse(BaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow")
 
     candidate_id: str = Field(..., alias="candidateId")
     material_version: int = Field(..., alias="materialVersion", ge=1)
@@ -72,6 +75,20 @@ class IdeaGatewayReviewQueueCandidateResponse(BaseModel):
         min_length=1,
         pattern=r"\S",
     )
+    source_revision_vector_digest: str = Field(
+        ...,
+        alias="sourceRevisionVectorDigest",
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
+    source_cut_posture: Literal[
+        "coherent",
+        "coherent_with_declared_tolerance",
+        "mixed",
+        "partial",
+        "unknown",
+    ] = Field(..., alias="sourceCutPosture")
+
+    _no_duplicate_field_spellings = model_validator(mode="after")(reject_declared_field_duplicates)
 
 
 class IdeaGatewayReviewQueueItemResponse(BaseModel):
