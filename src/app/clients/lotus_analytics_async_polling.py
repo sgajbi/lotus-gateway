@@ -223,7 +223,7 @@ class LotusAnalyticsAsyncPollingMixin:
         return self._async_poll_deadline_result(context)
 
     def _async_result_url(self, result_path: str) -> str:
-        if result_path.startswith("http://") or result_path.startswith("https://"):
+        if result_path.lower().startswith(("http://", "https://")):
             return result_path
         return f"{self._base_url}{result_path}"
 
@@ -231,14 +231,22 @@ class LotusAnalyticsAsyncPollingMixin:
         try:
             source = urlsplit(self._base_url)
             target = urlsplit(self._async_result_url(result_path))
+            default_ports = {"http": 80, "https": 443}
+            source_port = (
+                source.port if source.port is not None else default_ports.get(source.scheme)
+            )
+            target_port = (
+                target.port if target.port is not None else default_ports.get(target.scheme)
+            )
+            return (
+                target.scheme == source.scheme
+                and target.hostname == source.hostname
+                and target_port == source_port
+                and target.username is None
+                and target.password is None
+            )
         except ValueError:
             return False
-        return (
-            target.scheme == source.scheme
-            and target.netloc == source.netloc
-            and target.username is None
-            and target.password is None
-        )
 
     def _admitted_outcome(self, outcome: JsonRequestOutcome) -> JsonRequestOutcome:
         if self._caller_headers and 300 <= outcome.status_code < 400:

@@ -640,6 +640,10 @@ Important validation expectations:
     missing/outdated HTTPX2 or Starlette's legacy `httpx` fallback warning. The production-only
     `requirements-audit.txt` intentionally excludes HTTPX2 because the application image does not
     import TestClient.
+18. tests that add synthetic routes to the shared application must scope both `app.router.routes`
+    and `app.openapi_schema` to the test, and restore lifespan/draining state after closing their
+    owned TestClient. A leaked `/_test/error` route made the production OpenAPI description guard
+    fail under randomized order; do not exclude test paths from that guard to hide contamination.
 
 ## Standards And RFCs That Govern This Repository
 
