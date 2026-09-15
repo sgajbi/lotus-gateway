@@ -38,7 +38,7 @@ def _include_router_routes(
         if not isinstance(route, APIRoute):
             raise TypeError(f"Unsupported router route type: {type(route).__name__}")
         route_dependencies = [*route.dependencies, *dependencies]
-        if route.methods & _MUTATION_METHODS:
+        if route.methods and route.methods & _MUTATION_METHODS:
             route_dependencies.extend(mutation_dependencies)
         app.add_api_route(
             route.path,

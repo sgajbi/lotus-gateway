@@ -137,6 +137,8 @@ def test_workbench_router_propagates_optional_enrichment_controls(
 
 
 def test_workbench_router_success(monkeypatch):
+    observed_core_snapshot_requests: list[dict[str, Any]] = []
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {
             "portfolio_id": "PF_1001",
@@ -145,7 +147,8 @@ def test_workbench_router_success(monkeypatch):
             "client_id": "CIF_1001",
         }
 
-    async def _pas(*args, **kwargs):
+    async def _core_request(self, **kwargs):  # noqa: ARG001
+        observed_core_snapshot_requests.append(kwargs)
         return 200, {
             "as_of_date": "2026-02-23",
             "sections": {
@@ -216,7 +219,7 @@ def test_workbench_router_success(monkeypatch):
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support_overview)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}._request", _core_request)
     monkeypatch.setattr(
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
@@ -227,8 +230,14 @@ def test_workbench_router_success(monkeypatch):
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm)
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/overview")
+    response = client.get(
+        "/api/v1/workbench/PF_1001/overview",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
     assert response.status_code == 200
+    assert len(observed_core_snapshot_requests) == 1
+    assert observed_core_snapshot_requests[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert observed_core_snapshot_requests[0]["json_body"]["tenant_id"] == "tenant-sg"
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
     assert body["portfolio"]["client_id"] == "CIF_1001"

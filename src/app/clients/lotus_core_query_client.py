@@ -7,6 +7,7 @@ from app.clients.lotus_core_reporting_summary_client import LotusCoreReportingSu
 from app.clients.lotus_core_simulation_client import LotusCoreSimulationClientMixin
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_core_upstream_headers
+from app.middleware.caller_identity import admitted_tenant_cache_scope
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -131,11 +132,17 @@ class LotusCoreQueryClient(
         consumer_system: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        # Core matches this body selector against the same request-scoped tenant
+        # fence carried by build_core_upstream_headers. Keep an absent fence absent
+        # so neither Gateway nor a business identifier manufactures tenant authority.
+        tenant_id = admitted_tenant_cache_scope()
         payload = {
             "as_of_date": as_of_date,
             "sections": sections,
             "consumer_system": consumer_system,
         }
+        if tenant_id:
+            payload["tenant_id"] = tenant_id
         return await self._post_control_plane_resource(
             operation="core.integration.portfolios.core-snapshot.get",
             path=f"/integration/portfolios/{portfolio_id}/core-snapshot",
