@@ -329,13 +329,16 @@ escalation fails closed as a bounded 502. The
 review-action and
 conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
 feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
-legacy aliases. Queue items must include Idea-owned material/evidence versions. Presentation
+legacy aliases. Queue items must include Idea-owned material/evidence versions, source
+revision-vector digest, and source-cut posture. Presentation
 receipts preserve the Idea-owned global rank independently from Workbench-authored visible-render
 time, visible-set count, and digest, together with Idea `201` accepted, `200` replayed, and
 allowlisted stable problem codes. Queue retrieval emits no receipt. The
 versioned reconciliation snapshots are `contracts/upstream/lotus-idea-reason-codes.v1.json`,
 `contracts/upstream/lotus-idea-feedback-taxonomy.v1.json`, and
-`contracts/upstream/lotus-idea-presentation-receipt.v1.json`. Presentation measurement remains
+`contracts/upstream/lotus-idea-presentation-receipt.v2.json`. The v2 transport also preserves the
+Idea-owned source revision-vector digest and source-cut posture and returns server-accepted timing
+evidence; Gateway neither derives nor upgrades those facts. Presentation measurement remains
 uncertified until Workbench visible-render production is independently proven.
 
 ## Boundaries

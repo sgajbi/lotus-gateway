@@ -24,7 +24,7 @@ sequenceDiagram
 
     Workbench->>Gateway: GET governed adviser queue
     Gateway->>Idea: GET ranked queue
-    Idea-->>Gateway: rank + policy + material/evidence versions
+    Idea-->>Gateway: rank + policy + material/evidence versions + source lineage
     Gateway-->>Workbench: source order and versions unchanged
     Note over Workbench,Idea: Retrieval and prefetch do not prove that an adviser saw a candidate
     Adviser->>Workbench: Visible queue render
@@ -70,6 +70,8 @@ historical outcome aliases are rejected rather than translated.
 | `queuePolicyVersion` | Lotus Idea queue response | Preserved by Workbench and forwarded unchanged. |
 | `rankingPolicyVersion` | Candidate ranking evidence | Preserved by Workbench and forwarded unchanged. |
 | `candidateMaterialVersion`, `candidateEvidenceVersion` | Lotus Idea candidate identity | Required on queue entries and returned to Workbench unchanged. |
+| `sourceRevisionVectorDigest` | Lotus Idea queue source lineage | Required on the Idea queue response. Workbench must preserve the displayed candidate's value and Gateway forwards it unchanged; neither consumer derives it from business identifiers. |
+| `sourceCutPosture` | Lotus Idea queue source-cut classification | Required on the Idea queue response. Workbench must preserve the displayed candidate's value and Gateway forwards it unchanged without inventing a default. |
 | `Idempotency-Key` | Workbench receipt identity | Required, non-blank, and forwarded unchanged. |
 | `X-Causation-Id` | Calling journey lineage | Optional and forwarded unchanged. |
 
@@ -120,6 +122,6 @@ make check
 The versioned reconciliation artifacts are:
 
 - `contracts/upstream/lotus-idea-feedback-taxonomy.v1.json`
-- `contracts/upstream/lotus-idea-presentation-receipt.v1.json`
+- `contracts/upstream/lotus-idea-presentation-receipt.v2.json`
 - `contracts/upstream/lotus-idea-reason-codes.v1.json` for review/conversion actions only
 

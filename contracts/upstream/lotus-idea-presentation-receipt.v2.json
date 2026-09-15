@@ -1,8 +1,8 @@
 {
   "contractId": "lotus-idea-presentation-receipt",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "sourceAuthority": "lotus-idea",
-  "sourceSchema": "lotus-idea.candidate-presentation-receipt.v1",
+  "sourceSchema": "lotus-idea.candidate-presentation-receipt.v2",
   "sourcePath": "src/app/api/presentation_receipt_models.py",
   "bffPath": "/api/v1/ideas/candidates/{candidate_id}/presentation-receipts",
   "requiredRequestFields": [
@@ -14,7 +14,9 @@
     "queuePolicyVersion",
     "rankingPolicyVersion",
     "candidateMaterialVersion",
-    "candidateEvidenceVersion"
+    "candidateEvidenceVersion",
+    "sourceRevisionVectorDigest",
+    "sourceCutPosture"
   ],
   "successStatuses": [
     200,

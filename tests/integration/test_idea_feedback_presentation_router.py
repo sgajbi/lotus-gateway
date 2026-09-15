@@ -69,6 +69,8 @@ def _presentation_payload() -> dict[str, object]:
         "rankingPolicyVersion": "idle-liquidity-v1",
         "candidateMaterialVersion": 1,
         "candidateEvidenceVersion": 1,
+        "sourceRevisionVectorDigest": f"sha256:{'b' * 64}",
+        "sourceCutPosture": "coherent",
     }
 
 
@@ -301,6 +303,13 @@ def test_presentation_receipt_preserves_source_status_body_and_lineage(
         {**_presentation_payload(), "visibleCandidateCount": 101},
         {**_presentation_payload(), "queueSnapshotDigest": "sha256:not-a-digest"},
         {**_presentation_payload(), "candidateEvidenceVersion": 0},
+        {
+            key: value
+            for key, value in _presentation_payload().items()
+            if key != "sourceRevisionVectorDigest"
+        },
+        {**_presentation_payload(), "sourceRevisionVectorDigest": "sha256:not-a-digest"},
+        {**_presentation_payload(), "sourceCutPosture": "authoritative"},
     ),
 )
 def test_presentation_receipt_rejects_malformed_transport_before_fanout(
@@ -508,6 +517,8 @@ def test_presentation_receipt_rejects_status_decision_mismatch(
         ("rankingPolicyVersion", "idle-liquidity-v2"),
         ("candidateMaterialVersion", 2),
         ("candidateEvidenceVersion", 2),
+        ("sourceRevisionVectorDigest", f"sha256:{'c' * 64}"),
+        ("sourceCutPosture", "mixed"),
     ),
 )
 def test_presentation_receipt_rejects_persisted_evidence_mismatch(
@@ -540,6 +551,7 @@ def test_presentation_receipt_rejects_persisted_evidence_mismatch(
         ("promoted_feature", "idea_supported_feature_claim_invalid"),
         ("non_durable_success", "idea_contract_invalid"),
         ("invalid_receipt_rank", "idea_contract_invalid"),
+        ("naive_accepted_at", "idea_contract_invalid"),
     ),
 )
 def test_presentation_receipt_rejects_untruthful_source_success_payload(
@@ -555,6 +567,8 @@ def test_presentation_receipt_rejects_untruthful_source_success_payload(
             payload["supportedFeaturePromoted"] = True
         elif mutation == "non_durable_success":
             payload["durableStorageBacked"] = False
+        elif mutation == "naive_accepted_at":
+            payload["receipt"]["acceptedAtUtc"] = "2026-06-21T10:16:01"
         else:
             payload["receipt"]["rankAtPresentation"] = True
         return 201, payload
@@ -570,6 +584,43 @@ def test_presentation_receipt_rejects_untruthful_source_success_payload(
 
     assert response.status_code == 502
     assert response.json()["detail"]["code"] == expected_code
+
+
+@pytest.mark.parametrize(
+    ("container", "declared_field", "undeclared_field"),
+    (
+        ("receipt", "sourceRevisionVectorDigest", "source_revision_vector_digest"),
+        ("receipt", "sourceCutPosture", "source_cut_posture"),
+        ("receipt", "acceptedAtUtc", "accepted_at_utc"),
+        ("receipt", "acceptanceTimeSource", "acceptance_time_source"),
+        ("receipt", "tenantId", "tenant_id"),
+        ("envelope", "persistenceDecision", "persistence_decision"),
+        ("envelope", "durableStorageBacked", "durable_storage_backed"),
+    ),
+)
+def test_presentation_receipt_rejects_undeclared_source_field_spellings(
+    monkeypatch: pytest.MonkeyPatch,
+    container: str,
+    declared_field: str,
+    undeclared_field: str,
+) -> None:
+    async def _presentation(self, **kwargs):
+        payload = deepcopy(IDEA_PRESENTATION_RECEIPT_ACCEPTED_EXAMPLE)
+        fields = payload["receipt"] if container == "receipt" else payload
+        fields[undeclared_field] = fields.pop(declared_field)
+        return 201, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_presentation_receipt",
+        _presentation,
+    )
+
+    response = TestClient(app).post(
+        _PRESENTATION_PATH, json=_presentation_payload(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
 
 
 def test_queue_retrieval_never_synthesizes_presentation_evidence(

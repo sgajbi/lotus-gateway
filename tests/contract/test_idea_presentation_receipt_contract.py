@@ -11,7 +11,7 @@ CONTRACT_PATH = (
     Path(__file__).resolve().parents[2]
     / "contracts"
     / "upstream"
-    / "lotus-idea-presentation-receipt.v1.json"
+    / "lotus-idea-presentation-receipt.v2.json"
 )
 
 

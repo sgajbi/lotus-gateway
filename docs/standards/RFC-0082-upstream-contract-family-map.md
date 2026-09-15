@@ -156,7 +156,10 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    the feedback taxonomy, and presentation receipts through separate versioned contracts under
    `contracts/upstream/`, publishes them in OpenAPI, and rejects drifted transport before source
    fan-out. Outcome/reason combinations remain Idea validation authority. Queue candidates must
-   carry source-owned material/evidence versions; queue reads never synthesize presentation.
+   carry source-owned material/evidence versions, strict source revision-vector digest, and closed
+   source-cut posture. Workbench preserves these rendered queue facts in the v2 presentation
+   request; Gateway preserves Idea's server-accepted UTC evidence and never reconstructs lineage
+   or acceptance. Queue reads never synthesize presentation.
 8. Report ordering choices are exposed through gateway-owned
    `/api/v1/report-ordering/options`. Gateway validates the strict
    `report-ordering-catalogue.v1` source contract, filters choices by trusted caller role, applies

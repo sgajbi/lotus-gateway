@@ -108,7 +108,7 @@ def test_a_receipt_write_puts_every_entitlement_on_the_wire_unchanged(outbound) 
         "receipt": {
             "receiptId": "rcpt_1",
             "candidateId": "idea_cand_1",
-            "schemaVersion": "lotus-idea.candidate-presentation-receipt.v1",
+            "schemaVersion": "lotus-idea.candidate-presentation-receipt.v2",
             "surface": "advisor_review_queue",
             "producer": "lotus-workbench",
             "tenantId": "tenant-sg",
@@ -120,6 +120,10 @@ def test_a_receipt_write_puts_every_entitlement_on_the_wire_unchanged(outbound) 
             "rankingPolicyVersion": "ranking.v1",
             "candidateMaterialVersion": 3,
             "candidateEvidenceVersion": 7,
+            "sourceRevisionVectorDigest": "sha256:" + "b" * 64,
+            "sourceCutPosture": "coherent",
+            "acceptedAtUtc": "2026-05-03T09:00:01Z",
+            "acceptanceTimeSource": "server_accepted",
         },
         "persistenceDecision": "accepted",
         "durableStorageBacked": True,
@@ -144,6 +148,8 @@ def test_a_receipt_write_puts_every_entitlement_on_the_wire_unchanged(outbound) 
             "rankingPolicyVersion": "ranking.v1",
             "candidateMaterialVersion": 3,
             "candidateEvidenceVersion": 7,
+            "sourceRevisionVectorDigest": "sha256:" + "b" * 64,
+            "sourceCutPosture": "coherent",
         },
     )
 
