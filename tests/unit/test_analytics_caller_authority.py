@@ -108,6 +108,44 @@ async def test_authority_is_not_forwarded_to_a_foreign_result_target(monkeypatch
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("stage", ["submission", "poll", "execution", "lineage"])
+async def test_bound_json_redirect_is_an_explicit_failure(monkeypatch, stage):
+    seen = []
+
+    def respond(request):
+        seen.append(request)
+        if stage == "poll" and request.method == "POST":
+            return httpx.Response(
+                202,
+                json={"result_path": "/performance/result/calc", "calculation_id": "calc"},
+            )
+        return httpx.Response(
+            307,
+            headers={"location": "https://foreign.test/private"},
+            json={"status": "complete", "stages": [], "artifacts": {}},
+        )
+
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kw: original(**kw, transport=httpx.MockTransport(respond)),
+    )
+    client = LotusAnalyticsClient("https://performance.test", 1).with_caller_headers(
+        {"X-Tenant-Id": "tenant-a"},
+    )
+    if stage in {"submission", "poll"}:
+        result = await client.get_stateful_twr("P", "2026-04-10", "YTD", "corr")
+    elif stage == "execution":
+        result = await client.get_execution(calculation_id="calc", correlation_id="corr")
+    else:
+        result = await client.get_lineage(calculation_id="calc", correlation_id="corr")
+    assert result == (502, {"detail": "Performance source redirect was refused."})
+    assert len(seen) == (2 if stage == "poll" else 1)
+    assert all(request.url.host == "performance.test" for request in seen)
+
+
+@pytest.mark.asyncio
 async def test_bound_client_does_not_follow_artifact_redirect(monkeypatch):
     seen = []
 

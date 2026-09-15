@@ -67,7 +67,7 @@ class LotusAnalyticsClient(
             headers=build_upstream_headers(correlation_id, caller_headers=self._caller_headers),
             follow_redirects=not bool(self._caller_headers),
         )
-        return outcome.as_result()
+        return self._admitted_outcome(outcome).as_result()
 
     async def _post_analytics_request(
         self,
@@ -176,6 +176,7 @@ class LotusAnalyticsClient(
             outcome = self._submission_deadline_outcome()
         if request_budget.is_expired and outcome.status_code != 504:
             outcome = self._submission_deadline_outcome(outcome)
+        outcome = self._admitted_outcome(outcome)
         emit_gateway_analytics_fanout_log(
             logger=logger,
             started_at=started_at,

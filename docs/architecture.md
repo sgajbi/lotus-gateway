@@ -66,7 +66,9 @@ required trio once. These development/trusted-service headers are not production
 Routes bind the admitted context through `with_caller_headers` on request-specific service/client
 views. The shared provider is never mutated. The bound Performance adapter snapshots the admitted
 headers for submission, result polling, execution, lineage and artifacts, including late completions.
-Redirect following is disabled for bound calls, and a foreign result origin is refused. The generic
+Redirect following is disabled for bound calls, and a foreign result origin is refused. Refused
+JSON submission, polling and evidence redirects become explicit `502` source failures; a `3xx`
+payload cannot masquerade as available evidence or a successful result. The generic
 upstream header builder still has no ambient authority; the Core-only read fence is unchanged.
 
 `AsyncTtlCache.scoped` supplies an ownership namespace over the existing store, lock and in-flight

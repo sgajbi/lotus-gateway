@@ -240,6 +240,14 @@ class LotusAnalyticsAsyncPollingMixin:
             and target.password is None
         )
 
+    def _admitted_outcome(self, outcome: JsonRequestOutcome) -> JsonRequestOutcome:
+        if self._caller_headers and 300 <= outcome.status_code < 400:
+            return JsonRequestOutcome(
+                status_code=502,
+                payload={"detail": "Performance source redirect was refused."},
+            )
+        return outcome
+
     async def _poll_analytics_result_once(
         self, *, context: _AnalyticsPollContext
     ) -> JsonRequestOutcome:
@@ -256,6 +264,7 @@ class LotusAnalyticsAsyncPollingMixin:
                 follow_redirects=not bool(self._caller_headers),
             )
         )
+        outcome = self._admitted_outcome(outcome)
         emit_gateway_analytics_fanout_log(
             logger=logger,
             started_at=started_at,
