@@ -13,7 +13,8 @@ from app.routers.workbench_risk_common import (
     RiskReportEndDateQuery,
     RiskReportStartDateQuery,
 )
-from app.services.workbench_service_provider import risk_workspace_service
+from app.routers.workbench_risk_tenant import RiskTenantId
+from app.services.workbench_service_provider import risk_workspace_service_for_tenant
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
@@ -113,8 +114,9 @@ async def _get_risk_attribution(
     *,
     portfolio_id: str,
     query: RiskAttributionQuery,
+    tenant_id: str,
 ) -> WorkbenchRiskAttributionResponse:
-    return await risk_workspace_service().get_attribution(
+    return await risk_workspace_service_for_tenant(tenant_id).get_attribution(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         period=query.period,
@@ -142,6 +144,7 @@ async def _get_risk_attribution(
     ),
 )
 async def get_workbench_risk_attribution(
+    tenant_id: RiskTenantId,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -154,4 +157,5 @@ async def get_workbench_risk_attribution(
     return await _get_risk_attribution(
         portfolio_id=portfolio_id,
         query=query,
+        tenant_id=tenant_id,
     )

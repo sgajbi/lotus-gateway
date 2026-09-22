@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 
 class ArchiveAccessPreflightClient(Protocol):
@@ -121,6 +121,8 @@ class IntakeLookupClient(Protocol):
 
 
 class RiskWorkspaceClient(Protocol):
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self: ...
+
     async def post_risk_calculate(
         self,
         *,

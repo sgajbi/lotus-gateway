@@ -106,7 +106,8 @@ authority remains with the named downstream execution provider as the execution 
    methodology authority
 5. risk workspace module payloads preserve source calculation supportability from `lotus-risk`
    alongside dependency-specific supportability entries; Gateway does not recompute risk
-   supportability
+   supportability. Every stateful Risk request carries the route-admitted `X-Tenant-Id`, and
+   Gateway partitions cached responses by that tenant rather than reusing another caller's answer.
 6. risk summary and concentration compose `lotus-manage` mandate identity, constraints, health,
    optional review cadence, and lineage with `lotus-risk` measures and the date-resolved Workbench
    cash measure. Manage owns cash-health verdicts and approved limits; Risk owns tracking error and

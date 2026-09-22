@@ -320,7 +320,12 @@ under parent issue #586.
    resolves tenant scope through its own contract (platform capabilities) re-admits the
    resolved value via `admit_caller_tenant` so its Core calls and its response label carry
    one identical scope. A route's explicitly admitted `caller_headers` always override the
-   ambient tenant,
+   ambient tenant.
+   Stateful Workbench Risk routes independently require a single nonblank `X-Tenant-Id` before
+   upstream I/O, bind it explicitly on a request-scoped Risk client, and partition their shared
+   response cache by admitted tenant. Summary and concentration use that same tenant for Manage
+   mandate composition. Do not move this authority into the generic header builder or claim the
+   caller-asserted header is an IAM grant; see `docs/architecture.md#stateful-risk-tenant-scope`,
 16. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority. When a deployment's lotus-ai runs `verified_service_jwt` caller trust, operators provision the ops-issued platform credential through `LOTUS_AI_CALLER_CREDENTIAL` (a secret; passed through `docker-compose.yml`, empty in header-trust environments) and Gateway attaches it as a Bearer token on every lotus-ai request — Gateway mints nothing and lotus-ai owns verification. The credential is read once at process start with no runtime refetch: rotation is platform-managed secret rotation plus a governed rolling Gateway restart before expiry, a rejected or expired credential fails closed at lotus-ai on exactly one request, and Gateway never downgrades from verified identity to bare caller headers,
 17. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
     `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as

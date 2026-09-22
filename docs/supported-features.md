@@ -15,6 +15,10 @@
 3. risk workspace summary, concentration, drawdown, rolling risk, and attribution,
 4. portfolio 360 composition.
 
+Stateful risk workspace reads require one nonblank `X-Tenant-Id`. Gateway forwards that admitted
+tenant to Risk, isolates its response cache by tenant, and uses the same scope for any composed
+Manage mandate evidence. The header is a source selection boundary, not proof of IAM entitlement.
+
 ## Workbench Snapshot Date Semantics
 
 Status: implementation-backed for the Workbench overview and portfolio-360 routes.

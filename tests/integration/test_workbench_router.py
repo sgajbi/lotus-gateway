@@ -723,6 +723,7 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     captured_payload: dict[str, Any] = {}
 
     async def _risk_calculate(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {"X-Tenant-Id": "tenant-sg"}
         captured_payload.update(payload)
         assert payload["input_mode"] == "stateful"
         assert "stateless_input" not in payload
@@ -1022,7 +1023,18 @@ def test_workbench_risk_summary_router_sends_canonical_trailing_period_to_risk(m
 
 
 def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeypatch):
+    from app.services.risk_mandate_sources import RiskMandateSources
+
+    async def _no_mandate_sources(self, **kwargs):  # noqa: ARG001
+        return RiskMandateSources(mandate=None, health=None, cash=None)
+
+    monkeypatch.setattr(
+        "app.services.risk_workspace_mandate_service.RiskWorkspaceMandateServiceMixin._load_mandate_sources",
+        _no_mandate_sources,
+    )
+
     async def _risk_concentration(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {"X-Tenant-Id": "tenant-sg"}
         assert payload["input_mode"] == "stateful"
         assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_CONC"
         assert payload["issuer_grouping_level"] == "ultimate_parent"
@@ -1102,15 +1114,14 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     response = client.get(
         "/api/v1/workbench/PF_RISK_CONC/risk/concentration"
         "?period=YTD&benchmark_code=BMK_1&as_of_date=2026-04-04&reporting_currency=USD",
-        headers={"X-Correlation-Id": "corr-risk-concentration"},
+        headers={"X-Correlation-Id": "corr-risk-concentration", "X-Tenant-Id": "tenant-sg"},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
-    # No X-Tenant-Id was sent, and this route does not require one: the lotus-risk
-    # concentration answer is returned in full, and the manage-owned mandate limits
-    # are reported as needing a tenant rather than being silently omitted.
+    # Risk receives the exact admitted tenant, while absent Manage-owned limits
+    # remain explicitly supportability-scoped.
     assert body["state"] == "ready"
     assert body["payload"]["portfolio_concentration"]["hhi_current"] == 1200.0
     assert body["payload"]["portfolio_concentration"]["hhi_delta"] == 25.0
@@ -1123,8 +1134,7 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     assert body["mandate_comparison"]["constraints"] == []
     assert body["mandate_comparison"]["supportability"]["state"] == "unavailable"
     assert body["mandate_comparison"]["supportability"]["reason"] == (
-        "Mandate comparison requires a tenant: lotus-manage stores mandate evidence "
-        "per tenant and this request did not name one."
+        "No approved client mandate is available for this portfolio."
     )
     assert body["payload"]["single_position_concentration"]["top_position_weight_delta"] == 0.01
     assert (
@@ -1160,6 +1170,7 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
 
 def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(monkeypatch):
     async def _risk_drawdown(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {"X-Tenant-Id": "tenant-sg"}
         assert payload["input_mode"] == "stateful"
         assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_DRAWDOWN"
         assert payload["stateful_input"]["benchmark_policy"] == {
@@ -1226,7 +1237,7 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
         "/api/v1/workbench/PF_RISK_DRAWDOWN/risk/drawdown"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD&include_underwater_series=true",
-        headers={"X-Correlation-Id": "corr-risk-drawdown"},
+        headers={"X-Correlation-Id": "corr-risk-drawdown", "X-Tenant-Id": "tenant-sg"},
     )
 
     assert response.status_code == 200
@@ -1254,6 +1265,7 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
 
 def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(monkeypatch):
     async def _risk_rolling(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {"X-Tenant-Id": "tenant-sg"}
         assert payload["input_mode"] == "stateful"
         assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ROLLING"
         assert payload["stateful_input"]["rolling_options"]["include_time_series"] is True
@@ -1363,7 +1375,7 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
         "/api/v1/workbench/PF_RISK_ROLLING/risk/rolling"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD&include_time_series=true",
-        headers={"X-Correlation-Id": "corr-risk-rolling"},
+        headers={"X-Correlation-Id": "corr-risk-rolling", "X-Tenant-Id": "tenant-sg"},
     )
 
     assert response.status_code == 200
@@ -1410,6 +1422,7 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
 
 def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch):
     async def _risk_attribution(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {"X-Tenant-Id": "tenant-sg"}
         assert payload["input_mode"] == "stateful"
         assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ATTRIBUTION"
         assert payload["stateful_input"]["benchmark_id"] == "BMK_1"
@@ -1482,7 +1495,7 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD"
         "&attribution_type=ACTIVE_RISK&grouping_dimension=ASSET_CLASS",
-        headers={"X-Correlation-Id": "corr-risk-attribution"},
+        headers={"X-Correlation-Id": "corr-risk-attribution", "X-Tenant-Id": "tenant-sg"},
     )
 
     assert response.status_code == 200

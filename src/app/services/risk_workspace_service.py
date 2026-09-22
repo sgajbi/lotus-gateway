@@ -1,4 +1,5 @@
-from typing import cast
+from copy import copy
+from typing import Self, cast
 
 from app.config import settings
 from app.contracts.risk_workspace import (
@@ -56,6 +57,13 @@ class RiskWorkspaceService(
 
     def clear_cache(self) -> None:
         self._cache.clear()
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        """Bind admitted Risk authority and every cached result to one request scope."""
+        service = copy(self)
+        service._risk_client = self._risk_client.with_caller_headers(caller_headers)
+        service._cache = self._cache.scoped(tuple(sorted(caller_headers.items())))
+        return service
 
     async def get_summary(
         self,

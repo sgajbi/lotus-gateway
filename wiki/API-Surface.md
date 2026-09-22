@@ -110,6 +110,12 @@ consumer migration remain tracked by parent issue #569.
 
 ## Current contract notes
 
+All five stateful Workbench Risk routes (summary, concentration, drawdown, rolling and
+attribution) require one nonblank `X-Tenant-Id`. Gateway refuses an absent or ambiguous tenant
+before source I/O, forwards the admitted tenant to Risk, and isolates cached answers by tenant.
+Summary and concentration use that same scope for Manage mandate evidence. The tenant header
+does not itself establish an IAM entitlement; Risk owns calculations and supportability.
+
 Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tenant-Id` and
 `X-Region`, including details, horizon comparison, attribution trend, Advisor Brief and the portfolio
 performance snapshot. Missing/blank context is refused before source I/O; repeated identity headers
