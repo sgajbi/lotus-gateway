@@ -214,16 +214,13 @@ async def test_summary_without_configured_sources_is_explicitly_unavailable() ->
 
 
 @pytest.mark.asyncio
-async def test_summary_without_a_tenant_keeps_risk_measures_and_names_the_missing_scope() -> None:
-    """A tenantless request still gets its lotus-risk answer.
+async def test_internal_summary_without_tenant_never_guesses_manage_scope() -> None:
+    """Defensive service behavior, not a public-route or lotus-risk contract.
 
-    lotus-manage stores mandate evidence per tenant, so a request that named no
-    tenant cannot have a mandate comparison composed for it. The failure mode
-    worth refusing is Gateway picking one -- a seeded default, or the first
-    tenant a portfolio appears under -- which would show one tenant's mandate
-    against another's positions. So the mandate section says why it is empty and
-    no lotus-manage call is made, while the risk measures, which are
-    lotus-risk-owned and need no tenant, are returned exactly as before.
+    The public stateful Risk route now refuses a missing tenant before I/O.
+    This direct service test uses a stubbed Risk client only to ensure that an
+    accidental internal call cannot select a seeded Manage tenant or read
+    another tenant's mandate evidence.
     """
 
     manage = _ManageClient()

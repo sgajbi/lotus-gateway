@@ -35,15 +35,10 @@ lotus-manage treats `" alpha"` and `"alpha"` as one tenant; stripping locally as
 well would be a second normaliser that can drift from theirs, and two normalisers
 disagreeing is how a tenant's own evidence gets partitioned.
 
-`OptionalDpmManageTenantId` is the same header on routes whose *primary* answer
-comes from somewhere else and where lotus-manage evidence is one composed part
-of the response — the Workbench risk surfaces, where the risk measures are
-lotus-risk-owned. Requiring the header there would break callers of a shipped
-Workbench contract to fence a section of the payload they may not be asking for;
-omitting it reports that one section unavailable and leaves the rest intact. It
-is optional in what it admits, never in what it forwards: a tenant that is
-present is forwarded unchanged, and one that is absent means no lotus-manage
-call is made at all.
+Stateful Workbench Risk routes use their own required, normalized tenant
+admission boundary. The same admitted tenant is forwarded to lotus-risk and
+used when composing lotus-manage evidence; an absent tenant cannot produce a
+risk answer because lotus-risk refuses stateful reads without it.
 
 **This is a correctness boundary, not authentication.** The tenant is a
 caller-asserted scope: it narrows what is read, and does not prove the caller is
@@ -70,26 +65,6 @@ DpmManageTenantId = Annotated[
         pattern=r"\S",
         min_length=1,
         description=MANAGE_TENANT_DESCRIPTION,
-        examples=["tenant-sg"],
-    ),
-]
-
-OPTIONAL_MANAGE_TENANT_DESCRIPTION = (
-    "Tenant whose lotus-manage mandate evidence should be composed into this response. "
-    "Optional: the risk measures themselves are lotus-risk-owned and need no tenant, so a "
-    "request that omits this header still returns them. The mandate comparison is then "
-    "reported as unavailable with that reason, because lotus-manage stores mandate evidence "
-    "per tenant and Gateway will not guess one. Caller-asserted scope, not authenticated "
-    "authority."
-)
-
-OptionalDpmManageTenantId = Annotated[
-    str | None,
-    Header(
-        alias="X-Tenant-Id",
-        pattern=r"\S",
-        min_length=1,
-        description=OPTIONAL_MANAGE_TENANT_DESCRIPTION,
         examples=["tenant-sg"],
     ),
 ]

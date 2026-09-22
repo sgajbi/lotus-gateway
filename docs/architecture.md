@@ -55,6 +55,16 @@ Gateway integrates with:
 5. Service modules should depend on typed protocols where possible.
 6. Public API behavior must be pinned by contract or integration tests.
 
+## Stateful Risk Tenant Scope
+
+All five Workbench Risk routes (summary, concentration, drawdown, rolling, and attribution)
+require one nonblank `X-Tenant-Id`. Gateway admits it before upstream I/O, forwards that tenant
+to `lotus-risk` on the request-bound client, and partitions cached Risk answers by tenant.
+Summary and concentration use the same tenant when composing `lotus-manage` mandate evidence.
+The shared analytics client carries no ambient tenant and must never acquire a seeded default:
+other upstreams have different admission rules. This is caller-asserted scope, not an IAM grant.
+Risk retains calculation and supportability authority; Gateway does not recreate its figures.
+
 ## Performance Caller Authority
 
 The Workbench Performance summary, details, horizon comparison, attribution trend, Advisor Brief

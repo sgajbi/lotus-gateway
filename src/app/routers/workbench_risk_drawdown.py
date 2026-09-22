@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Path, Query
 from app.contracts.risk_workspace import WorkbenchRiskDrawdownResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.workbench_risk_common import RISK_PERIOD_QUERY_DESCRIPTION
-from app.services.workbench_service_provider import risk_workspace_service
+from app.routers.workbench_risk_tenant import RiskTenantId
+from app.services.workbench_service_provider import risk_workspace_service_for_tenant
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
@@ -89,8 +90,9 @@ def build_risk_drawdown_query(
 async def _get_risk_drawdown(
     portfolio_id: str,
     query: RiskDrawdownQuery,
+    tenant_id: str,
 ) -> WorkbenchRiskDrawdownResponse:
-    service = risk_workspace_service()
+    service = risk_workspace_service_for_tenant(tenant_id)
     correlation_id = correlation_id_var.get()
     return await service.get_drawdown(
         portfolio_id=portfolio_id,
@@ -118,6 +120,7 @@ async def _get_risk_drawdown(
     ),
 )
 async def get_workbench_risk_drawdown(
+    tenant_id: RiskTenantId,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -130,4 +133,5 @@ async def get_workbench_risk_drawdown(
     return await _get_risk_drawdown(
         portfolio_id=portfolio_id,
         query=query,
+        tenant_id=tenant_id,
     )

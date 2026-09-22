@@ -71,3 +71,8 @@ def risk_workspace_service() -> RiskWorkspaceService:
     _RISK_WORKSPACE_SERVICE = service
     _RISK_WORKSPACE_SERVICE_SIGNATURE = signature
     return service
+
+
+def risk_workspace_service_for_tenant(tenant_id: str) -> RiskWorkspaceService:
+    """Use only the tenant admitted by the Risk route, never a process default."""
+    return risk_workspace_service().with_caller_headers({"X-Tenant-Id": tenant_id})
