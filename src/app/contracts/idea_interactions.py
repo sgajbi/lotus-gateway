@@ -72,12 +72,17 @@ class IdeaFeedbackEventResponse(BaseModel):
     reason: IdeaFeedbackReason
     actor_role: str = Field(..., alias="actorRole")
     recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
+    accepted_at_utc: datetime = Field(..., alias="acceptedAtUtc")
+    acceptance_time_source: Literal["server_accepted"] = Field(
+        ...,
+        alias="acceptanceTimeSource",
+    )
 
-    @field_validator("recorded_at_utc")
+    @field_validator("recorded_at_utc", "accepted_at_utc")
     @classmethod
-    def _recorded_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
+    def _event_time_must_be_timezone_aware(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("recordedAtUtc must include a timezone offset")
+            raise ValueError("Idea feedback event times must include a timezone offset")
         return value
 
 
