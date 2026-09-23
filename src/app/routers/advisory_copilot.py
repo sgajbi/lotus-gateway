@@ -1,10 +1,18 @@
 from typing import Any
 
-from fastapi import APIRouter, Body, Header, Path, Query, status
+from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 
 from app.contracts.advisory_copilot import AdvisoryCopilotEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.advisory_copilot_review_request import AdvisoryCopilotReviewCaller
+from app.routers.advisory_copilot_request import (
+    AdvisoryCopilotActionCaller,
+    AdvisoryCopilotPacketCaller,
+    AdvisoryCopilotProposalPacketCaller,
+    AdvisoryCopilotProposalRunsCaller,
+    AdvisoryCopilotReadCaller,
+    AdvisoryCopilotReviewCaller,
+)
+from app.services.advisory_copilot_access_policy import AdvisoryCopilotCallerContext
 from app.services.advisory_service_provider import advisory_copilot_service
 
 router = APIRouter(prefix="/api/v1/advisory-copilot", tags=["advisory-copilot"])
@@ -20,25 +28,55 @@ def _correlation_id() -> str:
     return correlation_id_var.get()
 
 
-async def _create_evidence_packet(body: dict[str, Any]) -> AdvisoryCopilotEnvelopeResponse:
+def _require_proposal_scope(
+    *, caller: AdvisoryCopilotCallerContext, requested_proposal_id: object
+) -> None:
+    if caller.authorized_proposal_id != requested_proposal_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "advisory_copilot_scope_denied",
+                "message": "Advisory Copilot proposal scope does not cover this request.",
+            },
+        )
+
+
+def _unwrapped_body(body: dict[str, Any]) -> dict[str, Any]:
+    inner_body = body.get("body")
+    return inner_body if isinstance(inner_body, dict) else body
+
+
+async def _create_evidence_packet(
+    body: dict[str, Any], caller: AdvisoryCopilotCallerContext
+) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().create_evidence_packet(
         body=body,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
 
 async def _create_evidence_packet_from_proposal_version(
     body: dict[str, Any],
+    caller: AdvisoryCopilotCallerContext,
 ) -> AdvisoryCopilotEnvelopeResponse:
+    _require_proposal_scope(
+        caller=caller,
+        requested_proposal_id=_unwrapped_body(body).get("proposal_id"),
+    )
     return await advisory_copilot_service().create_evidence_packet_from_proposal_version(
         body=body,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
 
-async def _get_evidence_packet(evidence_packet_id: str) -> AdvisoryCopilotEnvelopeResponse:
+async def _get_evidence_packet(
+    evidence_packet_id: str, caller: AdvisoryCopilotCallerContext
+) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().get_evidence_packet(
         evidence_packet_id=evidence_packet_id,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
@@ -47,17 +85,22 @@ async def _run_action(
     *,
     body: dict[str, Any],
     idempotency_key: str | None,
+    caller: AdvisoryCopilotCallerContext,
 ) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().run_action(
         body=body,
         idempotency_key=idempotency_key,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
 
-async def _get_run(run_id: str) -> AdvisoryCopilotEnvelopeResponse:
+async def _get_run(
+    run_id: str, caller: AdvisoryCopilotCallerContext
+) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().get_run(
         run_id=run_id,
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
@@ -67,7 +110,7 @@ async def _review_run(
     run_id: str,
     body: dict[str, Any],
     idempotency_key: str,
-    caller: AdvisoryCopilotReviewCaller,
+    caller: AdvisoryCopilotCallerContext,
 ) -> AdvisoryCopilotEnvelopeResponse:
     return await advisory_copilot_service().review_run(
         run_id=run_id,
@@ -94,11 +137,14 @@ async def _list_proposal_version_runs(
     version_id: str,
     limit: int,
     cursor: str | None,
+    caller: AdvisoryCopilotCallerContext,
 ) -> AdvisoryCopilotEnvelopeResponse:
+    _require_proposal_scope(caller=caller, requested_proposal_id=proposal_id)
     return await advisory_copilot_service().list_proposal_version_runs(
         proposal_id=proposal_id,
         version_id=version_id,
         params=_proposal_version_run_params(limit=limit, cursor=cursor),
+        caller_headers=caller.upstream_headers(),
         correlation_id=_correlation_id(),
     )
 
@@ -115,9 +161,10 @@ async def _list_proposal_version_runs(
     ),
 )
 async def create_advisory_copilot_evidence_packet(
+    caller: AdvisoryCopilotPacketCaller,
     body: dict[str, Any] = Body(...),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _create_evidence_packet(body)
+    return await _create_evidence_packet(body, caller)
 
 
 @router.post(
@@ -132,9 +179,10 @@ async def create_advisory_copilot_evidence_packet(
     ),
 )
 async def create_advisory_copilot_evidence_packet_from_proposal_version(
+    caller: AdvisoryCopilotProposalPacketCaller,
     body: dict[str, Any] = Body(...),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _create_evidence_packet_from_proposal_version(body)
+    return await _create_evidence_packet_from_proposal_version(body, caller)
 
 
 @router.get(
@@ -147,11 +195,12 @@ async def create_advisory_copilot_evidence_packet_from_proposal_version(
     ),
 )
 async def get_advisory_copilot_evidence_packet(
+    caller: AdvisoryCopilotReadCaller,
     evidence_packet_id: str = Path(
         description="Advisory copilot evidence-packet identifier owned by lotus-advise."
     ),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _get_evidence_packet(evidence_packet_id)
+    return await _get_evidence_packet(evidence_packet_id, caller)
 
 
 @router.post(
@@ -165,10 +214,11 @@ async def get_advisory_copilot_evidence_packet(
     ),
 )
 async def run_advisory_copilot_action(
+    caller: AdvisoryCopilotActionCaller,
     body: dict[str, Any] = Body(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _run_action(body=body, idempotency_key=idempotency_key)
+    return await _run_action(body=body, idempotency_key=idempotency_key, caller=caller)
 
 
 @router.get(
@@ -181,9 +231,10 @@ async def run_advisory_copilot_action(
     ),
 )
 async def get_advisory_copilot_run(
+    caller: AdvisoryCopilotReadCaller,
     run_id: str = Path(description="Advisory copilot run identifier owned by lotus-advise."),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await _get_run(run_id)
+    return await _get_run(run_id, caller)
 
 
 @router.post(
@@ -236,6 +287,7 @@ async def get_advisory_copilot_supportability() -> AdvisoryCopilotEnvelopeRespon
     ),
 )
 async def list_advisory_copilot_proposal_version_runs(
+    caller: AdvisoryCopilotProposalRunsCaller,
     proposal_id: str = Path(description="Proposal identifier owned by lotus-advise."),
     version_id: str = Path(description="Proposal version identifier owned by lotus-advise."),
     limit: int = Query(default=25, ge=1, le=100),
@@ -246,4 +298,5 @@ async def list_advisory_copilot_proposal_version_runs(
         version_id=version_id,
         limit=limit,
         cursor=cursor,
+        caller=caller,
     )

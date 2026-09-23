@@ -20,6 +20,39 @@ def _review_headers(**overrides: str) -> dict[str, str]:
     return headers
 
 
+def _caller_headers(
+    capability: str,
+    correlation_id: str,
+    *,
+    role: str = "ADVISOR",
+) -> dict[str, str]:
+    return _review_headers(
+        **{
+            "X-Correlation-Id": correlation_id,
+            "X-Role": role,
+            "X-Caller-Capabilities": capability,
+        }
+    )
+
+
+def _expected_upstream_headers(
+    capability: str,
+    *,
+    role: str = "ADVISOR",
+) -> dict[str, str]:
+    return {
+        "X-Actor-Id": "desk_head_sg_001",
+        "X-Role": role,
+        "X-Tenant-Id": "tenant-sg-001",
+        "X-Legal-Entity-Code": "PB_SG",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": capability,
+        "X-Principal-Status": "ACTIVE",
+        "X-Authorized-Proposal-Id": "proposal-001",
+        "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+    }
+
+
 def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch):
     captured: dict[str, object] = {}
 
@@ -33,14 +66,24 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
             "unsupported_capability_boundaries": ["CLIENT_READY_PUBLICATION"],
         }
 
-    async def _fake_create_packet(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_create_packet(self, body, caller_headers, correlation_id):  # noqa: ANN001
         _ = self
-        captured["create_packet"] = {"body": body, "correlation_id": correlation_id}
+        captured["create_packet"] = {
+            "body": body,
+            "caller_headers": caller_headers,
+            "correlation_id": correlation_id,
+        }
         return 201, {"evidence_packet": {"evidence_packet_id": "packet-direct"}}
 
-    async def _fake_create_packet_from_version(self, body, correlation_id):  # noqa: ANN001
+    async def _fake_create_packet_from_version(  # noqa: ANN001
+        self, body, caller_headers, correlation_id
+    ):
         _ = self
-        captured["create_packet_from_version"] = {"body": body, "correlation_id": correlation_id}
+        captured["create_packet_from_version"] = {
+            "body": body,
+            "caller_headers": caller_headers,
+            "correlation_id": correlation_id,
+        }
         return 201, {
             "evidence_packet": {
                 "evidence_packet_id": "packet-version",
@@ -48,19 +91,25 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
             }
         }
 
-    async def _fake_get_packet(self, evidence_packet_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_packet(  # noqa: ANN001
+        self, evidence_packet_id, caller_headers, correlation_id
+    ):
         _ = self
         captured["get_packet"] = {
             "evidence_packet_id": evidence_packet_id,
+            "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
         return 200, {"evidence_packet": {"evidence_packet_id": evidence_packet_id}}
 
-    async def _fake_run_action(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+    async def _fake_run_action(  # noqa: ANN001
+        self, body, idempotency_key, caller_headers, correlation_id
+    ):
         _ = self
         captured["run_action"] = {
             "body": body,
             "idempotency_key": idempotency_key,
+            "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
         return 200, {
@@ -71,9 +120,13 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
             }
         }
 
-    async def _fake_get_run(self, run_id, correlation_id):  # noqa: ANN001
+    async def _fake_get_run(self, run_id, caller_headers, correlation_id):  # noqa: ANN001
         _ = self
-        captured["get_run"] = {"run_id": run_id, "correlation_id": correlation_id}
+        captured["get_run"] = {
+            "run_id": run_id,
+            "caller_headers": caller_headers,
+            "correlation_id": correlation_id,
+        }
         return 200, {"run": {"run_id": run_id}}
 
     async def _fake_review_run(  # noqa: ANN001
@@ -102,6 +155,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
         proposal_id,
         version_id,
         params,
+        caller_headers,
         correlation_id,
     ):
         _ = self
@@ -109,6 +163,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
             "proposal_id": proposal_id,
             "version_id": version_id,
             "params": params,
+            "caller_headers": caller_headers,
             "correlation_id": correlation_id,
         }
         return 200, {"items": [{"run_id": "copilot-run-001"}], "next_cursor": None}
@@ -155,7 +210,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
     create_packet_response = client.post(
         "/api/v1/advisory-copilot/evidence-packets",
         json={"body": {"action_family": "PROPOSAL_EXPLANATION"}},
-        headers={"X-Correlation-Id": "corr-copilot-packet"},
+        headers=_caller_headers("advisory.copilot.packet", "corr-copilot-packet"),
     )
     version_packet_response = client.post(
         "/api/v1/advisory-copilot/evidence-packets/from-proposal-version",
@@ -166,23 +221,21 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
                 "action_family": "PROPOSAL_EXPLANATION",
             }
         },
-        headers={"X-Correlation-Id": "corr-copilot-version-packet"},
+        headers=_caller_headers("advisory.policy_evaluation.read", "corr-copilot-version-packet"),
     )
     get_packet_response = client.get(
         "/api/v1/advisory-copilot/evidence-packets/packet-version",
-        headers={"X-Correlation-Id": "corr-copilot-get-packet"},
+        headers=_caller_headers("advisory.copilot.read", "corr-copilot-get-packet"),
     )
     run_response = client.post(
         "/api/v1/advisory-copilot/actions",
         json={"body": {"evidence_packet_id": "packet-version"}},
-        headers={
-            "Idempotency-Key": "idem-copilot-action",
-            "X-Correlation-Id": "corr-copilot-run",
-        },
+        headers=_caller_headers("advisory.copilot.action", "corr-copilot-run")
+        | {"Idempotency-Key": "idem-copilot-action"},
     )
     get_run_response = client.get(
         "/api/v1/advisory-copilot/actions/copilot-run-001",
-        headers={"X-Correlation-Id": "corr-copilot-get-run"},
+        headers=_caller_headers("advisory.copilot.read", "corr-copilot-get-run"),
     )
     review_response = client.post(
         "/api/v1/advisory-copilot/actions/copilot-run-001/reviews",
@@ -192,7 +245,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
     list_runs_response = client.get(
         "/api/v1/advisory-copilot/proposals/proposal-001/versions/version-001/runs",
         params={"limit": "10", "cursor": "cursor-1"},
-        headers={"X-Correlation-Id": "corr-copilot-list-runs"},
+        headers=_caller_headers("advisory.copilot.read", "corr-copilot-list-runs"),
     )
 
     assert supportability_response.status_code == 200
@@ -214,6 +267,7 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
         "supportability": {"correlation_id": "corr-copilot-support"},
         "create_packet": {
             "body": {"action_family": "PROPOSAL_EXPLANATION"},
+            "caller_headers": _expected_upstream_headers("advisory.copilot.packet"),
             "correlation_id": "corr-copilot-packet",
         },
         "create_packet_from_version": {
@@ -222,39 +276,39 @@ def test_advisory_copilot_routes_forward_to_advise_without_rewriting(monkeypatch
                 "proposal_version_no": 1,
                 "action_family": "PROPOSAL_EXPLANATION",
             },
+            "caller_headers": _expected_upstream_headers("advisory.policy_evaluation.read"),
             "correlation_id": "corr-copilot-version-packet",
         },
         "get_packet": {
             "evidence_packet_id": "packet-version",
+            "caller_headers": _expected_upstream_headers("advisory.copilot.read"),
             "correlation_id": "corr-copilot-get-packet",
         },
         "run_action": {
             "body": {"evidence_packet_id": "packet-version"},
             "idempotency_key": "idem-copilot-action",
+            "caller_headers": _expected_upstream_headers("advisory.copilot.action"),
             "correlation_id": "corr-copilot-run",
         },
-        "get_run": {"run_id": "copilot-run-001", "correlation_id": "corr-copilot-get-run"},
+        "get_run": {
+            "run_id": "copilot-run-001",
+            "caller_headers": _expected_upstream_headers("advisory.copilot.read"),
+            "correlation_id": "corr-copilot-get-run",
+        },
         "review_run": {
             "run_id": "copilot-run-001",
             "body": {"action": "APPROVE_FOR_INTERNAL_USE"},
             "idempotency_key": "idem-copilot-review",
-            "caller_headers": {
-                "X-Actor-Id": "desk_head_sg_001",
-                "X-Role": "ADVISORY_SUPERVISOR",
-                "X-Tenant-Id": "tenant-sg-001",
-                "X-Legal-Entity-Code": "PB_SG",
-                "X-Service-Identity": "lotus-gateway",
-                "X-Capabilities": "advisory.copilot.review",
-                "X-Principal-Status": "ACTIVE",
-                "X-Authorized-Proposal-Id": "proposal-001",
-                "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
-            },
+            "caller_headers": _expected_upstream_headers(
+                "advisory.copilot.review", role="ADVISORY_SUPERVISOR"
+            ),
             "correlation_id": "corr-copilot-review",
         },
         "list_runs": {
             "proposal_id": "proposal-001",
             "version_id": "version-001",
             "params": {"limit": 10, "cursor": "cursor-1"},
+            "caller_headers": _expected_upstream_headers("advisory.copilot.read"),
             "correlation_id": "corr-copilot-list-runs",
         },
     }
@@ -293,7 +347,281 @@ def test_advisory_copilot_review_fails_closed_without_trusted_principal() -> Non
         },
     )
 
-    assert response.status_code == 400
-    detail = response.json()["detail"]
-    assert detail["code"] == "advisory_copilot_review_caller_context_missing"
-    assert "X-Actor-Id" in detail["missing_headers"]
+    assert response.status_code == 422
+    missing_headers = {item["loc"][-1] for item in response.json()["detail"]}
+    assert {
+        "X-Actor-Id",
+        "X-Tenant-Id",
+        "X-Legal-Entity-Code",
+        "X-Role",
+        "X-Caller-Capabilities",
+        "X-Principal-Status",
+        "X-Authorized-Proposal-Id",
+        "X-Authorized-Portfolio-Id",
+    } <= missing_headers
+
+
+def test_proposal_version_packet_forwards_admitted_policy_read_principal(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_create_packet_from_version(  # noqa: ANN001
+        self,
+        body,
+        caller_headers,
+        correlation_id,
+    ):
+        _ = self
+        captured.update(
+            body=body,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+        )
+        return 201, {"evidence_packet": {"evidence_packet_id": "packet-version"}}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient."
+        "create_advisory_copilot_evidence_packet_from_proposal_version",
+        _fake_create_packet_from_version,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/advisory-copilot/evidence-packets/from-proposal-version",
+        json={
+            "body": {
+                "proposal_id": "proposal-001",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+            }
+        },
+        headers=_review_headers(
+            **{
+                "X-Correlation-Id": "corr-copilot-version-packet",
+                "X-Actor-Id": "advisor_1",
+                "X-Role": "ADVISOR",
+                "X-Caller-Capabilities": "advisory.policy_evaluation.read,unrelated.grant",
+            }
+        ),
+    )
+
+    assert response.status_code == 201
+    assert captured == {
+        "body": {
+            "proposal_id": "proposal-001",
+            "proposal_version_no": 1,
+            "action_family": "PROPOSAL_EXPLANATION",
+        },
+        "caller_headers": {
+            "X-Actor-Id": "advisor_1",
+            "X-Role": "ADVISOR",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Legal-Entity-Code": "PB_SG",
+            "X-Service-Identity": "lotus-gateway",
+            "X-Capabilities": "advisory.policy_evaluation.read",
+            "X-Principal-Status": "ACTIVE",
+            "X-Authorized-Proposal-Id": "proposal-001",
+            "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+        },
+        "correlation_id": "corr-copilot-version-packet",
+    }
+
+
+def test_proposal_version_packet_refuses_missing_principal_before_upstream_io(monkeypatch) -> None:
+    called = False
+
+    async def _fake_create_packet_from_version(  # noqa: ANN001
+        self,
+        body,
+        caller_headers,
+        correlation_id,
+    ):
+        nonlocal called
+        _ = (self, body, caller_headers, correlation_id)
+        called = True
+        return 201, {"evidence_packet": {"evidence_packet_id": "must-not-run"}}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient."
+        "create_advisory_copilot_evidence_packet_from_proposal_version",
+        _fake_create_packet_from_version,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/advisory-copilot/evidence-packets/from-proposal-version",
+        json={
+            "body": {
+                "proposal_id": "proposal-001",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+            }
+        },
+        headers={"X-Correlation-Id": "corr-copilot-version-packet"},
+    )
+
+    assert response.status_code == 422
+    assert called is False
+
+
+def test_proposal_version_packet_refuses_mismatched_proposal_scope_before_upstream_io(
+    monkeypatch,
+) -> None:
+    called = False
+
+    async def _fake_create_packet_from_version(  # noqa: ANN001
+        self,
+        body,
+        caller_headers,
+        correlation_id,
+    ):
+        nonlocal called
+        _ = (self, body, caller_headers, correlation_id)
+        called = True
+        return 201, {"evidence_packet": {"evidence_packet_id": "must-not-run"}}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient."
+        "create_advisory_copilot_evidence_packet_from_proposal_version",
+        _fake_create_packet_from_version,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/advisory-copilot/evidence-packets/from-proposal-version",
+        json={
+            "body": {
+                "proposal_id": "proposal-002",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+            }
+        },
+        headers=_caller_headers(
+            "advisory.policy_evaluation.read",
+            "corr-copilot-version-packet-mismatch",
+        ),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "advisory_copilot_scope_denied"
+    assert called is False
+
+
+def test_proposal_version_run_list_refuses_mismatched_proposal_scope_before_upstream_io(
+    monkeypatch,
+) -> None:
+    called = False
+
+    async def _fake_list_runs(  # noqa: ANN001
+        self,
+        proposal_id,
+        version_id,
+        params,
+        caller_headers,
+        correlation_id,
+    ):
+        nonlocal called
+        _ = (self, proposal_id, version_id, params, caller_headers, correlation_id)
+        called = True
+        return 200, {"items": []}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.list_advisory_copilot_proposal_version_runs",
+        _fake_list_runs,
+    )
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/v1/advisory-copilot/proposals/proposal-002/versions/version-001/runs",
+        headers=_caller_headers(
+            "advisory.copilot.read",
+            "corr-copilot-list-runs-mismatch",
+        ),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "advisory_copilot_scope_denied"
+    assert called is False
+
+
+def test_run_lookup_forwards_tenant_principal_without_inventing_resource_scope(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_run(  # noqa: ANN001
+        self,
+        run_id,
+        caller_headers,
+        correlation_id,
+    ):
+        _ = self
+        captured.update(
+            run_id=run_id,
+            caller_headers=caller_headers,
+            correlation_id=correlation_id,
+        )
+        return 200, {"run": {"run_id": run_id}}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_advisory_copilot_run",
+        _fake_get_run,
+    )
+    client = TestClient(app)
+    headers = _caller_headers(
+        "advisory.copilot.read",
+        "corr-copilot-resolve-run-scope",
+        role="ADVISORY_SUPERVISOR",
+    )
+    headers.pop("X-Authorized-Proposal-Id")
+    headers.pop("X-Authorized-Portfolio-Id")
+
+    response = client.get(
+        "/api/v1/advisory-copilot/actions/copilot-run-001",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "run_id": "copilot-run-001",
+        "caller_headers": {
+            "X-Actor-Id": "desk_head_sg_001",
+            "X-Role": "ADVISORY_SUPERVISOR",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Legal-Entity-Code": "PB_SG",
+            "X-Service-Identity": "lotus-gateway",
+            "X-Capabilities": "advisory.copilot.read",
+            "X-Principal-Status": "ACTIVE",
+        },
+        "correlation_id": "corr-copilot-resolve-run-scope",
+    }
+
+
+def test_advisory_copilot_openapi_marks_authority_and_route_scope_required() -> None:
+    paths = app.openapi()["paths"]
+    base_required = {
+        "X-Actor-Id",
+        "X-Tenant-Id",
+        "X-Legal-Entity-Code",
+        "X-Role",
+        "X-Caller-Capabilities",
+        "X-Principal-Status",
+    }
+
+    proposal_packet = paths["/api/v1/advisory-copilot/evidence-packets/from-proposal-version"][
+        "post"
+    ]
+    packet_parameters = {item["name"]: item for item in proposal_packet["parameters"]}
+    assert all(packet_parameters[name]["required"] is True for name in base_required)
+    assert packet_parameters["X-Authorized-Proposal-Id"]["required"] is True
+    assert packet_parameters["X-Authorized-Portfolio-Id"]["required"] is True
+
+    resource_read = paths["/api/v1/advisory-copilot/actions/{run_id}"]["get"]
+    read_parameters = {item["name"]: item for item in resource_read["parameters"]}
+    assert all(read_parameters[name]["required"] is True for name in base_required)
+    assert read_parameters["X-Authorized-Proposal-Id"]["required"] is False
+    assert read_parameters["X-Authorized-Portfolio-Id"]["required"] is False
+
+    proposal_runs = paths[
+        "/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs"
+    ]["get"]
+    run_parameters = {item["name"]: item for item in proposal_runs["parameters"]}
+    assert run_parameters["X-Authorized-Proposal-Id"]["required"] is True
+    assert run_parameters["X-Authorized-Portfolio-Id"]["required"] is False

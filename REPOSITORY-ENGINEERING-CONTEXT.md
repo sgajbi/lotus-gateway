@@ -84,7 +84,12 @@ Current repository posture:
    not derive action posture or apply this contract to the other Cockpit response families.
    - advisory-copilot evidence-packet, action-run, review, supportability,
    and proposal-version run-lineage routes are routed to `lotus-advise`
-   `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`;
+   `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`. Every tenant-owned route
+   admits the caller's active principal, exact operation capability, tenant, legal entity,
+   proposal scope when required, and portfolio scope before mutation I/O; Gateway forwards only
+   that admitted capability plus its own service identity. A tenant-scoped packet/run read may omit
+   resource scope so the trusted Workbench BFF can resolve the stored portfolio and admit a later
+   scoped mutation. Supportability remains a deliberately global source-owned read;
    - bank-demo proof scenario-contract, supported-claim register, and
    proof-pack capture routes are routed to `lotus-advise`
    `/advisory/bank-demo-proof/*`;

@@ -8,12 +8,13 @@ class AdviseAdvisoryCopilotClientMixin:
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/advisory/copilot/evidence-packets",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.copilot.evidence-packets.create",
         )
 
@@ -21,12 +22,13 @@ class AdviseAdvisoryCopilotClientMixin:
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/advisory/copilot/evidence-packets/from-proposal-version",
             body=body,
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.copilot.evidence-packets.from-proposal-version",
         )
 
@@ -34,12 +36,13 @@ class AdviseAdvisoryCopilotClientMixin:
         self,
         *,
         evidence_packet_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/advisory/copilot/evidence-packets/{evidence_packet_id}",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.copilot.evidence-packets.get",
         )
 
@@ -48,12 +51,19 @@ class AdviseAdvisoryCopilotClientMixin:
         *,
         body: dict[str, Any],
         idempotency_key: str | None,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._post(
             "/advisory/copilot/actions",
             body=body,
-            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
+            headers=self._headers(
+                correlation_id,
+                {
+                    **caller_headers,
+                    **({"Idempotency-Key": idempotency_key} if idempotency_key else {}),
+                },
+            ),
             operation="advise.advisory.copilot.actions.run",
         )
 
@@ -61,12 +71,13 @@ class AdviseAdvisoryCopilotClientMixin:
         self,
         *,
         run_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/advisory/copilot/actions/{run_id}",
             params={},
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.copilot.actions.get",
         )
 
@@ -107,12 +118,13 @@ class AdviseAdvisoryCopilotClientMixin:
         proposal_id: str,
         version_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get(
             f"/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs",
             params=self._clean_params(params),
-            headers=self._headers(correlation_id),
+            headers=self._headers(correlation_id, caller_headers),
             operation="advise.advisory.copilot.proposal-version-runs.list",
         )
 
