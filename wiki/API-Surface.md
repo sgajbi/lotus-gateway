@@ -115,6 +115,12 @@ attribution) require one nonblank `X-Tenant-Id`. Gateway refuses an absent or am
 before source I/O, forwards the admitted tenant to Risk, and isolates cached answers by tenant.
 Summary and concentration use that same scope for Manage mandate evidence. The tenant header
 does not itself establish an IAM entitlement; Risk owns calculations and supportability.
+Each Risk envelope also preserves `requested_report_start_date` and
+`requested_report_end_date` separately from source-owned effective dates in
+`payload.periods`. A requested start may be the valuation baseline while the first observable
+return begins on the next business day. Consumers must verify both identities without rewriting
+the Risk period or presenting the effective start as the original request. Blank report-date query
+values are rejected before source I/O; omission remains a distinct cache identity.
 
 Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tenant-Id` and
 `X-Region`, including details, horizon comparison, attribution trend, Advisor Brief and the portfolio

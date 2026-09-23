@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskDrawdownResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.workbench_risk_common import RISK_PERIOD_QUERY_DESCRIPTION
+from app.routers.workbench_risk_common import RISK_DATE_PATTERN, RISK_PERIOD_QUERY_DESCRIPTION
 from app.routers.workbench_risk_tenant import RiskTenantId
 from app.services.workbench_service_provider import risk_workspace_service_for_tenant
 
@@ -45,11 +45,13 @@ RISK_DRAWDOWN_AS_OF_DATE_QUERY = Query(
 )
 RISK_DRAWDOWN_REPORT_START_QUERY = Query(
     default=None,
+    pattern=RISK_DATE_PATTERN,
     description="Inclusive explicit start date when the caller requests an explicit risk window.",
     examples=["2026-01-01"],
 )
 RISK_DRAWDOWN_REPORT_END_QUERY = Query(
     default=None,
+    pattern=RISK_DATE_PATTERN,
     description="Inclusive explicit end date when the caller requests an explicit risk window.",
     examples=["2026-03-27"],
 )

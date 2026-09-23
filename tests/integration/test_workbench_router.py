@@ -719,6 +719,30 @@ def test_workbench_analytics_router_preserves_query_context(monkeypatch):
     assert body["benchmark_code"] == "MODEL_70_30"
 
 
+@pytest.mark.parametrize(
+    "route",
+    [
+        "summary",
+        "concentration",
+        "drawdown",
+        "rolling",
+        "attribution",
+    ],
+)
+@pytest.mark.parametrize("blank_boundary", ["report_start_date", "report_end_date"])
+def test_workbench_risk_routes_reject_blank_window_identity(
+    route: str,
+    blank_boundary: str,
+) -> None:
+    response = TestClient(app).get(
+        f"/api/v1/workbench/PF_RISK_BLANK/risk/{route}?{blank_boundary}=",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][-1] == blank_boundary
+
+
 def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatch):
     captured_payload: dict[str, Any] = {}
 
@@ -760,7 +784,8 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     response = client.get(
         "/api/v1/workbench/PF_RISK_SUMMARY/risk/summary"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
-        "&as_of_date=2026-04-04&reporting_currency=USD",
+        "&as_of_date=2026-04-04&reporting_currency=USD"
+        "&report_start_date=2025-12-31&report_end_date=2026-04-04",
         headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-risk-summary"},
     )
 
@@ -771,6 +796,9 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert body["detail_basis"] == "NET"
     assert body["source_service"] == "lotus-risk"
     assert body["state"] == "ready"
+    assert body["requested_report_start_date"] == "2025-12-31"
+    assert body["requested_report_end_date"] == "2026-04-04"
+    assert body["payload"]["periods"][0]["start_date"] == "2026-01-01"
     assert body["payload"]["periods"][0]["portfolio_observation_count"] == 0
     assert body["payload"]["periods"][0]["benchmark_context"] is None
     assert body["metadata"]["input_mode"] == "stateful"
@@ -1113,7 +1141,8 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     client = TestClient(app)
     response = client.get(
         "/api/v1/workbench/PF_RISK_CONC/risk/concentration"
-        "?period=YTD&benchmark_code=BMK_1&as_of_date=2026-04-04&reporting_currency=USD",
+        "?period=YTD&benchmark_code=BMK_1&as_of_date=2026-04-04&reporting_currency=USD"
+        "&report_start_date=2025-12-31&report_end_date=2026-04-04",
         headers={"X-Correlation-Id": "corr-risk-concentration", "X-Tenant-Id": "tenant-sg"},
     )
 
@@ -1236,7 +1265,8 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     response = client.get(
         "/api/v1/workbench/PF_RISK_DRAWDOWN/risk/drawdown"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
-        "&as_of_date=2026-04-04&reporting_currency=USD&include_underwater_series=true",
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_underwater_series=true"
+        "&report_start_date=2025-12-31&report_end_date=2026-04-04",
         headers={"X-Correlation-Id": "corr-risk-drawdown", "X-Tenant-Id": "tenant-sg"},
     )
 
@@ -1246,6 +1276,9 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     assert body["correlation_id"] == "corr-risk-drawdown"
     assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
+    assert body["requested_report_start_date"] == "2025-12-31"
+    assert body["requested_report_end_date"] == "2026-04-04"
+    assert body["payload"]["periods"][0]["start_date"] == "2026-01-01"
     assert body["metadata"]["methodology_version"] == "drawdown.v1"
     assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
     assert body["payload"]["periods"][0]["summary"]["ulcer_index"] == 0.053901
@@ -1374,7 +1407,8 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     response = client.get(
         "/api/v1/workbench/PF_RISK_ROLLING/risk/rolling"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
-        "&as_of_date=2026-04-04&reporting_currency=USD&include_time_series=true",
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_time_series=true"
+        "&report_start_date=2025-12-31&report_end_date=2026-04-04",
         headers={"X-Correlation-Id": "corr-risk-rolling", "X-Tenant-Id": "tenant-sg"},
     )
 
@@ -1384,6 +1418,9 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     assert body["correlation_id"] == "corr-risk-rolling"
     assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
+    assert body["requested_report_start_date"] == "2025-12-31"
+    assert body["requested_report_end_date"] == "2026-04-04"
+    assert body["payload"]["periods"][0]["start_date"] == "2026-01-01"
     assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
     assert body["warnings"] == ["RISK_ROLLING_QUALITY_FLAGS"]
     assert body["partial_failures"] == []
@@ -1494,6 +1531,7 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
         "/api/v1/workbench/PF_RISK_ATTRIBUTION/risk/attribution"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD"
+        "&report_start_date=2025-12-31&report_end_date=2026-04-04"
         "&attribution_type=ACTIVE_RISK&grouping_dimension=ASSET_CLASS",
         headers={"X-Correlation-Id": "corr-risk-attribution", "X-Tenant-Id": "tenant-sg"},
     )
@@ -1504,6 +1542,9 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
     assert body["correlation_id"] == "corr-risk-attribution"
     assert body["detail_basis"] == "NET"
     assert body["state"] == "ready"
+    assert body["requested_report_start_date"] == "2025-12-31"
+    assert body["requested_report_end_date"] == "2026-04-04"
+    assert body["payload"]["periods"][0]["start_date"] == "2026-01-01"
     assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
     assert body["warnings"] == ["RISK_ATTRIBUTION_PERIOD_PARTIAL"]
     assert body["partial_failures"] == [

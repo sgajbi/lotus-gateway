@@ -17,6 +17,7 @@ from app.services.risk_workspace_cache import (
     attribution_cache_key,
     with_cache_status,
 )
+from app.services.risk_workspace_envelopes import with_requested_risk_window
 from app.services.risk_workspace_requests import (
     RiskAttributionRequestContext,
     build_attribution_request,
@@ -115,7 +116,7 @@ class RiskWorkspaceAttributionServiceMixin:
         self,
         context: RiskAttributionRequestContext,
     ) -> WorkbenchRiskAttributionResponse | None:
-        return blocked_attribution_response(
+        response = blocked_attribution_response(
             correlation_id=context.correlation_id,
             portfolio_id=context.portfolio_id,
             period=context.period,
@@ -125,6 +126,9 @@ class RiskWorkspaceAttributionServiceMixin:
             attribution_type=context.attribution_type,
             grouping_dimension=context.grouping_dimension,
         )
+        if response is None:
+            return None
+        return with_requested_risk_window(response, context)
 
     async def _load_attribution_response(
         self,
@@ -150,7 +154,7 @@ class RiskWorkspaceAttributionServiceMixin:
             correlation_id=context.correlation_id,
         )
         if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
-            return unavailable_attribution(
+            response = unavailable_attribution(
                 correlation_id=context.correlation_id,
                 portfolio_id=context.portfolio_id,
                 period=context.period,
@@ -162,14 +166,16 @@ class RiskWorkspaceAttributionServiceMixin:
                 upstream_status=upstream_status,
                 upstream_payload=upstream_payload,
             )
-        return map_attribution_response(
-            correlation_id=context.correlation_id,
-            portfolio_id=context.portfolio_id,
-            period=context.period,
-            detail_basis=context.detail_basis,
-            as_of_date=context.as_of_date,
-            benchmark_code=context.benchmark_code,
-            attribution_type=context.attribution_type,
-            grouping_dimension=context.grouping_dimension,
-            upstream_payload=upstream_payload,
-        )
+        else:
+            response = map_attribution_response(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                detail_basis=context.detail_basis,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                attribution_type=context.attribution_type,
+                grouping_dimension=context.grouping_dimension,
+                upstream_payload=upstream_payload,
+            )
+        return with_requested_risk_window(response, context)

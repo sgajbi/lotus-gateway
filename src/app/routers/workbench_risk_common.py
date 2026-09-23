@@ -7,6 +7,7 @@ RISK_PERIOD_QUERY_DESCRIPTION = (
     "SI, YEAR, or EXPLICIT. Legacy aliases ONE_YEAR, THREE_YEAR, FIVE_YEAR, and ITD may be "
     "accepted for compatibility but are normalized before calling lotus-risk."
 )
+RISK_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
 RiskPeriodQuery = Annotated[
     str,
@@ -53,6 +54,7 @@ RiskAsOfDateQuery = Annotated[
 RiskReportStartDateQuery = Annotated[
     str | None,
     Query(
+        pattern=RISK_DATE_PATTERN,
         description=(
             "Inclusive explicit start date when the caller requests an explicit risk window."
         ),
@@ -62,6 +64,7 @@ RiskReportStartDateQuery = Annotated[
 RiskReportEndDateQuery = Annotated[
     str | None,
     Query(
+        pattern=RISK_DATE_PATTERN,
         description="Inclusive explicit end date when the caller requests an explicit risk window.",
         examples=["2026-03-27"],
     ),
