@@ -71,8 +71,8 @@ class IdeaFeedbackEventResponse(BaseModel):
     outcome: IdeaFeedbackOutcome
     reason: IdeaFeedbackReason
     actor_role: str = Field(..., alias="actorRole")
-    recorded_at_utc: datetime = Field(..., alias="recordedAtUtc")
-    accepted_at_utc: datetime = Field(..., alias="acceptedAtUtc")
+    recorded_at_utc: TransportDatetime = Field(..., alias="recordedAtUtc")
+    accepted_at_utc: TransportDatetime = Field(..., alias="acceptedAtUtc")
     acceptance_time_source: Literal["server_accepted"] = Field(
         ...,
         alias="acceptanceTimeSource",

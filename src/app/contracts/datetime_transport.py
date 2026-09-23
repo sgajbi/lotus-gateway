@@ -24,12 +24,13 @@ from typing import Annotated, Any
 
 from pydantic import BeforeValidator
 
-_NUMERIC_TEXT = re.compile(r"^-?\d+(\.\d+)?$")
+_NUMERIC_TEXT = re.compile(r"^[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?$")
 
 
 def reject_numeric_datetime_input(value: Any) -> Any:
-    # Pydantic's lax parser treats both JSON numbers and digit-only strings as
-    # Unix timestamps; refuse both shapes so only genuine ISO text is parsed.
+    # Pydantic's lax parser treats JSON numbers and several signed, decimal, or
+    # exponent-form numeric strings as Unix timestamps. Refuse the complete
+    # numeric-text grammar so only genuine ISO text reaches datetime parsing.
     if isinstance(value, numbers.Number) or (
         isinstance(value, str) and _NUMERIC_TEXT.fullmatch(value.strip())
     ):

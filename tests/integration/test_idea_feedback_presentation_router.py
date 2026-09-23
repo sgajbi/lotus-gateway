@@ -265,6 +265,11 @@ def test_feedback_rejects_success_without_persisted_event(
     (
         ("acceptedAtUtc", None),
         ("acceptedAtUtc", "2026-06-21T10:16:01"),
+        ("acceptedAtUtc", 1782036961),
+        ("acceptedAtUtc", "1782036961"),
+        ("acceptedAtUtc", "+1782036961"),
+        ("acceptedAtUtc", ".5"),
+        ("acceptedAtUtc", "1782036961."),
         ("acceptanceTimeSource", None),
         ("acceptanceTimeSource", "caller_reported"),
     ),
