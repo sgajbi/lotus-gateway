@@ -87,7 +87,18 @@ def test_iso_strings_still_parse_with_timezone_validation() -> None:
 
 @pytest.mark.parametrize(
     "value",
-    [1782036720, 1782036720.5, "1782036720", " 1782036720.5 ", "-1782036720"],
+    [
+        1782036720,
+        1782036720.5,
+        "1782036720",
+        " 1782036720.5 ",
+        "-1782036720",
+        "+1782036720",
+        ".5",
+        "-.5",
+        "1782036720.",
+        "1.5e9",
+    ],
 )
 def test_numeric_shapes_are_refused_in_both_json_types(value) -> None:
     with pytest.raises(ValidationError) as raised:
