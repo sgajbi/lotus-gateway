@@ -766,9 +766,15 @@ Authority and integrations:
 2. Gateway forwards request bodies, proposal/version identifiers, evidence packet identifiers,
    action run identifiers, review payloads, idempotency keys, and correlation context to
    `lotus-advise`.
-3. Gateway preserves Advise-owned supportability, blocked capabilities, evidence refs, lineage
+3. For every tenant-owned route, Gateway admits an active caller with the exact operation role and
+   capability, tenant, legal entity, portfolio scope for mutations, and proposal scope where
+   required. A tenant-scoped packet/run read may omit resource scope only so the trusted Workbench
+   BFF can resolve the source-owned portfolio before admitting a later scoped mutation. Gateway
+   forwards only the admitted capability and its true `lotus-gateway` service identity; it does
+   not derive defaults or grants. The supportability route remains deliberately global.
+4. Gateway preserves Advise-owned supportability, blocked capabilities, evidence refs, lineage
    refs, action-run state, and review state.
-4. Gateway does not generate recommendations, score suitability, infer client-ready advice,
+5. Gateway does not generate recommendations, score suitability, infer client-ready advice,
    approve reviews, expose prompts or model output, contact clients, create orders, or claim
    OMS/order/fill/settlement posture.
 

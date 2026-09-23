@@ -23,6 +23,7 @@ class AdvisoryCopilotService:
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         (
@@ -30,6 +31,7 @@ class AdvisoryCopilotService:
             upstream_payload,
         ) = await self._advise_client.create_advisory_copilot_evidence_packet(
             body=self._upstream_body(body),
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -39,6 +41,7 @@ class AdvisoryCopilotService:
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         (
@@ -46,6 +49,7 @@ class AdvisoryCopilotService:
             upstream_payload,
         ) = await self._advise_client.create_advisory_copilot_evidence_packet_from_proposal_version(
             body=self._upstream_body(body),
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -55,6 +59,7 @@ class AdvisoryCopilotService:
         self,
         *,
         evidence_packet_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         (
@@ -62,6 +67,7 @@ class AdvisoryCopilotService:
             upstream_payload,
         ) = await self._advise_client.get_advisory_copilot_evidence_packet(
             evidence_packet_id=evidence_packet_id,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -72,11 +78,13 @@ class AdvisoryCopilotService:
         *,
         body: dict[str, Any],
         idempotency_key: str | None,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.run_advisory_copilot_action(
             body=self._upstream_body(body),
             idempotency_key=idempotency_key,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -86,10 +94,12 @@ class AdvisoryCopilotService:
         self,
         *,
         run_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_advisory_copilot_run(
             run_id=run_id,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -134,6 +144,7 @@ class AdvisoryCopilotService:
         proposal_id: str,
         version_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
         (
@@ -143,6 +154,7 @@ class AdvisoryCopilotService:
             proposal_id=proposal_id,
             version_id=version_id,
             params=params,
+            caller_headers=caller_headers,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)

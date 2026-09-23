@@ -6,6 +6,7 @@ class AdvisoryCopilotClient(Protocol):
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -13,6 +14,7 @@ class AdvisoryCopilotClient(Protocol):
         self,
         *,
         body: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -20,6 +22,7 @@ class AdvisoryCopilotClient(Protocol):
         self,
         *,
         evidence_packet_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -28,6 +31,7 @@ class AdvisoryCopilotClient(Protocol):
         *,
         body: dict[str, Any],
         idempotency_key: str | None,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -35,6 +39,7 @@ class AdvisoryCopilotClient(Protocol):
         self,
         *,
         run_id: str,
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
@@ -60,5 +65,6 @@ class AdvisoryCopilotClient(Protocol):
         proposal_id: str,
         version_id: str,
         params: dict[str, Any],
+        caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...

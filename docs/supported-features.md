@@ -196,7 +196,9 @@ calculation methodology or make Gateway the owner of portfolio/performance sourc
 4. advisor cockpit actions, preparation packets, snapshot, supportability, acknowledgements, and
    house-view cohorts,
 5. advisory copilot evidence packets, action runs, review decisions, supportability, and
-   proposal-version run lineage,
+   proposal-version run lineage, with operation-specific admitted principal propagated through
+   Gateway for every tenant-owned route, mutation scope enforced explicitly, and tenant-scoped
+   resource reads available to the trusted BFF for source-owned scope resolution,
 6. bank-demo proof scenario contract, supported-claim register, and proof-pack capture.
 7. authenticated own-book portfolio discovery through `GET /api/v1/advisor-book/portfolios`,
    backed by Core `PortfolioManagerBookMembership:v1` and bounded to trusted caller context,

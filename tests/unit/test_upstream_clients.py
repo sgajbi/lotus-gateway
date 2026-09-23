@@ -193,6 +193,40 @@ async def test_advise_client_advisory_copilot_review_forwards_trusted_principal_
 
 
 @pytest.mark.asyncio
+async def test_advise_client_copilot_projection_carries_admitted_principal_to_wire() -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(201, {"evidence_packet": {"evidence_packet_id": "packet-1"}})
+    caller_headers = {
+        "X-Actor-Id": "advisor_1",
+        "X-Role": "ADVISOR",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Legal-Entity-Code": "REFERENCE",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": "advisory.policy_evaluation.read",
+        "X-Principal-Status": "ACTIVE",
+        "X-Authorized-Proposal-Id": "proposal-001",
+        "X-Authorized-Portfolio-Id": "PB_SG_GLOBAL_BAL_001",
+    }
+
+    status_code, _ = await client.create_advisory_copilot_evidence_packet_from_proposal_version(
+        body={"proposal_id": "proposal-001", "proposal_version_no": 1},
+        caller_headers=caller_headers,
+        correlation_id="corr-copilot-projection",
+    )
+
+    assert status_code == 201
+    [request] = _FakeAsyncClient.calls
+    assert request["url"] == (
+        "http://advise/advisory/copilot/evidence-packets/from-proposal-version"
+    )
+    expected_headers = {
+        **caller_headers,
+        "X-Correlation-Id": "corr-copilot-projection",
+    }
+    assert {name: request["headers"][name] for name in expected_headers} == expected_headers
+
+
+@pytest.mark.asyncio
 async def test_lotus_idea_client_omits_active_queue_timestamp_when_not_supplied():
     client = LotusIdeaClient(base_url="http://lotus-idea", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceAuthority": "lotus-idea"})

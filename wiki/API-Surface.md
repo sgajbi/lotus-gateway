@@ -612,6 +612,13 @@ for the registered-route proof.
   `/api/v1/advisory-copilot/actions/{run_id}/reviews`,
   `/api/v1/advisory-copilot/supportability`, and
   `/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`.
+  Every route except the deliberately global supportability read requires an active admitted
+  principal. Gateway validates the operation-specific role and capability, requires portfolio
+  scope for mutations plus proposal scope where the route names a proposal, and forwards only the
+  admitted operation capability with tenant, legal-entity, actor, and available resource scope.
+  Tenant-scoped packet/run reads may omit resource scope only to let the trusted Workbench BFF
+  resolve the source-owned portfolio before a later scoped mutation. Missing or invalid authority
+  fails before any call to Advise; Gateway does not mint defaults or grants.
   Gateway unwraps Workbench command envelopes where needed, preserves Advise-owned evidence
   packet identity, action-run posture, supportability, lineage, blocked capabilities, and review
   state, and does not generate recommendations, score suitability, infer client-ready advice,
