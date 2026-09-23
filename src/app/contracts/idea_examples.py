@@ -119,6 +119,8 @@ IDEA_FEEDBACK_EXAMPLE: dict[str, Any] = {
         "reason": "relevant",
         "actorRole": "advisor",
         "recordedAtUtc": "2026-06-21T10:16:00Z",
+        "acceptedAtUtc": "2026-06-21T10:16:01Z",
+        "acceptanceTimeSource": "server_accepted",
     },
     "persistence": {
         "decision": "accepted",

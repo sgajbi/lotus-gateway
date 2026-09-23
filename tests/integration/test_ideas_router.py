@@ -337,6 +337,8 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "reason": "relevant",
                 "actorRole": "advisor",
                 "recordedAtUtc": "2026-06-21T10:16:00Z",
+                "acceptedAtUtc": "2026-06-21T10:16:01Z",
+                "acceptanceTimeSource": "server_accepted",
             },
         ),
         (

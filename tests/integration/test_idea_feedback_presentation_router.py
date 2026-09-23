@@ -91,6 +91,8 @@ def test_governed_feedback_taxonomy_is_forwarded_and_returned_without_translatio
                 "candidateId": kwargs["candidate_id"],
                 "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
                 "actorRole": "advisor",
+                "acceptedAtUtc": "2026-06-21T10:16:01Z",
+                "acceptanceTimeSource": "server_accepted",
             },
             "persistence": {
                 "decision": "accepted",
@@ -122,6 +124,8 @@ def test_governed_feedback_taxonomy_is_forwarded_and_returned_without_translatio
     assert captured["idempotency_key"] == "idea-governed-action-001"
     assert captured["causation_id"] == "visible-queue-render-001"
     assert "reasonCodes" not in str(captured["body"])
+    assert event["acceptedAtUtc"] == "2026-06-21T10:16:01Z"
+    assert event["acceptanceTimeSource"] == "server_accepted"
 
 
 @pytest.mark.parametrize(
@@ -243,6 +247,39 @@ def test_feedback_rejects_success_without_persisted_event(
     async def _feedback(self, **kwargs):
         payload = _feedback_success_payload()
         del payload["feedbackEvent"]
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.lotus_idea_client.LotusIdeaClient.record_candidate_feedback",
+        _feedback,
+    )
+
+    response = TestClient(app).post(_FEEDBACK_PATH, json=_feedback_payload(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
+    ("field", "changed_value"),
+    (
+        ("acceptedAtUtc", None),
+        ("acceptedAtUtc", "2026-06-21T10:16:01"),
+        ("acceptanceTimeSource", None),
+        ("acceptanceTimeSource", "caller_reported"),
+    ),
+)
+def test_feedback_rejects_missing_or_unsafe_acceptance_chronology(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    changed_value: object,
+) -> None:
+    async def _feedback(self, **kwargs):
+        payload = _feedback_success_payload()
+        if changed_value is None:
+            del payload["feedbackEvent"][field]
+        else:
+            payload["feedbackEvent"][field] = changed_value
         return 200, payload
 
     monkeypatch.setattr(
