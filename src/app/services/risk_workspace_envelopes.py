@@ -41,6 +41,14 @@ class ReadyRiskResponseParts(Protocol):
     def metadata(self) -> WorkbenchRiskMetadata: ...
 
 
+class RequestedRiskWindow(Protocol):
+    @property
+    def report_start_date(self) -> str | None: ...
+
+    @property
+    def report_end_date(self) -> str | None: ...
+
+
 RiskResponseT = TypeVar("RiskResponseT", bound=BaseModel)
 
 
@@ -78,6 +86,20 @@ def ready_risk_response(
         warnings=parts.warnings,
         partial_failures=parts.partial_failures,
         metadata=parts.metadata,
+    )
+
+
+def with_requested_risk_window(
+    response: RiskResponseT,
+    request: RequestedRiskWindow,
+) -> RiskResponseT:
+    """Bind consumer request identity without relabelling source observation periods."""
+
+    return response.model_copy(
+        update={
+            "requested_report_start_date": request.report_start_date,
+            "requested_report_end_date": request.report_end_date,
+        }
     )
 
 

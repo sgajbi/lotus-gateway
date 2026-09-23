@@ -223,6 +223,23 @@ class WorkbenchRiskModuleEnvelope(BaseModel):
         description="Resolved benchmark code used by the risk module when available.",
         examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
+    requested_report_start_date: str | None = Field(
+        default=None,
+        description=(
+            "Inclusive report-window start requested by the consumer. This preserves request "
+            "identity separately from a source period that may begin at the first observable "
+            "return."
+        ),
+        examples=["2026-01-01"],
+    )
+    requested_report_end_date: str | None = Field(
+        default=None,
+        description=(
+            "Inclusive report-window end requested by the consumer, preserved separately from "
+            "the source-owned effective observation window."
+        ),
+        examples=["2026-04-04"],
+    )
     source_service: str = Field(
         default="lotus-risk",
         description="Upstream source service that produced the risk module payload.",

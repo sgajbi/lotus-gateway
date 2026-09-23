@@ -420,6 +420,12 @@ under parent issue #586.
     These boundaries are required across supported, partial, and unavailable evidence postures so
     Workbench can fail closed when calculation evidence does not match the advisor's review window;
     Workbench must not infer or reconstruct them.
+    Stateful Risk envelopes likewise publish `requested_report_start_date` and
+    `requested_report_end_date` from the admitted Gateway request. Those fields identify the
+    consumer request; source-owned `payload.periods[*].start_date` and `end_date` remain the
+    effective observation window and may begin after a requested valuation baseline. Gateway must
+    preserve both identities and must not relabel or recalculate the Risk period. Blank report-date
+    query values are invalid, and internal cache identity keeps omission distinct from blank input.
 26. the portfolio performance-snapshot route uses `report_start_date` and `report_end_date` as
     its canonical explicit-window query names, matching the summary, details, attribution-trend,
     and advisor-brief family. It retains `explicit_start_date` and `explicit_end_date` as

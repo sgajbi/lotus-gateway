@@ -19,6 +19,7 @@ from app.services.risk_workspace_drawdown import (
     map_drawdown_response,
     unavailable_drawdown,
 )
+from app.services.risk_workspace_envelopes import with_requested_risk_window
 from app.services.risk_workspace_requests import (
     RiskConcentrationRequestContext,
     RiskDrawdownRequestContext,
@@ -57,7 +58,7 @@ async def load_summary_response(
         correlation_id=context.correlation_id,
     )
     if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
-        return unavailable_summary(
+        response = unavailable_summary(
             correlation_id=context.correlation_id,
             portfolio_id=context.portfolio_id,
             period=context.period,
@@ -67,15 +68,17 @@ async def load_summary_response(
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
         )
-    return map_summary_response(
-        correlation_id=context.correlation_id,
-        portfolio_id=context.portfolio_id,
-        period=context.period,
-        detail_basis=context.detail_basis,
-        as_of_date=context.as_of_date,
-        benchmark_code=context.benchmark_code,
-        upstream_payload=upstream_payload,
-    )
+    else:
+        response = map_summary_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            upstream_payload=upstream_payload,
+        )
+    return with_requested_risk_window(response, context)
 
 
 async def load_concentration_response(
@@ -93,7 +96,7 @@ async def load_concentration_response(
         correlation_id=context.correlation_id,
     )
     if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
-        return unavailable_concentration(
+        response = unavailable_concentration(
             correlation_id=context.correlation_id,
             portfolio_id=context.portfolio_id,
             period=context.period,
@@ -102,14 +105,16 @@ async def load_concentration_response(
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
         )
-    return map_concentration_response(
-        correlation_id=context.correlation_id,
-        portfolio_id=context.portfolio_id,
-        period=context.period,
-        as_of_date=context.as_of_date,
-        benchmark_code=context.benchmark_code,
-        upstream_payload=upstream_payload,
-    )
+    else:
+        response = map_concentration_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            upstream_payload=upstream_payload,
+        )
+    return with_requested_risk_window(response, context)
 
 
 async def load_drawdown_response(
@@ -133,7 +138,7 @@ async def load_drawdown_response(
         correlation_id=context.correlation_id,
     )
     if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
-        return unavailable_drawdown(
+        response = unavailable_drawdown(
             correlation_id=context.correlation_id,
             portfolio_id=context.portfolio_id,
             period=context.period,
@@ -144,16 +149,18 @@ async def load_drawdown_response(
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
         )
-    return map_drawdown_response(
-        correlation_id=context.correlation_id,
-        portfolio_id=context.portfolio_id,
-        period=context.period,
-        detail_basis=context.detail_basis,
-        as_of_date=context.as_of_date,
-        benchmark_code=context.benchmark_code,
-        include_underwater_series=context.include_underwater_series,
-        upstream_payload=upstream_payload,
-    )
+    else:
+        response = map_drawdown_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            include_underwater_series=context.include_underwater_series,
+            upstream_payload=upstream_payload,
+        )
+    return with_requested_risk_window(response, context)
 
 
 async def load_rolling_response(
@@ -179,7 +186,7 @@ async def load_rolling_response(
         )
 
     if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
-        return unavailable_rolling(
+        response = unavailable_rolling(
             correlation_id=context.correlation_id,
             portfolio_id=context.portfolio_id,
             period=context.period,
@@ -190,18 +197,19 @@ async def load_rolling_response(
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
         )
-
-    return map_rolling_response(
-        correlation_id=context.correlation_id,
-        portfolio_id=context.portfolio_id,
-        period=context.period,
-        detail_basis=context.detail_basis,
-        as_of_date=context.as_of_date,
-        benchmark_code=context.benchmark_code,
-        include_time_series=context.include_time_series,
-        sharpe_fallback_reason=sharpe_fallback_reason,
-        upstream_payload=upstream_payload,
-    )
+    else:
+        response = map_rolling_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            include_time_series=context.include_time_series,
+            sharpe_fallback_reason=sharpe_fallback_reason,
+            upstream_payload=upstream_payload,
+        )
+    return with_requested_risk_window(response, context)
 
 
 async def post_rolling_metrics(
