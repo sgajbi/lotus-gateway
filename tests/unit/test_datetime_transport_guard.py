@@ -18,6 +18,14 @@ _REVIEW_BASE = {
     "reviewId": "review-001",
     "reasonCodes": ["high_cash_ratio"],
     "decidedAtUtc": "2026-04-10T02:00:00+00:00",
+    "reviewChannel": "workbench",
+    "expectedMaterialVersion": 1,
+    "expectedEvidenceVersion": 1,
+    "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+    "expectedEvidenceContentHash": f"sha256:{'c' * 64}",
+    "expectedSourceRevisionVectorDigest": f"sha256:{'b' * 64}",
+    "expectedSourceCutPosture": "coherent",
+    "presentationReceiptId": "receipt-presentation-001",
 }
 
 

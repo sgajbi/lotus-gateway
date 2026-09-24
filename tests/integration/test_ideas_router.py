@@ -6,6 +6,34 @@ from fastapi.testclient import TestClient
 from app.contracts.idea_examples import IDEA_CANDIDATE_DETAIL_EXAMPLE, IDEA_REVIEW_QUEUE_EXAMPLE
 from app.main import app
 
+_EVIDENCE_CONTENT_HASH = f"sha256:{'c' * 64}"
+_SOURCE_REVISION_VECTOR_DIGEST = f"sha256:{'b' * 64}"
+
+
+def _review_authority_fields() -> dict[str, object]:
+    return {
+        "reviewChannel": "workbench",
+        "expectedMaterialVersion": 1,
+        "expectedEvidenceVersion": 1,
+        "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "expectedEvidenceContentHash": _EVIDENCE_CONTENT_HASH,
+        "expectedSourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+        "expectedSourceCutPosture": "coherent",
+        "presentationReceiptId": "receipt-presentation-001",
+    }
+
+
+def _conversion_authority_fields() -> dict[str, object]:
+    return {
+        "expectedReviewId": "review-001",
+        "expectedMaterialVersion": 1,
+        "expectedEvidenceVersion": 1,
+        "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "expectedEvidenceContentHash": _EVIDENCE_CONTENT_HASH,
+        "expectedSourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+        "expectedSourceCutPosture": "coherent",
+    }
+
 
 def _headers() -> dict[str, str]:
     return {
@@ -301,17 +329,30 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "action": "approve_for_conversion",
                 "reasonCodes": ["review_required"],
                 "decidedAtUtc": "2026-06-21T10:15:00Z",
+                **_review_authority_fields(),
             },
             "reviewDecision",
             {
                 "reviewId": "review-001",
                 "candidateId": "idea_high_cash_8d57adbf52f7f5a7",
                 "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+                "evidenceContentHash": _EVIDENCE_CONTENT_HASH,
+                "sourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+                "sourceCutPosture": "coherent",
+                "candidateMaterialVersion": 1,
+                "candidateEvidenceVersion": 1,
+                "reviewChannel": "workbench",
+                "presentationReceiptId": "receipt-presentation-001",
+                "queueSnapshotDigest": f"sha256:{'a' * 64}",
+                "reviewPolicyVersion": "idea-human-review-v1",
+                "authorityPolicyVersion": "idea-review-authority-v1",
                 "action": "approve_for_conversion",
                 "resultingPosture": "approved_for_conversion",
                 "actorRole": "advisor",
                 "reasonCodes": ["review_approved_for_conversion", "review_required"],
                 "decidedAtUtc": "2026-06-21T10:15:00Z",
+                "acceptedAtUtc": "2026-06-21T10:15:01Z",
+                "acceptanceTimeSource": "server_accepted",
                 "suppressionReason": None,
                 "snoozedUntilUtc": None,
                 "grantsDownstreamAuthority": False,
@@ -349,6 +390,7 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "target": "report_evidence",
                 "reasonCodes": ["review_required"],
                 "requestedAtUtc": "2026-06-21T10:17:00Z",
+                **_conversion_authority_fields(),
             },
             "conversionIntent",
             {
@@ -358,11 +400,22 @@ def test_idea_read_routes_preserve_source_permission_denial_without_payload_leak
                 "sourceStatus": "approved_for_conversion",
                 "targetSourceAuthority": "lotus-report",
                 "evidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
-                "evidenceContentHash": "sha256:evidence-lineage",
+                "evidenceContentHash": _EVIDENCE_CONTENT_HASH,
+                "sourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+                "sourceCutPosture": "coherent",
                 "sourceSignalIds": ["signal_high_cash_8d57adbf52f7f5a7"],
+                "reviewId": "review-001",
+                "reviewChannel": "workbench",
+                "reviewPolicyVersion": "idea-human-review-v1",
+                "authorityPolicyVersion": "idea-review-authority-v1",
+                "presentationReceiptId": "receipt-presentation-001",
+                "candidateMaterialVersion": 1,
+                "candidateEvidenceVersion": 1,
                 "boundary": "intent_only",
                 "reasonCodes": ["review_required"],
                 "requestedAtUtc": "2026-06-21T10:17:00Z",
+                "acceptedAtUtc": "2026-06-21T10:17:01Z",
+                "acceptanceTimeSource": "server_accepted",
                 "grantsDownstreamAuthority": False,
             },
         ),
@@ -460,6 +513,7 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
             "action": "approve_for_conversion",
             "reasonCodes": ["review_required"],
             "decidedAtUtc": "2026-06-21T10:15:00Z",
+            **_review_authority_fields(),
             "authorizedScope": {"portfolioIds": ["other-portfolio"]},
         },
         headers={**_headers(), "Idempotency-Key": "idea-action-idem-override"},
@@ -480,6 +534,7 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
                 "action": "approve_for_conversion",
                 "reasonCodes": ["advisor_review"],
                 "decidedAtUtc": "2026-06-21T10:15:00Z",
+                **_review_authority_fields(),
             },
             "reasonCodes",
         ),
@@ -503,6 +558,7 @@ def test_idea_candidate_action_rejects_body_authority_override(monkeypatch) -> N
                 "target": "advise_proposal",
                 "reasonCodes": ["advisor_conversion_intent"],
                 "requestedAtUtc": "2026-06-21T10:17:00Z",
+                **_conversion_authority_fields(),
             },
             "reasonCodes",
         ),
@@ -546,6 +602,7 @@ def test_idea_candidate_action_requires_idempotency_before_upstream_call(monkeyp
             "action": "approve_for_conversion",
             "reasonCodes": ["review_required"],
             "decidedAtUtc": "2026-06-21T10:15:00Z",
+            **_review_authority_fields(),
         },
         headers=_headers(),
     )

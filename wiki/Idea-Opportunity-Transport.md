@@ -1,9 +1,11 @@
 # Idea opportunity transport
 
-The Idea opportunity boundary records two distinct adviser-journey facts:
+The Idea opportunity boundary records four distinct adviser-journey facts:
 
 1. bounded adviser feedback using `idea-feedback-taxonomy-v1`, and
-2. evidence that a specific candidate was part of the ordered set visibly rendered in Workbench.
+2. evidence that a specific candidate was part of the ordered set visibly rendered in Workbench,
+3. an adviser review bound to that presentation and the exact current candidate evidence, and
+4. a conversion intent bound to the accepted review and the same candidate evidence identity.
 
 It does not certify suitability, authorize execution, contact a client, or prove that a queue read
 was visible to an adviser.
@@ -29,6 +31,10 @@ flowchart LR
     R --> I[Idea immutable v2 receipt<br/>server-accepted UTC timestamp]
     W -->|adviser decision| F[Gateway canonical feedback route]
     F --> I
+    W -->|review + receipt + exact evidence identity| V[Gateway review-action route]
+    V --> I
+    W -->|conversion + accepted review/evidence identity| C[Gateway conversion-intent route]
+    C --> I
     Q -. prefetch/read is not evidence .-> X[No receipt]
 ```
 
@@ -48,6 +54,13 @@ flowchart LR
   lineage and carry Idea-owned `acceptedAtUtc` with `acceptanceTimeSource=server_accepted`.
   This aware-UTC acceptance time is distinct from Workbench's `presentedAtUtc` render time.
 - Missing or contradictory source evidence fails closed. No compatibility aliases are accepted.
+- Review and conversion requests carry Idea-owned material/evidence versions, evidence packet and
+  content hash, source revision-vector digest, and source-cut posture. Reviews additionally carry
+  the explicit channel and Workbench presentation receipt; conversions carry the accepted review
+  id. Gateway never invents these fields and acknowledges success only when Idea echoes the exact
+  submitted authority tuple.
+- Review and conversion responses preserve Idea's server-accepted timestamp and policy/receipt
+  evidence; caller event time remains distinct from source acceptance time.
 - `supportedFeaturePromoted` remains `false` until the Workbench visible-render journey and
   cross-repository runtime are independently certified.
 

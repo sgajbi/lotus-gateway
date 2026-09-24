@@ -284,7 +284,11 @@ under parent issue #586.
    and allowlisted product-safe failure codes. It preserves Idea global rank independently from
    Workbench visible-set count and never derives, compares, or rewrites rank, count, digest,
    policy, version, source lineage, presentation time, or acceptance time; queue reads never
-   synthesize receipts.
+   synthesize receipts. Review actions carry the explicit review channel, presentation receipt,
+   and exact Idea-owned candidate evidence tuple; conversion intents carry the accepted review id
+   and that same evidence tuple. Gateway forwards those fields unchanged and compares them with
+   Idea's durable success evidence before acknowledging either mutation; it never invents an
+   authority default or grant.
    Gateway does not generate, rank, enrich, certify, authorize, or promote
    ideas locally. These BFF routes do not claim
    Workbench completion, data-product certification, downstream realization, execution, or client

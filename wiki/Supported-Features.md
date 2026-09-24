@@ -467,7 +467,11 @@ What is supported:
    durable-storage posture, accepted/replayed mutation posture, and `supportedFeaturePromoted=false`,
 5. review, feedback, and conversion-intent requests expose one closed Lotus Idea reason vocabulary;
    unknown values fail with `422` at Gateway before source fan-out,
-6. Gateway maps unsafe upstream failures to product-safe error detail.
+6. review actions preserve the explicit channel, Workbench presentation receipt, and exact
+   candidate evidence identity; conversion intents preserve the accepted review id and that same
+   evidence identity, and Gateway acknowledges neither mutation unless Idea's success evidence
+   echoes the submitted authority tuple,
+7. Gateway maps unsafe upstream failures to product-safe error detail.
 
 Supported routes:
 
@@ -476,6 +480,9 @@ Supported routes:
 3. `POST /api/v1/ideas/candidates/{candidate_id}/review-actions`
 4. `POST /api/v1/ideas/candidates/{candidate_id}/feedback`
 5. `POST /api/v1/ideas/candidates/{candidate_id}/conversion-intents`
+6. `POST /api/v1/ideas/candidates/{candidate_id}/presentation-receipts`
+7. `POST /api/v1/ideas/candidates/{candidate_id}/ai-explanations`
+8. `GET /api/v1/ideas/ai-explanations/readiness`
 
 Boundary:
 
