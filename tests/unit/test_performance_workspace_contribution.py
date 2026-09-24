@@ -56,6 +56,7 @@ def test_build_workspace_contribution_summary_maps_period_payload():
                 ],
                 "source_economics_evidence": {
                     "status": "complete",
+                    "component_detail_status": "LIMITED",
                     "source_contracts": ["lotus-performance.contribution.v1"],
                     "available_economics": ["local_contribution"],
                     "source_snapshot_count": 2,
@@ -77,6 +78,19 @@ def test_build_workspace_contribution_summary_maps_period_payload():
     assert summary.smoothing_evidence.status == "smoothed"
     assert summary.source_economics_evidence is not None
     assert summary.source_economics_evidence.source_snapshot_count == 2
+    assert summary.source_economics_evidence.component_detail_status == "LIMITED"
+
+
+def test_parse_contribution_source_economics_preserves_optional_component_detail_status_safely():
+    complete = parse_contribution_source_economics_evidence({"component_detail_status": "COMPLETE"})
+    limited = parse_contribution_source_economics_evidence({"component_detail_status": "LIMITED"})
+    legacy = parse_contribution_source_economics_evidence({})
+    malformed = parse_contribution_source_economics_evidence({"component_detail_status": 42})
+
+    assert complete is not None and complete.component_detail_status == "COMPLETE"
+    assert limited is not None and limited.component_detail_status == "LIMITED"
+    assert legacy is not None and legacy.component_detail_status is None
+    assert malformed is not None and malformed.component_detail_status == "42"
 
 
 def test_build_detail_contribution_summary_maps_independent_payload():
@@ -279,6 +293,36 @@ def test_merge_contribution_summary_views_prefers_detail_when_present():
     assert merged.portfolio_contribution_pct == 3.1
     assert merged.coverage_mv_pct == 90.0
     assert merged.levels[0].name == "Detail"
+
+
+def test_merge_contribution_summary_views_retains_summary_component_detail_status():
+    summary = build_workspace_contribution_summary(
+        {
+            "contribution": {
+                "metric_basis": "NET",
+                "summary": {"portfolio_contribution": 3.0},
+                "source_economics_evidence": {
+                    "status": "SOURCE_BACKED",
+                    "component_detail_status": "LIMITED",
+                },
+            }
+        }
+    )
+    detail = build_detail_contribution_summary(
+        metric_basis="NET",
+        source_economics_payload={"status": "SOURCE_BACKED"},
+        period_payload={"summary": {"portfolio_contribution": 3.0}},
+    )
+
+    merged = merge_contribution_summary_views(
+        summary_contribution=summary,
+        detail_contribution=detail,
+    )
+
+    assert merged is not None
+    assert merged.source_economics_evidence is not None
+    assert merged.source_economics_evidence.status == "SOURCE_BACKED"
+    assert merged.source_economics_evidence.component_detail_status == "LIMITED"
 
 
 def test_contribution_evidence_parsers_fail_closed_for_invalid_payloads():

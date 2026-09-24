@@ -49,6 +49,7 @@ class ContributionSmoothingEvidenceView(BaseModel):
 
 class ContributionSourceEconomicsEvidenceView(BaseModel):
     status: str | None = None
+    component_detail_status: str | None = None
     reason_codes: list[str] = Field(default_factory=list)
     source_contracts: list[str] = Field(default_factory=list)
     available_economics: list[str] = Field(default_factory=list)

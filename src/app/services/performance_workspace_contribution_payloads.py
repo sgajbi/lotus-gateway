@@ -43,6 +43,7 @@ def parse_contribution_source_economics_evidence(
         return None
     return ContributionSourceEconomicsEvidenceView(
         status=safe_str(payload.get("status")),
+        component_detail_status=safe_str(payload.get("component_detail_status")),
         reason_codes=safe_str_list(payload.get("reason_codes")),
         source_contracts=safe_str_list(payload.get("source_contracts")),
         available_economics=safe_str_list(payload.get("available_economics")),

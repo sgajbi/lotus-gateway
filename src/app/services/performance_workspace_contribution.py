@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.contracts.performance_contribution import ContributionSummaryView
+from app.contracts.performance_contribution import (
+    ContributionSourceEconomicsEvidenceView,
+    ContributionSummaryView,
+)
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_contribution_payloads import (
     build_detail_contribution_levels,
@@ -218,11 +221,25 @@ def _merged_contribution_detail_fields(
             detail_contribution.smoothing_evidence,
             summary_contribution.smoothing_evidence,
         ),
-        "source_economics_evidence": _prefer_populated(
+        "source_economics_evidence": _merge_source_economics_evidence(
             detail_contribution.source_economics_evidence,
             summary_contribution.source_economics_evidence,
         ),
     }
+
+
+def _merge_source_economics_evidence(
+    detail_evidence: ContributionSourceEconomicsEvidenceView | None,
+    summary_evidence: ContributionSourceEconomicsEvidenceView | None,
+) -> ContributionSourceEconomicsEvidenceView | None:
+    preferred_evidence = detail_evidence or summary_evidence
+    if preferred_evidence is None or preferred_evidence.component_detail_status is not None:
+        return preferred_evidence
+    if summary_evidence is None or summary_evidence.component_detail_status is None:
+        return preferred_evidence
+    return preferred_evidence.model_copy(
+        update={"component_detail_status": summary_evidence.component_detail_status}
+    )
 
 
 def _prefer_present(detail_value: Any, summary_value: Any) -> Any:
