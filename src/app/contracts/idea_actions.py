@@ -8,16 +8,22 @@ audit, and every business transition.
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.contracts.datetime_transport import TransportDatetime
+from app.contracts.idea_action_authority import (
+    SHA256_DIGEST_PATTERN,
+    IdeaReviewActionName,
+    IdeaReviewChannel,
+    IdeaSourceCutPosture,
+    require_timezone_aware,
+)
+from app.contracts.idea_action_responses import (
+    IdeaCandidateActionResponse,
+    IdeaCandidateConversionIntentResponse,
+    IdeaCandidateReviewActionResponse,
+)
 from app.contracts.ideas import IdeaReasonCode
-
-
-def _require_timezone_aware(alias: str, value: datetime) -> datetime:
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise ValueError(f"{alias} must include a timezone offset")
-    return value
 
 
 class IdeaCandidateActionRequest(BaseModel):
@@ -33,16 +39,11 @@ class IdeaCandidateActionRequest(BaseModel):
         """Field values Lotus Idea's success evidence must echo for this exact action."""
         return self.model_dump()
 
+    @classmethod
+    def response_evidence_field_names(cls) -> set[str]:
+        """Response fields that must bind a source success to the submitted action."""
+        return set(cls.model_fields)
 
-IdeaReviewActionName = Literal[
-    "approve_for_conversion",
-    "reject",
-    "no_action",
-    "suppress",
-    "snooze",
-    "escalate_to_pm",
-    "escalate_to_compliance",
-]
 
 # Lotus Idea records the action-owned reason for the requested review action first and exactly
 # once, whether or not the caller includes it (lotus-idea review_workflow_models /
@@ -58,12 +59,74 @@ _REVIEW_ACTION_OWNED_REASON_CODES: dict[str, IdeaReasonCode] = {
     "escalate_to_compliance": IdeaReasonCode.REVIEW_ESCALATED,
 }
 
+_REVIEW_EVIDENCE_FIELD_MAP = {
+    "review_id": "review_id",
+    "action": "action",
+    "reason_codes": "reason_codes",
+    "decided_at_utc": "decided_at_utc",
+    "review_channel": "review_channel",
+    "expected_material_version": "candidate_material_version",
+    "expected_evidence_version": "candidate_evidence_version",
+    "expected_evidence_packet_id": "evidence_packet_id",
+    "expected_evidence_content_hash": "evidence_content_hash",
+    "expected_source_revision_vector_digest": "source_revision_vector_digest",
+    "expected_source_cut_posture": "source_cut_posture",
+    "presentation_receipt_id": "presentation_receipt_id",
+    "suppression_reason": "suppression_reason",
+    "snoozed_until_utc": "snoozed_until_utc",
+}
 
-class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
+
+class _IdeaCandidateSourceEvidenceRequest(IdeaCandidateActionRequest):
+    """Immutable source evidence shared by review and conversion mutations."""
+
+    expected_material_version: int = Field(
+        ...,
+        alias="expectedMaterialVersion",
+        gt=0,
+        strict=True,
+    )
+    expected_evidence_version: int = Field(
+        ...,
+        alias="expectedEvidenceVersion",
+        gt=0,
+        strict=True,
+    )
+    expected_evidence_packet_id: str = Field(
+        ...,
+        alias="expectedEvidencePacketId",
+        min_length=1,
+    )
+    expected_evidence_content_hash: str = Field(
+        ...,
+        alias="expectedEvidenceContentHash",
+        pattern=SHA256_DIGEST_PATTERN,
+    )
+    expected_source_revision_vector_digest: str = Field(
+        ...,
+        alias="expectedSourceRevisionVectorDigest",
+        pattern=SHA256_DIGEST_PATTERN,
+    )
+    expected_source_cut_posture: IdeaSourceCutPosture = Field(
+        ...,
+        alias="expectedSourceCutPosture",
+    )
+
+    @field_validator("expected_evidence_packet_id")
+    @classmethod
+    def _evidence_packet_id_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("evidence authority identity fields must not be blank")
+        return value
+
+
+class IdeaCandidateReviewActionRequest(_IdeaCandidateSourceEvidenceRequest):
     review_id: str = Field(..., alias="reviewId", min_length=1)
     action: IdeaReviewActionName
     reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
     decided_at_utc: TransportDatetime = Field(..., alias="decidedAtUtc")
+    review_channel: IdeaReviewChannel = Field(..., alias="reviewChannel")
+    presentation_receipt_id: str | None = Field(default=None, alias="presentationReceiptId")
     suppression_reason: (
         Literal[
             "duplicate",
@@ -78,22 +141,37 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
 
     @field_validator("review_id")
     @classmethod
-    def _review_id_must_not_be_blank(cls, value: str) -> str:
+    def _required_identity_must_not_be_blank(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("reviewId must not be blank")
+            raise ValueError("review authority identity fields must not be blank")
+        return value
+
+    @field_validator("presentation_receipt_id")
+    @classmethod
+    def _presentation_receipt_id_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("presentationReceiptId must not be blank")
         return value
 
     @field_validator("decided_at_utc")
     @classmethod
     def _decided_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
-        return _require_timezone_aware("decidedAtUtc", value)
+        return require_timezone_aware("decidedAtUtc", value)
 
     @field_validator("snoozed_until_utc")
     @classmethod
     def _snoozed_until_must_be_timezone_aware(cls, value: datetime | None) -> datetime | None:
         if value is None:
             return None
-        return _require_timezone_aware("snoozedUntilUtc", value)
+        return require_timezone_aware("snoozedUntilUtc", value)
+
+    @model_validator(mode="after")
+    def _presentation_receipt_must_match_channel(self) -> "IdeaCandidateReviewActionRequest":
+        if self.review_channel == "workbench" and self.presentation_receipt_id is None:
+            raise ValueError("Workbench review requires presentationReceiptId")
+        if self.review_channel == "operator" and self.presentation_receipt_id is not None:
+            raise ValueError("operator review cannot carry presentationReceiptId")
+        return self
 
     def expected_evidence_fields(self) -> dict[str, Any]:
         owned_reason = _REVIEW_ACTION_OWNED_REASON_CODES[self.action]
@@ -102,82 +180,71 @@ class IdeaCandidateReviewActionRequest(IdeaCandidateActionRequest):
             owned_reason,
             *(code for code in self.reason_codes if code != owned_reason),
         )
-        return fields
+        return {
+            response_field: fields[request_field]
+            for request_field, response_field in _REVIEW_EVIDENCE_FIELD_MAP.items()
+        }
+
+    @classmethod
+    def response_evidence_field_names(cls) -> set[str]:
+        return set(_REVIEW_EVIDENCE_FIELD_MAP.values())
 
 
-class IdeaCandidateConversionIntentRequest(IdeaCandidateActionRequest):
+_CONVERSION_EVIDENCE_FIELD_MAP = {
+    "conversion_intent_id": "conversion_intent_id",
+    "target": "target",
+    "reason_codes": "reason_codes",
+    "requested_at_utc": "requested_at_utc",
+    "expected_review_id": "review_id",
+    "expected_material_version": "candidate_material_version",
+    "expected_evidence_version": "candidate_evidence_version",
+    "expected_evidence_packet_id": "evidence_packet_id",
+    "expected_evidence_content_hash": "evidence_content_hash",
+    "expected_source_revision_vector_digest": "source_revision_vector_digest",
+    "expected_source_cut_posture": "source_cut_posture",
+}
+
+
+class IdeaCandidateConversionIntentRequest(_IdeaCandidateSourceEvidenceRequest):
     conversion_intent_id: str = Field(..., alias="conversionIntentId", min_length=1)
     target: Literal["advise_proposal", "manage_review", "report_evidence"]
     reason_codes: tuple[IdeaReasonCode, ...] = Field(..., alias="reasonCodes", min_length=1)
     requested_at_utc: TransportDatetime = Field(..., alias="requestedAtUtc")
+    expected_review_id: str = Field(..., alias="expectedReviewId", min_length=1)
 
-    @field_validator("conversion_intent_id")
+    @field_validator(
+        "conversion_intent_id",
+        "expected_review_id",
+    )
     @classmethod
-    def _conversion_intent_id_must_not_be_blank(cls, value: str) -> str:
+    def _required_identity_must_not_be_blank(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("conversionIntentId must not be blank")
+            raise ValueError("conversion authority identity fields must not be blank")
         return value
 
     @field_validator("requested_at_utc")
     @classmethod
     def _requested_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
-        return _require_timezone_aware("requestedAtUtc", value)
+        return require_timezone_aware("requestedAtUtc", value)
+
+    def expected_evidence_fields(self) -> dict[str, Any]:
+        fields = self.model_dump()
+        return {
+            response_field: fields[request_field]
+            for request_field, response_field in _CONVERSION_EVIDENCE_FIELD_MAP.items()
+        }
+
+    @classmethod
+    def response_evidence_field_names(cls) -> set[str]:
+        return set(_CONVERSION_EVIDENCE_FIELD_MAP.values())
 
 
-class IdeaMutationPersistenceResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    decision: str
-    candidate_id: str | None = Field(default=None, alias="candidateId")
-    lifecycle_status: str | None = Field(default=None, alias="lifecycleStatus")
-    review_posture: str | None = Field(default=None, alias="reviewPosture")
-    audit_event_type: str | None = Field(default=None, alias="auditEventType")
-
-
-class IdeaCandidateActionResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    persistence: IdeaMutationPersistenceResponse
-    durable_storage_backed: bool = Field(..., alias="durableStorageBacked")
-    supported_feature_promoted: bool = Field(..., alias="supportedFeaturePromoted")
-
-
-class IdeaReviewDecisionResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    review_id: str = Field(..., alias="reviewId")
-    candidate_id: str = Field(..., alias="candidateId")
-    evidence_packet_id: str = Field(..., alias="evidencePacketId")
-    action: str
-    resulting_posture: str = Field(..., alias="resultingPosture")
-    actor_role: str = Field(..., alias="actorRole")
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
-    decided_at_utc: datetime = Field(..., alias="decidedAtUtc")
-    suppression_reason: str | None = Field(default=None, alias="suppressionReason")
-    snoozed_until_utc: datetime | None = Field(default=None, alias="snoozedUntilUtc")
-    grants_downstream_authority: bool = Field(..., alias="grantsDownstreamAuthority")
-
-
-class IdeaCandidateReviewActionResponse(IdeaCandidateActionResponse):
-    review_decision: IdeaReviewDecisionResponse = Field(..., alias="reviewDecision")
-
-
-class IdeaConversionIntentResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    conversion_intent_id: str = Field(..., alias="conversionIntentId")
-    candidate_id: str = Field(..., alias="candidateId")
-    target: str
-    source_status: str = Field(..., alias="sourceStatus")
-    target_source_authority: str = Field(..., alias="targetSourceAuthority")
-    evidence_packet_id: str = Field(..., alias="evidencePacketId")
-    evidence_content_hash: str = Field(..., alias="evidenceContentHash")
-    source_signal_ids: tuple[str, ...] = Field(..., alias="sourceSignalIds")
-    boundary: str
-    reason_codes: tuple[str, ...] = Field(..., alias="reasonCodes")
-    requested_at_utc: datetime = Field(..., alias="requestedAtUtc")
-    grants_downstream_authority: bool = Field(..., alias="grantsDownstreamAuthority")
-
-
-class IdeaCandidateConversionIntentResponse(IdeaCandidateActionResponse):
-    conversion_intent: IdeaConversionIntentResponse = Field(..., alias="conversionIntent")
+__all__ = [
+    "IdeaCandidateActionRequest",
+    "IdeaCandidateActionResponse",
+    "IdeaCandidateConversionIntentRequest",
+    "IdeaCandidateConversionIntentResponse",
+    "IdeaCandidateReviewActionRequest",
+    "IdeaCandidateReviewActionResponse",
+    "IdeaReviewActionName",
+]

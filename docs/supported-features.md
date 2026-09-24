@@ -335,7 +335,11 @@ escalation fails closed as a bounded 502. The
 review-action and
 conversion-intent contracts publish the closed Lotus Idea `IdeaReasonCode` vocabulary in OpenAPI;
 feedback instead preserves `idea-feedback-taxonomy-v1` and its bounded outcome/reason enums without
-legacy aliases. Queue items must include Idea-owned material/evidence versions, source
+legacy aliases. Review actions require the explicit review channel, presentation receipt for the
+Workbench channel, and exact Idea-owned candidate evidence identity. Conversion intents require
+the accepted review id and that same evidence identity. Gateway forwards these facts unchanged and
+fails closed when Idea's success evidence does not echo the submitted authority tuple. Queue items
+must include Idea-owned material/evidence versions, source
 revision-vector digest, and source-cut posture. Presentation
 receipts preserve the Idea-owned global rank independently from Workbench-authored visible-render
 time, visible-set count, and digest, together with Idea `201` accepted, `200` replayed, and

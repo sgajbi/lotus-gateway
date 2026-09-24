@@ -1,8 +1,8 @@
 # Idea opportunity action transport
 
-This runbook explains the governed Gateway boundary for adviser feedback and visible-presentation
-evidence. It supports RFC-0002 slices 11 and 15 without claiming that the complete Workbench
-journey or effectiveness measurement is certified.
+This runbook explains the governed Gateway boundary for adviser review, conversion intent,
+feedback, and visible-presentation evidence. It supports RFC-0002 slices 11 and 15 without
+claiming that the complete Workbench journey or effectiveness measurement is certified.
 
 ## Audience and decision guide
 
@@ -33,6 +33,13 @@ sequenceDiagram
     Gateway->>Idea: Forward exact receipt and lineage
     Idea-->>Gateway: 201 accepted or 200 exact replay
     Gateway-->>Workbench: Preserve status and source evidence
+    Adviser->>Workbench: Submit review decision
+    Workbench->>Gateway: Review + receipt + exact candidate evidence identity
+    Gateway->>Idea: Forward exact review authority tuple
+    Idea-->>Gateway: Durable decision + accepted authority evidence
+    Adviser->>Workbench: Request bounded conversion intent
+    Workbench->>Gateway: Intent + exact accepted review/evidence identity
+    Gateway->>Idea: Forward exact conversion authority tuple
     Adviser->>Workbench: Submit bounded feedback
     Workbench->>Gateway: POST canonical feedback taxonomy
     Gateway->>Idea: Forward exact feedback and lineage
@@ -42,6 +49,21 @@ sequenceDiagram
 
 The Gateway is a validating transport boundary. It does not rerank candidates, infer what was
 visible, translate feedback, authorize a downstream transaction, or calculate effectiveness.
+
+## Review and conversion authority handoff
+
+A review request must carry the Idea-owned candidate material/evidence versions, evidence packet
+and content hash, source revision-vector digest, source-cut posture, and review channel. A
+Workbench review also carries the presentation receipt that proves which governed queue render the
+adviser acted on. Gateway rejects missing or malformed authority before fanout and never supplies a
+default receipt, version, digest, posture, or channel.
+
+Idea's review success must echo that exact authority tuple and its server-accepted chronology.
+Gateway also preserves the queue snapshot digest and Idea policy versions returned by the source.
+A later conversion intent carries the accepted `reviewId` and the same exact candidate evidence
+identity. Gateway compares the source success with the submitted tuple before acknowledging it;
+a mismatched version, packet, hash, revision digest, posture, receipt, or review id is a bounded
+`502 idea_*_evidence_mismatch`, not a successful mutation.
 
 ## Canonical feedback taxonomy
 
@@ -109,13 +131,30 @@ The transport is implementation-backed, but presentation-effectiveness measureme
 
 ## Validation
 
-Run the focused contract and integration proof before the repository-native merge gate:
+From the `lotus-gateway` repository root, run the focused contract and integration proof before
+the repository-native merge gate.
+
+PowerShell (Windows):
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest `
   tests/contract/test_idea_feedback_taxonomy_contract.py `
   tests/contract/test_idea_presentation_receipt_contract.py `
-  tests/integration/test_idea_feedback_presentation_router.py -q
+  tests/integration/test_idea_feedback_presentation_router.py `
+  tests/integration/test_idea_action_response_identity.py `
+  tests/integration/test_ideas_router.py -q
+make check
+```
+
+Bash (Linux/macOS):
+
+```bash
+./.venv/bin/python -m pytest \
+  tests/contract/test_idea_feedback_taxonomy_contract.py \
+  tests/contract/test_idea_presentation_receipt_contract.py \
+  tests/integration/test_idea_feedback_presentation_router.py \
+  tests/integration/test_idea_action_response_identity.py \
+  tests/integration/test_ideas_router.py -q
 make check
 ```
 

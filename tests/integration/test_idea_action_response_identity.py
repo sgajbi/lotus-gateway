@@ -22,6 +22,8 @@ from app.main import app
 _CANDIDATE_ID = "idea_high_cash_8d57adbf52f7f5a7"
 _REVIEW_PATH = f"/api/v1/ideas/candidates/{_CANDIDATE_ID}/review-actions"
 _CONVERSION_PATH = f"/api/v1/ideas/candidates/{_CANDIDATE_ID}/conversion-intents"
+_EVIDENCE_CONTENT_HASH = f"sha256:{'c' * 64}"
+_SOURCE_REVISION_VECTOR_DIGEST = f"sha256:{'b' * 64}"
 
 
 def _headers() -> dict[str, str]:
@@ -44,6 +46,14 @@ def _review_request() -> dict[str, object]:
         "action": "approve_for_conversion",
         "reasonCodes": ["review_required"],
         "decidedAtUtc": "2026-06-21T10:15:00Z",
+        "reviewChannel": "workbench",
+        "expectedMaterialVersion": 1,
+        "expectedEvidenceVersion": 1,
+        "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "expectedEvidenceContentHash": _EVIDENCE_CONTENT_HASH,
+        "expectedSourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+        "expectedSourceCutPosture": "coherent",
+        "presentationReceiptId": "receipt-presentation-001",
     }
 
 
@@ -53,6 +63,13 @@ def _conversion_request() -> dict[str, object]:
         "target": "report_evidence",
         "reasonCodes": ["review_required"],
         "requestedAtUtc": "2026-06-21T10:17:00Z",
+        "expectedReviewId": "review-001",
+        "expectedMaterialVersion": 1,
+        "expectedEvidenceVersion": 1,
+        "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "expectedEvidenceContentHash": _EVIDENCE_CONTENT_HASH,
+        "expectedSourceRevisionVectorDigest": _SOURCE_REVISION_VECTOR_DIGEST,
+        "expectedSourceCutPosture": "coherent",
     }
 
 
@@ -82,6 +99,14 @@ def _refuse_source(monkeypatch: pytest.MonkeyPatch, method: str) -> None:
         ("reasonCodes", ["review_approved_for_conversion"]),
         ("reasonCodes", ["review_approved_for_conversion", "review_no_action"]),
         ("decidedAtUtc", "2026-06-21T10:16:00Z"),
+        ("reviewChannel", "operator"),
+        ("candidateMaterialVersion", 2),
+        ("candidateEvidenceVersion", 2),
+        ("evidencePacketId", "iep-different"),
+        ("evidenceContentHash", f"sha256:{'d' * 64}"),
+        ("sourceRevisionVectorDigest", f"sha256:{'e' * 64}"),
+        ("sourceCutPosture", "partial"),
+        ("presentationReceiptId", "receipt-different"),
         ("suppressionReason", "manual_suppression"),
         ("snoozedUntilUtc", "2026-06-22T10:15:00Z"),
     ),
@@ -93,6 +118,8 @@ def test_review_action_rejects_evidence_for_a_different_action(
 ) -> None:
     payload = deepcopy(IDEA_REVIEW_ACTION_EXAMPLE)
     payload["reviewDecision"][field] = changed_value
+    if field == "reviewChannel":
+        payload["reviewDecision"]["presentationReceiptId"] = None
     _stub_source(monkeypatch, "record_candidate_review_action", payload)
 
     response = TestClient(app).post(_REVIEW_PATH, json=_review_request(), headers=_headers())
@@ -172,6 +199,50 @@ def test_review_action_rejects_naive_instants_before_fanout(
 
 
 @pytest.mark.parametrize(
+    "field",
+    (
+        "reviewChannel",
+        "expectedMaterialVersion",
+        "expectedEvidenceVersion",
+        "expectedEvidencePacketId",
+        "expectedEvidenceContentHash",
+        "expectedSourceRevisionVectorDigest",
+        "expectedSourceCutPosture",
+        "presentationReceiptId",
+    ),
+)
+def test_review_action_requires_current_authority_before_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+) -> None:
+    _refuse_source(monkeypatch, "record_candidate_review_action")
+    request = _review_request()
+    del request[field]
+
+    response = TestClient(app).post(_REVIEW_PATH, json=request, headers=_headers())
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("value", ("1", 1.0, True))
+@pytest.mark.parametrize("field", ("expectedMaterialVersion", "expectedEvidenceVersion"))
+def test_review_action_rejects_coercible_authority_versions_before_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+) -> None:
+    _refuse_source(monkeypatch, "record_candidate_review_action")
+
+    response = TestClient(app).post(
+        _REVIEW_PATH,
+        json={**_review_request(), field: value},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
     ("field", "changed_value"),
     (
         ("conversionIntentId", "conversion-different"),
@@ -180,6 +251,13 @@ def test_review_action_rejects_naive_instants_before_fanout(
         ("reasonCodes", ["review_no_action"]),
         ("reasonCodes", ["review_required", "review_no_action"]),
         ("requestedAtUtc", "2026-06-21T10:18:00Z"),
+        ("reviewId", "review-different"),
+        ("candidateMaterialVersion", 2),
+        ("candidateEvidenceVersion", 2),
+        ("evidencePacketId", "iep-different"),
+        ("evidenceContentHash", f"sha256:{'d' * 64}"),
+        ("sourceRevisionVectorDigest", f"sha256:{'e' * 64}"),
+        ("sourceCutPosture", "partial"),
     ),
 )
 def test_conversion_intent_rejects_evidence_for_a_different_action(
@@ -238,3 +316,188 @@ def test_conversion_intent_rejects_naive_request_instant_before_fanout(
     response = TestClient(app).post(_CONVERSION_PATH, json=request, headers=_headers())
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "expectedReviewId",
+        "expectedMaterialVersion",
+        "expectedEvidenceVersion",
+        "expectedEvidencePacketId",
+        "expectedEvidenceContentHash",
+        "expectedSourceRevisionVectorDigest",
+        "expectedSourceCutPosture",
+    ),
+)
+def test_conversion_intent_requires_current_authority_before_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+) -> None:
+    _refuse_source(monkeypatch, "record_candidate_conversion_intent")
+    request = _conversion_request()
+    del request[field]
+
+    response = TestClient(app).post(_CONVERSION_PATH, json=request, headers=_headers())
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("value", ("1", 1.0, True))
+@pytest.mark.parametrize("field", ("expectedMaterialVersion", "expectedEvidenceVersion"))
+def test_conversion_intent_rejects_coercible_authority_versions_before_fanout(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+) -> None:
+    _refuse_source(monkeypatch, "record_candidate_conversion_intent")
+
+    response = TestClient(app).post(
+        _CONVERSION_PATH,
+        json={**_conversion_request(), field: value},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("field", ("candidateMaterialVersion", "candidateEvidenceVersion"))
+@pytest.mark.parametrize("value", ("1", 1.0, True))
+def test_review_action_rejects_coercible_source_versions(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+) -> None:
+    payload = deepcopy(IDEA_REVIEW_ACTION_EXAMPLE)
+    payload["reviewDecision"][field] = value
+    _stub_source(monkeypatch, "record_candidate_review_action", payload)
+
+    response = TestClient(app).post(_REVIEW_PATH, json=_review_request(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize("field", ("candidateMaterialVersion", "candidateEvidenceVersion"))
+@pytest.mark.parametrize("value", ("1", 1.0, True))
+def test_conversion_intent_rejects_coercible_source_versions(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+) -> None:
+    payload = deepcopy(IDEA_CONVERSION_INTENT_EXAMPLE)
+    payload["conversionIntent"][field] = value
+    _stub_source(monkeypatch, "record_candidate_conversion_intent", payload)
+
+    response = TestClient(app).post(
+        _CONVERSION_PATH, json=_conversion_request(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize("field", ("reviewPolicyVersion", "authorityPolicyVersion"))
+@pytest.mark.parametrize("value", ("", " ", "\t\n"))
+@pytest.mark.parametrize(
+    ("method", "path", "payload_key", "example", "request_factory"),
+    (
+        (
+            "record_candidate_review_action",
+            _REVIEW_PATH,
+            "reviewDecision",
+            IDEA_REVIEW_ACTION_EXAMPLE,
+            _review_request,
+        ),
+        (
+            "record_candidate_conversion_intent",
+            _CONVERSION_PATH,
+            "conversionIntent",
+            IDEA_CONVERSION_INTENT_EXAMPLE,
+            _conversion_request,
+        ),
+    ),
+)
+def test_idea_actions_reject_blank_source_policy_versions(
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    path: str,
+    payload_key: str,
+    example: dict[str, object],
+    request_factory,
+    field: str,
+    value: str,
+) -> None:
+    payload = deepcopy(example)
+    payload[payload_key][field] = value
+    _stub_source(monkeypatch, method, payload)
+
+    response = TestClient(app).post(path, json=request_factory(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize("value", ("", " ", "\t\n"))
+def test_conversion_intent_rejects_blank_workbench_presentation_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+) -> None:
+    payload = deepcopy(IDEA_CONVERSION_INTENT_EXAMPLE)
+    payload["conversionIntent"]["presentationReceiptId"] = value
+    _stub_source(monkeypatch, "record_candidate_conversion_intent", payload)
+
+    response = TestClient(app).post(
+        _CONVERSION_PATH, json=_conversion_request(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
+    ("field", "changed_value"),
+    (
+        ("acceptedAtUtc", 1782036901),
+        ("acceptedAtUtc", "2026-06-21T10:15:01"),
+        ("acceptanceTimeSource", "caller_reported"),
+    ),
+)
+def test_review_action_rejects_unsafe_source_acceptance_chronology(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    changed_value: object,
+) -> None:
+    payload = deepcopy(IDEA_REVIEW_ACTION_EXAMPLE)
+    payload["reviewDecision"][field] = changed_value
+    _stub_source(monkeypatch, "record_candidate_review_action", payload)
+
+    response = TestClient(app).post(_REVIEW_PATH, json=_review_request(), headers=_headers())
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"
+
+
+@pytest.mark.parametrize(
+    ("field", "changed_value"),
+    (
+        ("acceptedAtUtc", 1782037021),
+        ("acceptedAtUtc", "2026-06-21T10:17:01"),
+        ("acceptanceTimeSource", "caller_reported"),
+    ),
+)
+def test_conversion_intent_rejects_unsafe_source_acceptance_chronology(
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    changed_value: object,
+) -> None:
+    payload = deepcopy(IDEA_CONVERSION_INTENT_EXAMPLE)
+    payload["conversionIntent"][field] = changed_value
+    _stub_source(monkeypatch, "record_candidate_conversion_intent", payload)
+
+    response = TestClient(app).post(
+        _CONVERSION_PATH, json=_conversion_request(), headers=_headers()
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "idea_contract_invalid"

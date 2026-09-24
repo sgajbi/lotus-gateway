@@ -31,3 +31,21 @@ def test_openapi_publishes_reason_enum_for_review_and_conversion_requests() -> N
     ):
         reason_items = schemas[request_schema_name]["properties"]["reasonCodes"]["items"]
         assert reason_items == {"$ref": "#/components/schemas/IdeaReasonCode"}
+
+
+def test_openapi_requires_current_review_and_conversion_authority() -> None:
+    schemas = app.openapi()["components"]["schemas"]
+    shared_authority = {
+        "expectedMaterialVersion",
+        "expectedEvidenceVersion",
+        "expectedEvidencePacketId",
+        "expectedEvidenceContentHash",
+        "expectedSourceRevisionVectorDigest",
+        "expectedSourceCutPosture",
+    }
+
+    review_required = set(schemas["IdeaCandidateReviewActionRequest"]["required"])
+    conversion_required = set(schemas["IdeaCandidateConversionIntentRequest"]["required"])
+
+    assert shared_authority | {"reviewChannel"} <= review_required
+    assert shared_authority | {"expectedReviewId"} <= conversion_required

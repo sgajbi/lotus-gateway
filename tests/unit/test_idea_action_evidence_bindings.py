@@ -26,6 +26,14 @@ def _review_request(**overrides) -> IdeaCandidateReviewActionRequest:
         "action": "approve_for_conversion",
         "reasonCodes": ("review_required",),
         "decidedAtUtc": "2026-06-21T10:15:00Z",
+        "reviewChannel": "workbench",
+        "expectedMaterialVersion": 1,
+        "expectedEvidenceVersion": 1,
+        "expectedEvidencePacketId": "iep_high_cash_8d57adbf52f7f5a7",
+        "expectedEvidenceContentHash": f"sha256:{'c' * 64}",
+        "expectedSourceRevisionVectorDigest": f"sha256:{'b' * 64}",
+        "expectedSourceCutPosture": "coherent",
+        "presentationReceiptId": "receipt-presentation-001",
         **overrides,
     }
     return IdeaCandidateReviewActionRequest.model_validate(payload)
@@ -42,7 +50,7 @@ def test_bindings_cover_every_candidate_action_method() -> None:
 )
 def test_evidence_model_echoes_every_request_field(action, binding) -> None:
     evidence_model = binding.response_type.model_fields[binding.evidence_field].annotation
-    request_fields = set(binding.request_type.model_fields)
+    request_fields = binding.request_type.response_evidence_field_names()
     evidence_fields = set(evidence_model.model_fields)
 
     assert request_fields <= evidence_fields, (
