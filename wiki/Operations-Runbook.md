@@ -97,13 +97,16 @@ production-only `requirements-audit.txt` intentionally excludes this test-only d
 
 ```powershell
 $GATEWAY_BASE_URL = "http://127.0.0.1:8111"
-curl "$GATEWAY_BASE_URL/health/ready"
-curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
-curl "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
-curl "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
-  -H "X-Actor-Id: support-operator-1" \
-  -H "X-Tenant-Id: tenant-sg" \
-  -H "X-Region: APAC" \
+curl.exe "$GATEWAY_BASE_URL/health/ready"
+curl.exe "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace" `
+  -H "X-Actor-Id: advisor-demo" `
+  -H "X-Tenant-Id: tenant-sg" `
+  -H "X-Region: APAC"
+curl.exe "$GATEWAY_BASE_URL/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl.exe "$GATEWAY_BASE_URL/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" `
+  -H "X-Actor-Id: support-operator-1" `
+  -H "X-Tenant-Id: tenant-sg" `
+  -H "X-Region: APAC" `
   -H "X-Role: support-operator"
 ```
 

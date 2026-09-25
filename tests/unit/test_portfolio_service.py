@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 
+from app.middleware.caller_identity import capture_caller_identity, release_caller_identity
 from app.services.portfolio_service import PortfolioService
 from app.services.portfolio_transaction_temporal import transaction_date_value
 
@@ -434,6 +435,23 @@ class _StubAnalyticsClient:
         }
 
 
+class _CallerAwareAnalyticsClient(_StubAnalyticsClient):
+    def __init__(
+        self,
+        calls: list[dict[str, str]] | None = None,
+        caller_headers: dict[str, str] | None = None,
+    ) -> None:
+        self.calls = calls if calls is not None else []
+        self.caller_headers = caller_headers or {}
+
+    def with_caller_headers(self, caller_headers: dict[str, str]):
+        return _CallerAwareAnalyticsClient(self.calls, dict(caller_headers))
+
+    async def get_twr_analytics(self, **kwargs):
+        self.calls.append(dict(self.caller_headers))
+        return await super().get_twr_analytics(**kwargs)
+
+
 class _StubDpmClient:
     async def list_runs(self, params: dict[str, object], correlation_id: str):
         _ = params, correlation_id
@@ -468,6 +486,46 @@ async def test_portfolio_catalog_is_sorted_and_mapped():
     response = await service.get_portfolio_catalog(correlation_id="corr-1")
     assert [item.portfolio_id for item in response.items] == ["PF_1001", "PF_2002"]
     assert response.items[0].base_currency == "USD"
+
+
+@pytest.mark.asyncio
+async def test_portfolio_workspace_binds_tenant_and_partitions_cached_performance() -> None:
+    analytics = _CallerAwareAnalyticsClient()
+    service = PortfolioService(
+        _StubLotusCoreQueryClient(),
+        analytics_client=analytics,
+        upstream_cache_ttl_seconds=60,
+    )
+    singapore = service.with_caller_headers(
+        {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"}
+    )
+    singapore_supervisor = service.with_caller_headers(
+        {"X-Actor-Id": "supervisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"}
+    )
+    hong_kong = service.with_caller_headers(
+        {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-hk", "X-Region": "APAC"}
+    )
+
+    token = capture_caller_identity({"X-Tenant-Id": "tenant-sg"})
+    try:
+        await singapore._get_workspace_performance_result("PF_1001", "corr-sg-1", "2026-03-27")
+        await singapore._get_workspace_performance_result("PF_1001", "corr-sg-2", "2026-03-27")
+        await singapore_supervisor._get_workspace_performance_result(
+            "PF_1001", "corr-sg-supervisor", "2026-03-27"
+        )
+    finally:
+        release_caller_identity(token)
+    token = capture_caller_identity({"X-Tenant-Id": "tenant-hk"})
+    try:
+        await hong_kong._get_workspace_performance_result("PF_1001", "corr-hk", "2026-03-27")
+    finally:
+        release_caller_identity(token)
+
+    assert analytics.calls == [
+        {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"},
+        {"X-Actor-Id": "supervisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"},
+        {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-hk", "X-Region": "APAC"},
+    ]
 
 
 @pytest.mark.asyncio

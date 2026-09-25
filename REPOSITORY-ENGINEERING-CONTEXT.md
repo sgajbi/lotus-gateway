@@ -780,6 +780,14 @@ Performance attribution level totals are also source-owned. Gateway preserves ex
 zero, positive, and negative `levels[].totals.total_effect` values and publishes `null` when
 `lotus-performance` omits the aggregate; it does not reconstruct the total from attribution rows.
 
+The Portfolio workspace route requires one admitted `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`
+trio before composing source data. Repeated authority headers fail closed. The route binds the
+admitted context to its stateful Performance request, and the existing ambient tenant fence remains
+the inner cache partition for Core-backed source facts. The request-bound service adds the complete
+admitted caller context to its cache scope so different actors or regions within one tenant cannot
+reuse another caller's Performance result. Gateway never supplies a default tenant or treats caller
+context as an IAM grant.
+
 Workbench risk summary and concentration responses include a typed `mandate_comparison` composed
 from Manage-owned mandate, health, review-policy, and lineage evidence; Risk-owned tracking-error
 and concentration measures; and the Core-owned cash measure already resolved by the Workbench

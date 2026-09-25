@@ -511,6 +511,8 @@ def test_portfolio_openapi_contract_registered() -> None:
         "latest governed date resolved by lotus-core"
         in workspace_parameters["as_of_date"]["description"]
     )
+    for header_name in ("X-Actor-Id", "X-Tenant-Id", "X-Region"):
+        assert workspace_parameters[header_name]["required"] is True
     workflow_launch_cue_schema = spec["components"]["schemas"]["PortfolioWorkflowLaunchCue"]
     readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
     readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]
