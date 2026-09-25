@@ -725,10 +725,17 @@ curl "$GATEWAY_BASE_URL/api/v1/domain-products/trust-certification?consumerSyste
 ### Portfolio workspace
 
 ```bash
-curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace"
+curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PF_1001/workspace" \
+  -H "X-Actor-Id: advisor-demo" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC"
 ```
 
 The portfolio workspace uses the product-owned Gateway contract for first-paint portfolio context.
+It requires one unambiguous admitted actor, tenant, and region. Gateway forwards that admitted
+context to the stateful Performance call and scopes cached composition facts by the complete
+admitted context, with the tenant fence retained inside the source cache key. These headers are
+request scope and are not an IAM grant.
 Use the dedicated Workbench performance routes for detailed performance evidence and horizon
 semantics.
 

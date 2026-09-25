@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
-from typing import Any
+from copy import copy
+from typing import Any, Self
 
 from app.middleware.caller_identity import admitted_tenant_cache_scope
 from app.services.async_ttl_cache import AsyncTtlCache
@@ -22,6 +23,14 @@ class PortfolioUpstreamAccessMixin:
 
     def clear_upstream_cache(self) -> None:
         self._upstream_cache.clear()
+
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self:
+        """Bind Performance calls to admitted authority without mutating the singleton."""
+        service = copy(self)
+        if self._analytics_client is not None:
+            service._analytics_client = self._analytics_client.with_caller_headers(caller_headers)
+        service._upstream_cache = self._upstream_cache.scoped(tuple(sorted(caller_headers.items())))
+        return service
 
     async def _get_cached_upstream_result(
         self,

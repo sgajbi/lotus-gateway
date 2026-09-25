@@ -120,6 +120,14 @@ def test_portfolio_catalog_router(monkeypatch):
 def test_portfolio_workspace_router(monkeypatch):
     captured: dict[str, object] = {}
 
+    async def _twr(client, *args, **kwargs):
+        captured["performance_caller_headers"] = client._caller_headers
+        return 200, {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 2.5}}}}
+            }
+        }
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {
             "portfolio_id": "PF_1001",
@@ -201,11 +209,16 @@ def test_portfolio_workspace_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics",
+        _twr,
+    )
 
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/workspace",
         params={"as_of_date": "2026-03-27"},
+        headers=PERFORMANCE_CALLER,
     )
     assert response.status_code == 200
     body = response.json()
@@ -266,6 +279,10 @@ def test_portfolio_workspace_router(monkeypatch):
         == "USD"
     )
     assert captured["support_as_of_date"] is None
+    assert captured["performance_caller_headers"] == {
+        **PERFORMANCE_CALLER,
+        "X-Caller-Application": "lotus-gateway",
+    }
 
 
 def test_portfolio_workspace_router_uses_source_resolved_date_for_default_performance(monkeypatch):
@@ -359,7 +376,10 @@ def test_portfolio_workspace_router_uses_source_resolved_date_for_default_perfor
     )
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/workspace")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/workspace",
+        headers=PERFORMANCE_CALLER,
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -625,6 +645,7 @@ def test_portfolio_workspace_router_preserves_support_overview_partial_failure(m
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/workspace",
         params={"as_of_date": "bad-date"},
+        headers=PERFORMANCE_CALLER,
     )
 
     assert response.status_code == 200
@@ -633,6 +654,26 @@ def test_portfolio_workspace_router_preserves_support_overview_partial_failure(m
     assert "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE" in body["warnings"]
     assert body["partial_failures"][0]["error_code"] == "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE"
     assert body["partial_failures"][0]["detail"] == "support overview unavailable"
+
+
+def test_portfolio_workspace_router_requires_one_admitted_caller_identity() -> None:
+    client = TestClient(app)
+
+    missing = client.get("/api/v1/portfolio/portfolios/PF_1001/workspace")
+    ambiguous = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/workspace",
+        headers=[
+            ("X-Actor-Id", "advisor"),
+            ("X-Tenant-Id", "tenant-sg"),
+            ("X-Tenant-Id", "tenant-hk"),
+            ("X-Region", "APAC"),
+        ],
+    )
+
+    assert missing.status_code == 400
+    assert missing.json()["detail"]["code"] == "missing_caller_context"
+    assert ambiguous.status_code == 400
+    assert ambiguous.json()["detail"] == {"code": "ambiguous_caller_context"}
 
 
 def test_portfolio_workflow_router(monkeypatch):

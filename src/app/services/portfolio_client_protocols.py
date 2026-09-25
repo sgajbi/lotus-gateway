@@ -1,5 +1,7 @@
 from typing import Any, Protocol
 
+from app.services.performance_client_protocols import CallerBoundClient, PerformanceTwrClient
+
 
 class PortfolioCoreClient(Protocol):
     async def list_portfolios(
@@ -131,18 +133,8 @@ class PortfolioCoreClient(Protocol):
     ) -> tuple[int, dict[str, Any]]: ...
 
 
-class PortfolioPerformanceClient(Protocol):
-    async def get_twr_analytics(
-        self,
-        *,
-        portfolio_id: str,
-        report_end_date: str,
-        report_start_date: str | None,
-        period: str,
-        metric_basis: str,
-        benchmark_id: str | None,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
+class PortfolioPerformanceClient(CallerBoundClient, PerformanceTwrClient, Protocol):
+    pass
 
 
 class PortfolioManageClient(Protocol):
