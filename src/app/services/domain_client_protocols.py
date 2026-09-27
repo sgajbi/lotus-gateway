@@ -31,6 +31,8 @@ class ArchiveDocumentClient(Protocol):
 
 
 class CompositePerformanceClient(Protocol):
+    def with_caller_headers(self, caller_headers: dict[str, str]) -> Self: ...
+
     async def post_composite_twr(
         self,
         *,

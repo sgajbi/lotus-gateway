@@ -123,11 +123,13 @@ the Risk period or presenting the effective start as the original request. Blank
 values are rejected before source I/O; omission remains a distinct cache identity.
 
 Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tenant-Id` and
-`X-Region`, including details, horizon comparison, attribution trend, Advisor Brief and the portfolio
-performance snapshot. Missing/blank context is refused before source I/O; repeated identity headers
-are ambiguous and refused. The admitted caller stays attached to Performance submission, polling and
-evidence, and cached results are isolated by admitted context. Refused source redirects return an
-explicit `502` failure instead of success-like evidence; caller headers never follow them.
+`X-Region`, including details, horizon comparison, attribution trend, Advisor Brief, the portfolio
+performance snapshot, composite TWR and composite inspection. Missing/blank context is refused
+before source I/O; repeated identity headers are ambiguous and refused. The admitted caller stays
+attached to Performance submission, polling and evidence, and cached results are isolated by
+admitted context. Composite calls use per-request bound clients rather than mutating the shared
+provider. Refused source redirects return an explicit `502` failure instead of success-like
+evidence; caller headers never follow them.
 Foreign-result refusals also produce normalized failure telemetry after an accepted submission.
 These trusted-header contracts do not
 certify production IAM. See [Performance caller authority](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#performance-caller-authority)

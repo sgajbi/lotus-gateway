@@ -16,6 +16,14 @@ CALLER_CONTEXT_HEADERS = {
 def test_composite_twr_route_preserves_lotus_performance_payload(monkeypatch):
     async def _post_composite_twr(self, payload, correlation_id):  # noqa: ARG001
         assert correlation_id == "corr-composite-1"
+        assert self._caller_headers == {
+            "X-Actor-Id": "advisor_1",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "SG",
+            "X-Role": "advisor",
+        }
         assert payload == {
             "calculation_id": "calc-1",
             "composite_id": "PB_GLOBAL_BALANCED_USD",
@@ -68,6 +76,14 @@ def test_composite_twr_route_preserves_lotus_performance_payload(monkeypatch):
 
 def test_composite_inspection_route_preserves_classified_artifacts(monkeypatch):
     async def _post_composite_inspection(self, payload, correlation_id):  # noqa: ARG001
+        assert self._caller_headers == {
+            "X-Actor-Id": "advisor_1",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "SG",
+            "X-Role": "advisor",
+        }
         assert payload["inspection_id"] == "insp-1"
         return 200, {
             "inspection_id": "insp-1",
@@ -120,7 +136,18 @@ def test_composite_inspection_route_preserves_classified_artifacts(monkeypatch):
     assert "artifact_content" in body["data"]["artifacts"][0]
 
 
-def test_composite_routes_require_governed_caller_context():
+def test_composite_routes_require_governed_caller_context(monkeypatch):
+    calls = 0
+
+    async def _post_composite_twr(self, payload, correlation_id):  # noqa: ARG001
+        nonlocal calls
+        calls += 1
+        return 200, {"status": "READY"}
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_composite_twr",
+        _post_composite_twr,
+    )
     client = TestClient(app)
 
     response = client.post(
@@ -136,6 +163,39 @@ def test_composite_routes_require_governed_caller_context():
     detail = response.json()["detail"]
     assert detail["code"] == "missing_caller_context"
     assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+    assert calls == 0
+
+
+def test_composite_routes_refuse_ambiguous_authority_before_upstream_io(monkeypatch):
+    calls = 0
+
+    async def _post_composite_twr(self, payload, correlation_id):  # noqa: ARG001
+        nonlocal calls
+        calls += 1
+        return 200, {"status": "READY"}
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_composite_twr",
+        _post_composite_twr,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/performance/composites/twr",
+        headers=[
+            *CALLER_CONTEXT_HEADERS.items(),
+            ("X-Tenant-Id", "tenant-other"),
+        ],
+        json={
+            "composite_id": "PB_GLOBAL_BALANCED_USD",
+            "period_start": "2026-01-01",
+            "period_end": "2026-03-31",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "ambiguous_caller_context"
+    assert calls == 0
 
 
 def test_composite_performance_openapi_contract_registered():
@@ -160,3 +220,12 @@ def test_composite_performance_openapi_contract_registered():
         "source-owned composite payload"
         in response_schema["properties"]["data"]["description"].lower()
     )
+    for route in (twr_route, inspect_route):
+        by_name = {
+            parameter["name"]: parameter
+            for parameter in route["parameters"]
+            if parameter["in"] == "header"
+        }
+        for name in ("X-Actor-Id", "X-Tenant-Id", "X-Region"):
+            assert by_name[name]["required"] is True
+            assert by_name[name]["schema"]["pattern"] == r".*\S.*"
