@@ -13,16 +13,16 @@
   },
   "metrics": {
     "clone_count": {
-      "baseline": 66,
-      "threshold": 66
+      "baseline": 65,
+      "threshold": 65
     },
     "duplicated_lines": {
-      "baseline": 1311,
-      "threshold": 1311
+      "baseline": 1296,
+      "threshold": 1296
     },
     "duplicated_percentage": {
-      "baseline": 1.38,
-      "threshold": 1.38
+      "baseline": 1.35,
+      "threshold": 1.35
     }
   },
   "allowed_fingerprints": [
@@ -67,7 +67,6 @@
     "8e0a586d7575d1f3c54db7293623581f7511d71e08de73b6a1f9eb66976a4902",
     "9a66d189bbb0474a91bbe54aee2dad1457dcb6a54b925c8229a51efa8f5076da",
     "9aef4671e0f9d9117e3e872228f40ed79c0e4132622fdb71712b483bda548ed4",
-    "9d82a0ae1ee06db3b3b7a7031571894324d674e91e5604fe100cc739765550fd",
     "abf0dd0ebad1baecbf6b237e6d952f1f54c0140222e82fbadca201333534b19a",
     "af2e845b5c21e515a69a58716af5e50728cb255bfa4f6c06741103306fdd5e1f",
     "b2e420417b2894fbc6659445be3a6e9e541332318143dadc44afdea635393991",

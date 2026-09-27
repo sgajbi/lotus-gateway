@@ -17,8 +17,10 @@ class CompositePerformanceService:
         correlation_id: str,
         caller_context: dict[str, str | None],
     ) -> CompositePerformanceGatewayResponse:
-        self._validate_caller_context(caller_context)
-        upstream_status, upstream_payload = await self._analytics_client.post_composite_twr(
+        analytics_client = self._analytics_client.with_caller_headers(
+            self._caller_headers(caller_context)
+        )
+        upstream_status, upstream_payload = await analytics_client.post_composite_twr(
             payload=payload,
             correlation_id=correlation_id,
         )
@@ -36,11 +38,13 @@ class CompositePerformanceService:
         correlation_id: str,
         caller_context: dict[str, str | None],
     ) -> CompositePerformanceGatewayResponse:
-        self._validate_caller_context(caller_context)
+        analytics_client = self._analytics_client.with_caller_headers(
+            self._caller_headers(caller_context)
+        )
         (
             upstream_status,
             upstream_payload,
-        ) = await self._analytics_client.post_composite_inspection(
+        ) = await analytics_client.post_composite_inspection(
             payload=payload,
             correlation_id=correlation_id,
         )
@@ -51,8 +55,10 @@ class CompositePerformanceService:
             upstream_payload=upstream_payload,
         )
 
-    def _validate_caller_context(self, caller_context: dict[str, str | None]) -> None:
-        caller_context_headers(
+    @staticmethod
+    def _caller_headers(caller_context: dict[str, str | None]) -> dict[str, str]:
+        """Validate and snapshot one request's admitted Performance authority."""
+        return caller_context_headers(
             actor_id=caller_context.get("actor_id"),
             caller_application=caller_context.get("caller_application"),
             tenant_id=caller_context.get("tenant_id"),

@@ -9,6 +9,11 @@ class _CompositeAnalyticsStub:
         self.status_code = status_code
         self.payload = payload or {"status": "READY"}
         self.calls: list[dict[str, object]] = []
+        self.caller_headers: dict[str, str] = {}
+
+    def with_caller_headers(self, caller_headers: dict[str, str]):
+        self.caller_headers = dict(caller_headers)
+        return self
 
     async def post_composite_twr(self, payload: dict, correlation_id: str):
         self.calls.append(
@@ -63,6 +68,14 @@ async def test_composite_performance_service_preserves_twr_payload() -> None:
             "correlation_id": "corr-composite",
         }
     ]
+    assert analytics_client.caller_headers == {
+        "X-Actor-Id": "advisor-1",
+        "X-Caller-Application": "lotus-workbench",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+        "X-Booking-Center-Code": "SG",
+        "X-Role": "ADVISOR",
+    }
 
 
 @pytest.mark.asyncio

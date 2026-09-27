@@ -68,14 +68,16 @@ Risk retains calculation and supportability authority; Gateway does not recreate
 ## Performance Caller Authority
 
 The Workbench Performance summary, details, horizon comparison, attribution trend, Advisor Brief
-and evidence-download routes, plus the portfolio performance snapshot, admit the trusted actor,
-tenant and region before source I/O. Missing/blank context returns `400 missing_caller_context`;
-repeated identity headers return `400 ambiguous_caller_context`. Served OpenAPI declares the
-required trio once. These development/trusted-service headers are not production IAM grants.
+and evidence-download routes, the portfolio performance snapshot, and the composite TWR and
+inspection routes admit the trusted actor, tenant and region before source I/O. Missing/blank
+context returns `400 missing_caller_context`; repeated identity headers return
+`400 ambiguous_caller_context`. Served OpenAPI declares the required trio once. These
+development/trusted-service headers are not production IAM grants.
 
 Routes bind the admitted context through `with_caller_headers` on request-specific service/client
-views. The shared provider is never mutated. The bound Performance adapter snapshots the admitted
-headers for submission, result polling, execution, lineage and artifacts, including late completions.
+views. Composite operations create an equivalently bound client view for each call. The shared
+provider is never mutated. The bound Performance adapter snapshots the admitted headers for
+submission, result polling, execution, lineage and artifacts, including late completions.
 Redirect following is disabled for bound calls, and a foreign result origin is refused. Origin
 comparison uses normalized hostname and effective HTTP port, accepting equivalent default-port
 spellings while refusing different ports and user-info. Refused

@@ -308,12 +308,13 @@ under parent issue #586.
    X-Actor-Id, X-Tenant-Id, X-Region; 400 missing_caller_context) and thread it as
    explicitly admitted caller_headers
    through the intake service into the ingestion client, so Core writes carry admitted —
-   never ambient — tenant authority. Performance workspace routes likewise retain the admitted
-   actor/tenant/region through request-bound `with_caller_headers` service/client views; do not
-   mutate a shared provider client. Submission, async polling and execution/lineage/artifact reads
-   use the same snapshotted context. Workspace and Advisor Brief cache views namespace the existing
-   store by the full admitted context, preserving same-scope reuse and fencing late fills without
-   cross-tenant or cross-actor sharing. Missing/blank or repeated identity headers fail before I/O;
+   never ambient — tenant authority. Performance workspace and composite TWR/inspection routes
+   likewise retain the admitted actor/tenant/region through request-bound `with_caller_headers`
+   service/client views; do not mutate a shared provider client. Submission, async polling and
+   execution/lineage/artifact reads use the same snapshotted context. Workspace and Advisor Brief
+   cache views namespace the existing store by the full admitted context, preserving same-scope
+   reuse and fencing late fills without cross-tenant or cross-actor sharing. Missing/blank or
+   repeated identity headers fail before I/O;
    redirects and foreign result origins cannot forward authority. Refused JSON redirects must be
    normalized to `502` before cache/evidence classification, not returned as apparent success.
    Foreign-result admission refusals must emit a normalized fanout failure after an accepted `202`,
