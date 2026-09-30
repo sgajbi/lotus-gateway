@@ -155,7 +155,17 @@ period request, and publishes the same requested/effective context. Its state is
 `accepted_unverified` when at least one period returns a usable source row, `rejected` when a
 period returns typed currency validation failure, and `unavailable` when no usable period is
 returned. Partial period failures remain visible in `partial_failures`; no source-applied
-currency evidence is claimed. The advisor-brief read and review-action routes accept the same
+currency evidence is claimed. Attribution-trend orchestration admits at most four source calls per
+Gateway process by default and applies one 30-second queued-plus-active deadline. Every requested
+window remains in order with a `completed`, `failed`, or `timed_out` disposition; failed windows
+carry null financial values, never fabricated zero effects. Both controls are validated deployment
+settings, and total source admission scales with the Gateway replica count. The attribution-trend
+route does not yet provide restart-safe accepted-job recovery: the source
+contract has no caller-stable idempotency key and Gateway does not persist accepted calculation
+handles. A retry after cancellation may therefore submit again; no process-local cache is treated
+as durable recovery. Source delivery is tracked by `sgajbi/lotus-performance#563`; Gateway issue
+`#812` remains open until that contract is consumed and recovery is proven. The advisor-brief read
+and review-action routes accept the same
 controls, forward them to the shared performance workspace, and publish requested/effective date
 and currency context plus `reporting_currency_state`; source links retain the selected controls
 when supplied. Advisor brief does not claim source-applied currency evidence or promote workspace

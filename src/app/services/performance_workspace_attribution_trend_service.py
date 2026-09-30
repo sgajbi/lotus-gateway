@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Sequence
 from datetime import date
 from typing import TYPE_CHECKING, Any, Callable, cast
@@ -8,9 +7,17 @@ from typing import TYPE_CHECKING, Any, Callable, cast
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendResponse
 from app.contracts.performance_currency import ReportingCurrencyState
 from app.middleware.server_timing import server_timing_span
+from app.observability.analytics_ui_metrics import (
+    record_attribution_trend_window_dispositions,
+)
+from app.services.attribution_trend_orchestration import AttributionTrendOrchestrator
 from app.services.performance_workspace_attribution import parse_attribution_trend_results
 from app.services.performance_workspace_attribution_trend import (
     classify_attribution_trend_currency_outcome,
+)
+from app.services.performance_workspace_attribution_trend_fetch import (
+    build_attribution_trend_completion_fields,
+    fetch_attribution_trend_results,
 )
 from app.services.performance_workspace_context import (
     AttributionTrendRequestContext,
@@ -29,6 +36,7 @@ if TYPE_CHECKING:
 
 class PerformanceWorkspaceAttributionTrendServiceMixin:
     _analytics_client: PerformanceWorkspaceAnalyticsClient
+    _attribution_trend_orchestrator: AttributionTrendOrchestrator
     if TYPE_CHECKING:
         _build_workspace_benchmark_context: Callable[..., Awaitable[WorkspaceBenchmarkContext]]
 
@@ -110,6 +118,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             warnings=context.warnings,
             partial_failures=context.partial_failures,
         )
+        record_attribution_trend_window_dispositions(rows)
         return rows, reporting_currency_state
 
     def _build_unavailable_attribution_trend_response(
@@ -227,22 +236,14 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
         if context.benchmark_code is None:
             return []
         async with server_timing_span("perf-attribution"):
-            gathered = await asyncio.gather(
-                *(
-                    self._analytics_client.get_attribution_analytics(
-                        portfolio_id=portfolio_id,
-                        report_start_date=window_start.isoformat(),
-                        report_end_date=window_end.isoformat(),
-                        period="EXPLICIT",
-                        metric_basis=detail_basis,
-                        benchmark_id=context.benchmark_code,
-                        dimension=context.attribution_dimension,
-                        correlation_id=correlation_id,
-                        reporting_currency=context.requested_reporting_currency,
-                    )
-                    for window_start, window_end in window_pairs
-                ),
-                return_exceptions=True,
+            gathered = await fetch_attribution_trend_results(
+                orchestrator=self._attribution_trend_orchestrator,
+                analytics_client=self._analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                detail_basis=detail_basis,
+                context=context,
+                window_pairs=window_pairs,
             )
         return cast(Sequence[GatheredResult], gathered)
 
@@ -261,6 +262,7 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
             if reporting_currency_state == "accepted_unverified"
             else context.overview.portfolio.base_currency
         )
+        completion_fields = build_attribution_trend_completion_fields(rows)
         return PerformanceAttributionTrendResponse(
             correlation_id=correlation_id,
             contract_version=context.overview.contract_version,
@@ -282,6 +284,9 @@ class PerformanceWorkspaceAttributionTrendServiceMixin:
                 context.requested_attribution_dimension_supported
             ),
             benchmark_code=context.benchmark_code,
+            orchestration_concurrency_limit=self._attribution_trend_orchestrator.concurrency_limit,
+            orchestration_deadline_seconds=self._attribution_trend_orchestrator.deadline_seconds,
+            **completion_fields,
             rows=list(rows),
             warnings=context.warnings,
             partial_failures=context.partial_failures,

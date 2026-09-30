@@ -515,7 +515,7 @@ def test_parse_attribution_trend_results_does_not_synthesize_missing_cumulative_
     assert partial_failures == []
 
 
-def test_parse_attribution_trend_results_skips_failed_periods():
+def test_parse_attribution_trend_results_preserves_failed_period_disposition():
     warnings: list[str] = []
     partial_failures = []
 
@@ -528,7 +528,11 @@ def test_parse_attribution_trend_results_skips_failed_periods():
         partial_failures=partial_failures,
     )
 
-    assert rows == []
+    assert len(rows) == 1
+    assert rows[0].completion_state == "failed"
+    assert rows[0].failure_code == "UPSTREAM_EXCEPTION"
+    assert rows[0].total_effect_pct is None
+    assert rows[0].cumulative_total_effect_pct is None
     assert warnings == ["ATTRIBUTION_TREND_PERIOD_UNAVAILABLE"]
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-performance"

@@ -94,7 +94,17 @@ state roadmap.
     `PerformanceCapabilityInputs` and `resolve_history_date_range`; detail-capability policy now
     lives in `src/app/services/performance_workspace_detail_capabilities.py`, and shared module
     capability construction lives in `src/app/services/performance_workspace_module_capability.py`.
-14. portfolio workspace source/analytics assembly, response-component assembly, and position
+14. Attribution-history composition uses a configurable process-wide source-call bulkhead
+    (default `4`) and a total queued-plus-active deadline (default `30` seconds). Responses retain
+    one ordered completed, failed, or timed-out disposition per requested date window; unavailable
+    source facts remain null and are never converted into zero effects. Deployment operators must
+    multiply the process bound by the Gateway replica count when setting the Performance admission
+    budget. Accepted attribution jobs are not cached in Gateway memory: the current source
+    contract lacks a caller-stable idempotency key and Gateway has no durable calculation-job
+    store, so restart-safe recovery remains a Performance contract plus Gateway propagation slice.
+    The source contract is tracked by `sgajbi/lotus-performance#563`; Gateway `#812` remains open
+    through consumer and controlled live recovery acceptance.
+15. portfolio workspace source/analytics assembly, response-component assembly, and position
     parsing, performance workspace
     summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,
     risk drawdown/rolling/attribution orchestration and attribution supportability, risk
@@ -104,6 +114,6 @@ state roadmap.
     context loading, transaction page loading, portfolio book response assembly, and shared
     analytics async polling now sit behind focused helpers so public route/service methods stay
     orchestration-oriented.
-15. Advisor Brief AI and Advise client protocol surfaces are isolated in
+16. Advisor Brief AI and Advise client protocol surfaces are isolated in
     `src/app/services/advisor_brief_client_protocols.py`; the broader advisory protocol module no
     longer owns Advisor Brief-specific upstream surfaces.

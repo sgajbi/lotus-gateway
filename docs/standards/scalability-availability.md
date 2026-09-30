@@ -33,6 +33,24 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
   budget to the `lotus-performance` workspace-summary submission and result polling flow. The
   budget is configured by `PERFORMANCE_SUMMARY_DEADLINE_SECONDS`; the separate
   `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS` remains the maximum for one upstream request.
+- Attribution-history source work uses a process-wide bulkhead configured by
+  `ATTRIBUTION_TREND_CONCURRENCY_LIMIT` (default `4`) and one monotonic queued-plus-active
+  request budget configured by `ATTRIBUTION_TREND_DEADLINE_SECONDS` (default `30`). Each
+  requested date bucket keeps one ordered final disposition; failed or timed-out buckets retain
+  null financial values rather than becoming zero effects. Deployment-wide source admission is
+  the per-process limit multiplied by the number of Gateway replicas, so replica changes must be
+  reconciled with the Performance admission budget.
+- Durable accepted-job recovery is not yet provided for attribution history. The current
+  Performance client combines submission and polling and exposes `result_path` only in its final
+  response; cancellation after a source `202` can therefore lose that handle, and a later
+  Workbench GET has no stable replay key with which to recover it. Gateway has no durable
+  calculation-job store, so a process-local cache or shielded background task would not survive a
+  restart and is not a valid recovery control. The smallest follow-up contract is a
+  tenant-scoped, caller-stable idempotency key accepted by Performance attribution submission,
+  payload-mismatch rejection, and a durable accepted response that replays the same
+  `calculation_id` and authorized `result_path` for the source-declared retention period. Gateway
+  must accept and forward that key before retry/disconnect recovery can be claimed. The
+  source-owned contract is tracked by `sgajbi/lotus-performance#563`.
 - Submission and result reads use the smaller of the per-request timeout and the remaining
   completion budget. Gateway also wraps each complete HTTP await in the remaining monotonic
   budget, so multiple transport phases and slow response-byte trickles cannot extend the

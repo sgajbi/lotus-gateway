@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from app.contracts.performance_attribution_trend import PerformanceAttributionTrendRow
 from app.contracts.performance_currency import ReportingCurrencyState
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.attribution_trend_orchestration import AttributionTrendWindowError
 from app.services.performance_workspace_attribution_supportability import (
     parse_attribution_residual_materiality,
     parse_attribution_supportability_evidence,
@@ -79,9 +80,6 @@ def parse_attribution_trend_results(
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        if parsed_row is None:
-            continue
-
         if cumulative_total_effect is None or parsed_row.total_effect_pct is None:
             cumulative_total_effect = None
         else:
@@ -102,27 +100,103 @@ def parse_single_attribution_trend_row(
     requested_period: str,
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
-) -> PerformanceAttributionTrendRow | None:
+) -> PerformanceAttributionTrendRow:
     payload = unpack_attribution_trend_payload(
         result=result,
         warnings=warnings,
         partial_failures=partial_failures,
     )
     if payload is None:
-        return None
+        return build_unavailable_attribution_trend_row(
+            result=result,
+            window_start=window_start,
+            window_end=window_end,
+            chart_frequency=chart_frequency,
+        )
 
     trend_period_payload = select_attribution_trend_period_payload(
         payload=payload,
         requested_period=requested_period,
     )
     if trend_period_payload is None:
-        return None
+        return _build_invalid_attribution_trend_row(
+            window_start=window_start,
+            window_end=window_end,
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
 
     return build_attribution_trend_row(
         window_start=window_start,
         window_end=window_end,
         chart_frequency=chart_frequency,
         trend_period_payload=trend_period_payload,
+    )
+
+
+def _build_invalid_attribution_trend_row(
+    *,
+    window_start: date,
+    window_end: date,
+    chart_frequency: str,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> PerformanceAttributionTrendRow:
+    detail = "Attribution result did not contain the requested period evidence."
+    warnings.append("ATTRIBUTION_TREND_PERIOD_INVALID")
+    partial_failures.append(
+        build_performance_failure(
+            "lotus-performance",
+            "INVALID_UPSTREAM_PAYLOAD",
+            detail,
+        )
+    )
+    return build_unavailable_attribution_trend_row(
+        result=AttributionTrendWindowError(
+            completion_state="failed",
+            error_code="INVALID_UPSTREAM_PAYLOAD",
+            detail=detail,
+        ),
+        window_start=window_start,
+        window_end=window_end,
+        chart_frequency=chart_frequency,
+    )
+
+
+def build_unavailable_attribution_trend_row(
+    *,
+    result: AttributionTrendResult,
+    window_start: date,
+    window_end: date,
+    chart_frequency: str,
+) -> PerformanceAttributionTrendRow:
+    completion_state: Literal["failed", "timed_out"] = "failed"
+    failure_code = "UPSTREAM_EXCEPTION"
+    if isinstance(result, AttributionTrendWindowError):
+        completion_state = result.completion_state
+        failure_code = result.error_code
+    elif isinstance(result, tuple):
+        status_code, payload = result
+        failure_code = (
+            f"HTTP_{status_code}"
+            if isinstance(status_code, int) and status_code >= 400
+            else "INVALID_UPSTREAM_PAYLOAD"
+        )
+        _ = payload
+    return PerformanceAttributionTrendRow(
+        period_label=format_attribution_trend_label(
+            window_start=window_start,
+            window_end=window_end,
+            chart_frequency=chart_frequency,
+        ),
+        period_start=window_start.isoformat(),
+        period_end=window_end.isoformat(),
+        frequency=chart_frequency,
+        status="unavailable",
+        completion_state=completion_state,
+        failure_code=failure_code,
+        reason_codes=[failure_code],
     )
 
 
@@ -134,8 +208,9 @@ def unpack_attribution_trend_payload(
 ) -> dict[str, Any] | None:
     if isinstance(result, BaseException):
         warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
+        error_code = getattr(result, "error_code", "UPSTREAM_EXCEPTION")
         partial_failures.append(
-            build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+            build_performance_failure("lotus-performance", str(error_code), str(result))
         )
         return None
 

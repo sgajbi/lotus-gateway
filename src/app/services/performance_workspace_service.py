@@ -13,6 +13,9 @@ from app.contracts.portfolio_performance_snapshot import (
     PortfolioPerformanceSnapshotResponse,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_attribution_trend_fetch import (
+    process_attribution_trend_orchestrator,
+)
 from app.services.performance_workspace_context import (
     WorkspaceRequestParameters,
 )
@@ -88,6 +91,7 @@ class PerformanceWorkspaceService(
         self._workbench_service = workbench_service
         self._analytics_client = analytics_client
         self._lotus_core_query_client = lotus_core_query_client
+        self._attribution_trend_orchestrator = process_attribution_trend_orchestrator()
         self._upstream_cache = AsyncTtlCache[Any](
             ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
         )

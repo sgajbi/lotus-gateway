@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.contracts.performance_attribution_supportability import (
@@ -64,6 +66,19 @@ class PerformanceAttributionTrendRow(BaseModel):
         default="valid",
         description="Source-owned attribution period status for this trend bucket.",
         examples=["valid"],
+    )
+    completion_state: Literal["completed", "failed", "timed_out"] = Field(
+        default="completed",
+        description=(
+            "Gateway orchestration disposition for this requested bucket. Financial values "
+            "remain null for failed or timed-out buckets."
+        ),
+        examples=["completed"],
+    )
+    failure_code: str | None = Field(
+        default=None,
+        description="Bounded failure code when the bucket did not complete successfully.",
+        examples=["ATTRIBUTION_TREND_DEADLINE_EXCEEDED"],
     )
     reason_codes: list[str] = Field(
         default_factory=list,
@@ -178,6 +193,44 @@ class PerformanceAttributionTrendResponse(BaseModel):
         description="Resolved benchmark code used for the attribution trend when available.",
         examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
+    orchestration_concurrency_limit: int = Field(
+        default=4,
+        description=(
+            "Maximum attribution source calls admitted concurrently by one Gateway process. "
+            "Deployment-wide capacity is this bound multiplied by the Gateway replica count."
+        ),
+        ge=1,
+    )
+    orchestration_deadline_seconds: float = Field(
+        default=30.0,
+        description="Total Gateway elapsed deadline covering queued and active trend windows.",
+        gt=0,
+    )
+    orchestration_state: Literal["complete", "partial", "timed_out", "unavailable"] = Field(
+        default="unavailable",
+        description="Aggregate completion posture across all requested trend windows.",
+        examples=["complete"],
+    )
+    requested_window_count: int = Field(
+        default=0,
+        description="Number of exact date windows requested from the source.",
+        ge=0,
+    )
+    completed_window_count: int = Field(
+        default=0,
+        description="Number of requested windows with completed source evidence.",
+        ge=0,
+    )
+    failed_window_count: int = Field(
+        default=0,
+        description="Number of requested windows with a non-timeout failure disposition.",
+        ge=0,
+    )
+    timed_out_window_count: int = Field(
+        default=0,
+        description="Number of requested windows stopped by the total elapsed deadline.",
+        ge=0,
+    )
     rows: list[PerformanceAttributionTrendRow] = Field(
         default_factory=list,
         description="Sequential attribution effect buckets for the resolved trend window.",
@@ -216,6 +269,13 @@ class PerformanceAttributionTrendResponse(BaseModel):
                 "requested_chart_frequency_supported": True,
                 "requested_attribution_dimension_supported": True,
                 "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
+                "orchestration_concurrency_limit": 4,
+                "orchestration_deadline_seconds": 30.0,
+                "orchestration_state": "complete",
+                "requested_window_count": 2,
+                "completed_window_count": 2,
+                "failed_window_count": 0,
+                "timed_out_window_count": 0,
                 "rows": [
                     {
                         "period_label": "2026-01",

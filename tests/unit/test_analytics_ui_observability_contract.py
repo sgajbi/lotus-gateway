@@ -27,6 +27,13 @@ from app.observability.analytics_ui import (
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
+    GATEWAY_ATTRIBUTION_TREND_ACTIVE_WINDOWS,
+    GATEWAY_ATTRIBUTION_TREND_QUEUED_WINDOWS,
+    GATEWAY_ATTRIBUTION_TREND_REQUEST_DURATION_LABELS,
+    GATEWAY_ATTRIBUTION_TREND_REQUEST_DURATION_SECONDS,
+    GATEWAY_ATTRIBUTION_TREND_WINDOW_DISPOSITION_LABELS,
+    GATEWAY_ATTRIBUTION_TREND_WINDOW_DISPOSITIONS_TOTAL,
+    GATEWAY_ATTRIBUTION_TREND_WORK_LABELS,
     emit_gateway_analytics_fanout_log,
     emit_gateway_protected_diagnostics_audit_log,
     is_analytics_ui_state,
@@ -82,6 +89,10 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
     assert GATEWAY_ANALYTICS_UI_METRIC_FAMILIES == (
         "lotus_gateway_analytics_fanout_duration_seconds",
         "lotus_gateway_analytics_degraded_total",
+        "lotus_gateway_attribution_trend_active_windows",
+        "lotus_gateway_attribution_trend_queued_windows",
+        "lotus_gateway_attribution_trend_window_dispositions_total",
+        "lotus_gateway_attribution_trend_request_duration_seconds",
     )
     assert GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS == {
         "lotus_gateway_analytics_fanout_duration_seconds": (
@@ -90,11 +101,29 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
             "status_class",
         ),
         "lotus_gateway_analytics_degraded_total": ("operation", "service", "reason"),
+        "lotus_gateway_attribution_trend_active_windows": ("service",),
+        "lotus_gateway_attribution_trend_queued_windows": ("service",),
+        "lotus_gateway_attribution_trend_window_dispositions_total": ("state",),
+        "lotus_gateway_attribution_trend_request_duration_seconds": ("state",),
     }
     duration_labels = GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS._labelnames
     degraded_labels = GATEWAY_ANALYTICS_DEGRADED_TOTAL._labelnames
     assert duration_labels == GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS
     assert degraded_labels == GATEWAY_ANALYTICS_DEGRADED_LABELS
+    assert GATEWAY_ATTRIBUTION_TREND_ACTIVE_WINDOWS._labelnames == (
+        GATEWAY_ATTRIBUTION_TREND_WORK_LABELS
+    )
+    assert GATEWAY_ATTRIBUTION_TREND_QUEUED_WINDOWS._labelnames == (
+        GATEWAY_ATTRIBUTION_TREND_WORK_LABELS
+    )
+    assert (
+        GATEWAY_ATTRIBUTION_TREND_WINDOW_DISPOSITIONS_TOTAL._labelnames
+        == GATEWAY_ATTRIBUTION_TREND_WINDOW_DISPOSITION_LABELS
+    )
+    assert (
+        GATEWAY_ATTRIBUTION_TREND_REQUEST_DURATION_SECONDS._labelnames
+        == GATEWAY_ATTRIBUTION_TREND_REQUEST_DURATION_LABELS
+    )
     assert GATEWAY_ANALYTICS_DEGRADED_REASON_VOCABULARY == frozenset(
         {
             "source_supportability_partial",

@@ -19,6 +19,8 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.performance_analytics_base_url == "http://performance.dev.lotus"
     assert settings.performance_analytics_timeout_seconds == 15.0
     assert settings.performance_summary_deadline_seconds == 30.0
+    assert settings.attribution_trend_concurrency_limit == 4
+    assert settings.attribution_trend_deadline_seconds == 30.0
     assert settings.ai_service_base_url == "http://ai.dev.lotus"
     assert settings.ai_service_timeout_seconds == 45.0
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
@@ -89,6 +91,25 @@ def test_settings_reject_performance_summary_deadline_beyond_source_slo():
             _env_file=None,
             _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
             performance_summary_deadline_seconds=30.1,
+        )
+
+
+@pytest.mark.parametrize("concurrency_limit", [0, 33])
+def test_settings_reject_unsafe_attribution_trend_concurrency_limit(concurrency_limit: int):
+    with pytest.raises(ValueError):
+        Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+            attribution_trend_concurrency_limit=concurrency_limit,
+        )
+
+
+def test_settings_reject_attribution_trend_deadline_above_governed_limit():
+    with pytest.raises(ValueError, match="less than or equal to 120"):
+        Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+            attribution_trend_deadline_seconds=120.1,
         )
 
 

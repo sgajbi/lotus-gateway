@@ -1979,6 +1979,13 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
     assert response.rows[0].supportability_evidence.portfolio_only_group_count == 1
     assert response.rows[1].selection_pct == 0.11
     assert response.rows[2].cumulative_total_effect_pct == 0.34
+    assert response.orchestration_concurrency_limit == 4
+    assert response.orchestration_deadline_seconds == 30.0
+    assert response.orchestration_state == "complete"
+    assert response.requested_window_count == 3
+    assert response.completed_window_count == 3
+    assert response.failed_window_count == 0
+    assert response.timed_out_window_count == 0
     assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
     assert analytics_client.attribution_calls[-1]["report_end_date"] == "2026-03-27"
@@ -2039,7 +2046,13 @@ async def test_performance_workspace_service_falls_back_after_attribution_curren
         requested_reporting_currency="SGD",
     )
 
-    assert response.rows == []
+    assert len(response.rows) == 3
+    assert all(row.completion_state == "failed" for row in response.rows)
+    assert all(row.failure_code == "HTTP_422" for row in response.rows)
+    assert all(row.total_effect_pct is None for row in response.rows)
+    assert response.orchestration_state == "partial"
+    assert response.requested_window_count == 3
+    assert response.failed_window_count == 3
     assert response.requested_reporting_currency == "SGD"
     assert response.effective_reporting_currency == "USD"
     assert response.reporting_currency_state == "rejected"

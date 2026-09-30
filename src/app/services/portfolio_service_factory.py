@@ -21,6 +21,8 @@ def portfolio_service_signature() -> tuple[object, ...]:
         *manage_client_signature(),
         *advise_client_signature(),
         settings.portfolio_upstream_cache_ttl_seconds,
+        settings.attribution_trend_concurrency_limit,
+        settings.attribution_trend_deadline_seconds,
     )
 
 

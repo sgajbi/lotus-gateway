@@ -178,7 +178,17 @@ controls, gives an explicit `report_end_date` precedence over `as_of_date`, forw
 currency to each bounded period request, and publishes the same requested/effective context. It
 reports `accepted_unverified` when at least one period has a usable source row, `rejected` for
 typed currency validation failure, and `unavailable` when no usable period is returned; partial
-period failures remain visible. These routes do not claim source-applied currency evidence. The
+period failures remain visible. Attribution-trend orchestration admits at most four source calls
+per Gateway process by default and applies one 30-second queued-plus-active deadline. Every
+requested date window remains in order with a `completed`, `failed`, or `timed_out` disposition;
+failed windows retain null financial values rather than fabricated zero effects. Deployment-wide
+source admission is the configured process bound multiplied by the Gateway replica count. These
+controls do not yet provide restart-safe accepted-job recovery. Performance attribution
+submission has no caller-stable idempotency key, and Gateway does not persist accepted
+calculation handles; a retry after cancellation may submit again. A process-local cache is not
+claimed as durable recovery. Source delivery is tracked by `sgajbi/lotus-performance#563`, and
+Gateway `#812` remains open through consumer and controlled live recovery acceptance. These routes
+do not claim source-applied currency evidence. The
 advisor-brief read and review-action routes accept the same controls, forward them to the shared
 performance workspace, and publish requested/effective date and currency context plus
 `reporting_currency_state`; source links retain the selected controls when supplied. Advisor brief

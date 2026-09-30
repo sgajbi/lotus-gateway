@@ -33,6 +33,8 @@ def workbench_service_signature() -> tuple[object, ...]:
         settings.portfolio_upstream_cache_ttl_seconds,
         settings.advisor_brief_cache_ttl_seconds,
         settings.risk_bff_cache_ttl_seconds,
+        settings.attribution_trend_concurrency_limit,
+        settings.attribution_trend_deadline_seconds,
     )
 
 

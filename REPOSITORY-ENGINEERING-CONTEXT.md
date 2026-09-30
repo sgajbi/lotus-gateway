@@ -409,6 +409,21 @@ under parent issue #586.
 24. performance workspace-summary orchestration uses
     `PERFORMANCE_SUMMARY_DEADLINE_SECONDS=30` as an end-to-end monotonic budget across submission
     and polling, while `PERFORMANCE_ANALYTICS_TIMEOUT_SECONDS=15` remains a per-call ceiling.
+    Attribution-history fan-out is separately governed by the process-wide
+    `ATTRIBUTION_TREND_CONCURRENCY_LIMIT=4` bulkhead and the queued-plus-active
+    `ATTRIBUTION_TREND_DEADLINE_SECONDS=30` elapsed budget. Every requested bucket remains in
+    response order with a typed completed, failed, or timed-out disposition and null financial
+    values when source evidence is unavailable. Total deployment admission equals this limit times
+    the Gateway replica count; horizontal scaling is not independent source capacity proof.
+    This bound does not complete accepted-job recovery: attribution submission and polling are one
+    client call, so cancellation after source acceptance can discard the `result_path`, while the
+    public Workbench GET has no caller-stable replay key and Gateway owns no durable job store.
+    Do not add a process-memory cache or shielded task and call it recovery. The required next
+    contract is tenant-scoped Performance idempotent submission with payload-conflict detection
+    and durable replay of the same `calculation_id` and authorized `result_path`, plus Gateway
+    admission and propagation of that caller-stable key. Source delivery is tracked by
+    `sgajbi/lotus-performance#563`; Gateway issue `#812` remains open through consumer and live
+    recovery acceptance.
     Submission and result reads are limited to the remaining budget both through HTTPX
     per-operation timeouts and a complete-await cancellation guard. Typed transient transport
     failures continue through the outer elapsed-time polling loop while actual upstream HTTP

@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     platform_capabilities_source_timeout_seconds: float = Field(default=5.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
     performance_summary_deadline_seconds: float = Field(default=30.0, gt=0.0, le=30.0)
+    attribution_trend_concurrency_limit: int = Field(default=4, ge=1, le=32)
+    attribution_trend_deadline_seconds: float = Field(default=30.0, gt=0.0, le=120.0)
     ai_service_timeout_seconds: float = Field(default=45.0)
     lotus_ai_caller_credential: str | None = Field(
         default=None,
