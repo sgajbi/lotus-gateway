@@ -459,7 +459,7 @@ def test_portfolio_readiness_router(monkeypatch):
                             "dimension_value": "Equity",
                             "market_value_reporting_currency": 0,
                             "weight": None,
-                            "position_count": 0,
+                            "position_count": 1,
                             "contributor_count": 0,
                             "contributors": [],
                             "contributors_truncated": False,
@@ -962,7 +962,7 @@ def test_portfolio_insights_router(monkeypatch):
                             "dimension_value": "Equity",
                             "market_value_reporting_currency": 0,
                             "weight": None,
-                            "position_count": 0,
+                            "position_count": 1,
                             "contributor_count": 0,
                             "contributors": [],
                             "contributors_truncated": False,
@@ -1292,7 +1292,18 @@ def test_portfolio_book_router(monkeypatch):
                 {
                     "dimension": "asset_class",
                     "total_market_value_reporting_currency": 0,
-                    "buckets": [],
+                    "buckets": [
+                        {
+                            "dimension_value": "Equity",
+                            "market_value_reporting_currency": 0,
+                            "weight": None,
+                            "position_count": 1,
+                            "contributor_count": 0,
+                            "contributors": [],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": 0,
+                        }
+                    ],
                 }
             ),
         }
@@ -1350,7 +1361,19 @@ def test_portfolio_book_router(monkeypatch):
             {
                 "dimension": "asset_class",
                 "total_market_value_reporting_currency": "0",
-                "buckets": [],
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_base": 0.0,
+                        "market_value_reporting_currency": "0",
+                        "weight_pct": None,
+                        "contributor_count": 0,
+                        "contributors": [],
+                        "contributors_truncated": False,
+                        "omitted_market_value_reporting_currency": "0",
+                    }
+                ],
             }
         ),
         "top_positions": [

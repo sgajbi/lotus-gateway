@@ -4,9 +4,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.services.portfolio_allocation_bucket_validation import validate_allocation_bucket
+from app.services.portfolio_allocation_coverage_validation import (
+    validate_coverage_view_content,
+)
 from app.services.portfolio_allocation_look_through_validation import (
     validate_allocation_contributor_identity,
     validate_look_through_content,
+    validate_look_through_metadata,
 )
 from app.services.portfolio_allocation_weight_validation import (
     DecimalRoundingMode,
@@ -30,7 +35,7 @@ class _SourceAllocationModel(BaseModel):
 
 class SourceAllocationValuationCoverage(_SourceAllocationModel):
     coverage_state: AllocationValuationCoverageState
-    coverage_reason: str = Field(min_length=1, max_length=128)
+    coverage_reason: str = Field(min_length=1, max_length=128, pattern=r".*\S.*")
     snapshot_row_count: int = Field(ge=0)
     expected_open_position_count: int = Field(ge=0)
     valued_position_count: int = Field(ge=0)
@@ -63,6 +68,12 @@ class SourceAllocationValuationCoverage(_SourceAllocationModel):
             (self.snapshot_row_count, self.valued_position_count, self.unvalued_position_count)
         ):
             raise ValueError("unavailable allocation coverage cannot contain observed rows")
+        if (
+            self.coverage_state == "PARTIAL"
+            and self.unvalued_position_count == 0
+            and self.snapshot_row_count >= self.expected_open_position_count
+        ):
+            raise ValueError("partial allocation coverage requires unvalued or missing rows")
         return self
 
 
@@ -149,10 +160,10 @@ class SourceAllocationContributor(_SourceAllocationModel):
 
 
 class SourceAllocationBucket(_SourceAllocationModel):
-    dimension_value: str
+    dimension_value: str = Field(min_length=1, pattern=r".*\S.*")
     market_value_reporting_currency: Decimal | None
     weight: Decimal | None
-    position_count: int = Field(ge=0)
+    position_count: int = Field(gt=0)
     contributor_count: int = Field(ge=0)
     contributors: list[SourceAllocationContributor]
     contributors_truncated: bool
@@ -160,39 +171,7 @@ class SourceAllocationBucket(_SourceAllocationModel):
 
     @model_validator(mode="after")
     def validate_contributor_reconciliation(self) -> "SourceAllocationBucket":
-        if len(self.contributors) > self.contributor_count:
-            raise ValueError("contributors cannot exceed contributor_count")
-        if not self.contributors_truncated and len(self.contributors) != self.contributor_count:
-            raise ValueError("untruncated contributors must contain every source row")
-        bucket_value_known = self.market_value_reporting_currency is not None
-        residual_known = self.omitted_market_value_reporting_currency is not None
-        if bucket_value_known != residual_known:
-            raise ValueError("bucket value and omitted residual must share null qualification")
-        bucket_weight_denominator_known = (
-            self.market_value_reporting_currency is not None
-            and self.market_value_reporting_currency != Decimal("0")
-        )
-        if any(
-            (contributor.bucket_weight is not None) != bucket_weight_denominator_known
-            for contributor in self.contributors
-        ):
-            raise ValueError(
-                "contributor bucket weights require a known nonzero bucket denominator"
-            )
-        if bucket_value_known and residual_known:
-            bucket_value = self.market_value_reporting_currency
-            omitted_residual = self.omitted_market_value_reporting_currency
-            if bucket_value is None or omitted_residual is None:
-                raise ValueError("known bucket qualification requires numeric values")
-            retained_values = [item.market_value_reporting_currency for item in self.contributors]
-            if any(value is None for value in retained_values):
-                raise ValueError("known bucket value cannot contain unknown contributor value")
-            retained_value = sum(
-                (value for value in retained_values if value is not None),
-                Decimal("0"),
-            )
-            if retained_value + omitted_residual != bucket_value:
-                raise ValueError("contributors and omitted residual must reconcile to bucket value")
+        validate_allocation_bucket(self)
         return self
 
 
@@ -223,10 +202,7 @@ class SourceAllocationLookThrough(_SourceAllocationModel):
 
     @model_validator(mode="after")
     def validate_applied_mode_within_request(self) -> "SourceAllocationLookThrough":
-        if self.requested_mode == "direct_only" and self.applied_mode != "direct_only":
-            raise ValueError("allocation applied look-through mode exceeds the requested mode")
-        if self.applied_mode == "prefer_look_through" and not self.supported:
-            raise ValueError("applied look-through requires supported decomposition")
+        validate_look_through_metadata(self)
         return self
 
 
@@ -240,35 +216,6 @@ class SourceAllocationScope(_SourceAllocationModel):
         if not normalized:
             raise ValueError("allocation scope portfolio_id must be nonblank")
         return normalized
-
-
-def _validate_coverage_view_content(
-    views: list[SourceAllocationView],
-    coverage_state: AllocationValuationCoverageState,
-    total_market_value_reporting_currency: Decimal | None,
-) -> None:
-    buckets = [bucket for view in views for bucket in view.buckets]
-    if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
-        bucket.weight is not None for bucket in buckets
-    ):
-        raise ValueError("degraded allocation valuation coverage requires unknown weights")
-    if coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"} and any(
-        bucket.market_value_reporting_currency is None for bucket in buckets
-    ):
-        raise ValueError("trusted allocation valuation coverage requires known bucket values")
-    trusted_weight_denominator_known = (
-        coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"}
-        and total_market_value_reporting_currency is not None
-        and total_market_value_reporting_currency != Decimal("0")
-    )
-    if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
-        (bucket.weight is not None) != trusted_weight_denominator_known for bucket in buckets
-    ):
-        raise ValueError(
-            "trusted allocation bucket weights require a known nonzero portfolio denominator"
-        )
-    if coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"} and buckets:
-        raise ValueError("empty allocation coverage cannot contain buckets")
 
 
 def _validate_contributor_portfolios(
@@ -303,10 +250,11 @@ class SourceAllocationPayload(SourceAllocationEvidence):
         expected_total = self.total_market_value_reporting_currency
         if any(view.total_market_value_reporting_currency != expected_total for view in views):
             raise ValueError("allocation view totals must match full-scope source evidence")
-        _validate_coverage_view_content(
+        validate_coverage_view_content(
             views,
             self.valuation_coverage.coverage_state,
             self.total_market_value_reporting_currency,
+            self.valuation_coverage.snapshot_row_count,
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
         validate_look_through_content(views, self.look_through)
