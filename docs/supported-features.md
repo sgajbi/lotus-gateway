@@ -59,9 +59,15 @@ Every published view total must equal that full-scope source total, including nu
 Gateway also binds the successful Core envelope to the requested portfolio, effective as-of date,
 reporting currency, and exact canonical dimension set; mismatched, missing, or duplicate identity
 evidence fails closed.
+Coverage counts must form one coherent source fact: valued and unvalued rows partition observed
+snapshot rows, trusted non-empty states cannot contain unvalued rows or omit expected rows,
+loaded-empty carries zero counts, and unavailable carries no observed rows. Partial or unavailable
+coverage cannot publish numeric bucket weights. Bucket value and omitted-residual qualification must
+also agree before known arithmetic is reconciled.
 Portfolio insight and readiness fallbacks also consume this state, so partial coverage cannot be
 reported as pricing-ready, while unavailable and loaded-empty coverage are reported as missing
-pricing evidence.
+pricing evidence; trusted measured-zero coverage is pricing-ready without requiring a positive
+market value.
 
 Gateway preserves direct booked positions and source-owned look-through components, including
 booked/component security identity, Core snapshot and component-record lineage, reporting-currency

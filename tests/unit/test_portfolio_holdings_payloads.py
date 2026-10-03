@@ -405,10 +405,20 @@ def test_parse_allocation_evidence_accepts_consistent_coverage_totals(
     coverage_state: str,
     total_market_value_reporting_currency: str | None,
 ) -> None:
+    count_overrides = (
+        {
+            "snapshot_row_count": 0,
+            "expected_open_position_count": 0 if coverage_state == "LOADED_EMPTY" else 1,
+            "valued_position_count": 0,
+        }
+        if coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"}
+        else {}
+    )
     evidence = parse_allocation_evidence(
         allocation_evidence(
             coverage_state=coverage_state,
             total_market_value_reporting_currency=total_market_value_reporting_currency,
+            **count_overrides,
         )
     )
 
@@ -419,6 +429,93 @@ def test_parse_allocation_evidence_accepts_consistent_coverage_totals(
         else None
     )
     assert evidence.total_market_value_reporting_currency == expected_total
+
+
+@pytest.mark.parametrize(
+    "coverage_overrides",
+    [
+        {
+            "coverage_state": "COMPLETE",
+            "snapshot_row_count": 2,
+            "valued_position_count": 1,
+            "unvalued_position_count": 0,
+        },
+        {
+            "coverage_state": "COMPLETE",
+            "snapshot_row_count": 2,
+            "valued_position_count": 1,
+            "unvalued_position_count": 1,
+        },
+        {
+            "coverage_state": "COMPLETE",
+            "snapshot_row_count": 1,
+            "expected_open_position_count": 2,
+            "valued_position_count": 1,
+        },
+        {
+            "coverage_state": "LOADED_EMPTY",
+            "snapshot_row_count": 1,
+            "expected_open_position_count": 0,
+            "valued_position_count": 1,
+        },
+        {
+            "coverage_state": "UNAVAILABLE",
+            "snapshot_row_count": 1,
+            "valued_position_count": 1,
+        },
+    ],
+)
+def test_parse_allocation_evidence_rejects_incoherent_coverage_counts(
+    coverage_overrides: dict[str, object],
+) -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_evidence(allocation_evidence(**coverage_overrides))
+
+
+def test_build_portfolio_allocation_response_rejects_weight_under_degraded_coverage() -> None:
+    views = _empty_allocation_views(None)
+    views[0]["buckets"] = [
+        {
+            "dimension_value": "Equity",
+            "market_value_reporting_currency": "100",
+            "weight": "1",
+            "position_count": 1,
+            "contributor_count": 0,
+            "contributors": [],
+            "contributors_truncated": True,
+            "omitted_market_value_reporting_currency": "100",
+        }
+    ]
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        build_portfolio_allocation_response(
+            correlation_id="corr-invalid-degraded-weight",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            as_of_date="2026-03-27",
+            default_as_of_date="2026-03-27",
+            reporting_currency="USD",
+            aum_payload={"resolved_as_of_date": "2026-03-27"},
+            positions_payload={"positions": []},
+            allocation_payload={
+                **allocation_source_evidence(
+                    total_market_value_reporting_currency=None,
+                    coverage_state="PARTIAL",
+                    coverage_reason="market_value_missing",
+                    snapshot_row_count=2,
+                    expected_open_position_count=2,
+                    valued_position_count=1,
+                    unvalued_position_count=1,
+                ),
+                "look_through": {
+                    "requested_mode": "direct_only",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": None,
+                },
+                "views": views,
+            },
+        )
 
 
 @pytest.mark.parametrize(
@@ -646,6 +743,39 @@ def test_parse_allocation_views_rejects_non_reconciling_contributor_residual() -
                                 ],
                                 "contributors_truncated": False,
                                 "omitted_market_value_reporting_currency": "0",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    ("bucket_value", "omitted_residual"),
+    [("100", None), (None, "0")],
+)
+def test_parse_allocation_views_rejects_mismatched_bucket_residual_qualification(
+    bucket_value: str | None,
+    omitted_residual: str | None,
+) -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_views(
+            {
+                "views": [
+                    {
+                        "dimension": "region",
+                        "total_market_value_reporting_currency": bucket_value,
+                        "buckets": [
+                            {
+                                "dimension_value": "Asia",
+                                "position_count": 0,
+                                "market_value_reporting_currency": bucket_value,
+                                "weight": None,
+                                "contributor_count": 0,
+                                "contributors": [],
+                                "contributors_truncated": False,
+                                "omitted_market_value_reporting_currency": omitted_residual,
                             }
                         ],
                     }

@@ -147,6 +147,14 @@ def test_pricing_readiness_fails_closed_for_degraded_allocation_coverage() -> No
     )
     assert (
         pricing_readiness_status(
+            positions=[type("Position", (), {"market_value_base": 0.0})()],
+            allocation_views=allocation_views,
+            allocation_coverage_state="MEASURED_ZERO",
+        )
+        == "Ready"
+    )
+    assert (
+        pricing_readiness_status(
             positions=[],
             allocation_views=allocation_views,
             allocation_coverage_state="LOADED_EMPTY",
