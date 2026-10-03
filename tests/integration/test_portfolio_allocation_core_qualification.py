@@ -214,6 +214,16 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         bond_bucket["weight"] = "-99"
         bond_bucket["contributors"][0]["market_value_reporting_currency"] = "-99"
         bond_bucket["omitted_market_value_reporting_currency"] = "0"
+    elif scenario == "invalid-zero-rounding-policy":
+        payload = _allocation_payload("measured-zero")
+        payload["calculation_lineage"]["numeric_output_policy"] = {
+            "name": "allocation-output",
+            "version": "1.0.0",
+            "precision": 18,
+            "scale": 8,
+            "working_precision": 28,
+            "rounding": "NOT_A_ROUNDING_MODE",
+        }
     return payload
 
 
@@ -319,6 +329,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_view_bucket_total = get_scenario("invalid-view-bucket-total")
     invalid_aum_date = get_scenario("invalid-aum-date")
     invalid_numeric_policy_arithmetic = get_scenario("invalid-numeric-policy-arithmetic")
+    invalid_zero_rounding_policy = get_scenario("invalid-zero-rounding-policy")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -376,13 +387,14 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_view_bucket_total,
         invalid_aum_date,
         invalid_numeric_policy_arithmetic,
+        invalid_zero_rounding_policy,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 26
+    assert len(allocation_requests) == 27
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

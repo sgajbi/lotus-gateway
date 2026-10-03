@@ -1,6 +1,17 @@
 from collections.abc import Sequence
 from decimal import Decimal, DecimalException, localcontext
-from typing import Protocol
+from typing import Literal, Protocol
+
+DecimalRoundingMode = Literal[
+    "ROUND_CEILING",
+    "ROUND_DOWN",
+    "ROUND_FLOOR",
+    "ROUND_HALF_DOWN",
+    "ROUND_HALF_EVEN",
+    "ROUND_HALF_UP",
+    "ROUND_UP",
+    "ROUND_05UP",
+]
 
 
 class _NumericPolicyLike(Protocol):
