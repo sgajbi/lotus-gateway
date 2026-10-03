@@ -196,8 +196,11 @@ under parent issue #586.
    look-through posture, and explicit truncation. Reconciliation is enforced only when the source
    bucket and residual are known; unknown valuation remains distinct from measured zero. Gateway
    rejects coverage/aggregate-total contradictions, requires each view total to match the
-   aggregate including null qualification, and uses degraded coverage to fail pricing readiness
-   closed (`PARTIAL` to partial, `UNAVAILABLE` to missing). Gateway does not recalculate allocation,
+   aggregate including null qualification, and requires `MEASURED_ZERO` and `LOADED_EMPTY` totals
+   to be numeric zero. Successful source envelopes must match the requested portfolio, effective
+   date, reporting currency, and exact non-duplicated canonical dimension set. Coverage state fails
+   pricing readiness closed (`PARTIAL` to partial, `UNAVAILABLE` and `LOADED_EMPTY` to missing).
+   Gateway does not recalculate allocation,
    join
    direct positions to infer components, or invent target, benchmark, drift, suitability,
    recommendation, order, execution, or settlement truth. The route accepts only canonical

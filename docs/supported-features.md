@@ -54,9 +54,14 @@ null totals, weights, affected bucket values, contributor values, and residuals 
 converting unknown values to measured zero. Genuine zero, signed exposure, carry-forward, and
 loaded-empty states remain distinct. Gateway rejects contradictory evidence: partial or unavailable
 coverage cannot carry a numeric aggregate total, while trusted coverage must carry a known total.
+`MEASURED_ZERO` and `LOADED_EMPTY` must carry numeric zero rather than merely any known value.
 Every published view total must equal that full-scope source total, including null qualification.
+Gateway also binds the successful Core envelope to the requested portfolio, effective as-of date,
+reporting currency, and exact canonical dimension set; mismatched, missing, or duplicate identity
+evidence fails closed.
 Portfolio insight and readiness fallbacks also consume this state, so partial coverage cannot be
-reported as pricing-ready and unavailable coverage is reported as missing pricing evidence.
+reported as pricing-ready, while unavailable and loaded-empty coverage are reported as missing
+pricing evidence.
 
 Gateway preserves direct booked positions and source-owned look-through components, including
 booked/component security identity, Core snapshot and component-record lineage, reporting-currency

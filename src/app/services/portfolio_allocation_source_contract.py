@@ -93,6 +93,10 @@ class SourceAllocationEvidence(BaseModel):
             raise ValueError("degraded allocation valuation coverage requires an unknown total")
         if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and not has_known_total:
             raise ValueError("trusted allocation valuation coverage requires a known total")
+        if coverage_state in {"MEASURED_ZERO", "LOADED_EMPTY"} and (
+            self.total_market_value_reporting_currency != Decimal("0")
+        ):
+            raise ValueError("zero allocation valuation coverage requires a zero total")
         return self
 
 
@@ -168,8 +172,31 @@ class SourceAllocationLookThrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class SourceAllocationScope(BaseModel):
+    portfolio_id: str = Field(min_length=1)
+
+    model_config = ConfigDict(extra="ignore")
+
+    @field_validator("portfolio_id")
+    @classmethod
+    def require_nonblank_portfolio_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("allocation scope portfolio_id must be nonblank")
+        return normalized
+
+
 class SourceAllocationPayload(SourceAllocationEvidence):
+    scope_type: Literal["portfolio"]
+    scope: SourceAllocationScope
+    resolved_as_of_date: date
+    reporting_currency: str = Field(pattern=r"^[A-Z]{3}$")
     views: list[SourceAllocationView] | None = None
+
+    @field_validator("reporting_currency", mode="before")
+    @classmethod
+    def normalize_reporting_currency(cls, value: object) -> object:
+        return value.strip().upper() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def validate_view_totals_match_evidence(self) -> "SourceAllocationPayload":
@@ -191,6 +218,7 @@ __all__ = [
     "SourceAllocationContributor",
     "SourceAllocationLookThrough",
     "SourceAllocationPayload",
+    "SourceAllocationScope",
     "SourceAllocationValuationCoverage",
     "SourceAllocationView",
     "TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES",
