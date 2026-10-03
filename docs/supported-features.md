@@ -54,6 +54,7 @@ null totals, weights, affected bucket values, contributor values, and residuals 
 converting unknown values to measured zero. Genuine zero, signed exposure, carry-forward, and
 loaded-empty states remain distinct. Gateway rejects contradictory evidence: partial or unavailable
 coverage cannot carry a numeric aggregate total, while trusted coverage must carry a known total.
+Every published view total must equal that full-scope source total, including null qualification.
 Portfolio insight and readiness fallbacks also consume this state, so partial coverage cannot be
 reported as pricing-ready and unavailable coverage is reported as missing pricing evidence.
 

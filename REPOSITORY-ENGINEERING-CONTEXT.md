@@ -195,8 +195,10 @@ under parent issue #586.
    full-scope/per-view totals, coverage state/reason/counts, nullable qualified values, effective
    look-through posture, and explicit truncation. Reconciliation is enforced only when the source
    bucket and residual are known; unknown valuation remains distinct from measured zero. Gateway
-   rejects coverage/total contradictions and uses degraded coverage to fail pricing readiness
-   closed (`PARTIAL` to partial, `UNAVAILABLE` to missing). Gateway does not recalculate allocation, join
+   rejects coverage/aggregate-total contradictions, requires each view total to match the
+   aggregate including null qualification, and uses degraded coverage to fail pricing readiness
+   closed (`PARTIAL` to partial, `UNAVAILABLE` to missing). Gateway does not recalculate allocation,
+   join
    direct positions to infer components, or invent target, benchmark, drift, suitability,
    recommendation, order, execution, or settlement truth. The route accepts only canonical
    `direct_only` and `prefer_look_through` modes and bounds contributor detail to 1–250 rows per

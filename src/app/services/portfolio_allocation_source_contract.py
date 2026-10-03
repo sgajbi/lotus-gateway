@@ -168,6 +168,20 @@ class SourceAllocationLookThrough(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class SourceAllocationPayload(SourceAllocationEvidence):
+    views: list[SourceAllocationView] | None = None
+
+    @model_validator(mode="after")
+    def validate_view_totals_match_evidence(self) -> "SourceAllocationPayload":
+        expected_total = self.total_market_value_reporting_currency
+        if any(
+            view.total_market_value_reporting_currency != expected_total
+            for view in self.views or []
+        ):
+            raise ValueError("allocation view totals must match full-scope source evidence")
+        return self
+
+
 __all__ = [
     "AllocationValuationCoverageState",
     "DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES",
@@ -176,6 +190,7 @@ __all__ = [
     "SourceAllocationBucket",
     "SourceAllocationContributor",
     "SourceAllocationLookThrough",
+    "SourceAllocationPayload",
     "SourceAllocationValuationCoverage",
     "SourceAllocationView",
     "TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES",

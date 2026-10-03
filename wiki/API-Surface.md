@@ -756,8 +756,9 @@ totals, and deterministic calculation lineage. When Core reports partial or unav
 dependent totals, weights, bucket values, contributor values, and residuals remain null rather than
 being presented as measured zero. Genuine zero, signed exposure, carry-forward, and loaded-empty
 states remain distinct. Gateway rejects a numeric aggregate total for partial or unavailable
-coverage and rejects a missing aggregate total for trusted coverage. Portfolio insight and
-readiness fallbacks consume the same coverage state: partial maps to incomplete pricing and
+coverage and rejects a missing aggregate total for trusted coverage. Every view total must match
+that aggregate exactly, including its null qualification. Portfolio
+insight and readiness fallbacks consume the same coverage state: partial maps to incomplete pricing and
 unavailable maps to missing pricing evidence. Each bucket publishes typed direct-position or
 look-through-component contributors,
 booked/component identity, source snapshot and component-record lineage, reporting-currency value,

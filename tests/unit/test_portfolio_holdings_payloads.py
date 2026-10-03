@@ -360,6 +360,59 @@ def test_parse_allocation_evidence_accepts_consistent_coverage_totals(
     assert evidence.total_market_value_reporting_currency == expected_total
 
 
+@pytest.mark.parametrize(
+    (
+        "coverage_state",
+        "total_market_value_reporting_currency",
+        "view_total_market_value_reporting_currency",
+    ),
+    [
+        ("PARTIAL", None, "100"),
+        ("UNAVAILABLE", None, "0"),
+        ("COMPLETE", "100", None),
+        ("COMPLETE", "100", "101"),
+    ],
+)
+def test_build_portfolio_allocation_response_rejects_view_total_contradictions(
+    coverage_state: str,
+    total_market_value_reporting_currency: str | None,
+    view_total_market_value_reporting_currency: str | None,
+) -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        build_portfolio_allocation_response(
+            correlation_id="corr-invalid-view-total",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            as_of_date="2026-03-27",
+            default_as_of_date="2026-03-27",
+            reporting_currency="USD",
+            aum_payload={"assets_under_management_base": "0"},
+            positions_payload={"positions": []},
+            allocation_payload={
+                **allocation_evidence(
+                    coverage_state=coverage_state,
+                    total_market_value_reporting_currency=(total_market_value_reporting_currency),
+                ),
+                "look_through": {
+                    "requested_mode": "direct_only",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": None,
+                },
+                "views": [
+                    {
+                        "dimension": "region",
+                        "total_market_value_reporting_currency": (
+                            view_total_market_value_reporting_currency
+                        ),
+                        "buckets": [],
+                    }
+                ],
+            },
+        )
+
+
 def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() -> None:
     views = parse_allocation_views(
         {
