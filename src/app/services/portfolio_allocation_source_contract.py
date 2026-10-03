@@ -218,6 +218,44 @@ class SourceAllocationScope(BaseModel):
         return normalized
 
 
+def _validate_view_totals(
+    views: list[SourceAllocationView],
+    expected_total: Decimal | None,
+) -> None:
+    if any(view.total_market_value_reporting_currency != expected_total for view in views):
+        raise ValueError("allocation view totals must match full-scope source evidence")
+
+
+def _validate_coverage_view_content(
+    views: list[SourceAllocationView],
+    coverage_state: AllocationValuationCoverageState,
+) -> None:
+    buckets = [bucket for view in views for bucket in view.buckets]
+    if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
+        bucket.weight is not None for bucket in buckets
+    ):
+        raise ValueError("degraded allocation valuation coverage requires unknown weights")
+    if coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"} and any(
+        bucket.market_value_reporting_currency is None for bucket in buckets
+    ):
+        raise ValueError("trusted allocation valuation coverage requires known bucket values")
+    if coverage_state == "LOADED_EMPTY" and buckets:
+        raise ValueError("loaded-empty allocation coverage cannot contain buckets")
+
+
+def _validate_contributor_portfolios(
+    views: list[SourceAllocationView],
+    portfolio_id: str,
+) -> None:
+    if any(
+        contributor.portfolio_id != portfolio_id
+        for view in views
+        for bucket in view.buckets
+        for contributor in bucket.contributors
+    ):
+        raise ValueError("allocation contributors must match the source portfolio scope")
+
+
 class SourceAllocationPayload(SourceAllocationEvidence):
     scope_type: Literal["portfolio"]
     scope: SourceAllocationScope
@@ -233,39 +271,13 @@ class SourceAllocationPayload(SourceAllocationEvidence):
 
     @model_validator(mode="after")
     def validate_view_totals_match_evidence(self) -> "SourceAllocationPayload":
-        expected_total = self.total_market_value_reporting_currency
-        coverage_state = self.valuation_coverage.coverage_state
-        if any(
-            view.total_market_value_reporting_currency != expected_total
-            for view in self.views or []
-        ):
-            raise ValueError("allocation view totals must match full-scope source evidence")
-        if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES:
-            has_known_weight = any(
-                bucket.weight is not None for view in self.views or [] for bucket in view.buckets
-            )
-            if has_known_weight:
-                raise ValueError("degraded allocation valuation coverage requires unknown weights")
-        if coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"}:
-            has_unknown_bucket_value = any(
-                bucket.market_value_reporting_currency is None
-                for view in self.views or []
-                for bucket in view.buckets
-            )
-            if has_unknown_bucket_value:
-                raise ValueError(
-                    "trusted allocation valuation coverage requires known bucket values"
-                )
-        if coverage_state == "LOADED_EMPTY" and any(view.buckets for view in self.views or []):
-            raise ValueError("loaded-empty allocation coverage cannot contain buckets")
-        contributor_portfolio_mismatch = any(
-            contributor.portfolio_id != self.scope.portfolio_id
-            for view in self.views or []
-            for bucket in view.buckets
-            for contributor in bucket.contributors
+        views = self.views or []
+        _validate_view_totals(views, self.total_market_value_reporting_currency)
+        _validate_coverage_view_content(
+            views,
+            self.valuation_coverage.coverage_state,
         )
-        if contributor_portfolio_mismatch:
-            raise ValueError("allocation contributors must match the source portfolio scope")
+        _validate_contributor_portfolios(views, self.scope.portfolio_id)
         return self
 
 
