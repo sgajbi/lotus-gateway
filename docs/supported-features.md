@@ -52,7 +52,10 @@ bucket. `valuation_coverage` preserves Core's state, bounded reason, observed/ex
 valued/unvalued counts. When Core cannot support a complete valuation denominator, Gateway retains
 null totals, weights, affected bucket values, contributor values, and residuals instead of
 converting unknown values to measured zero. Genuine zero, signed exposure, carry-forward, and
-loaded-empty states remain distinct.
+loaded-empty states remain distinct. Gateway rejects contradictory evidence: partial or unavailable
+coverage cannot carry a numeric aggregate total, while trusted coverage must carry a known total.
+Portfolio insight and readiness fallbacks also consume this state, so partial coverage cannot be
+reported as pricing-ready and unavailable coverage is reported as missing pricing evidence.
 
 Gateway preserves direct booked positions and source-owned look-through components, including
 booked/component security identity, Core snapshot and component-record lineage, reporting-currency

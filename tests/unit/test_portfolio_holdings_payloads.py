@@ -305,6 +305,61 @@ def test_parse_allocation_evidence_rejects_missing_source_qualification() -> Non
         parse_allocation_evidence({"total_market_value_reporting_currency": None})
 
 
+@pytest.mark.parametrize(
+    ("coverage_state", "total_market_value_reporting_currency"),
+    [
+        ("PARTIAL", "100"),
+        ("UNAVAILABLE", "0"),
+        ("COMPLETE", None),
+        ("MEASURED_ZERO", None),
+        ("CARRY_FORWARD", None),
+        ("LOADED_EMPTY", None),
+    ],
+)
+def test_parse_allocation_evidence_rejects_inconsistent_coverage_totals(
+    coverage_state: str,
+    total_market_value_reporting_currency: str | None,
+) -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_evidence(
+            allocation_evidence(
+                coverage_state=coverage_state,
+                total_market_value_reporting_currency=total_market_value_reporting_currency,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    ("coverage_state", "total_market_value_reporting_currency"),
+    [
+        ("PARTIAL", None),
+        ("UNAVAILABLE", None),
+        ("COMPLETE", "100"),
+        ("MEASURED_ZERO", "0"),
+        ("CARRY_FORWARD", "100"),
+        ("LOADED_EMPTY", "0"),
+    ],
+)
+def test_parse_allocation_evidence_accepts_consistent_coverage_totals(
+    coverage_state: str,
+    total_market_value_reporting_currency: str | None,
+) -> None:
+    evidence = parse_allocation_evidence(
+        allocation_evidence(
+            coverage_state=coverage_state,
+            total_market_value_reporting_currency=total_market_value_reporting_currency,
+        )
+    )
+
+    assert evidence.valuation_coverage.coverage_state == coverage_state
+    expected_total = (
+        Decimal(total_market_value_reporting_currency)
+        if total_market_value_reporting_currency is not None
+        else None
+    )
+    assert evidence.total_market_value_reporting_currency == expected_total
+
+
 def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() -> None:
     views = parse_allocation_views(
         {

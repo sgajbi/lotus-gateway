@@ -38,7 +38,13 @@ def test_build_portfolio_readiness_response_prefers_source_indicators() -> None:
             SimpleNamespace(as_of_date="2026-03-27"),
         ),
         positions=cast(PortfolioPositionBookResponse, SimpleNamespace(positions=[])),
-        allocations=cast(PortfolioAllocationResponse, SimpleNamespace(views=[])),
+        allocations=cast(
+            PortfolioAllocationResponse,
+            SimpleNamespace(
+                views=[],
+                valuation_coverage=SimpleNamespace(coverage_state="UNAVAILABLE"),
+            ),
+        ),
         transactions=cast(PortfolioTransactionLedgerResponse, SimpleNamespace(total=0)),
         source_payload={
             "holdings": {"status": "READY"},
@@ -92,7 +98,13 @@ def test_build_portfolio_readiness_response_falls_back_to_loaded_views() -> None
         portfolio_id="PF_1001",
         workspace=cast(PortfolioWorkspaceResponse, workspace),
         positions=cast(PortfolioPositionBookResponse, SimpleNamespace(positions=[position])),
-        allocations=cast(PortfolioAllocationResponse, SimpleNamespace(views=[object()])),
+        allocations=cast(
+            PortfolioAllocationResponse,
+            SimpleNamespace(
+                views=[object()],
+                valuation_coverage=SimpleNamespace(coverage_state="COMPLETE"),
+            ),
+        ),
         transactions=cast(PortfolioTransactionLedgerResponse, SimpleNamespace(total=2)),
         source_payload=None,
     )
@@ -105,3 +117,36 @@ def test_build_portfolio_readiness_response_falls_back_to_loaded_views() -> None
         "Ready",
         "Ready",
     ]
+
+
+def test_readiness_fallback_fails_closed_for_unavailable_allocation_coverage() -> None:
+    workspace = SimpleNamespace(
+        as_of_date="2026-03-27",
+        summary=SimpleNamespace(position_count=1),
+        operations=None,
+        reporting=SimpleNamespace(status="READY", row_count=1),
+    )
+    response = build_portfolio_readiness_response(
+        correlation_id="corr-readiness",
+        contract_version="v1",
+        portfolio_id="PF_1001",
+        workspace=cast(PortfolioWorkspaceResponse, workspace),
+        positions=cast(
+            PortfolioPositionBookResponse,
+            SimpleNamespace(positions=[SimpleNamespace(market_value_base=1000.0)]),
+        ),
+        allocations=cast(
+            PortfolioAllocationResponse,
+            SimpleNamespace(
+                views=[object()],
+                valuation_coverage=SimpleNamespace(coverage_state="UNAVAILABLE"),
+            ),
+        ),
+        transactions=cast(PortfolioTransactionLedgerResponse, SimpleNamespace(total=2)),
+        source_payload=None,
+    )
+
+    pricing_indicator = next(
+        indicator for indicator in response.indicators if indicator.key == "pricing"
+    )
+    assert pricing_indicator.status == "Missing"

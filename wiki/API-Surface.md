@@ -755,7 +755,11 @@ response. The Gateway response preserves Core's `valuation_coverage`, full-scope
 totals, and deterministic calculation lineage. When Core reports partial or unavailable valuation,
 dependent totals, weights, bucket values, contributor values, and residuals remain null rather than
 being presented as measured zero. Genuine zero, signed exposure, carry-forward, and loaded-empty
-states remain distinct. Each bucket publishes typed direct-position or look-through-component contributors,
+states remain distinct. Gateway rejects a numeric aggregate total for partial or unavailable
+coverage and rejects a missing aggregate total for trusted coverage. Portfolio insight and
+readiness fallbacks consume the same coverage state: partial maps to incomplete pricing and
+unavailable maps to missing pricing evidence. Each bucket publishes typed direct-position or
+look-through-component contributors,
 booked/component identity, source snapshot and component-record lineage, reporting-currency value,
 component weight, and bounded truncation/residual metadata. `effective_mode` is Core's
 `applied_mode`; `applied` is true only when Core actually applied `prefer_look_through`.
