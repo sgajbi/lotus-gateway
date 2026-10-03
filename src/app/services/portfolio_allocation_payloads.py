@@ -58,6 +58,9 @@ def build_portfolio_allocation_response(
         reporting_currency=reporting_currency,
         look_through_mode=look_through_mode,
     )
+    aum_as_of_date = optional_str(aum_payload.get("resolved_as_of_date"))
+    if aum_as_of_date and aum_as_of_date != source.resolved_as_of_date.isoformat():
+        raise PortfolioAllocationSourceContractError("lotus-core AUM as-of date mismatch")
     return PortfolioAllocationResponse(
         correlation_id=correlation_id,
         contract_version=contract_version,

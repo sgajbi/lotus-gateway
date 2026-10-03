@@ -195,7 +195,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
             return httpx.Response(
                 200,
                 json={
-                    "resolved_as_of_date": "2026-04-09",
+                    "resolved_as_of_date": (
+                        "2026-04-08" if active_scenario[0] == "invalid-aum-date" else "2026-04-09"
+                    ),
                     "portfolios": [
                         {
                             "portfolio_id": "PF_CORE_QUALIFIED",
@@ -279,6 +281,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_loaded_empty_bucket = get_scenario("invalid-loaded-empty-bucket")
     invalid_unavailable_bucket = get_scenario("invalid-unavailable-bucket")
     invalid_view_bucket_total = get_scenario("invalid-view-bucket-total")
+    invalid_aum_date = get_scenario("invalid-aum-date")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -329,13 +332,14 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_loaded_empty_bucket,
         invalid_unavailable_bucket,
         invalid_view_bucket_total,
+        invalid_aum_date,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 19
+    assert len(allocation_requests) == 20
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
