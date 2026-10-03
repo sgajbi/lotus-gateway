@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from app.contracts import risk_workspace
 from app.contracts.risk_workspace_drawdown import (
     WorkbenchRiskDrawdownAnalysisContext,
@@ -121,3 +124,51 @@ def test_risk_drawdown_response_accepts_extracted_payload_models() -> None:
     assert response.payload is payload
     assert response.payload.periods[0].summary is not None
     assert response.payload.periods[0].summary.max_drawdown == -0.124533
+
+
+@pytest.mark.parametrize("recovered", [False, True])
+def test_opening_episode_preserves_unknown_peak_timing_and_known_recovery(recovered: bool) -> None:
+    source = {
+        "episode_id": "dd_0001",
+        "peak_date": None,
+        "trough_date": "2026-01-02",
+        "recovery_date": "2026-01-06" if recovered else None,
+        "depth": -0.05,
+        "days_to_trough": None,
+        "days_to_recovery": 2 if recovered else None,
+        "total_days": None,
+        "is_recovered": recovered,
+    }
+    episode = WorkbenchRiskDrawdownEpisode.model_validate(source)
+    assert episode.model_dump(mode="json") == source
+
+
+@pytest.mark.parametrize("field", ["peak_date", "days_to_trough", "total_days"])
+def test_episode_nullable_timing_fields_remain_required(field: str) -> None:
+    source = {
+        "episode_id": "dd_0001",
+        "peak_date": None,
+        "trough_date": "2026-01-02",
+        "depth": -0.05,
+        "days_to_trough": None,
+        "total_days": None,
+        "is_recovered": False,
+    }
+    del source[field]
+    with pytest.raises(ValidationError):
+        WorkbenchRiskDrawdownEpisode.model_validate(source)
+
+
+def test_episode_preserves_measured_zero_durations_without_null_substitution() -> None:
+    source = {
+        "episode_id": "dd_0002",
+        "peak_date": "2026-01-02",
+        "trough_date": "2026-01-02",
+        "recovery_date": "2026-01-02",
+        "depth": -0.01,
+        "days_to_trough": 0,
+        "days_to_recovery": 0,
+        "total_days": 0,
+        "is_recovered": True,
+    }
+    assert WorkbenchRiskDrawdownEpisode.model_validate(source).model_dump(mode="json") == source

@@ -122,6 +122,15 @@ return begins on the next business day. Consumers must verify both identities wi
 the Risk period or presenting the effective start as the original request. Blank report-date query
 values are rejected before source I/O; omission remains a distinct cache identity.
 
+Drawdown episodes preserve Risk's undated opening-wealth baseline. Required nullable
+`peak_date`, `days_to_trough`, and `total_days` carry explicit nulls for unknown peak-derived
+timing; depth, episode identity, trough and any reported recovery remain source-owned. Null is
+not a measured zero duration and does not by itself degrade source calculation posture.
+Consumers must show unavailable timing without inventing dates or dropping valid episodes.
+See the [Risk boundary](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#stateful-risk-tenant-scope)
+and [registered source-response replay](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_risk_drawdown_source_episodes.py)
+for contract evidence and its non-live scope.
+
 Performance workspace reads and evidence downloads require `X-Actor-Id`, `X-Tenant-Id` and
 `X-Region`, including details, horizon comparison, attribution trend, Advisor Brief, the portfolio
 performance snapshot, composite TWR and composite inspection. Missing/blank context is refused

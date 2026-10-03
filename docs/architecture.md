@@ -65,6 +65,16 @@ The shared analytics client carries no ambient tenant and must never acquire a s
 other upstreams have different admission rules. This is caller-asserted scope, not an IAM grant.
 Risk retains calculation and supportability authority; Gateway does not recreate its figures.
 
+Drawdown episode timing preserves Risk's undated opening-wealth baseline: `peak_date`,
+`days_to_trough`, and `total_days` are required nullable fields. An opening loss can therefore
+retain its real episode identity, depth, trough and recovery evidence without an invented peak
+date or zero duration. The existing mapper validates those facts and retains depth ordering;
+null timing does not downgrade otherwise valid source calculations. Existing source quality,
+benchmark availability, tenant admission and cache qualification still determine response posture.
+Consumers must admit null timing and show it as unavailable rather than discard the episode or
+reconstruct chronology. Registered-route replay of retained actual Risk responses is bounded
+contract proof, not live Risk, browser, IAM or banking certification.
+
 ## Performance Caller Authority
 
 The Workbench Performance summary, details, horizon comparison, attribution trend, Advisor Brief
