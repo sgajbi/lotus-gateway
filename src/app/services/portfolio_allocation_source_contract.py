@@ -4,6 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.services.portfolio_allocation_look_through_validation import (
+    validate_allocation_contributor_identity,
+    validate_look_through_content,
+)
 from app.services.portfolio_allocation_weight_validation import (
     DecimalRoundingMode,
     validate_allocation_numeric_outputs,
@@ -138,6 +142,11 @@ class SourceAllocationContributor(_SourceAllocationModel):
     market_value_reporting_currency: Decimal | None
     bucket_weight: Decimal | None
 
+    @model_validator(mode="after")
+    def validate_identity(self) -> "SourceAllocationContributor":
+        validate_allocation_contributor_identity(self)
+        return self
+
 
 class SourceAllocationBucket(_SourceAllocationModel):
     dimension_value: str
@@ -216,6 +225,8 @@ class SourceAllocationLookThrough(_SourceAllocationModel):
     def validate_applied_mode_within_request(self) -> "SourceAllocationLookThrough":
         if self.requested_mode == "direct_only" and self.applied_mode != "direct_only":
             raise ValueError("allocation applied look-through mode exceeds the requested mode")
+        if self.applied_mode == "prefer_look_through" and not self.supported:
+            raise ValueError("applied look-through requires supported decomposition")
         return self
 
 
@@ -298,14 +309,6 @@ class SourceAllocationPayload(SourceAllocationEvidence):
             self.total_market_value_reporting_currency,
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
-        if self.look_through and self.look_through.applied_mode == "direct_only":
-            has_decomposition = self.look_through.decomposed_position_count or any(
-                contributor.contributor_type == "look_through_component"
-                for view in views
-                for bucket in view.buckets
-                for contributor in bucket.contributors
-            )
-            if has_decomposition:
-                raise ValueError("direct-only allocation cannot contain look-through decomposition")
+        validate_look_through_content(views, self.look_through)
         validate_allocation_numeric_outputs(views, expected_total, self.calculation_lineage)
         return self
