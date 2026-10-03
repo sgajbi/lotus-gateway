@@ -7,19 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 AllocationContributorType = Literal["direct_position", "look_through_component"]
 LookThroughMode = Literal["direct_only", "prefer_look_through"]
 AllocationValuationCoverageState = Literal[
-    "COMPLETE",
-    "MEASURED_ZERO",
-    "CARRY_FORWARD",
-    "LOADED_EMPTY",
-    "PARTIAL",
-    "UNAVAILABLE",
+    "COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD", "LOADED_EMPTY", "PARTIAL", "UNAVAILABLE"
 ]
-TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES: frozenset[AllocationValuationCoverageState] = (
-    frozenset({"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD", "LOADED_EMPTY"})
+TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES = frozenset(
+    {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD", "LOADED_EMPTY"}
 )
-DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES: frozenset[AllocationValuationCoverageState] = (
-    frozenset({"PARTIAL", "UNAVAILABLE"})
-)
+DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES = frozenset({"PARTIAL", "UNAVAILABLE"})
 
 
 class SourceAllocationValuationCoverage(BaseModel):
@@ -254,8 +247,17 @@ def _validate_coverage_view_content(
         raise ValueError(
             "trusted allocation bucket weights require a known nonzero portfolio denominator"
         )
-    if coverage_state == "LOADED_EMPTY" and buckets:
-        raise ValueError("loaded-empty allocation coverage cannot contain buckets")
+    if coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"} and buckets:
+        raise ValueError("empty allocation coverage cannot contain buckets")
+    if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
+        sum(
+            (bucket.market_value_reporting_currency or Decimal("0") for bucket in view.buckets),
+            Decimal("0"),
+        )
+        != view.total_market_value_reporting_currency
+        for view in views
+    ):
+        raise ValueError("allocation view buckets must reconcile to the declared total")
 
 
 def _validate_contributor_portfolios(
@@ -301,7 +303,6 @@ class SourceAllocationPayload(SourceAllocationEvidence):
 
 __all__ = [
     "AllocationValuationCoverageState",
-    "DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES",
     "LookThroughMode",
     "SourceAllocationEvidence",
     "SourceAllocationBucket",
@@ -311,5 +312,4 @@ __all__ = [
     "SourceAllocationScope",
     "SourceAllocationValuationCoverage",
     "SourceAllocationView",
-    "TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES",
 ]

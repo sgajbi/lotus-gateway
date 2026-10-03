@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 ALLOCATION_VIEW_DIMENSIONS = ("asset_class", "currency", "sector", "region")
@@ -56,16 +57,8 @@ def allocation_source_evidence(
 def complete_allocation_views(primary_view: dict[str, Any]) -> list[dict[str, Any]]:
     """Return one source view for every dimension requested by Gateway."""
 
-    primary_dimension = primary_view["dimension"]
-    total = primary_view["total_market_value_reporting_currency"]
     return [
-        primary_view
-        if dimension == primary_dimension
-        else {
-            "dimension": dimension,
-            "total_market_value_reporting_currency": total,
-            "buckets": [],
-        }
+        {**deepcopy(primary_view), "dimension": dimension}
         for dimension in ALLOCATION_VIEW_DIMENSIONS
     ]
 

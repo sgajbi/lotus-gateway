@@ -166,6 +166,23 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         }
         for view in payload["views"]:
             view["total_market_value_reporting_currency"] = "0"
+    elif scenario == "invalid-unavailable-bucket":
+        payload = _allocation_payload("unknown")
+        payload["valuation_coverage"] = {
+            "coverage_state": "UNAVAILABLE",
+            "coverage_reason": "source_snapshot_unavailable",
+            "snapshot_row_count": 0,
+            "expected_open_position_count": 2,
+            "valued_position_count": 0,
+            "unvalued_position_count": 0,
+        }
+    elif scenario == "invalid-view-bucket-total":
+        bond_bucket = payload["views"][0]["buckets"][1]
+        bond_bucket["market_value_reporting_currency"] = "10"
+        bond_bucket["weight"] = "0.1"
+        bond_bucket["contributors"][0]["market_value_reporting_currency"] = "10"
+        bond_bucket["contributors"][0]["bucket_weight"] = "1"
+        bond_bucket["omitted_market_value_reporting_currency"] = "0"
     return payload
 
 
@@ -260,6 +277,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         "invalid-contributor-weight-without-bucket"
     )
     invalid_loaded_empty_bucket = get_scenario("invalid-loaded-empty-bucket")
+    invalid_unavailable_bucket = get_scenario("invalid-unavailable-bucket")
+    invalid_view_bucket_total = get_scenario("invalid-view-bucket-total")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -308,13 +327,15 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_trusted_bucket_weight,
         invalid_contributor_weight_without_bucket,
         invalid_loaded_empty_bucket,
+        invalid_unavailable_bucket,
+        invalid_view_bucket_total,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 17
+    assert len(allocation_requests) == 19
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
