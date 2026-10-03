@@ -108,7 +108,11 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
                         "position_count": 1,
                         "contributor_count": 1,
                         "contributors": [
-                            _contributor("BOND_1", bond_value, None if bond_value is None else "1")
+                            _contributor(
+                                "BOND_1",
+                                bond_value,
+                                None if bond_value in {None, "0"} else "1",
+                            )
                         ],
                         "contributors_truncated": False,
                         "omitted_market_value_reporting_currency": bond_residual,
@@ -118,7 +122,18 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
             for dimension in ["asset_class", "currency", "sector", "region"]
         ],
     }
-    if scenario == "wrong-scope":
+    if scenario == "measured-zero":
+        payload["total_market_value_reporting_currency"] = "0"
+        payload["valuation_coverage"]["coverage_state"] = "MEASURED_ZERO"
+        for view in payload["views"]:
+            view["total_market_value_reporting_currency"] = "0"
+            for bucket in view["buckets"]:
+                bucket["market_value_reporting_currency"] = "0"
+                bucket["weight"] = None
+                bucket["omitted_market_value_reporting_currency"] = "0"
+                bucket["contributors"][0]["market_value_reporting_currency"] = "0"
+                bucket["contributors"][0]["bucket_weight"] = None
+    elif scenario == "wrong-scope":
         payload["scope"] = {"portfolio_id": "PF_OTHER"}
     elif scenario == "invalid-degraded-weight":
         payload = _allocation_payload("unknown")
@@ -134,6 +149,11 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
     elif scenario == "invalid-trusted-bucket-value":
         payload["views"][0]["buckets"][0]["market_value_reporting_currency"] = None
         payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
+    elif scenario == "invalid-trusted-bucket-weight":
+        payload["views"][0]["buckets"][0]["weight"] = None
+    elif scenario == "invalid-contributor-weight-without-bucket":
+        payload = _allocation_payload("unknown")
+        payload["views"][0]["buckets"][1]["contributors"][0]["bucket_weight"] = "1"
     elif scenario == "invalid-loaded-empty-bucket":
         payload["total_market_value_reporting_currency"] = "0"
         payload["valuation_coverage"] = {
@@ -223,6 +243,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
 
     unknown = get_scenario("unknown").json()
     zero = get_scenario("zero").json()
+    measured_zero = get_scenario("measured-zero").json()
     signed = get_scenario("signed").json()
     carry_forward = get_scenario("carry-forward").json()
     contradictory = get_scenario("contradictory")
@@ -234,6 +255,10 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_contributor_portfolio = get_scenario("invalid-contributor-portfolio")
     invalid_look_through_mode = get_scenario("invalid-look-through-mode")
     invalid_trusted_bucket_value = get_scenario("invalid-trusted-bucket-value")
+    invalid_trusted_bucket_weight = get_scenario("invalid-trusted-bucket-weight")
+    invalid_contributor_weight_without_bucket = get_scenario(
+        "invalid-contributor-weight-without-bucket"
+    )
     invalid_loaded_empty_bucket = get_scenario("invalid-loaded-empty-bucket")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
@@ -251,6 +276,13 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     assert zero["total_market_value_reporting_currency"] == "100"
     assert zero_buckets["BOND"]["market_value_reporting_currency"] == "0"
     assert zero_buckets["BOND"]["weight_pct"] == 0.0
+    assert measured_zero["valuation_coverage"]["coverage_state"] == "MEASURED_ZERO"
+    assert measured_zero["total_market_value_reporting_currency"] == "0"
+    assert all(
+        bucket["weight_pct"] is None
+        for view in measured_zero["views"]
+        for bucket in view["buckets"]
+    )
 
     signed_buckets = {item["bucket"]: item for item in signed["views"][0]["buckets"]}
     assert signed["total_market_value_reporting_currency"] == "80"
@@ -273,6 +305,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_contributor_portfolio,
         invalid_look_through_mode,
         invalid_trusted_bucket_value,
+        invalid_trusted_bucket_weight,
+        invalid_contributor_weight_without_bucket,
         invalid_loaded_empty_bucket,
     ):
         assert invalid_response.status_code == 502
@@ -280,7 +314,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 14
+    assert len(allocation_requests) == 17
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
