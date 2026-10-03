@@ -1,39 +1,19 @@
 from collections.abc import Sequence
 from decimal import Decimal
-from typing import Protocol
+
+from app.services.portfolio_allocation_weight_validation import (
+    AllocationBucketLike,
+    AllocationViewLike,
+)
 
 TRUSTED_COVERAGE_STATES = frozenset({"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD", "LOADED_EMPTY"})
 DEGRADED_COVERAGE_STATES = frozenset({"PARTIAL", "UNAVAILABLE"})
 ZERO = Decimal("0")
 
 
-class _ContributorLike(Protocol):
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-
-class _BucketLike(Protocol):
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def weight(self) -> Decimal | None: ...
-
-    @property
-    def omitted_market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def contributors(self) -> Sequence[_ContributorLike]: ...
-
-
-class _ViewLike(Protocol):
-    @property
-    def buckets(self) -> Sequence[_BucketLike]: ...
-
-
 def _validate_bucket_presence(
-    views: Sequence[_ViewLike],
-    buckets: list[_BucketLike],
+    views: Sequence[AllocationViewLike],
+    buckets: list[AllocationBucketLike],
     coverage_state: str,
     snapshot_row_count: int,
 ) -> None:
@@ -44,7 +24,7 @@ def _validate_bucket_presence(
 
 
 def _validate_bucket_qualification(
-    buckets: list[_BucketLike],
+    buckets: list[AllocationBucketLike],
     coverage_state: str,
     total_market_value_reporting_currency: Decimal | None,
 ) -> None:
@@ -69,7 +49,9 @@ def _validate_bucket_qualification(
         )
 
 
-def _validate_measured_zero(buckets: list[_BucketLike], coverage_state: str) -> None:
+def _validate_measured_zero(
+    buckets: list[AllocationBucketLike], coverage_state: str
+) -> None:
     if coverage_state == "MEASURED_ZERO" and any(
         value != ZERO
         for bucket in buckets
@@ -83,7 +65,7 @@ def _validate_measured_zero(buckets: list[_BucketLike], coverage_state: str) -> 
 
 
 def validate_coverage_view_content(
-    views: Sequence[_ViewLike],
+    views: Sequence[AllocationViewLike],
     coverage_state: str,
     total_market_value_reporting_currency: Decimal | None,
     snapshot_row_count: int,
