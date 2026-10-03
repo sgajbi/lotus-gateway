@@ -143,12 +143,31 @@ def test_search_refuses_inconsistent_or_malformed_count(monkeypatch, client, cou
     assert "rjob_" not in response.text
 
 
-@pytest.mark.parametrize("mode", ["single", "multi", "empty", "no_portfolio_filter"])
+def test_portfolio_search_refuses_a_conflicting_second_row_under_correct_envelope(
+    monkeypatch, client
+):
+    payload = copy.deepcopy(REPORT_JOB_LIST_RESPONSE_EXAMPLE)
+    payload["items"].append(copy.deepcopy(payload["items"][0]))
+    payload["items"][1]["reportJobId"] = "PRIVATE-SECOND-JOB"
+    payload["items"][1]["portfolioScope"] = {"portfolio_ids": ["PRIVATE-OTHER"]}
+    payload["count"] = 2
+    _install(monkeypatch, payload)
+    response = client.get("/api/v1/report-jobs?portfolioId=PB_SG_GLOBAL_BAL_001", headers=_HEADERS)
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "report_job_source_scope_violation"
+    assert "PRIVATE-" not in response.text
+
+
+@pytest.mark.parametrize("mode", ["single", "multi", "multi_row", "empty", "no_portfolio_filter"])
 def test_search_preserves_valid_neighbors(monkeypatch, client, mode):
     payload = copy.deepcopy(REPORT_JOB_LIST_RESPONSE_EXAMPLE)
     route = "/api/v1/report-jobs?portfolioId=PB_SG_GLOBAL_BAL_001"
     if mode == "multi":
         payload["items"][0]["portfolioScope"]["portfolio_ids"].append("PB_SG_GLOBAL_BAL_002")
+    elif mode == "multi_row":
+        payload["items"].append(copy.deepcopy(payload["items"][0]))
+        payload["items"][1]["reportJobId"] = "rjob_second_valid"
+        payload["count"] = 2
     elif mode == "empty":
         payload.update(count=0, items=[])
     elif mode == "no_portfolio_filter":
