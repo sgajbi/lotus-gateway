@@ -32,7 +32,7 @@ def _contributor(
 
 
 def _allocation_payload(scenario: str) -> dict[str, Any]:
-    if scenario == "unknown":
+    if scenario in {"unknown", "contradictory"}:
         total, bond_value, equity_weight, bond_weight = None, None, None, None
         state, reason, valued, unvalued = "PARTIAL", "market_value_missing", 1, 1
     elif scenario == "signed":
@@ -82,7 +82,9 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         "views": [
             {
                 "dimension": "asset_class",
-                "total_market_value_reporting_currency": total,
+                "total_market_value_reporting_currency": (
+                    "100" if scenario == "contradictory" else total
+                ),
                 "buckets": [
                     {
                         "dimension_value": "EQUITY",
@@ -197,6 +199,10 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_CARRY-FORWARD/allocations",
         params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
     ).json()
+    contradictory = client.get(
+        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_CONTRADICTORY/allocations",
+        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
+    )
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -219,7 +225,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     assert signed_buckets["EQUITY"]["weight_pct"] == 125.0
     assert signed_buckets["BOND"]["weight_pct"] == -25.0
     assert carry_forward["valuation_coverage"]["coverage_state"] == "CARRY_FORWARD"
-    assert len(allocation_requests) == 4
+    assert contradictory.status_code == 502
+    assert contradictory.json()["detail"]["error_code"] == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
+    assert len(allocation_requests) == 5
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

@@ -20,6 +20,7 @@ from app.services.portfolio_allocation_source_contract import (
     SourceAllocationContributor,
     SourceAllocationEvidence,
     SourceAllocationLookThrough,
+    SourceAllocationPayload,
     SourceAllocationValuationCoverage,
     SourceAllocationView,
     SourceCalculationLineage,
@@ -45,7 +46,7 @@ def build_portfolio_allocation_response(
     allocation_payload: dict[str, Any],
 ) -> PortfolioAllocationResponse:
     _require_source_look_through_for_non_empty_views(allocation_payload)
-    evidence = parse_allocation_evidence(allocation_payload)
+    source = parse_allocation_payload(allocation_payload)
     return PortfolioAllocationResponse(
         correlation_id=correlation_id,
         contract_version=contract_version,
@@ -53,13 +54,22 @@ def build_portfolio_allocation_response(
         as_of_date=str(aum_payload.get("resolved_as_of_date") or as_of_date or default_as_of_date),
         reporting_currency=optional_str(allocation_payload.get("reporting_currency"))
         or reporting_currency,
-        total_market_value_reporting_currency=(evidence.total_market_value_reporting_currency),
-        valuation_coverage=_map_valuation_coverage(evidence.valuation_coverage),
-        calculation_lineage=_map_calculation_lineage(evidence.calculation_lineage),
+        total_market_value_reporting_currency=(source.total_market_value_reporting_currency),
+        valuation_coverage=_map_valuation_coverage(source.valuation_coverage),
+        calculation_lineage=_map_calculation_lineage(source.calculation_lineage),
         look_through=parse_look_through_capability(allocation_payload.get("look_through")),
         summary=parse_position_book_summary(aum_payload, positions_payload),
-        views=parse_allocation_views(allocation_payload),
+        views=_map_allocation_views(source.views or []),
     )
+
+
+def parse_allocation_payload(payload: dict[str, Any]) -> SourceAllocationPayload:
+    try:
+        return SourceAllocationPayload.model_validate(payload)
+    except ValidationError as exc:
+        raise PortfolioAllocationSourceContractError(
+            "lotus-core allocation payload contract invalid"
+        ) from exc
 
 
 def parse_allocation_evidence(payload: dict[str, Any]) -> SourceAllocationEvidence:
@@ -139,6 +149,12 @@ def parse_allocation_views(payload: dict[str, Any]) -> list[PortfolioAllocationV
         raise PortfolioAllocationSourceContractError(
             "lotus-core allocation contributor contract invalid"
         ) from exc
+    return _map_allocation_views(source_views)
+
+
+def _map_allocation_views(
+    source_views: list[SourceAllocationView],
+) -> list[PortfolioAllocationView]:
     return [
         PortfolioAllocationView(
             dimension=view.dimension,
