@@ -1,39 +1,11 @@
-from collections.abc import Sequence
 from decimal import Decimal
-from typing import Protocol
+
+from app.services.portfolio_allocation_weight_validation import AllocationBucketLike
 
 ZERO = Decimal("0")
 
 
-class _ContributorLike(Protocol):
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def bucket_weight(self) -> Decimal | None: ...
-
-
-class _BucketLike(Protocol):
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def position_count(self) -> int: ...
-
-    @property
-    def contributor_count(self) -> int: ...
-
-    @property
-    def contributors(self) -> Sequence[_ContributorLike]: ...
-
-    @property
-    def contributors_truncated(self) -> bool: ...
-
-    @property
-    def omitted_market_value_reporting_currency(self) -> Decimal | None: ...
-
-
-def _validate_count_shape(bucket: _BucketLike) -> None:
+def _validate_count_shape(bucket: AllocationBucketLike) -> None:
     retained_count = len(bucket.contributors)
     if retained_count > bucket.contributor_count:
         raise ValueError("contributors cannot exceed contributor_count")
@@ -43,7 +15,7 @@ def _validate_count_shape(bucket: _BucketLike) -> None:
         raise ValueError("contributors_truncated must match omitted contributor rows")
 
 
-def _validate_null_qualification(bucket: _BucketLike) -> None:
+def _validate_null_qualification(bucket: AllocationBucketLike) -> None:
     bucket_value_known = bucket.market_value_reporting_currency is not None
     residual_known = bucket.omitted_market_value_reporting_currency is not None
     if bucket_value_known != residual_known:
@@ -59,7 +31,7 @@ def _validate_null_qualification(bucket: _BucketLike) -> None:
         raise ValueError("contributor weights require a known nonzero bucket denominator")
 
 
-def _validate_value_reconciliation(bucket: _BucketLike) -> None:
+def _validate_value_reconciliation(bucket: AllocationBucketLike) -> None:
     bucket_value = bucket.market_value_reporting_currency
     omitted_residual = bucket.omitted_market_value_reporting_currency
     if bucket_value is None or omitted_residual is None:
@@ -74,7 +46,7 @@ def _validate_value_reconciliation(bucket: _BucketLike) -> None:
         raise ValueError("untruncated contributors require a zero omitted residual")
 
 
-def validate_allocation_bucket(bucket: _BucketLike) -> None:
+def validate_allocation_bucket(bucket: AllocationBucketLike) -> None:
     _validate_count_shape(bucket)
     _validate_null_qualification(bucket)
     _validate_value_reconciliation(bucket)

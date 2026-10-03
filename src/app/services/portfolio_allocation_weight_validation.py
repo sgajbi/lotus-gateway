@@ -14,6 +14,48 @@ DecimalRoundingMode = Literal[
 ]
 
 
+class AllocationContributorLike(Protocol):
+    @property
+    def component_weight(self) -> Decimal | None: ...
+
+    @property
+    def market_value_reporting_currency(self) -> Decimal | None: ...
+
+    @property
+    def bucket_weight(self) -> Decimal | None: ...
+
+
+class AllocationBucketLike(Protocol):
+    @property
+    def market_value_reporting_currency(self) -> Decimal | None: ...
+
+    @property
+    def weight(self) -> Decimal | None: ...
+
+    @property
+    def position_count(self) -> int: ...
+
+    @property
+    def contributor_count(self) -> int: ...
+
+    @property
+    def contributors(self) -> Sequence[AllocationContributorLike]: ...
+
+    @property
+    def contributors_truncated(self) -> bool: ...
+
+    @property
+    def omitted_market_value_reporting_currency(self) -> Decimal | None: ...
+
+
+class AllocationViewLike(Protocol):
+    @property
+    def total_market_value_reporting_currency(self) -> Decimal | None: ...
+
+    @property
+    def buckets(self) -> Sequence[AllocationBucketLike]: ...
+
+
 class _NumericPolicyLike(Protocol):
     @property
     def precision(self) -> int: ...
@@ -34,39 +76,6 @@ class _LineageLike(Protocol):
 
     @property
     def numeric_output_policy(self) -> _NumericPolicyLike | None: ...
-
-
-class _ContributorLike(Protocol):
-    @property
-    def component_weight(self) -> Decimal | None: ...
-
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def bucket_weight(self) -> Decimal | None: ...
-
-
-class _BucketLike(Protocol):
-    @property
-    def market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def weight(self) -> Decimal | None: ...
-
-    @property
-    def omitted_market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def contributors(self) -> Sequence[_ContributorLike]: ...
-
-
-class _ViewLike(Protocol):
-    @property
-    def total_market_value_reporting_currency(self) -> Decimal | None: ...
-
-    @property
-    def buckets(self) -> Sequence[_BucketLike]: ...
 
 
 def _expected_weight(
@@ -108,7 +117,7 @@ def _require_policy_bound(value: Decimal, policy: _NumericPolicyLike) -> None:
 
 
 def _validate_policy_bounds(
-    views: Sequence[_ViewLike], total: Decimal | None, policy: _NumericPolicyLike
+    views: Sequence[AllocationViewLike], total: Decimal | None, policy: _NumericPolicyLike
 ) -> None:
     values = [total]
     for view in views:
@@ -135,7 +144,7 @@ def _validate_policy_bounds(
 
 
 def validate_allocation_numeric_outputs(
-    views: Sequence[_ViewLike],
+    views: Sequence[AllocationViewLike],
     total: Decimal | None,
     lineage: _LineageLike,
 ) -> None:
