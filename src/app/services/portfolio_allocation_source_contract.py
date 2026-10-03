@@ -197,6 +197,18 @@ class SourceAllocationView(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
+    @model_validator(mode="after")
+    def validate_bucket_reconciliation(self) -> "SourceAllocationView":
+        bucket_values = [bucket.market_value_reporting_currency for bucket in self.buckets]
+        if (
+            self.total_market_value_reporting_currency is not None
+            and all(value is not None for value in bucket_values)
+            and sum((value or Decimal("0") for value in bucket_values), Decimal("0"))
+            != self.total_market_value_reporting_currency
+        ):
+            raise ValueError("allocation view buckets must reconcile to the declared total")
+        return self
+
 
 class SourceAllocationLookThrough(BaseModel):
     requested_mode: LookThroughMode
@@ -249,15 +261,6 @@ def _validate_coverage_view_content(
         )
     if coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"} and buckets:
         raise ValueError("empty allocation coverage cannot contain buckets")
-    if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
-        sum(
-            (bucket.market_value_reporting_currency or Decimal("0") for bucket in view.buckets),
-            Decimal("0"),
-        )
-        != view.total_market_value_reporting_currency
-        for view in views
-    ):
-        raise ValueError("allocation view buckets must reconcile to the declared total")
 
 
 def _validate_contributor_portfolios(
@@ -299,17 +302,3 @@ class SourceAllocationPayload(SourceAllocationEvidence):
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
         return self
-
-
-__all__ = [
-    "AllocationValuationCoverageState",
-    "LookThroughMode",
-    "SourceAllocationEvidence",
-    "SourceAllocationBucket",
-    "SourceAllocationContributor",
-    "SourceAllocationLookThrough",
-    "SourceAllocationPayload",
-    "SourceAllocationScope",
-    "SourceAllocationValuationCoverage",
-    "SourceAllocationView",
-]
