@@ -340,33 +340,32 @@ def test_build_portfolio_allocation_response_uses_source_currency_and_default_da
     assert [view.dimension for view in response.views] == ALLOCATION_VIEW_DIMENSIONS
 
 
-def test_build_portfolio_allocation_response_binds_explicit_date_not_separate_aum_date() -> None:
-    response = build_portfolio_allocation_response(
-        correlation_id="corr-allocation-request-date",
-        contract_version="v1",
-        portfolio_id="PF_1001",
-        as_of_date="2026-03-27",
-        default_as_of_date="2026-03-28",
-        reporting_currency="USD",
-        aum_payload={
-            "resolved_as_of_date": "2026-03-26",
-            "assets_under_management_base": "0",
-        },
-        positions_payload={"positions": []},
-        allocation_payload={
-            **allocation_source_evidence(total_market_value_reporting_currency="100"),
-            "views": _reconciled_allocation_views("100"),
-            "look_through": {
-                "requested_mode": "direct_only",
-                "applied_mode": "direct_only",
-                "supported": False,
-                "decomposed_position_count": 0,
-                "limitation_reason": None,
+def test_build_portfolio_allocation_response_rejects_mismatched_aum_date() -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        build_portfolio_allocation_response(
+            correlation_id="corr-allocation-request-date",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            as_of_date="2026-03-27",
+            default_as_of_date="2026-03-28",
+            reporting_currency="USD",
+            aum_payload={
+                "resolved_as_of_date": "2026-03-26",
+                "assets_under_management_base": "0",
             },
-        },
-    )
-
-    assert response.as_of_date == "2026-03-27"
+            positions_payload={"positions": []},
+            allocation_payload={
+                **allocation_source_evidence(total_market_value_reporting_currency="100"),
+                "views": _reconciled_allocation_views("100"),
+                "look_through": {
+                    "requested_mode": "direct_only",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": None,
+                },
+            },
+        )
 
 
 def test_parse_look_through_capability_rejects_incomplete_payloads() -> None:
