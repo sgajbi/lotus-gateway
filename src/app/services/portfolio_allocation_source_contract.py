@@ -172,8 +172,8 @@ class SourceAllocationBucket(BaseModel):
         if bucket_value_known and residual_known:
             bucket_value = self.market_value_reporting_currency
             omitted_residual = self.omitted_market_value_reporting_currency
-            assert bucket_value is not None
-            assert omitted_residual is not None
+            if bucket_value is None or omitted_residual is None:
+                raise ValueError("known bucket qualification requires numeric values")
             retained_values = [item.market_value_reporting_currency for item in self.contributors]
             if any(value is None for value in retained_values):
                 raise ValueError("known bucket value cannot contain unknown contributor value")
