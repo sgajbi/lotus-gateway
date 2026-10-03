@@ -224,6 +224,37 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
             "working_precision": 28,
             "rounding": "NOT_A_ROUNDING_MODE",
         }
+    elif scenario == "numeric-policy":
+        payload["calculation_lineage"]["numeric_output_policy"] = {
+            "name": "allocation-output",
+            "version": "1.0.0",
+            "precision": 18,
+            "scale": 8,
+            "working_precision": 28,
+            "rounding": "ROUND_HALF_EVEN",
+        }
+    elif scenario == "invalid-numeric-output-magnitude":
+        payload["calculation_lineage"]["numeric_output_policy"] = {
+            "name": "allocation-output",
+            "version": "1.0.0",
+            "precision": 3,
+            "scale": 2,
+            "working_precision": 6,
+            "rounding": "ROUND_HALF_EVEN",
+        }
+    elif scenario == "invalid-numeric-output-scale":
+        payload["calculation_lineage"]["numeric_output_policy"] = {
+            "name": "allocation-output",
+            "version": "1.0.0",
+            "precision": 6,
+            "scale": 2,
+            "working_precision": 12,
+            "rounding": "ROUND_HALF_EVEN",
+        }
+        equity_bucket = payload["views"][0]["buckets"][0]
+        equity_bucket["contributors"][0]["market_value_reporting_currency"] = "99.999"
+        equity_bucket["contributors"][0]["bucket_weight"] = "1.00"
+        equity_bucket["omitted_market_value_reporting_currency"] = "0.001"
     return payload
 
 
@@ -306,6 +337,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     measured_zero = get_scenario("measured-zero").json()
     signed = get_scenario("signed").json()
     carry_forward = get_scenario("carry-forward").json()
+    valid_numeric_policy_response = get_scenario("numeric-policy")
+    valid_numeric_policy = valid_numeric_policy_response.json()
     contradictory = get_scenario("contradictory")
     wrong_scope = get_scenario("wrong-scope")
     invalid_measured_zero = get_scenario("invalid-measured-zero")
@@ -330,6 +363,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_aum_date = get_scenario("invalid-aum-date")
     invalid_numeric_policy_arithmetic = get_scenario("invalid-numeric-policy-arithmetic")
     invalid_zero_rounding_policy = get_scenario("invalid-zero-rounding-policy")
+    invalid_numeric_output_magnitude = get_scenario("invalid-numeric-output-magnitude")
+    invalid_numeric_output_scale = get_scenario("invalid-numeric-output-scale")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -359,6 +394,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     assert signed_buckets["EQUITY"]["weight_pct"] == 125.0
     assert signed_buckets["BOND"]["weight_pct"] == -25.0
     assert carry_forward["valuation_coverage"]["coverage_state"] == "CARRY_FORWARD"
+    assert valid_numeric_policy_response.status_code == 200
+    assert valid_numeric_policy["calculation_lineage"]["numeric_output_policy"]["scale"] == 8
     assert contradictory.status_code == 502
     assert contradictory.json()["detail"]["error_code"] == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
     assert wrong_scope.status_code == 502
@@ -388,13 +425,15 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_aum_date,
         invalid_numeric_policy_arithmetic,
         invalid_zero_rounding_policy,
+        invalid_numeric_output_magnitude,
+        invalid_numeric_output_scale,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 27
+    assert len(allocation_requests) == 30
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

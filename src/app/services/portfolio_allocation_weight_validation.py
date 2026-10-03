@@ -16,6 +16,9 @@ DecimalRoundingMode = Literal[
 
 class _NumericPolicyLike(Protocol):
     @property
+    def precision(self) -> int: ...
+
+    @property
     def working_precision(self) -> int: ...
 
     @property
@@ -35,6 +38,9 @@ class _LineageLike(Protocol):
 
 class _ContributorLike(Protocol):
     @property
+    def component_weight(self) -> Decimal | None: ...
+
+    @property
     def market_value_reporting_currency(self) -> Decimal | None: ...
 
     @property
@@ -49,10 +55,16 @@ class _BucketLike(Protocol):
     def weight(self) -> Decimal | None: ...
 
     @property
+    def omitted_market_value_reporting_currency(self) -> Decimal | None: ...
+
+    @property
     def contributors(self) -> Sequence[_ContributorLike]: ...
 
 
 class _ViewLike(Protocol):
+    @property
+    def total_market_value_reporting_currency(self) -> Decimal | None: ...
+
     @property
     def buckets(self) -> Sequence[_BucketLike]: ...
 
@@ -77,11 +89,58 @@ def _expected_weight(
             raise ValueError("allocation weight arithmetic policy is unusable") from exc
 
 
-def validate_allocation_weight_arithmetic(
+def _require_policy_bound(value: Decimal, policy: _NumericPolicyLike) -> None:
+    if not value.is_finite():
+        raise ValueError("allocation numeric output must be finite")
+    if value.is_zero():
+        return
+    digits = list(value.as_tuple().digits)
+    exponent = value.as_tuple().exponent
+    if not isinstance(exponent, int):
+        raise ValueError("allocation numeric output must be finite")
+    while digits and digits[-1] == 0 and exponent < 0:
+        digits.pop()
+        exponent += 1
+    fractional_digits = max(-exponent, 0)
+    integer_digits = max(len(digits) + exponent, 0)
+    if fractional_digits > policy.scale or integer_digits > policy.precision - policy.scale:
+        raise ValueError("allocation numeric output exceeds its declared precision or scale")
+
+
+def _validate_policy_bounds(
+    views: Sequence[_ViewLike], total: Decimal | None, policy: _NumericPolicyLike
+) -> None:
+    values = [total]
+    for view in views:
+        values.append(view.total_market_value_reporting_currency)
+        for bucket in view.buckets:
+            values.extend(
+                (
+                    bucket.market_value_reporting_currency,
+                    bucket.weight,
+                    bucket.omitted_market_value_reporting_currency,
+                )
+            )
+            for contributor in bucket.contributors:
+                values.extend(
+                    (
+                        contributor.component_weight,
+                        contributor.market_value_reporting_currency,
+                        contributor.bucket_weight,
+                    )
+                )
+    for value in values:
+        if value is not None:
+            _require_policy_bound(value, policy)
+
+
+def validate_allocation_numeric_outputs(
     views: Sequence[_ViewLike],
     total: Decimal | None,
     lineage: _LineageLike,
 ) -> None:
+    if lineage.numeric_output_policy:
+        _validate_policy_bounds(views, total, lineage.numeric_output_policy)
     for bucket in (bucket for view in views for bucket in view.buckets):
         bucket_value = bucket.market_value_reporting_currency
         if (
