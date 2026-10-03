@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.services.portfolio_allocation_weight_validation import (
     DecimalRoundingMode,
-    validate_allocation_weight_arithmetic,
+    validate_allocation_numeric_outputs,
 )
 
 AllocationContributorType = Literal["direct_position", "look_through_component"]
@@ -307,5 +307,5 @@ class SourceAllocationPayload(SourceAllocationEvidence):
             )
             if has_decomposition:
                 raise ValueError("direct-only allocation cannot contain look-through decomposition")
-        validate_allocation_weight_arithmetic(views, expected_total, self.calculation_lineage)
+        validate_allocation_numeric_outputs(views, expected_total, self.calculation_lineage)
         return self
