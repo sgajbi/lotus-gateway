@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.portfolio_allocation_weight_validation import (
+    DecimalRoundingMode,
     validate_allocation_weight_arithmetic,
 )
 
@@ -67,7 +68,7 @@ class SourceNumericOutputPolicyLineage(_SourceAllocationModel):
     precision: int = Field(ge=1)
     scale: int = Field(ge=0)
     working_precision: int = Field(ge=1)
-    rounding: str = Field(min_length=1)
+    rounding: DecimalRoundingMode
 
     @field_validator("name", "version", "rounding")
     @classmethod
