@@ -4,6 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.services.portfolio_allocation_weight_validation import (
+    validate_allocation_weight_arithmetic,
+)
+
 AllocationContributorType = Literal["direct_position", "look_through_component"]
 LookThroughMode = Literal["direct_only", "prefer_look_through"]
 AllocationValuationCoverageState = Literal[
@@ -15,15 +19,17 @@ TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES = frozenset(
 DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES = frozenset({"PARTIAL", "UNAVAILABLE"})
 
 
-class SourceAllocationValuationCoverage(BaseModel):
+class _SourceAllocationModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+
+class SourceAllocationValuationCoverage(_SourceAllocationModel):
     coverage_state: AllocationValuationCoverageState
     coverage_reason: str = Field(min_length=1, max_length=128)
     snapshot_row_count: int = Field(ge=0)
     expected_open_position_count: int = Field(ge=0)
     valued_position_count: int = Field(ge=0)
     unvalued_position_count: int = Field(ge=0)
-
-    model_config = ConfigDict(extra="ignore")
 
     @model_validator(mode="after")
     def validate_count_coherence(self) -> "SourceAllocationValuationCoverage":
@@ -55,15 +61,13 @@ class SourceAllocationValuationCoverage(BaseModel):
         return self
 
 
-class SourceNumericOutputPolicyLineage(BaseModel):
+class SourceNumericOutputPolicyLineage(_SourceAllocationModel):
     name: str = Field(min_length=1)
     version: str = Field(min_length=1)
     precision: int = Field(ge=1)
     scale: int = Field(ge=0)
     working_precision: int = Field(ge=1)
     rounding: str = Field(min_length=1)
-
-    model_config = ConfigDict(extra="ignore")
 
     @field_validator("name", "version", "rounding")
     @classmethod
@@ -81,7 +85,7 @@ class SourceNumericOutputPolicyLineage(BaseModel):
         return self
 
 
-class SourceCalculationLineage(BaseModel):
+class SourceCalculationLineage(_SourceAllocationModel):
     algorithm_id: str = Field(min_length=1)
     algorithm_version: int = Field(ge=1)
     intermediate_precision: int = Field(ge=1)
@@ -89,8 +93,6 @@ class SourceCalculationLineage(BaseModel):
     calculation_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     output_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     numeric_output_policy: SourceNumericOutputPolicyLineage | None = None
-
-    model_config = ConfigDict(extra="ignore")
 
     @field_validator("algorithm_id")
     @classmethod
@@ -100,12 +102,10 @@ class SourceCalculationLineage(BaseModel):
         return value
 
 
-class SourceAllocationEvidence(BaseModel):
+class SourceAllocationEvidence(_SourceAllocationModel):
     total_market_value_reporting_currency: Decimal | None
     valuation_coverage: SourceAllocationValuationCoverage
     calculation_lineage: SourceCalculationLineage
-
-    model_config = ConfigDict(extra="ignore")
 
     @model_validator(mode="after")
     def validate_total_matches_valuation_coverage(self) -> "SourceAllocationEvidence":
@@ -122,7 +122,7 @@ class SourceAllocationEvidence(BaseModel):
         return self
 
 
-class SourceAllocationContributor(BaseModel):
+class SourceAllocationContributor(_SourceAllocationModel):
     contributor_type: AllocationContributorType
     portfolio_id: str
     security_id: str
@@ -137,10 +137,8 @@ class SourceAllocationContributor(BaseModel):
     market_value_reporting_currency: Decimal | None
     bucket_weight: Decimal | None
 
-    model_config = ConfigDict(extra="ignore")
 
-
-class SourceAllocationBucket(BaseModel):
+class SourceAllocationBucket(_SourceAllocationModel):
     dimension_value: str
     market_value_reporting_currency: Decimal | None
     weight: Decimal | None
@@ -149,8 +147,6 @@ class SourceAllocationBucket(BaseModel):
     contributors: list[SourceAllocationContributor]
     contributors_truncated: bool
     omitted_market_value_reporting_currency: Decimal | None
-
-    model_config = ConfigDict(extra="ignore")
 
     @model_validator(mode="after")
     def validate_contributor_reconciliation(self) -> "SourceAllocationBucket":
@@ -190,12 +186,10 @@ class SourceAllocationBucket(BaseModel):
         return self
 
 
-class SourceAllocationView(BaseModel):
+class SourceAllocationView(_SourceAllocationModel):
     dimension: str
     total_market_value_reporting_currency: Decimal | None
     buckets: list[SourceAllocationBucket]
-
-    model_config = ConfigDict(extra="ignore")
 
     @model_validator(mode="after")
     def validate_bucket_reconciliation(self) -> "SourceAllocationView":
@@ -210,14 +204,12 @@ class SourceAllocationView(BaseModel):
         return self
 
 
-class SourceAllocationLookThrough(BaseModel):
+class SourceAllocationLookThrough(_SourceAllocationModel):
     requested_mode: LookThroughMode
     applied_mode: LookThroughMode
     supported: bool
     decomposed_position_count: int = Field(ge=0)
     limitation_reason: str | None
-
-    model_config = ConfigDict(extra="ignore")
 
     @model_validator(mode="after")
     def validate_applied_mode_within_request(self) -> "SourceAllocationLookThrough":
@@ -226,10 +218,8 @@ class SourceAllocationLookThrough(BaseModel):
         return self
 
 
-class SourceAllocationScope(BaseModel):
+class SourceAllocationScope(_SourceAllocationModel):
     portfolio_id: str = Field(min_length=1)
-
-    model_config = ConfigDict(extra="ignore")
 
     @field_validator("portfolio_id")
     @classmethod
@@ -307,4 +297,5 @@ class SourceAllocationPayload(SourceAllocationEvidence):
             self.total_market_value_reporting_currency,
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
+        validate_allocation_weight_arithmetic(views, expected_total, self.calculation_lineage)
         return self

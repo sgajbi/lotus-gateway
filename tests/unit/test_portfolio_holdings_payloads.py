@@ -248,7 +248,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
                             "dimension_value": "Asia",
                             "position_count": 2,
                             "market_value_reporting_currency": "700.123",
-                            "weight": "0.7",
+                            "weight": "1",
                             "contributor_count": 1,
                             "contributors": [
                                 {

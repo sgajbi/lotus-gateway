@@ -156,6 +156,11 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
     elif scenario == "invalid-contributor-weight-without-bucket":
         payload = _allocation_payload("unknown")
         payload["views"][0]["buckets"][1]["contributors"][0]["bucket_weight"] = "1"
+    elif scenario == "invalid-bucket-weight-arithmetic":
+        payload["views"][0]["buckets"][0]["weight"] = "0.5"
+        payload["views"][0]["buckets"][1]["weight"] = "0.5"
+    elif scenario == "invalid-contributor-weight-arithmetic":
+        payload["views"][0]["buckets"][0]["contributors"][0]["bucket_weight"] = "0.01"
     elif scenario == "invalid-loaded-empty-bucket":
         payload["total_market_value_reporting_currency"] = "0"
         payload["valuation_coverage"] = {
@@ -281,6 +286,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_contributor_weight_without_bucket = get_scenario(
         "invalid-contributor-weight-without-bucket"
     )
+    invalid_bucket_weight_arithmetic = get_scenario("invalid-bucket-weight-arithmetic")
+    invalid_contributor_weight_arithmetic = get_scenario("invalid-contributor-weight-arithmetic")
     invalid_loaded_empty_bucket = get_scenario("invalid-loaded-empty-bucket")
     invalid_unavailable_bucket = get_scenario("invalid-unavailable-bucket")
     invalid_view_bucket_total = get_scenario("invalid-view-bucket-total")
@@ -333,6 +340,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_trusted_bucket_value,
         invalid_trusted_bucket_weight,
         invalid_contributor_weight_without_bucket,
+        invalid_bucket_weight_arithmetic,
+        invalid_contributor_weight_arithmetic,
         invalid_loaded_empty_bucket,
         invalid_unavailable_bucket,
         invalid_view_bucket_total,
@@ -343,7 +352,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 21
+    assert len(allocation_requests) == 23
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

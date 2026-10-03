@@ -1799,7 +1799,7 @@ def test_portfolio_allocations_router(monkeypatch):
                             "dimension_value": "Equity",
                             "position_count": 1,
                             "market_value_reporting_currency": 700,
-                            "weight": 0.7,
+                            "weight": 1,
                             "contributor_count": 1,
                             "contributors": [
                                 {
@@ -1892,7 +1892,7 @@ def test_portfolio_allocations_router(monkeypatch):
                         "position_count": 1,
                         "market_value_base": 700.0,
                         "market_value_reporting_currency": "700",
-                        "weight_pct": 70.0,
+                        "weight_pct": 100.0,
                         "contributor_count": 1,
                         "contributors": [
                             {
