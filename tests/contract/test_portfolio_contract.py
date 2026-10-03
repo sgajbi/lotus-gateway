@@ -496,6 +496,17 @@ def test_portfolio_openapi_contract_registered() -> None:
     identity_schema = spec["components"]["schemas"]["PortfolioIdentity"]
     profile_schema = spec["components"]["schemas"]["PortfolioProfile"]
     summary_schema = spec["components"]["schemas"]["PortfolioSummary"]
+    for name in ("cash_market_value_base", "cash_weight_pct", "invested_market_value_base"):
+        assert name in summary_schema["required"]
+        assert {branch["type"] for branch in summary_schema["properties"][name]["anyOf"]} == {
+            "number",
+            "null",
+        }
+        assert (
+            "Null" in summary_schema["properties"][name]["description"]
+            or "null" in summary_schema["properties"][name]["description"]
+        )
+    assert summary_schema["properties"]["assets_under_management_base"]["type"] == "number"
     cash_balance_schema = spec["components"]["schemas"]["PortfolioCashBalance"]
     allocation_bucket_schema = spec["components"]["schemas"]["PortfolioAllocationBucket"]
     allocation_contributor_schema = spec["components"]["schemas"]["PortfolioAllocationContributor"]

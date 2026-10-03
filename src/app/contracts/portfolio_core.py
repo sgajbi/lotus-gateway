@@ -31,16 +31,26 @@ class PortfolioSummary(BaseModel):
         description="Total assets under management for the portfolio, expressed in base currency.",
         examples=[1000.0],
     )
-    invested_market_value_base: float = Field(
-        description="Invested market value excluding cash, expressed in base currency.",
+    invested_market_value_base: float | None = Field(
+        description=(
+            "Invested market value excluding cash, expressed in base currency. "
+            "Null when position-derived cash is unavailable; independent AUM remains separate."
+        ),
         examples=[900.0],
     )
-    cash_market_value_base: float = Field(
-        description="Total cash market value, expressed in base currency.",
+    cash_market_value_base: float | None = Field(
+        description=(
+            "Total cash market value, expressed in base currency. For position-derived "
+            "summaries, null if any cash row lacks valuation; zero means measured zero "
+            "or no cash rows."
+        ),
         examples=[100.0],
     )
-    cash_weight_pct: float = Field(
-        description="Cash weight as a percentage of total assets under management.",
+    cash_weight_pct: float | None = Field(
+        description=(
+            "Cash weight as a percentage of total assets under management. "
+            "Null when position-derived cash valuation is unavailable."
+        ),
         examples=[10.0],
     )
     position_count: int = Field(

@@ -107,7 +107,7 @@ def concentration_insight(
 
 
 def cash_allocation_insight(summary: PortfolioSummary) -> PortfolioInsight | None:
-    if (summary.cash_weight_pct or 0) < 15:
+    if summary.cash_weight_pct is None or summary.cash_weight_pct < 15:
         return None
     return PortfolioInsight(
         key="cash-above-target",
@@ -151,7 +151,7 @@ def has_cash_funding_evidence(
 ) -> bool:
     if summary.cash_balance_count > 0:
         return True
-    if summary.cash_market_value_base > 0:
+    if summary.cash_market_value_base is not None and summary.cash_market_value_base > 0:
         return True
 
     inflow_bucket = next(

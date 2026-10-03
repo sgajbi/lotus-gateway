@@ -761,6 +761,18 @@ semantics.
 
 ### Portfolio allocation contributors
 
+The position-book and allocation `summary` use the same cash valuation mapper. A missing or null
+cash valuation (including an absent or null valuation object) makes `cash_market_value_base`,
+`cash_weight_pct`, and `invested_market_value_base` explicit `null`; mixed valued/unvalued cash
+rows never publish a partial sum as a complete total. Independent AUM and source row counts remain
+visible. Zero is retained for measured cash zero or no cash rows, and signed cash is preserved.
+The existing `valuation.market_value` fallback remains supported when the base value is unavailable;
+an explicit numeric base zero takes precedence. Row-money, total-money, and percentage rounding
+are unchanged. Consumers must display unavailable dependent values rather than coalescing them to
+zero. This summary does not certify an atomic AUM/positions snapshot or alter Core allocation
+coverage. Workbench consumer migration is required before #819 promotion; Gateway route tests
+alone are not browser or live Core acceptance.
+
 ```bash
 curl "$GATEWAY_BASE_URL/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/allocations?as_of_date=2026-03-27&reporting_currency=USD&look_through_mode=prefer_look_through&contributor_limit_per_bucket=50"
 ```
