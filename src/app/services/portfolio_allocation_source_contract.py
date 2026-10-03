@@ -219,6 +219,12 @@ class SourceAllocationLookThrough(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
+    @model_validator(mode="after")
+    def validate_applied_mode_within_request(self) -> "SourceAllocationLookThrough":
+        if self.requested_mode == "direct_only" and self.applied_mode != "direct_only":
+            raise ValueError("allocation applied look-through mode exceeds the requested mode")
+        return self
+
 
 class SourceAllocationScope(BaseModel):
     portfolio_id: str = Field(min_length=1)

@@ -146,6 +146,8 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         payload["views"][0]["buckets"][0]["contributors"][0]["portfolio_id"] = "PF_OTHER"
     elif scenario == "invalid-look-through-mode":
         payload["look_through"]["requested_mode"] = "prefer_look_through"
+    elif scenario == "invalid-applied-look-through-mode":
+        payload["look_through"]["applied_mode"] = "prefer_look_through"
     elif scenario == "invalid-trusted-bucket-value":
         payload["views"][0]["buckets"][0]["market_value_reporting_currency"] = None
         payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
@@ -273,6 +275,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_residual_qualification = get_scenario("invalid-residual-qualification")
     invalid_contributor_portfolio = get_scenario("invalid-contributor-portfolio")
     invalid_look_through_mode = get_scenario("invalid-look-through-mode")
+    invalid_applied_look_through_mode = get_scenario("invalid-applied-look-through-mode")
     invalid_trusted_bucket_value = get_scenario("invalid-trusted-bucket-value")
     invalid_trusted_bucket_weight = get_scenario("invalid-trusted-bucket-weight")
     invalid_contributor_weight_without_bucket = get_scenario(
@@ -326,6 +329,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_residual_qualification,
         invalid_contributor_portfolio,
         invalid_look_through_mode,
+        invalid_applied_look_through_mode,
         invalid_trusted_bucket_value,
         invalid_trusted_bucket_weight,
         invalid_contributor_weight_without_bucket,
@@ -339,7 +343,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 20
+    assert len(allocation_requests) == 21
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
