@@ -25,12 +25,27 @@ from tests.shared.portfolio_allocation_payload import (
 )
 
 
-def _empty_allocation_views(total: str | None) -> list[dict[str, object]]:
+def _reconciled_allocation_views(total: str | None) -> list[dict[str, object]]:
     return [
         {
             "dimension": dimension,
             "total_market_value_reporting_currency": total,
-            "buckets": [],
+            "buckets": (
+                []
+                if total in {None, "0"}
+                else [
+                    {
+                        "dimension_value": "Other",
+                        "market_value_reporting_currency": total,
+                        "weight": "1",
+                        "position_count": 0,
+                        "contributor_count": 0,
+                        "contributors": [],
+                        "contributors_truncated": True,
+                        "omitted_market_value_reporting_currency": total,
+                    }
+                ]
+            ),
         }
         for dimension in ALLOCATION_VIEW_DIMENSIONS
     ]
@@ -259,7 +274,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
                 },
                 *[
                     view
-                    for view in _empty_allocation_views("700.123")
+                    for view in _reconciled_allocation_views("700.123")
                     if view["dimension"] != "region"
                 ],
             ],
@@ -308,7 +323,7 @@ def test_build_portfolio_allocation_response_uses_source_currency_and_default_da
                 expected_open_position_count=0,
                 valued_position_count=0,
             ),
-            "views": _empty_allocation_views("0"),
+            "views": _reconciled_allocation_views("0"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -340,7 +355,7 @@ def test_build_portfolio_allocation_response_binds_explicit_date_not_separate_au
         positions_payload={"positions": []},
         allocation_payload={
             **allocation_source_evidence(total_market_value_reporting_currency="100"),
-            "views": _empty_allocation_views("100"),
+            "views": _reconciled_allocation_views("100"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -474,7 +489,7 @@ def test_parse_allocation_evidence_rejects_incoherent_coverage_counts(
 
 
 def test_build_portfolio_allocation_response_rejects_weight_under_degraded_coverage() -> None:
-    views = _empty_allocation_views(None)
+    views = _reconciled_allocation_views(None)
     views[0]["buckets"] = [
         {
             "dimension_value": "Equity",
@@ -588,7 +603,7 @@ def test_build_portfolio_allocation_response_rejects_source_identity_mismatch(
             "decomposed_position_count": 0,
             "limitation_reason": None,
         },
-        "views": _empty_allocation_views("100"),
+        "views": _reconciled_allocation_views("100"),
     }
     if mismatch == "portfolio":
         allocation_payload["scope"] = {"portfolio_id": "PF_OTHER"}
