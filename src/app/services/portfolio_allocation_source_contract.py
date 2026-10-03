@@ -297,5 +297,14 @@ class SourceAllocationPayload(SourceAllocationEvidence):
             self.total_market_value_reporting_currency,
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
+        if self.look_through and self.look_through.applied_mode == "direct_only":
+            has_decomposition = self.look_through.decomposed_position_count or any(
+                contributor.contributor_type == "look_through_component"
+                for view in views
+                for bucket in view.buckets
+                for contributor in bucket.contributors
+            )
+            if has_decomposition:
+                raise ValueError("direct-only allocation cannot contain look-through decomposition")
         validate_allocation_weight_arithmetic(views, expected_total, self.calculation_lineage)
         return self

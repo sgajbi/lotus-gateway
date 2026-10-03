@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from decimal import Decimal, localcontext
+from decimal import Decimal, DecimalException, localcontext
 from typing import Protocol
 
 
@@ -54,16 +54,16 @@ def _expected_weight(
     policy = lineage.numeric_output_policy
     with localcontext() as context:
         context.prec = policy.working_precision if policy else lineage.intermediate_precision
-        ratio = numerator / denominator
-        if policy:
-            try:
+        try:
+            ratio = numerator / denominator
+            if policy:
                 return ratio.quantize(
                     Decimal("1").scaleb(-policy.scale),
                     rounding=policy.rounding,
                 )
-            except (TypeError, ValueError) as exc:
-                raise ValueError("unsupported numeric-output rounding policy") from exc
-        return ratio
+            return ratio
+        except (DecimalException, TypeError, ValueError) as exc:
+            raise ValueError("allocation weight arithmetic policy is unusable") from exc
 
 
 def validate_allocation_weight_arithmetic(

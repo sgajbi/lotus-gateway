@@ -148,6 +148,12 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         payload["look_through"]["requested_mode"] = "prefer_look_through"
     elif scenario == "invalid-applied-look-through-mode":
         payload["look_through"]["applied_mode"] = "prefer_look_through"
+    elif scenario == "invalid-direct-only-component":
+        payload["views"][0]["buckets"][0]["contributors"][0]["contributor_type"] = (
+            "look_through_component"
+        )
+    elif scenario == "invalid-direct-only-decomposition":
+        payload["look_through"]["decomposed_position_count"] = 1
     elif scenario == "invalid-trusted-bucket-value":
         payload["views"][0]["buckets"][0]["market_value_reporting_currency"] = None
         payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
@@ -189,6 +195,24 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         bond_bucket["weight"] = "0.1"
         bond_bucket["contributors"][0]["market_value_reporting_currency"] = "10"
         bond_bucket["contributors"][0]["bucket_weight"] = "1"
+        bond_bucket["omitted_market_value_reporting_currency"] = "0"
+    elif scenario == "invalid-numeric-policy-arithmetic":
+        payload = _allocation_payload("signed")
+        payload["total_market_value_reporting_currency"] = "1"
+        payload["calculation_lineage"]["numeric_output_policy"] = {
+            "name": "allocation-output",
+            "version": "1.0.0",
+            "precision": 1,
+            "scale": 1,
+            "working_precision": 1,
+            "rounding": "ROUND_HALF_EVEN",
+        }
+        for view in payload["views"]:
+            view["total_market_value_reporting_currency"] = "1"
+        bond_bucket = payload["views"][0]["buckets"][1]
+        bond_bucket["market_value_reporting_currency"] = "-99"
+        bond_bucket["weight"] = "-99"
+        bond_bucket["contributors"][0]["market_value_reporting_currency"] = "-99"
         bond_bucket["omitted_market_value_reporting_currency"] = "0"
     return payload
 
@@ -281,6 +305,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_contributor_portfolio = get_scenario("invalid-contributor-portfolio")
     invalid_look_through_mode = get_scenario("invalid-look-through-mode")
     invalid_applied_look_through_mode = get_scenario("invalid-applied-look-through-mode")
+    invalid_direct_only_component = get_scenario("invalid-direct-only-component")
+    invalid_direct_only_decomposition = get_scenario("invalid-direct-only-decomposition")
     invalid_trusted_bucket_value = get_scenario("invalid-trusted-bucket-value")
     invalid_trusted_bucket_weight = get_scenario("invalid-trusted-bucket-weight")
     invalid_contributor_weight_without_bucket = get_scenario(
@@ -292,6 +318,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_unavailable_bucket = get_scenario("invalid-unavailable-bucket")
     invalid_view_bucket_total = get_scenario("invalid-view-bucket-total")
     invalid_aum_date = get_scenario("invalid-aum-date")
+    invalid_numeric_policy_arithmetic = get_scenario("invalid-numeric-policy-arithmetic")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -337,6 +364,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_contributor_portfolio,
         invalid_look_through_mode,
         invalid_applied_look_through_mode,
+        invalid_direct_only_component,
+        invalid_direct_only_decomposition,
         invalid_trusted_bucket_value,
         invalid_trusted_bucket_weight,
         invalid_contributor_weight_without_bucket,
@@ -346,13 +375,14 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_unavailable_bucket,
         invalid_view_bucket_total,
         invalid_aum_date,
+        invalid_numeric_policy_arithmetic,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 23
+    assert len(allocation_requests) == 26
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
