@@ -1,9 +1,60 @@
+import pytest
+
 from app.services.portfolio_position_book import (
     build_position_book_response,
     build_top_positions,
     parse_position_book_summary,
     parse_positions,
 )
+
+
+@pytest.mark.parametrize(
+    "cash_rows, expected",
+    [
+        ([{"valuation": {"market_value_base": None}}], None),
+        ([{"valuation": {}}], None),
+        ([{"valuation": None}], None),
+        ([{}], None),
+        ([{"valuation": {"market_value_base": 100}}, {}], None),
+        ([{}, {"valuation": {"market_value_base": 100}}], None),
+        ([{"valuation": {"market_value_base": 0}}], 0.0),
+        ([{"valuation": {"market_value_base": 100}}], 100.0),
+        ([{"valuation": {"market_value_base": -100}}], -100.0),
+        ([{"valuation": {"market_value": 100}}], 100.0),
+        ([{"valuation": {"market_value_base": 0, "market_value": 100}}], 0.0),
+        ([], 0.0),
+    ],
+)
+def test_cash_summary_requires_every_cash_valuation(cash_rows, expected):
+    summary = parse_position_book_summary(
+        {"portfolios": [{"aum_reporting_currency": 1000, "position_count": len(cash_rows) + 1}]},
+        {
+            "positions": [
+                *({"asset_class": " Cash ", **row} for row in cash_rows),
+                {"asset_class": "Equity", "valuation": None},
+            ]
+        },
+    )
+    assert summary.assets_under_management_base == 1000.0
+    assert summary.cash_market_value_base == expected
+    assert summary.cash_balance_count == len(cash_rows)
+    assert summary.invested_market_value_base == (None if expected is None else 1000 - expected)
+    assert summary.cash_weight_pct == (None if expected is None else expected / 10)
+
+
+def test_cash_summary_preserves_row_and_total_money_rounding():
+    summary = parse_position_book_summary(
+        {"portfolios": [{"aum_reporting_currency": "1000.004", "position_count": 2}]},
+        {
+            "positions": [
+                {"asset_class": "Cash", "valuation": {"market_value_base": "12.345"}},
+                {"asset_class": "Cash", "valuation": {"market_value_base": "-2.344"}},
+            ]
+        },
+    )
+    assert summary.cash_market_value_base == 10.0
+    assert summary.invested_market_value_base == 990.0
+    assert summary.cash_weight_pct == 1.0
 
 
 def test_parse_position_book_summary_uses_cash_positions_without_cash_endpoint():

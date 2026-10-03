@@ -310,19 +310,19 @@
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/portfolio_core.py:34:invested_market_value_base: float = Field(",
+      "finding": "src/app/contracts/portfolio_core.py:34:invested_market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/portfolio_core.py:38:cash_market_value_base: float = Field(",
+      "finding": "src/app/contracts/portfolio_core.py:41:cash_market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/portfolio_core.py:42:cash_weight_pct: float = Field(",
+      "finding": "src/app/contracts/portfolio_core.py:49:cash_weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
@@ -682,19 +682,19 @@
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_position_book.py:163:cash_total += float(quantize_money(market_value or 0))",
+      "finding": "src/app/services/portfolio_position_book.py:171:cash_total += float(quantize_money(market_value))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_position_book.py:165:return float(quantize_money(cash_total)), cash_count",
+      "finding": "src/app/services/portfolio_position_book.py:173:return None if valuation_missing else float(quantize_money(cash_total)), cash_count",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_position_book.py:54:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
+      "finding": "src/app/services/portfolio_position_book.py:55:invested_market_value_base = float(quantize_money(total_aum - cash_total))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-02"

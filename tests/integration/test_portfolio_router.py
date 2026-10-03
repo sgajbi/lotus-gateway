@@ -1958,6 +1958,111 @@ def test_portfolio_allocations_router_rejects_legacy_look_through_alias():
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize("route", ["positions", "allocations"])
+@pytest.mark.parametrize(
+    "cash_rows, expected",
+    [
+        ([{"valuation": {"market_value_base": None}}], None),
+        ([{"valuation": {}}], None),
+        ([{"valuation": None}], None),
+        ([{}], None),
+        ([{"valuation": {"market_value_base": 100}}, {}], None),
+        ([{}, {"valuation": {"market_value_base": 100}}], None),
+        ([{"valuation": {"market_value_base": 0}}], 0.0),
+        ([{"valuation": {"market_value_base": 100}}], 100.0),
+        ([{"valuation": {"market_value_base": -100}}], -100.0),
+        ([{"valuation": {"market_value": 100}}], 100.0),
+        ([{"valuation": {"market_value_base": 0, "market_value": 100}}], 0.0),
+        ([], 0.0),
+    ],
+)
+def test_registered_holdings_summaries_preserve_unavailable_cash(
+    monkeypatch, route, cash_rows, expected
+):
+    async def _aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {
+                    "portfolio_id": "PF_1001",
+                    "aum_reporting_currency": 1000,
+                    "position_count": len(cash_rows) + 1,
+                }
+            ],
+        }
+
+    async def _positions(*args, **kwargs):
+        return 200, {
+            "positions": [
+                *(
+                    {"security_id": f"CASH_{index}", "asset_class": "Cash", **row}
+                    for index, row in enumerate(cash_rows)
+                ),
+                {
+                    "security_id": "EQ_1",
+                    "asset_class": "Equity",
+                    "valuation": {"market_value_base": 900},
+                },
+            ]
+        }
+
+    async def _allocation(*args, **kwargs):
+        return 200, {
+            **allocation_source_evidence(),
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
+            "views": complete_allocation_views(
+                {
+                    "total_market_value_reporting_currency": "1000.00",
+                    "buckets": [
+                        {
+                            "dimension_value": "Other",
+                            "market_value_reporting_currency": "1000.00",
+                            "weight": "1",
+                            "position_count": 1,
+                            "contributor_count": 1,
+                            "contributors": [],
+                            "contributors_truncated": True,
+                            "omitted_market_value_reporting_currency": "1000.00",
+                        }
+                    ],
+                }
+            ),
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/portfolio/portfolios/PF_1001/{route}",
+            params={"as_of_date": "2026-03-27", "reporting_currency": "USD"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"] == {
+        "assets_under_management_base": 1000.0,
+        "cash_market_value_base": expected,
+        "cash_weight_pct": None if expected is None else expected / 10,
+        "invested_market_value_base": None if expected is None else 1000 - expected,
+        "position_count": len(cash_rows) + 1,
+        "cash_balance_count": len(cash_rows),
+    }
+    if route == "positions":
+        assert len(body["positions"]) == len(cash_rows) + 1
+        assert body["positions"][-1]["market_value_base"] == 900.0
+        if expected is None:
+            assert any(row["market_value_base"] is None for row in body["positions"])
+    else:
+        assert body["total_market_value_reporting_currency"] == "1000.00"
+        assert body["valuation_coverage"]["coverage_state"] == "COMPLETE"
+
+
 def test_portfolio_positions_router(monkeypatch):
     captured: dict[str, object] = {}
 

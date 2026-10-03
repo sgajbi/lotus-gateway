@@ -46,12 +46,16 @@ def parse_position_book_summary(
     first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
     total_aum = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
     cash_total, cash_balance_count = summarize_cash_positions(positions_payload)
-    cash_weight = (
-        float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
-    )
+    cash_weight = None
+    invested_market_value_base = None
+    if cash_total is not None:
+        cash_weight = (
+            float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
+        )
+        invested_market_value_base = float(quantize_money(total_aum - cash_total))
     return PortfolioSummary(
         assets_under_management_base=total_aum,
-        invested_market_value_base=float(quantize_money(total_aum - cash_total)),
+        invested_market_value_base=invested_market_value_base,
         cash_market_value_base=cash_total,
         cash_weight_pct=cash_weight,
         position_count=int(first_portfolio.get("position_count", 0)),
@@ -148,9 +152,10 @@ def position_valuation_value(
     return None
 
 
-def summarize_cash_positions(payload: dict[str, Any]) -> tuple[float, int]:
+def summarize_cash_positions(payload: dict[str, Any]) -> tuple[float | None, int]:
     cash_total = 0.0
     cash_count = 0
+    valuation_missing = False
     for item in payload.get("positions", []):
         if not isinstance(item, dict):
             continue
@@ -160,9 +165,12 @@ def summarize_cash_positions(payload: dict[str, Any]) -> tuple[float, int]:
         market_value = position_valuation_value(
             item, "market_value_base", fallback_key="market_value"
         )
-        cash_total += float(quantize_money(market_value or 0))
+        if market_value is None:
+            valuation_missing = True
+        else:
+            cash_total += float(quantize_money(market_value))
         cash_count += 1
-    return float(quantize_money(cash_total)), cash_count
+    return None if valuation_missing else float(quantize_money(cash_total)), cash_count
 
 
 def build_top_positions(

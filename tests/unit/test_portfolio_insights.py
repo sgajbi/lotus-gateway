@@ -8,10 +8,24 @@ from app.contracts.portfolio import (
 )
 from app.services.portfolio_insights import (
     build_portfolio_insights,
+    cash_allocation_insight,
     has_cash_funding_evidence,
     max_position_weight,
     requested_window_activity_amount,
 )
+
+
+def test_unavailable_cash_does_not_invent_allocation_or_funding_evidence():
+    summary = PortfolioSummary(
+        assets_under_management_base=1000,
+        invested_market_value_base=None,
+        cash_market_value_base=None,
+        cash_weight_pct=None,
+        position_count=1,
+        cash_balance_count=0,
+    )
+    assert cash_allocation_insight(summary) is None
+    assert has_cash_funding_evidence(summary=summary, activity_summary=_activity()) is False
 
 
 def _summary(

@@ -794,6 +794,14 @@ repository fails here rather than validating someone else's protection.
 
 ## Known Constraints And Implementation Notes
 
+Position-book and allocation summaries share `portfolio_position_book.parse_position_book_summary`.
+Any cash row without a usable valuation makes cash value, cash weight, and invested value explicitly
+nullable, while independently supplied AUM and counts remain visible. Mixed cash coverage cannot
+publish a partial sum. Measured zero, no-cash, negative cash, existing legacy market-value fallback,
+and monetary/percentage rounding retain their prior semantics. The shared `PortfolioSummary` schema
+admits these nulls; workspace/book producers remain unchanged. Consumers must not coalesce nullable
+invested value to zero. This is not atomic AUM/positions snapshot proof or live Core certification.
+
 Portfolio transaction settlement applicability is a joint source contract: `component_type`
 identifies canonical FX cash-settlement components and nullable `settlement_status` carries their
 source-owned lifecycle state. Keep both meanings explicit in Gateway OpenAPI, preserve explicit
