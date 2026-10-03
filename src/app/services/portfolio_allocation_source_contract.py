@@ -223,6 +223,7 @@ class SourceAllocationPayload(SourceAllocationEvidence):
     scope: SourceAllocationScope
     resolved_as_of_date: date
     reporting_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    look_through: SourceAllocationLookThrough | None = None
     views: list[SourceAllocationView] | None = None
 
     @field_validator("reporting_currency", mode="before")
@@ -233,17 +234,38 @@ class SourceAllocationPayload(SourceAllocationEvidence):
     @model_validator(mode="after")
     def validate_view_totals_match_evidence(self) -> "SourceAllocationPayload":
         expected_total = self.total_market_value_reporting_currency
+        coverage_state = self.valuation_coverage.coverage_state
         if any(
             view.total_market_value_reporting_currency != expected_total
             for view in self.views or []
         ):
             raise ValueError("allocation view totals must match full-scope source evidence")
-        if self.valuation_coverage.coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES:
+        if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES:
             has_known_weight = any(
                 bucket.weight is not None for view in self.views or [] for bucket in view.buckets
             )
             if has_known_weight:
                 raise ValueError("degraded allocation valuation coverage requires unknown weights")
+        if coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"}:
+            has_unknown_bucket_value = any(
+                bucket.market_value_reporting_currency is None
+                for view in self.views or []
+                for bucket in view.buckets
+            )
+            if has_unknown_bucket_value:
+                raise ValueError(
+                    "trusted allocation valuation coverage requires known bucket values"
+                )
+        if coverage_state == "LOADED_EMPTY" and any(view.buckets for view in self.views or []):
+            raise ValueError("loaded-empty allocation coverage cannot contain buckets")
+        contributor_portfolio_mismatch = any(
+            contributor.portfolio_id != self.scope.portfolio_id
+            for view in self.views or []
+            for bucket in view.buckets
+            for contributor in bucket.contributors
+        )
+        if contributor_portfolio_mismatch:
+            raise ValueError("allocation contributors must match the source portfolio scope")
         return self
 
 

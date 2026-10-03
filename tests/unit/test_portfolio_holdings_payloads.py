@@ -209,6 +209,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
                 },
             ]
         },
+        look_through_mode="prefer_look_through",
         allocation_payload={
             **allocation_source_evidence(
                 total_market_value_reporting_currency="700.123",

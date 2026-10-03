@@ -192,6 +192,7 @@ class PortfolioHoldingsServiceMixin(PortfolioProjectedCashflowServiceMixin):
                 aum_payload=payloads.aum_payload,
                 positions_payload=payloads.positions_payload,
                 allocation_payload=payloads.allocation_payload,
+                look_through_mode=look_through_mode,
             )
         except PortfolioAllocationSourceContractError as exc:
             raise HTTPException(
