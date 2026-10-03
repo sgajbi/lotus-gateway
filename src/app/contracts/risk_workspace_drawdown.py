@@ -73,8 +73,11 @@ class WorkbenchRiskDrawdownEpisode(BaseModel):
         description="Stable identifier for the drawdown episode within the selected period.",
         examples=["dd_0001"],
     )
-    peak_date: str = Field(
-        description="Peak date where the drawdown episode began.",
+    peak_date: str | None = Field(
+        description=(
+            "Observed peak date where the drawdown episode began. Null when the peak is "
+            "the source-owned undated opening-wealth baseline."
+        ),
         examples=["2026-01-12"],
     )
     trough_date: str = Field(
@@ -90,8 +93,11 @@ class WorkbenchRiskDrawdownEpisode(BaseModel):
         description="Maximum drawdown depth reached during the episode.",
         examples=[-0.124533],
     )
-    days_to_trough: int = Field(
-        description="Business days elapsed from peak to trough for the episode.",
+    days_to_trough: int | None = Field(
+        description=(
+            "Source duration-unit days from observed peak to trough. Null when the peak "
+            "is the undated opening-wealth baseline; not a measured zero duration."
+        ),
         examples=[16],
     )
     days_to_recovery: int | None = Field(
@@ -99,8 +105,11 @@ class WorkbenchRiskDrawdownEpisode(BaseModel):
         description="Business days elapsed from trough to recovery for the episode.",
         examples=[28],
     )
-    total_days: int = Field(
-        description="Total business-day duration of the episode.",
+    total_days: int | None = Field(
+        description=(
+            "Source duration-unit days from observed peak to recovery or period end. Null "
+            "when the peak is the undated opening-wealth baseline."
+        ),
         examples=[34],
     )
     is_recovered: bool = Field(

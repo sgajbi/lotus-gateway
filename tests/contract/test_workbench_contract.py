@@ -644,6 +644,15 @@ def test_workbench_openapi_contract_registered() -> None:
         -0.117884
     ]
     assert drawdown_episode_schema["properties"]["depth"]["examples"] == [-0.124533]
+    for field, concrete_type in (
+        ("peak_date", "string"),
+        ("days_to_trough", "integer"),
+        ("total_days", "integer"),
+    ):
+        timing = drawdown_episode_schema["properties"][field]
+        assert {option["type"] for option in timing["anyOf"]} == {concrete_type, "null"}
+        assert field in drawdown_episode_schema["required"]
+        assert "undated opening-wealth baseline" in timing["description"]
     assert relative_drawdown_schema["properties"]["time_under_water_days"]["description"]
     assert relative_context_schema["properties"]["aligned_observation_count"]["examples"] == [36]
     assert underwater_point_schema["properties"]["drawdown"]["examples"] == [-0.0521]

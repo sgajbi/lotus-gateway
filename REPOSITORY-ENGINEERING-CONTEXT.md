@@ -794,6 +794,14 @@ repository fails here rather than validating someone else's protection.
 
 ## Known Constraints And Implementation Notes
 
+Workbench drawdown episodes use the existing Risk DTO/mapper with required nullable `peak_date`,
+`days_to_trough`, and `total_days` for Risk's undated opening-wealth baseline. Preserve nulls,
+episode identity, depth, observed trough/recovery, source quality and existing depth ordering;
+do not fabricate timing or downgrade a valid episode solely for an unknown opening peak.
+Workbench must admit nullable timing and render unavailable values. Retained actual Risk HTTP
+response replay through registered Gateway routes proves this bounded contract, not live-network,
+browser, stateful source, IAM or banking acceptance. Risk remains calculation authority.
+
 Position-book and allocation summaries share `portfolio_position_book.parse_position_book_summary`.
 Any cash row without a usable valuation makes cash value, cash weight, and invested value explicitly
 nullable, while independently supplied AUM and counts remain visible. Mixed cash coverage cannot
