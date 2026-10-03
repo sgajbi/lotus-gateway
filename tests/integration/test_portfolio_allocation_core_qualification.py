@@ -40,7 +40,12 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         state, reason, valued, unvalued = "COMPLETE", "all_source_positions_covered", 2, 0
     else:
         total, bond_value, equity_weight, bond_weight = "100", "0", "1", "0"
-        state = "CARRY_FORWARD" if scenario == "carry-forward" else "COMPLETE"
+        if scenario == "carry-forward":
+            state = "CARRY_FORWARD"
+        elif scenario == "invalid-measured-zero":
+            state = "MEASURED_ZERO"
+        else:
+            state = "COMPLETE"
         reason = (
             "latest_source_snapshot_precedes_as_of_date"
             if scenario == "carry-forward"
@@ -49,7 +54,7 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         valued, unvalued = 2, 0
 
     bond_residual = None if bond_value is None else "0"
-    return {
+    payload = {
         "scope_type": "portfolio",
         "scope": {"portfolio_id": "PF_CORE_QUALIFIED"},
         "resolved_as_of_date": "2026-04-09",
@@ -81,7 +86,7 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         },
         "views": [
             {
-                "dimension": "asset_class",
+                "dimension": dimension,
                 "total_market_value_reporting_currency": (
                     "100" if scenario == "contradictory" else total
                 ),
@@ -110,8 +115,12 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
                     },
                 ],
             }
+            for dimension in ["asset_class", "currency", "sector", "region"]
         ],
     }
+    if scenario == "wrong-scope":
+        payload["scope"] = {"portfolio_id": "PF_OTHER"}
+    return payload
 
 
 def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch) -> None:
@@ -133,9 +142,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
                     ],
                 },
             )
-        if request.url.path.startswith(
-            "/portfolios/PF_CORE_QUALIFIED_"
-        ) and request.url.path.endswith("/positions"):
+        if request.url.path == "/portfolios/PF_CORE_QUALIFIED/positions":
             return httpx.Response(
                 200,
                 json={
@@ -171,11 +178,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     service = PortfolioService(core_client, upstream_cache_ttl_seconds=0.001)
 
     async def query_asset_allocation(**kwargs):
-        scenario = kwargs.pop("portfolio_id").removeprefix("PF_CORE_QUALIFIED_").lower()
-        active_scenario[0] = scenario
         return await LotusCoreQueryClient.query_asset_allocation(
             core_client,
-            portfolio_id="PF_CORE_QUALIFIED",
             **kwargs,
         )
 
@@ -183,26 +187,21 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     monkeypatch.setattr("app.routers.portfolio_allocations.portfolio_service", lambda: service)
 
     client = TestClient(app)
-    unknown = client.get(
-        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_UNKNOWN/allocations",
-        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
-    ).json()
-    zero = client.get(
-        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_ZERO/allocations",
-        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
-    ).json()
-    signed = client.get(
-        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_SIGNED/allocations",
-        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
-    ).json()
-    carry_forward = client.get(
-        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_CARRY-FORWARD/allocations",
-        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
-    ).json()
-    contradictory = client.get(
-        "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED_CONTRADICTORY/allocations",
-        params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
-    )
+
+    def get_scenario(scenario: str) -> httpx.Response:
+        active_scenario[0] = scenario
+        return client.get(
+            "/api/v1/portfolio/portfolios/PF_CORE_QUALIFIED/allocations",
+            params={"as_of_date": "2026-04-09", "reporting_currency": "USD"},
+        )
+
+    unknown = get_scenario("unknown").json()
+    zero = get_scenario("zero").json()
+    signed = get_scenario("signed").json()
+    carry_forward = get_scenario("carry-forward").json()
+    contradictory = get_scenario("contradictory")
+    wrong_scope = get_scenario("wrong-scope")
+    invalid_measured_zero = get_scenario("invalid-measured-zero")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -227,7 +226,14 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     assert carry_forward["valuation_coverage"]["coverage_state"] == "CARRY_FORWARD"
     assert contradictory.status_code == 502
     assert contradictory.json()["detail"]["error_code"] == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
-    assert len(allocation_requests) == 5
+    assert wrong_scope.status_code == 502
+    assert wrong_scope.json()["detail"]["error_code"] == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
+    assert invalid_measured_zero.status_code == 502
+    assert (
+        invalid_measured_zero.json()["detail"]["error_code"]
+        == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
+    )
+    assert len(allocation_requests) == 7
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

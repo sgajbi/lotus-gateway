@@ -757,9 +757,12 @@ dependent totals, weights, bucket values, contributor values, and residuals rema
 being presented as measured zero. Genuine zero, signed exposure, carry-forward, and loaded-empty
 states remain distinct. Gateway rejects a numeric aggregate total for partial or unavailable
 coverage and rejects a missing aggregate total for trusted coverage. Every view total must match
-that aggregate exactly, including its null qualification. Portfolio
+that aggregate exactly, including its null qualification. `MEASURED_ZERO` and `LOADED_EMPTY`
+require a numeric zero total. Gateway also verifies that the successful source envelope identifies
+the requested portfolio, effective as-of date, reporting currency, and exactly the four canonical
+dimensions without duplicates; any mismatch fails closed. Portfolio
 insight and readiness fallbacks consume the same coverage state: partial maps to incomplete pricing and
-unavailable maps to missing pricing evidence. Each bucket publishes typed direct-position or
+unavailable or loaded-empty maps to missing pricing evidence. Each bucket publishes typed direct-position or
 look-through-component contributors,
 booked/component identity, source snapshot and component-record lineage, reporting-currency value,
 component weight, and bounded truncation/residual metadata. `effective_mode` is Core's

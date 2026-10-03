@@ -212,7 +212,7 @@ def pricing_readiness_status(
     allocation_views: list[PortfolioAllocationView],
     allocation_coverage_state: AllocationValuationCoverageState | None = None,
 ) -> str:
-    if allocation_coverage_state == "UNAVAILABLE":
+    if allocation_coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"}:
         return "Missing"
     if allocation_coverage_state == "PARTIAL":
         return "Partial"

@@ -145,3 +145,11 @@ def test_pricing_readiness_fails_closed_for_degraded_allocation_coverage() -> No
         )
         == "Missing"
     )
+    assert (
+        pricing_readiness_status(
+            positions=[],
+            allocation_views=allocation_views,
+            allocation_coverage_state="LOADED_EMPTY",
+        )
+        == "Missing"
+    )

@@ -7,7 +7,11 @@ from fastapi import HTTPException
 from app.middleware.caller_identity import capture_caller_identity, release_caller_identity
 from app.services.portfolio_service import PortfolioService
 from app.services.portfolio_transaction_temporal import transaction_date_value
-from tests.shared.portfolio_allocation_payload import allocation_evidence
+from tests.shared.portfolio_allocation_payload import (
+    allocation_source_evidence,
+    complete_allocation_views,
+    empty_allocation_views,
+)
 
 
 class _StubLotusCoreQueryClient:
@@ -180,7 +184,10 @@ class _StubLotusCoreQueryClient:
 
     async def query_asset_allocation(self, **kwargs):
         return 200, {
-            **allocation_evidence(total_market_value_reporting_currency="700.0"),
+            **allocation_source_evidence(
+                total_market_value_reporting_currency="700.0",
+                reporting_currency=kwargs.get("reporting_currency") or "USD",
+            ),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -188,7 +195,7 @@ class _StubLotusCoreQueryClient:
                 "decomposed_position_count": 0,
                 "limitation_reason": None,
             },
-            "views": [
+            "views": complete_allocation_views(
                 {
                     "dimension": "asset_class",
                     "total_market_value_reporting_currency": 700.0,
@@ -221,7 +228,7 @@ class _StubLotusCoreQueryClient:
                         }
                     ],
                 }
-            ],
+            ),
         }
 
     async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
@@ -908,7 +915,7 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
 
         async def query_asset_allocation(self, **kwargs):
             return 200, {
-                **allocation_evidence(
+                **allocation_source_evidence(
                     total_market_value_reporting_currency="0",
                     coverage_state="LOADED_EMPTY",
                     coverage_reason="source_snapshot_has_no_open_positions",
@@ -916,7 +923,14 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
                     expected_open_position_count=0,
                     valued_position_count=0,
                 ),
-                "views": [],
+                "look_through": {
+                    "requested_mode": "direct_only",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": None,
+                },
+                "views": empty_allocation_views(0),
             }
 
         async def get_portfolio_transactions(
@@ -1135,7 +1149,7 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
 
         async def query_asset_allocation(self, **kwargs):
             return 200, {
-                **allocation_evidence(
+                **allocation_source_evidence(
                     total_market_value_reporting_currency="0",
                     coverage_state="LOADED_EMPTY",
                     coverage_reason="source_snapshot_has_no_open_positions",
@@ -1143,7 +1157,14 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
                     expected_open_position_count=0,
                     valued_position_count=0,
                 ),
-                "views": [],
+                "look_through": {
+                    "requested_mode": "direct_only",
+                    "applied_mode": "direct_only",
+                    "supported": False,
+                    "decomposed_position_count": 0,
+                    "limitation_reason": None,
+                },
+                "views": empty_allocation_views(0),
             }
 
         async def get_portfolio_transactions(
@@ -1381,7 +1402,7 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
                 "weight_pct": 10.0,
             }
         ],
-        "allocation_views": [
+        "allocation_views": complete_allocation_views(
             {
                 "dimension": "asset_class",
                 "total_market_value_reporting_currency": Decimal("700.0"),
@@ -1415,7 +1436,7 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
                     }
                 ],
             }
-        ],
+        ),
         "top_positions": [
             {
                 "security_id": "EQ_1",
@@ -1791,8 +1812,10 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
             self.last_look_through_mode = kwargs.get("look_through_mode")
             self.last_contributor_limit_per_bucket = kwargs.get("contributor_limit_per_bucket")
             return 200, {
-                **allocation_evidence(total_market_value_reporting_currency="700.0"),
-                "reporting_currency": "SGD",
+                **allocation_source_evidence(
+                    total_market_value_reporting_currency="700.0",
+                    reporting_currency="SGD",
+                ),
                 "look_through": {
                     "requested_mode": "prefer_look_through",
                     "applied_mode": "direct_only",
@@ -1800,7 +1823,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                     "decomposed_position_count": 0,
                     "limitation_reason": "Look-through components were not available.",
                 },
-                "views": [
+                "views": complete_allocation_views(
                     {
                         "dimension": "region",
                         "total_market_value_reporting_currency": 700.0,
@@ -1833,7 +1856,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                             }
                         ],
                     }
-                ],
+                ),
             }
 
     client = _AllocationAwareClient()
@@ -1889,7 +1912,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
             "position_count": 3,
             "cash_balance_count": 1,
         },
-        "views": [
+        "views": complete_allocation_views(
             {
                 "dimension": "region",
                 "total_market_value_reporting_currency": Decimal("700.0"),
@@ -1923,7 +1946,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                     }
                 ],
             }
-        ],
+        ),
     }
 
 
@@ -1932,7 +1955,7 @@ async def test_portfolio_allocations_fail_closed_on_missing_source_look_through_
     class _InvalidAllocationClient(_StubLotusCoreQueryClient):
         async def query_asset_allocation(self, **kwargs):
             return 200, {
-                **allocation_evidence(total_market_value_reporting_currency="0"),
+                **allocation_source_evidence(total_market_value_reporting_currency="0"),
                 "views": [
                     {
                         "dimension": "region",
@@ -2436,7 +2459,7 @@ async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
         await service.get_portfolio_readiness(
             portfolio_id="PF_1001",
             correlation_id="corr-400",
-            as_of_date="bad-date",
+            as_of_date="2026-03-27",
         )
 
     assert exc_info.value.status_code == 400

@@ -25,7 +25,7 @@ from app.services.portfolio_allocation_source_contract import (
     SourceAllocationView,
     SourceCalculationLineage,
 )
-from app.services.portfolio_holdings_payloads import optional_str
+from app.services.portfolio_holdings_payloads import ALLOCATION_VIEW_DIMENSIONS, optional_str
 from app.services.portfolio_position_book import parse_position_book_summary
 
 
@@ -47,13 +47,21 @@ def build_portfolio_allocation_response(
 ) -> PortfolioAllocationResponse:
     _require_source_look_through_for_non_empty_views(allocation_payload)
     source = parse_allocation_payload(allocation_payload)
+    effective_as_of_date = str(
+        as_of_date or aum_payload.get("resolved_as_of_date") or default_as_of_date
+    )
+    _validate_source_request_identity(
+        source=source,
+        portfolio_id=portfolio_id,
+        as_of_date=effective_as_of_date,
+        reporting_currency=reporting_currency,
+    )
     return PortfolioAllocationResponse(
         correlation_id=correlation_id,
         contract_version=contract_version,
         portfolio_id=portfolio_id,
-        as_of_date=str(aum_payload.get("resolved_as_of_date") or as_of_date or default_as_of_date),
-        reporting_currency=optional_str(allocation_payload.get("reporting_currency"))
-        or reporting_currency,
+        as_of_date=source.resolved_as_of_date.isoformat(),
+        reporting_currency=source.reporting_currency,
         total_market_value_reporting_currency=(source.total_market_value_reporting_currency),
         valuation_coverage=_map_valuation_coverage(source.valuation_coverage),
         calculation_lineage=_map_calculation_lineage(source.calculation_lineage),
@@ -70,6 +78,27 @@ def parse_allocation_payload(payload: dict[str, Any]) -> SourceAllocationPayload
         raise PortfolioAllocationSourceContractError(
             "lotus-core allocation payload contract invalid"
         ) from exc
+
+
+def _validate_source_request_identity(
+    *,
+    source: SourceAllocationPayload,
+    portfolio_id: str,
+    as_of_date: str,
+    reporting_currency: str | None,
+) -> None:
+    expected_currency = optional_str(reporting_currency)
+    source_dimensions = [view.dimension for view in source.views or []]
+    if source.scope.portfolio_id != portfolio_id:
+        raise PortfolioAllocationSourceContractError("lotus-core allocation scope mismatch")
+    if source.resolved_as_of_date.isoformat() != as_of_date:
+        raise PortfolioAllocationSourceContractError("lotus-core allocation as-of date mismatch")
+    if expected_currency and source.reporting_currency != expected_currency.upper():
+        raise PortfolioAllocationSourceContractError("lotus-core allocation currency mismatch")
+    if len(source_dimensions) != len(set(source_dimensions)) or set(source_dimensions) != set(
+        ALLOCATION_VIEW_DIMENSIONS
+    ):
+        raise PortfolioAllocationSourceContractError("lotus-core allocation dimensions mismatch")
 
 
 def parse_allocation_evidence(payload: dict[str, Any]) -> SourceAllocationEvidence:

@@ -19,7 +19,21 @@ from app.services.portfolio_holdings_payloads import (
     load_portfolio_position_book_payloads,
     parse_cash_balances,
 )
-from tests.shared.portfolio_allocation_payload import allocation_evidence
+from tests.shared.portfolio_allocation_payload import (
+    allocation_evidence,
+    allocation_source_evidence,
+)
+
+
+def _empty_allocation_views(total: str | None) -> list[dict[str, object]]:
+    return [
+        {
+            "dimension": dimension,
+            "total_market_value_reporting_currency": total,
+            "buckets": [],
+        }
+        for dimension in ALLOCATION_VIEW_DIMENSIONS
+    ]
 
 
 @pytest.mark.asyncio
@@ -176,7 +190,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
         portfolio_id="PF_1001",
         as_of_date=None,
         default_as_of_date="2026-03-27",
-        reporting_currency="USD",
+        reporting_currency="SGD",
         aum_payload={
             "resolved_as_of_date": "2026-03-26",
             "portfolios": [
@@ -196,7 +210,11 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
             ]
         },
         allocation_payload={
-            **allocation_evidence(total_market_value_reporting_currency="700.123"),
+            **allocation_source_evidence(
+                total_market_value_reporting_currency="700.123",
+                resolved_as_of_date="2026-03-26",
+                reporting_currency="SGD",
+            ),
             "reporting_currency": " SGD ",
             "look_through": {
                 "requested_mode": "prefer_look_through",
@@ -237,7 +255,12 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
                             "omitted_market_value_reporting_currency": "0",
                         }
                     ],
-                }
+                },
+                *[
+                    view
+                    for view in _empty_allocation_views("700.123")
+                    if view["dimension"] != "region"
+                ],
             ],
         },
     )
@@ -262,7 +285,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
     assert response.views[0].buckets[0].market_value_base == 700.12
 
 
-def test_build_portfolio_allocation_response_uses_request_currency_and_default_date() -> None:
+def test_build_portfolio_allocation_response_uses_source_currency_and_default_date() -> None:
     response = build_portfolio_allocation_response(
         correlation_id="corr-allocation-fallback",
         contract_version="v1",
@@ -276,7 +299,7 @@ def test_build_portfolio_allocation_response_uses_request_currency_and_default_d
         },
         positions_payload={"positions": []},
         allocation_payload={
-            **allocation_evidence(
+            **allocation_source_evidence(
                 total_market_value_reporting_currency="0",
                 coverage_state="LOADED_EMPTY",
                 coverage_reason="source_snapshot_has_no_open_positions",
@@ -284,14 +307,50 @@ def test_build_portfolio_allocation_response_uses_request_currency_and_default_d
                 expected_open_position_count=0,
                 valued_position_count=0,
             ),
-            "reporting_currency": " ",
+            "views": _empty_allocation_views("0"),
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
         },
     )
 
     assert response.as_of_date == "2026-03-27"
     assert response.reporting_currency == "USD"
-    assert response.look_through is None
-    assert response.views == []
+    assert response.look_through is not None
+    assert [view.dimension for view in response.views] == ALLOCATION_VIEW_DIMENSIONS
+
+
+def test_build_portfolio_allocation_response_binds_explicit_date_not_separate_aum_date() -> None:
+    response = build_portfolio_allocation_response(
+        correlation_id="corr-allocation-request-date",
+        contract_version="v1",
+        portfolio_id="PF_1001",
+        as_of_date="2026-03-27",
+        default_as_of_date="2026-03-28",
+        reporting_currency="USD",
+        aum_payload={
+            "resolved_as_of_date": "2026-03-26",
+            "assets_under_management_base": "0",
+        },
+        positions_payload={"positions": []},
+        allocation_payload={
+            **allocation_source_evidence(total_market_value_reporting_currency="100"),
+            "views": _empty_allocation_views("100"),
+            "look_through": {
+                "requested_mode": "direct_only",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "decomposed_position_count": 0,
+                "limitation_reason": None,
+            },
+        },
+    )
+
+    assert response.as_of_date == "2026-03-27"
 
 
 def test_parse_look_through_capability_rejects_incomplete_payloads() -> None:
@@ -310,6 +369,8 @@ def test_parse_allocation_evidence_rejects_missing_source_qualification() -> Non
     [
         ("PARTIAL", "100"),
         ("UNAVAILABLE", "0"),
+        ("MEASURED_ZERO", "100"),
+        ("LOADED_EMPTY", "1"),
         ("COMPLETE", None),
         ("MEASURED_ZERO", None),
         ("CARRY_FORWARD", None),
@@ -389,7 +450,7 @@ def test_build_portfolio_allocation_response_rejects_view_total_contradictions(
             aum_payload={"assets_under_management_base": "0"},
             positions_payload={"positions": []},
             allocation_payload={
-                **allocation_evidence(
+                **allocation_source_evidence(
                     coverage_state=coverage_state,
                     total_market_value_reporting_currency=(total_market_value_reporting_currency),
                 ),
@@ -410,6 +471,49 @@ def test_build_portfolio_allocation_response_rejects_view_total_contradictions(
                     }
                 ],
             },
+        )
+
+
+@pytest.mark.parametrize(
+    "mismatch",
+    ["portfolio", "as_of_date", "reporting_currency", "missing_dimension", "duplicate_dimension"],
+)
+def test_build_portfolio_allocation_response_rejects_source_identity_mismatch(
+    mismatch: str,
+) -> None:
+    allocation_payload = {
+        **allocation_source_evidence(total_market_value_reporting_currency="100"),
+        "look_through": {
+            "requested_mode": "direct_only",
+            "applied_mode": "direct_only",
+            "supported": False,
+            "decomposed_position_count": 0,
+            "limitation_reason": None,
+        },
+        "views": _empty_allocation_views("100"),
+    }
+    if mismatch == "portfolio":
+        allocation_payload["scope"] = {"portfolio_id": "PF_OTHER"}
+    elif mismatch == "as_of_date":
+        allocation_payload["resolved_as_of_date"] = "2026-03-26"
+    elif mismatch == "reporting_currency":
+        allocation_payload["reporting_currency"] = "EUR"
+    elif mismatch == "missing_dimension":
+        allocation_payload["views"] = allocation_payload["views"][:-1]
+    else:
+        allocation_payload["views"][-1]["dimension"] = "asset_class"
+
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        build_portfolio_allocation_response(
+            correlation_id="corr-invalid-source-identity",
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            as_of_date="2026-03-27",
+            default_as_of_date="2026-03-27",
+            reporting_currency="USD",
+            aum_payload={"resolved_as_of_date": "2026-03-27"},
+            positions_payload={"positions": []},
+            allocation_payload=allocation_payload,
         )
 
 
