@@ -2,10 +2,82 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 AllocationContributorType = Literal["direct_position", "look_through_component"]
 LookThroughMode = Literal["direct_only", "prefer_look_through"]
+AllocationValuationCoverageState = Literal[
+    "COMPLETE",
+    "MEASURED_ZERO",
+    "CARRY_FORWARD",
+    "LOADED_EMPTY",
+    "PARTIAL",
+    "UNAVAILABLE",
+]
+
+
+class SourceAllocationValuationCoverage(BaseModel):
+    coverage_state: AllocationValuationCoverageState
+    coverage_reason: str = Field(min_length=1, max_length=128)
+    snapshot_row_count: int = Field(ge=0)
+    expected_open_position_count: int = Field(ge=0)
+    valued_position_count: int = Field(ge=0)
+    unvalued_position_count: int = Field(ge=0)
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class SourceNumericOutputPolicyLineage(BaseModel):
+    name: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+    precision: int = Field(ge=1)
+    scale: int = Field(ge=0)
+    working_precision: int = Field(ge=1)
+    rounding: str = Field(min_length=1)
+
+    model_config = ConfigDict(extra="ignore")
+
+    @field_validator("name", "version", "rounding")
+    @classmethod
+    def require_nonblank_identity(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("numeric-output policy identity fields must be nonblank")
+        return value
+
+    @model_validator(mode="after")
+    def validate_numeric_shape(self) -> "SourceNumericOutputPolicyLineage":
+        if self.scale > self.precision:
+            raise ValueError("numeric-output policy scale cannot exceed precision")
+        if self.working_precision < self.precision:
+            raise ValueError("numeric-output working precision cannot be below output precision")
+        return self
+
+
+class SourceCalculationLineage(BaseModel):
+    algorithm_id: str = Field(min_length=1)
+    algorithm_version: int = Field(ge=1)
+    intermediate_precision: int = Field(ge=1)
+    input_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    calculation_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    output_content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    numeric_output_policy: SourceNumericOutputPolicyLineage | None = None
+
+    model_config = ConfigDict(extra="ignore")
+
+    @field_validator("algorithm_id")
+    @classmethod
+    def require_nonblank_algorithm_id(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("allocation algorithm identity must be nonblank")
+        return value
+
+
+class SourceAllocationEvidence(BaseModel):
+    total_market_value_reporting_currency: Decimal | None
+    valuation_coverage: SourceAllocationValuationCoverage
+    calculation_lineage: SourceCalculationLineage
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class SourceAllocationContributor(BaseModel):
@@ -20,7 +92,7 @@ class SourceAllocationContributor(BaseModel):
     component_effective_to: date | None
     component_source_system: str | None
     component_source_record_id: str | None
-    market_value_reporting_currency: Decimal
+    market_value_reporting_currency: Decimal | None
     bucket_weight: Decimal | None
 
     model_config = ConfigDict(extra="ignore")
@@ -28,13 +100,13 @@ class SourceAllocationContributor(BaseModel):
 
 class SourceAllocationBucket(BaseModel):
     dimension_value: str
-    market_value_reporting_currency: Decimal
-    weight: Decimal
+    market_value_reporting_currency: Decimal | None
+    weight: Decimal | None
     position_count: int = Field(ge=0)
     contributor_count: int = Field(ge=0)
     contributors: list[SourceAllocationContributor]
     contributors_truncated: bool
-    omitted_market_value_reporting_currency: Decimal
+    omitted_market_value_reporting_currency: Decimal | None
 
     model_config = ConfigDict(extra="ignore")
 
@@ -44,19 +116,27 @@ class SourceAllocationBucket(BaseModel):
             raise ValueError("contributors cannot exceed contributor_count")
         if not self.contributors_truncated and len(self.contributors) != self.contributor_count:
             raise ValueError("untruncated contributors must contain every source row")
-        retained_value = sum(
-            (item.market_value_reporting_currency for item in self.contributors),
-            Decimal("0"),
-        )
-        if retained_value + self.omitted_market_value_reporting_currency != (
-            self.market_value_reporting_currency
+        if (
+            self.market_value_reporting_currency is not None
+            and self.omitted_market_value_reporting_currency is not None
         ):
-            raise ValueError("contributors and omitted residual must reconcile to bucket value")
+            retained_values = [item.market_value_reporting_currency for item in self.contributors]
+            if any(value is None for value in retained_values):
+                raise ValueError("known bucket value cannot contain unknown contributor value")
+            retained_value = sum(
+                (value for value in retained_values if value is not None),
+                Decimal("0"),
+            )
+            if retained_value + self.omitted_market_value_reporting_currency != (
+                self.market_value_reporting_currency
+            ):
+                raise ValueError("contributors and omitted residual must reconcile to bucket value")
         return self
 
 
 class SourceAllocationView(BaseModel):
     dimension: str
+    total_market_value_reporting_currency: Decimal | None
     buckets: list[SourceAllocationBucket]
 
     model_config = ConfigDict(extra="ignore")
@@ -74,8 +154,10 @@ class SourceAllocationLookThrough(BaseModel):
 
 __all__ = [
     "LookThroughMode",
+    "SourceAllocationEvidence",
     "SourceAllocationBucket",
     "SourceAllocationContributor",
     "SourceAllocationLookThrough",
+    "SourceAllocationValuationCoverage",
     "SourceAllocationView",
 ]

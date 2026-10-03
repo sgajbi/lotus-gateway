@@ -6,6 +6,7 @@ from app.services.portfolio_service_provider import (
     portfolio_performance_workspace_service,
     portfolio_service,
 )
+from tests.shared.portfolio_allocation_payload import allocation_evidence
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 PERFORMANCE_CALLER = {"X-Actor-Id": "advisor", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"}
@@ -437,6 +438,7 @@ def test_portfolio_readiness_router(monkeypatch):
 
     async def _allocation(*args, **kwargs):
         return 200, {
+            **allocation_evidence(total_market_value_reporting_currency="0"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -447,6 +449,7 @@ def test_portfolio_readiness_router(monkeypatch):
             "views": [
                 {
                     "dimension": "asset_class",
+                    "total_market_value_reporting_currency": 0,
                     "buckets": [
                         {
                             "dimension_value": "Equity",
@@ -938,6 +941,7 @@ def test_portfolio_insights_router(monkeypatch):
 
     async def _allocation(*args, **kwargs):
         return 200, {
+            **allocation_evidence(total_market_value_reporting_currency="0"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -948,6 +952,7 @@ def test_portfolio_insights_router(monkeypatch):
             "views": [
                 {
                     "dimension": "asset_class",
+                    "total_market_value_reporting_currency": 0,
                     "buckets": [
                         {
                             "dimension_value": "Equity",
@@ -1105,7 +1110,17 @@ def test_portfolio_insights_router_returns_blocked_exception_summaries(monkeypat
         return 200, {"positions": []}
 
     async def _allocation(*args, **kwargs):
-        return 200, {"views": []}
+        return 200, {
+            **allocation_evidence(
+                total_market_value_reporting_currency="0",
+                coverage_state="LOADED_EMPTY",
+                coverage_reason="source_snapshot_has_no_open_positions",
+                snapshot_row_count=0,
+                expected_open_position_count=0,
+                valued_position_count=0,
+            ),
+            "views": [],
+        }
 
     async def _transactions(*args, **kwargs):
         return 200, {
@@ -1254,6 +1269,7 @@ def test_portfolio_book_router(monkeypatch):
     async def _allocation(*args, **kwargs):
         captured["allocation_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
+            **allocation_evidence(total_market_value_reporting_currency="0"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -1261,7 +1277,13 @@ def test_portfolio_book_router(monkeypatch):
                 "decomposed_position_count": 0,
                 "limitation_reason": None,
             },
-            "views": [{"dimension": "asset_class", "buckets": []}],
+            "views": [
+                {
+                    "dimension": "asset_class",
+                    "total_market_value_reporting_currency": 0,
+                    "buckets": [],
+                }
+            ],
         }
 
     async def _cash_balances(*args, **kwargs):
@@ -1313,7 +1335,13 @@ def test_portfolio_book_router(monkeypatch):
             "cash_balance_count": 0,
         },
         "cash_balances": [],
-        "allocation_views": [{"dimension": "asset_class", "buckets": []}],
+        "allocation_views": [
+            {
+                "dimension": "asset_class",
+                "total_market_value_reporting_currency": "0",
+                "buckets": [],
+            }
+        ],
         "top_positions": [
             {
                 "security_id": "EQ_1",
@@ -1742,6 +1770,7 @@ def test_portfolio_allocations_router(monkeypatch):
         captured["look_through_mode"] = kwargs.get("look_through_mode")
         captured["contributor_limit_per_bucket"] = kwargs.get("contributor_limit_per_bucket")
         return 200, {
+            **allocation_evidence(total_market_value_reporting_currency="700"),
             "reporting_currency": "USD",
             "look_through": {
                 "requested_mode": "prefer_look_through",
@@ -1753,6 +1782,7 @@ def test_portfolio_allocations_router(monkeypatch):
             "views": [
                 {
                     "dimension": "region",
+                    "total_market_value_reporting_currency": 700,
                     "buckets": [
                         {
                             "dimension_value": "Equity",
@@ -1807,6 +1837,24 @@ def test_portfolio_allocations_router(monkeypatch):
         "portfolio_id": "PF_1001",
         "as_of_date": "2026-03-27",
         "reporting_currency": "USD",
+        "total_market_value_reporting_currency": "700",
+        "valuation_coverage": {
+            "coverage_state": "COMPLETE",
+            "coverage_reason": "all_source_positions_covered",
+            "snapshot_row_count": 1,
+            "expected_open_position_count": 1,
+            "valued_position_count": 1,
+            "unvalued_position_count": 0,
+        },
+        "calculation_lineage": {
+            "algorithm_id": "PORTFOLIO_ALLOCATION",
+            "algorithm_version": 1,
+            "intermediate_precision": 28,
+            "input_content_hash": "a" * 64,
+            "calculation_content_hash": "b" * 64,
+            "output_content_hash": "c" * 64,
+            "numeric_output_policy": None,
+        },
         "look_through": {
             "requested_mode": "prefer_look_through",
             "effective_mode": "direct_only",
@@ -1826,6 +1874,7 @@ def test_portfolio_allocations_router(monkeypatch):
         "views": [
             {
                 "dimension": "region",
+                "total_market_value_reporting_currency": "700",
                 "buckets": [
                     {
                         "bucket": "Equity",

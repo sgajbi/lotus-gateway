@@ -11,6 +11,10 @@ from app.contracts.portfolio_holdings import (
 from app.contracts.portfolio_liquidity import (
     PortfolioLiquidityResponse,
 )
+from app.services.portfolio_allocation_payloads import (
+    PortfolioAllocationSourceContractError,
+    build_portfolio_allocation_response,
+)
 from app.services.portfolio_book import build_portfolio_book_response
 from app.services.portfolio_book_sources import (
     PortfolioBookSourceLoaders,
@@ -22,11 +26,9 @@ from app.services.portfolio_holdings_payloads import (
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
     PortfolioAllocationPayloads,
-    PortfolioAllocationSourceContractError,
     PortfolioPositionBookLoadRequest,
     PortfolioPositionBookPayloadLoaders,
     PortfolioPositionBookPayloads,
-    build_portfolio_allocation_response,
     load_portfolio_allocation_payloads,
     load_portfolio_position_book_payloads,
 )

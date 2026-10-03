@@ -33,8 +33,9 @@ async def _get_portfolio_allocations(
         "Returns source-backed portfolio allocation views across the supported reporting "
         "dimensions. Use this endpoint when the UI needs allocation buckets with optional "
         "reporting-currency restatement and explicit look-through capability metadata. The "
-        "response preserves the effective look-through mode so downstream clients can tell "
-        "whether expanded exposure decomposition was actually applied."
+        "response preserves Core-owned valuation coverage, nullable totals and weights, "
+        "calculation lineage, and the effective look-through mode. Consumers must distinguish "
+        "unavailable valuation from a genuine measured zero and must not recompute source truth."
     ),
 )
 async def get_portfolio_allocations(

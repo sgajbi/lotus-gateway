@@ -8,6 +8,7 @@ from app.contracts.portfolio_holdings import (
     PortfolioTopPosition,
 )
 from app.services.portfolio_book import build_portfolio_book_response
+from tests.shared.portfolio_allocation_payload import allocation_evidence
 
 
 def test_build_portfolio_book_response_combines_source_payloads() -> None:
@@ -41,6 +42,7 @@ def test_build_portfolio_book_response_combines_source_payloads() -> None:
             ]
         },
         allocations=PortfolioAllocationResponse(
+            **allocation_evidence(total_market_value_reporting_currency="900.0"),
             correlation_id="corr-book",
             contract_version="v-test",
             portfolio_id="PF_1001",
@@ -56,12 +58,15 @@ def test_build_portfolio_book_response_combines_source_payloads() -> None:
             views=[
                 PortfolioAllocationView(
                     dimension="asset_class",
+                    total_market_value_reporting_currency="900.0",
                     buckets=[
                         PortfolioAllocationBucket(
                             bucket="Equity",
                             position_count=1,
                             market_value_base=900.0,
+                            market_value_reporting_currency="900.0",
                             weight_pct=90.0,
+                            omitted_market_value_reporting_currency="0",
                         )
                     ],
                 )

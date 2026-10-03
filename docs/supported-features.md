@@ -41,12 +41,19 @@ work tracked by `lotus-workbench#814`. Composed performance workspace consumers 
 typed `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable
 Workbench date is available.
 
-## Portfolio Allocation Contributor Lineage
+## Portfolio Allocation Valuation Coverage And Contributor Lineage
 
 Status: implementation-backed for
 `GET /api/v1/portfolio/portfolios/{portfolio_id}/allocations`.
 
-The allocation route publishes Core-owned contributor detail for each supported allocation bucket.
+The allocation route publishes Core-owned valuation qualification, deterministic calculation
+lineage, full-scope and per-view totals, and contributor detail for each supported allocation
+bucket. `valuation_coverage` preserves Core's state, bounded reason, observed/expected counts, and
+valued/unvalued counts. When Core cannot support a complete valuation denominator, Gateway retains
+null totals, weights, affected bucket values, contributor values, and residuals instead of
+converting unknown values to measured zero. Genuine zero, signed exposure, carry-forward, and
+loaded-empty states remain distinct.
+
 Gateway preserves direct booked positions and source-owned look-through components, including
 booked/component security identity, Core snapshot and component-record lineage, reporting-currency
 contribution, source weights, deterministic bounded ordering, truncation, and omitted-value
@@ -59,11 +66,13 @@ The request uses the canonical `direct_only` and `prefer_look_through` modes. A 
 contributor limit is bounded to 1–250 and defaults to 50. When look-through is unsupported or only
 partially applied, the response retains the source effective mode, supportability, decomposed
 position count, and limitation reason. A truncated source list remains explicit through typed
-residual fields. Successful Core payloads missing the governed contributor contract fail closed with
+residual fields. Contributor reconciliation runs only when the source bucket and residual are both
+known; contributor identity remains available when its valuation is null. Successful Core payloads
+missing the governed coverage, calculation-lineage, or contributor contract fail closed with
 `PORTFOLIO_ALLOCATION_CONTRACT_INVALID`; the stale `full` alias is rejected with `422` rather than
 silently changing source semantics. Workbench uses Gateway as the only client-facing allocation
-source. Existing Workbench allocation consumption remains compatible; further contributor
-rendering is a separate consumer concern and is not fabricated by this Gateway slice.
+source. Qualified-state display acceptance remains tracked by `sgajbi/lotus-workbench#1111`; this
+Gateway contract does not claim the consumer already renders partial or unavailable coverage.
 
 The Gateway-owned `PortfolioAllocation*` response schemas are closed in OpenAPI
 (`additionalProperties: false`) and the contract fitness test traverses the allocation-owned

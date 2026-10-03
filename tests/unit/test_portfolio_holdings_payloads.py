@@ -1,19 +1,25 @@
+from decimal import Decimal
+
 import pytest
 
+from app.services.portfolio_allocation_payloads import (
+    PortfolioAllocationSourceContractError,
+    build_portfolio_allocation_response,
+    parse_allocation_evidence,
+    parse_allocation_views,
+    parse_look_through_capability,
+)
 from app.services.portfolio_holdings_payloads import (
     ALLOCATION_VIEW_DIMENSIONS,
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
-    PortfolioAllocationSourceContractError,
     PortfolioPositionBookLoadRequest,
     PortfolioPositionBookPayloadLoaders,
-    build_portfolio_allocation_response,
     load_portfolio_allocation_payloads,
     load_portfolio_position_book_payloads,
-    parse_allocation_views,
     parse_cash_balances,
-    parse_look_through_capability,
 )
+from tests.shared.portfolio_allocation_payload import allocation_evidence
 
 
 @pytest.mark.asyncio
@@ -190,6 +196,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
             ]
         },
         allocation_payload={
+            **allocation_evidence(total_market_value_reporting_currency="700.123"),
             "reporting_currency": " SGD ",
             "look_through": {
                 "requested_mode": "prefer_look_through",
@@ -201,6 +208,7 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
             "views": [
                 {
                     "dimension": "region",
+                    "total_market_value_reporting_currency": "700.123",
                     "buckets": [
                         {
                             "dimension_value": "Asia",
@@ -238,6 +246,9 @@ def test_build_portfolio_allocation_response_preserves_summary_views_and_look_th
     assert response.portfolio_id == "PF_1001"
     assert response.as_of_date == "2026-03-26"
     assert response.reporting_currency == "SGD"
+    assert response.total_market_value_reporting_currency == Decimal("700.123")
+    assert response.valuation_coverage.coverage_state == "COMPLETE"
+    assert response.calculation_lineage.algorithm_id == "PORTFOLIO_ALLOCATION"
     assert response.look_through is not None
     assert response.look_through.requested_mode == "prefer_look_through"
     assert response.look_through.effective_mode == "direct_only"
@@ -264,7 +275,17 @@ def test_build_portfolio_allocation_response_uses_request_currency_and_default_d
             "cash_market_value_base": "0",
         },
         positions_payload={"positions": []},
-        allocation_payload={"reporting_currency": " "},
+        allocation_payload={
+            **allocation_evidence(
+                total_market_value_reporting_currency="0",
+                coverage_state="LOADED_EMPTY",
+                coverage_reason="source_snapshot_has_no_open_positions",
+                snapshot_row_count=0,
+                expected_open_position_count=0,
+                valued_position_count=0,
+            ),
+            "reporting_currency": " ",
+        },
     )
 
     assert response.as_of_date == "2026-03-27"
@@ -279,12 +300,18 @@ def test_parse_look_through_capability_rejects_incomplete_payloads() -> None:
         parse_look_through_capability({"requested_mode": "prefer_look_through"})
 
 
+def test_parse_allocation_evidence_rejects_missing_source_qualification() -> None:
+    with pytest.raises(PortfolioAllocationSourceContractError):
+        parse_allocation_evidence({"total_market_value_reporting_currency": None})
+
+
 def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() -> None:
     views = parse_allocation_views(
         {
             "views": [
                 {
                     "dimension": "asset_class",
+                    "total_market_value_reporting_currency": "1234.567",
                     "buckets": [
                         {
                             "dimension_value": "Equity",
@@ -358,6 +385,7 @@ def test_parse_allocation_views_rejects_partial_contributor_payload() -> None:
                 "views": [
                     {
                         "dimension": "region",
+                        "total_market_value_reporting_currency": "100",
                         "buckets": [
                             {
                                 "dimension_value": "Asia",
@@ -379,6 +407,7 @@ def test_parse_allocation_views_rejects_non_reconciling_contributor_residual() -
                 "views": [
                     {
                         "dimension": "region",
+                        "total_market_value_reporting_currency": "100",
                         "buckets": [
                             {
                                 "dimension_value": "Asia",
@@ -427,6 +456,7 @@ def test_parse_allocation_views_rejects_inconsistent_contributor_counts(
                 "views": [
                     {
                         "dimension": "region",
+                        "total_market_value_reporting_currency": "100",
                         "buckets": [
                             {
                                 "dimension_value": "Asia",
@@ -463,6 +493,52 @@ def test_parse_allocation_views_rejects_inconsistent_contributor_counts(
 
 def test_parse_allocation_views_treats_missing_view_collection_as_empty() -> None:
     assert parse_allocation_views({"views": None}) == []
+
+
+def test_parse_allocation_views_preserves_qualified_unknown_values() -> None:
+    views = parse_allocation_views(
+        {
+            "views": [
+                {
+                    "dimension": "asset_class",
+                    "total_market_value_reporting_currency": None,
+                    "buckets": [
+                        {
+                            "dimension_value": "Bond",
+                            "market_value_reporting_currency": None,
+                            "weight": None,
+                            "position_count": 1,
+                            "contributor_count": 1,
+                            "contributors": [
+                                {
+                                    "contributor_type": "direct_position",
+                                    "portfolio_id": "PF_1001",
+                                    "security_id": "BOND_1",
+                                    "booked_security_id": "BOND_1",
+                                    "source_snapshot_id": 102,
+                                    "component_record_id": None,
+                                    "component_weight": None,
+                                    "component_effective_from": None,
+                                    "component_effective_to": None,
+                                    "component_source_system": None,
+                                    "component_source_record_id": None,
+                                    "market_value_reporting_currency": None,
+                                    "bucket_weight": None,
+                                }
+                            ],
+                            "contributors_truncated": False,
+                            "omitted_market_value_reporting_currency": None,
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert views[0].total_market_value_reporting_currency is None
+    assert views[0].buckets[0].market_value_base is None
+    assert views[0].buckets[0].weight_pct is None
+    assert views[0].buckets[0].contributors[0].market_value_reporting_currency is None
 
 
 def test_parse_allocation_views_rejects_malformed_view_collection() -> None:

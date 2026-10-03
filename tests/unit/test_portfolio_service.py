@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from app.middleware.caller_identity import capture_caller_identity, release_caller_identity
 from app.services.portfolio_service import PortfolioService
 from app.services.portfolio_transaction_temporal import transaction_date_value
+from tests.shared.portfolio_allocation_payload import allocation_evidence
 
 
 class _StubLotusCoreQueryClient:
@@ -179,6 +180,7 @@ class _StubLotusCoreQueryClient:
 
     async def query_asset_allocation(self, **kwargs):
         return 200, {
+            **allocation_evidence(total_market_value_reporting_currency="700.0"),
             "look_through": {
                 "requested_mode": "direct_only",
                 "applied_mode": "direct_only",
@@ -189,6 +191,7 @@ class _StubLotusCoreQueryClient:
             "views": [
                 {
                     "dimension": "asset_class",
+                    "total_market_value_reporting_currency": 700.0,
                     "buckets": [
                         {
                             "dimension_value": "Equity",
@@ -904,7 +907,17 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
             return 200, {"positions": []}
 
         async def query_asset_allocation(self, **kwargs):
-            return 200, {"views": []}
+            return 200, {
+                **allocation_evidence(
+                    total_market_value_reporting_currency="0",
+                    coverage_state="LOADED_EMPTY",
+                    coverage_reason="source_snapshot_has_no_open_positions",
+                    snapshot_row_count=0,
+                    expected_open_position_count=0,
+                    valued_position_count=0,
+                ),
+                "views": [],
+            }
 
         async def get_portfolio_transactions(
             self, portfolio_id: str, correlation_id: str, **kwargs
@@ -1121,7 +1134,17 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
             return 200, {"positions": []}
 
         async def query_asset_allocation(self, **kwargs):
-            return 200, {"views": []}
+            return 200, {
+                **allocation_evidence(
+                    total_market_value_reporting_currency="0",
+                    coverage_state="LOADED_EMPTY",
+                    coverage_reason="source_snapshot_has_no_open_positions",
+                    snapshot_row_count=0,
+                    expected_open_position_count=0,
+                    valued_position_count=0,
+                ),
+                "views": [],
+            }
 
         async def get_portfolio_transactions(
             self, portfolio_id: str, correlation_id: str, **kwargs
@@ -1361,6 +1384,7 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
         "allocation_views": [
             {
                 "dimension": "asset_class",
+                "total_market_value_reporting_currency": Decimal("700.0"),
                 "buckets": [
                     {
                         "bucket": "Equity",
@@ -1767,6 +1791,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
             self.last_look_through_mode = kwargs.get("look_through_mode")
             self.last_contributor_limit_per_bucket = kwargs.get("contributor_limit_per_bucket")
             return 200, {
+                **allocation_evidence(total_market_value_reporting_currency="700.0"),
                 "reporting_currency": "SGD",
                 "look_through": {
                     "requested_mode": "prefer_look_through",
@@ -1778,6 +1803,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                 "views": [
                     {
                         "dimension": "region",
+                        "total_market_value_reporting_currency": 700.0,
                         "buckets": [
                             {
                                 "dimension_value": "Asia",
@@ -1829,6 +1855,24 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
         "portfolio_id": "PF_1001",
         "as_of_date": "2026-03-27",
         "reporting_currency": "SGD",
+        "total_market_value_reporting_currency": Decimal("700.0"),
+        "valuation_coverage": {
+            "coverage_state": "COMPLETE",
+            "coverage_reason": "all_source_positions_covered",
+            "snapshot_row_count": 1,
+            "expected_open_position_count": 1,
+            "valued_position_count": 1,
+            "unvalued_position_count": 0,
+        },
+        "calculation_lineage": {
+            "algorithm_id": "PORTFOLIO_ALLOCATION",
+            "algorithm_version": 1,
+            "intermediate_precision": 28,
+            "input_content_hash": "a" * 64,
+            "calculation_content_hash": "b" * 64,
+            "output_content_hash": "c" * 64,
+            "numeric_output_policy": None,
+        },
         "look_through": {
             "requested_mode": "prefer_look_through",
             "effective_mode": "direct_only",
@@ -1848,6 +1892,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
         "views": [
             {
                 "dimension": "region",
+                "total_market_value_reporting_currency": Decimal("700.0"),
                 "buckets": [
                     {
                         "bucket": "Asia",
@@ -1886,7 +1931,16 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
 async def test_portfolio_allocations_fail_closed_on_missing_source_look_through_contract():
     class _InvalidAllocationClient(_StubLotusCoreQueryClient):
         async def query_asset_allocation(self, **kwargs):
-            return 200, {"views": [{"dimension": "region", "buckets": []}]}
+            return 200, {
+                **allocation_evidence(total_market_value_reporting_currency="0"),
+                "views": [
+                    {
+                        "dimension": "region",
+                        "total_market_value_reporting_currency": "0",
+                        "buckets": [],
+                    }
+                ],
+            }
 
     with pytest.raises(HTTPException) as raised:
         await PortfolioService(_InvalidAllocationClient()).get_portfolio_allocations(
