@@ -203,7 +203,7 @@ class _StubLotusCoreQueryClient:
                         {
                             "dimension_value": "Equity",
                             "market_value_reporting_currency": 700.0,
-                            "weight": 0.7,
+                            "weight": 1,
                             "position_count": 1,
                             "contributor_count": 1,
                             "contributors": [
@@ -1412,7 +1412,7 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
                         "position_count": 1,
                         "market_value_base": 700.0,
                         "market_value_reporting_currency": Decimal("700.0"),
-                        "weight_pct": 70.0,
+                        "weight_pct": 100.0,
                         "contributor_count": 1,
                         "contributors": [
                             {
@@ -1831,7 +1831,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                             {
                                 "dimension_value": "Asia",
                                 "market_value_reporting_currency": 700.0,
-                                "weight": 0.7,
+                                "weight": 1,
                                 "position_count": 1,
                                 "contributor_count": 1,
                                 "contributors": [
@@ -1922,7 +1922,7 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
                         "position_count": 1,
                         "market_value_base": 700.0,
                         "market_value_reporting_currency": Decimal("700.0"),
-                        "weight_pct": 70.0,
+                        "weight_pct": 100.0,
                         "contributor_count": 1,
                         "contributors": [
                             {
