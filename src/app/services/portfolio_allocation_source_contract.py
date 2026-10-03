@@ -169,6 +169,17 @@ class SourceAllocationBucket(BaseModel):
         residual_known = self.omitted_market_value_reporting_currency is not None
         if bucket_value_known != residual_known:
             raise ValueError("bucket value and omitted residual must share null qualification")
+        bucket_weight_denominator_known = (
+            self.market_value_reporting_currency is not None
+            and self.market_value_reporting_currency != Decimal("0")
+        )
+        if any(
+            (contributor.bucket_weight is not None) != bucket_weight_denominator_known
+            for contributor in self.contributors
+        ):
+            raise ValueError(
+                "contributor bucket weights require a known nonzero bucket denominator"
+            )
         if bucket_value_known and residual_known:
             bucket_value = self.market_value_reporting_currency
             omitted_residual = self.omitted_market_value_reporting_currency
@@ -229,6 +240,7 @@ def _validate_view_totals(
 def _validate_coverage_view_content(
     views: list[SourceAllocationView],
     coverage_state: AllocationValuationCoverageState,
+    total_market_value_reporting_currency: Decimal | None,
 ) -> None:
     buckets = [bucket for view in views for bucket in view.buckets]
     if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
@@ -239,6 +251,17 @@ def _validate_coverage_view_content(
         bucket.market_value_reporting_currency is None for bucket in buckets
     ):
         raise ValueError("trusted allocation valuation coverage requires known bucket values")
+    trusted_weight_denominator_known = (
+        coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"}
+        and total_market_value_reporting_currency is not None
+        and total_market_value_reporting_currency != Decimal("0")
+    )
+    if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and any(
+        (bucket.weight is not None) != trusted_weight_denominator_known for bucket in buckets
+    ):
+        raise ValueError(
+            "trusted allocation bucket weights require a known nonzero portfolio denominator"
+        )
     if coverage_state == "LOADED_EMPTY" and buckets:
         raise ValueError("loaded-empty allocation coverage cannot contain buckets")
 
@@ -276,6 +299,7 @@ class SourceAllocationPayload(SourceAllocationEvidence):
         _validate_coverage_view_content(
             views,
             self.valuation_coverage.coverage_state,
+            self.total_market_value_reporting_currency,
         )
         _validate_contributor_portfolios(views, self.scope.portfolio_id)
         return self
