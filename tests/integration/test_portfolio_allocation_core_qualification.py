@@ -127,6 +127,25 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
         payload["valuation_coverage"]["unvalued_position_count"] = 1
     elif scenario == "invalid-residual-qualification":
         payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
+    elif scenario == "invalid-contributor-portfolio":
+        payload["views"][0]["buckets"][0]["contributors"][0]["portfolio_id"] = "PF_OTHER"
+    elif scenario == "invalid-look-through-mode":
+        payload["look_through"]["requested_mode"] = "prefer_look_through"
+    elif scenario == "invalid-trusted-bucket-value":
+        payload["views"][0]["buckets"][0]["market_value_reporting_currency"] = None
+        payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
+    elif scenario == "invalid-loaded-empty-bucket":
+        payload["total_market_value_reporting_currency"] = "0"
+        payload["valuation_coverage"] = {
+            "coverage_state": "LOADED_EMPTY",
+            "coverage_reason": "source_snapshot_has_no_open_positions",
+            "snapshot_row_count": 0,
+            "expected_open_position_count": 0,
+            "valued_position_count": 0,
+            "unvalued_position_count": 0,
+        }
+        for view in payload["views"]:
+            view["total_market_value_reporting_currency"] = "0"
     return payload
 
 
@@ -182,7 +201,7 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         max_retries=0,
         retry_backoff_seconds=0,
     )
-    service = PortfolioService(core_client, upstream_cache_ttl_seconds=0.001)
+    service = PortfolioService(core_client, upstream_cache_ttl_seconds=-1)
 
     async def query_asset_allocation(**kwargs):
         return await LotusCoreQueryClient.query_asset_allocation(
@@ -212,6 +231,10 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_degraded_weight = get_scenario("invalid-degraded-weight")
     invalid_coverage_counts = get_scenario("invalid-coverage-counts")
     invalid_residual_qualification = get_scenario("invalid-residual-qualification")
+    invalid_contributor_portfolio = get_scenario("invalid-contributor-portfolio")
+    invalid_look_through_mode = get_scenario("invalid-look-through-mode")
+    invalid_trusted_bucket_value = get_scenario("invalid-trusted-bucket-value")
+    invalid_loaded_empty_bucket = get_scenario("invalid-loaded-empty-bucket")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -247,13 +270,17 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_degraded_weight,
         invalid_coverage_counts,
         invalid_residual_qualification,
+        invalid_contributor_portfolio,
+        invalid_look_through_mode,
+        invalid_trusted_bucket_value,
+        invalid_loaded_empty_bucket,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 10
+    assert len(allocation_requests) == 14
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

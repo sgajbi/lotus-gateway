@@ -44,6 +44,7 @@ def build_portfolio_allocation_response(
     aum_payload: dict[str, Any],
     positions_payload: dict[str, Any],
     allocation_payload: dict[str, Any],
+    look_through_mode: str | None = "direct_only",
 ) -> PortfolioAllocationResponse:
     _require_source_look_through_for_non_empty_views(allocation_payload)
     source = parse_allocation_payload(allocation_payload)
@@ -55,6 +56,7 @@ def build_portfolio_allocation_response(
         portfolio_id=portfolio_id,
         as_of_date=effective_as_of_date,
         reporting_currency=reporting_currency,
+        look_through_mode=look_through_mode,
     )
     return PortfolioAllocationResponse(
         correlation_id=correlation_id,
@@ -86,6 +88,7 @@ def _validate_source_request_identity(
     portfolio_id: str,
     as_of_date: str,
     reporting_currency: str | None,
+    look_through_mode: str | None,
 ) -> None:
     expected_currency = optional_str(reporting_currency)
     source_dimensions = [view.dimension for view in source.views or []]
@@ -95,6 +98,10 @@ def _validate_source_request_identity(
         raise PortfolioAllocationSourceContractError("lotus-core allocation as-of date mismatch")
     if expected_currency and source.reporting_currency != expected_currency.upper():
         raise PortfolioAllocationSourceContractError("lotus-core allocation currency mismatch")
+    if source.look_through is None or source.look_through.requested_mode != look_through_mode:
+        raise PortfolioAllocationSourceContractError(
+            "lotus-core allocation look-through mode mismatch"
+        )
     if len(source_dimensions) != len(set(source_dimensions)) or set(source_dimensions) != set(
         ALLOCATION_VIEW_DIMENSIONS
     ):
