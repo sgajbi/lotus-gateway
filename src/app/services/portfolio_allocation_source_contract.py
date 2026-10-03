@@ -229,14 +229,6 @@ class SourceAllocationScope(BaseModel):
         return normalized
 
 
-def _validate_view_totals(
-    views: list[SourceAllocationView],
-    expected_total: Decimal | None,
-) -> None:
-    if any(view.total_market_value_reporting_currency != expected_total for view in views):
-        raise ValueError("allocation view totals must match full-scope source evidence")
-
-
 def _validate_coverage_view_content(
     views: list[SourceAllocationView],
     coverage_state: AllocationValuationCoverageState,
@@ -295,7 +287,9 @@ class SourceAllocationPayload(SourceAllocationEvidence):
     @model_validator(mode="after")
     def validate_view_totals_match_evidence(self) -> "SourceAllocationPayload":
         views = self.views or []
-        _validate_view_totals(views, self.total_market_value_reporting_currency)
+        expected_total = self.total_market_value_reporting_currency
+        if any(view.total_market_value_reporting_currency != expected_total for view in views):
+            raise ValueError("allocation view totals must match full-scope source evidence")
         _validate_coverage_view_content(
             views,
             self.valuation_coverage.coverage_state,
