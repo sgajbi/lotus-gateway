@@ -5,25 +5,37 @@ from collections.abc import Mapping, Sequence
 from app.contracts.performance_evidence import PerformanceSourceSupportabilityView
 from app.services.performance_workspace_evidence_state import GatheredResult
 from app.services.source_supportability import (
+    SourceCalculationSupportability,
     extract_calculation_supportability,
     source_supportability_reason,
+)
+
+UNVERIFIED_CALCULATION_REASON = (
+    "Source calculation supportability is missing or invalid; "
+    "calculation qualification is unverified."
 )
 
 
 def build_source_supportability(
     source_results: Sequence[GatheredResult | None],
 ) -> list[PerformanceSourceSupportabilityView]:
+    """Qualify successful calculation results, not execution, lineage, or artifact reads."""
     items: list[PerformanceSourceSupportabilityView] = []
     seen: set[tuple[str, str, str | None]] = set()
     for result in source_results:
         if result is None or isinstance(result, BaseException):
             continue
         status_code, payload = result
-        if status_code >= 400 or not isinstance(payload, Mapping):
+        if status_code == 204 or status_code >= 400 or not isinstance(payload, Mapping):
             continue
         source_supportability = extract_calculation_supportability(payload)
         if source_supportability is None:
-            continue
+            source_supportability = SourceCalculationSupportability(
+                state="partial",
+                reason=UNVERIFIED_CALCULATION_REASON,
+                freshness_bucket="unknown",
+                source_service="lotus-performance",
+            )
         key = (
             source_supportability.state,
             source_supportability.reason or "",
@@ -40,6 +52,11 @@ def build_source_supportability(
                     source_supportability,
                     default_ready_reason=(
                         "Source calculation supportability was confirmed upstream."
+                        if source_supportability.performance_evidence_state == "supported"
+                        else (
+                            "Source calculation supportability is "
+                            f"{source_supportability.state} upstream."
+                        )
                     ),
                 ),
                 freshness_bucket=source_supportability.freshness_bucket,

@@ -30,6 +30,94 @@ from app.services.performance_workspace_evidence import (
     resolve_evidence_state,
     resolve_evidence_view_response,
 )
+from app.services.performance_workspace_evidence_supportability import (
+    UNVERIFIED_CALCULATION_REASON,
+)
+
+
+@pytest.mark.parametrize(
+    "block",
+    [
+        None,
+        [],
+        "ready",
+        1,
+        {},
+        {"state": ""},
+        {"state": "unknown"},
+        {"state": 1},
+        {"state": "   "},
+        {"state": None},
+    ],
+)
+@pytest.mark.parametrize("nested", [False, True])
+def test_required_calculation_supportability_fails_closed(block, nested):
+    qualification = {"calculation_supportability": block}
+    payload = {"metadata": qualification} if nested else qualification
+    items = build_source_supportability([(200, payload)])
+    assert len(items) == 1
+    assert items[0].state == "partial"
+    assert items[0].reason == UNVERIFIED_CALCULATION_REASON
+    assert items[0].freshness_bucket == "unknown"
+    assert (
+        resolve_evidence_state(evidence_state="supported", source_supportability=items) == "partial"
+    )
+
+
+def test_ready_peer_does_not_hide_missing_calculation_qualification():
+    items = build_source_supportability(
+        [
+            (200, {"calculation_supportability": {"state": "ready"}}),
+            (200, {"calculation_id": "legacy"}),
+        ]
+    )
+    assert [item.state for item in items] == ["supported", "partial"]
+    assert (
+        resolve_evidence_state(evidence_state="supported", source_supportability=items) == "partial"
+    )
+    assert (
+        resolve_evidence_reason(
+            evidence_state="partial", supported_reason="ready", source_supportability=items
+        )
+        == UNVERIFIED_CALCULATION_REASON
+    )
+
+
+@pytest.mark.parametrize(
+    "state, expected",
+    [
+        ("ready", "supported"),
+        ("blocked", "partial"),
+        ("stale", "partial"),
+        ("unavailable", "unavailable"),
+    ],
+)
+@pytest.mark.parametrize("nested", [False, True])
+def test_valid_calculation_posture_and_reason_are_preserved(state, expected, nested):
+    qualification = {
+        "calculation_supportability": {
+            "state": state,
+            "reason": "source_quality_issue",
+            "freshness_bucket": "fresh",
+        }
+    }
+    items = build_source_supportability(
+        [(200, {"metadata": qualification} if nested else qualification)]
+    )
+    assert items[0].state == expected
+    assert items[0].reason == "source_quality_issue"
+    assert items[0].freshness_bucket == "fresh"
+
+
+def test_unrequested_or_failed_calculations_do_not_fabricate_qualification():
+    assert build_source_supportability([None, ValueError("transport"), (204, {}), (503, {})]) == []
+
+
+def test_blocked_calculation_without_reason_is_not_confirmed_ready():
+    items = build_source_supportability(
+        [(200, {"calculation_supportability": {"state": "blocked"}})]
+    )
+    assert items[0].reason == "Source calculation supportability is blocked upstream."
 
 
 def test_workspace_contract_reexports_performance_evidence_views() -> None:

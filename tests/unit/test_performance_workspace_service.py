@@ -97,6 +97,7 @@ class _StubAnalyticsClient:
                     results_by_period[period_key] = source_results[period_key]
             return 200, {
                 "calculation_id": "calc-workspace-summary",
+                "calculation_supportability": {"state": "ready"},
                 "results_by_period": results_by_period,
             }
 
@@ -106,6 +107,7 @@ class _StubAnalyticsClient:
             explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
             return 200, {
                 "calculation_id": "calc-workspace-summary",
+                "calculation_supportability": {"state": "ready"},
                 "results_by_period": {
                     "EXPLICIT": source_payload["results_by_period"][explicit_label]
                 },
@@ -113,17 +115,20 @@ class _StubAnalyticsClient:
         if requested_period in {"YTD", "1Y"}:
             return 200, {
                 "calculation_id": "calc-workspace-summary",
+                "calculation_supportability": {"state": "ready"},
                 "results_by_period": {
                     requested_period: source_payload["results_by_period"][requested_period]
                 },
             }
         source_payload["calculation_id"] = "calc-workspace-summary"
+        source_payload["calculation_supportability"] = {"state": "ready"}
         return 200, source_payload
 
     async def get_contribution_analytics(self, **kwargs):
         self.contribution_calls.append(kwargs)
         payload = _contribution_payload(dimension=str(kwargs["dimension"]))
         payload["calculation_id"] = "calc-contribution"
+        payload["calculation_supportability"] = {"state": "ready"}
         return 200, payload
 
     async def get_attribution_analytics(self, **kwargs):
@@ -134,6 +139,7 @@ class _StubAnalyticsClient:
             report_end_date=str(kwargs["report_end_date"]),
         )
         payload["calculation_id"] = "calc-attribution"
+        payload["calculation_supportability"] = {"state": "ready"}
         return 200, payload
 
     async def get_twr_analytics(self, **kwargs):
@@ -1248,7 +1254,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     }
     assert response.evidence_view.fallbacks == []
     assert response.evidence_view.limitations == []
-    assert response.evidence_view.source_supportability == []
+    assert [item.state for item in response.evidence_view.source_supportability] == ["supported"]
     assert (
         response.evidence_view.calculations[0]
         .artifacts[0]
@@ -1461,6 +1467,7 @@ async def test_performance_workspace_summary_preserves_source_calculation_suppor
     class _StaleSupportabilityAnalyticsClient(_StubAnalyticsClient):
         async def get_workspace_summary(self, **kwargs):
             status_code, payload = await super().get_workspace_summary(**kwargs)
+            payload.pop("calculation_supportability")
             payload["metadata"] = {
                 "calculation_supportability": {
                     "state": "stale",

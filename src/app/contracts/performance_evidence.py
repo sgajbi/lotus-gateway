@@ -61,17 +61,20 @@ class PerformanceSourceSupportabilityView(BaseModel):
         examples=["source_calculation"],
     )
     state: str = Field(
-        description="Product-safe calculation supportability state reported by lotus-performance.",
+        description=(
+            "Product-safe source calculation posture; partial when required source "
+            "qualification is missing or invalid."
+        ),
         examples=["supported"],
     )
     reason: str | None = Field(
         default=None,
-        description="Source-owned supportability reason or freshness qualification.",
+        description="Source-owned reason, or bounded Gateway reason for unverified qualification.",
         examples=["Source calculation supportability was confirmed upstream."],
     )
     freshness_bucket: str | None = Field(
         default=None,
-        description="Product-safe freshness bucket reported by the source calculation service.",
+        description="Source freshness bucket, or unknown for unverified calculation qualification.",
         examples=["fresh"],
     )
     source_service: str | None = Field(
@@ -229,6 +232,8 @@ class PerformanceEvidenceView(BaseModel):
         default_factory=list,
         description=(
             "Product-safe source calculation supportability entries carried through from "
-            "lotus-performance response metadata."
+            "successful lotus-performance calculation results, with explicit partial qualification "
+            "when required supportability is missing or invalid. Execution, lineage, and artifact "
+            "reads do not independently require calculation supportability."
         ),
     )

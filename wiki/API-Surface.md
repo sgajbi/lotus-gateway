@@ -666,6 +666,18 @@ for the registered-route proof.
   operation, service, state, reason, forbidden-field, and operator-guidance posture and emits
   `gateway.analytics.audit.protected_diagnostics_lookup`.
 
+### Performance calculation evidence qualification
+
+Performance summary and detail evidence requires a recognized `calculation_supportability`
+state on each successful workspace-summary, contribution, and attribution calculation result
+(top-level or under `metadata`). Missing, null, malformed, blank, or unknown qualification,
+including legacy results, produces explicit `partial` source supportability with a bounded
+unverified reason and `unknown` qualification freshness. A ready peer cannot hide an unqualified
+calculation. Valid source states and reasons remain source-owned; execution and lineage completion
+are preserved independently. Execution, lineage, artifact reads, failed results, and unrequested
+detail calculations do not independently require this block. Workbench must preserve the evidence
+and capability posture rather than promoting completed execution to supported calculation evidence.
+
 ### Performance horizon windows
 
 Performance workspace summary, details, attribution trend, advisor brief, and portfolio snapshot
