@@ -458,7 +458,7 @@ def test_portfolio_readiness_router(monkeypatch):
                         {
                             "dimension_value": "Equity",
                             "market_value_reporting_currency": 0,
-                            "weight": 0,
+                            "weight": None,
                             "position_count": 0,
                             "contributor_count": 0,
                             "contributors": [],
@@ -961,7 +961,7 @@ def test_portfolio_insights_router(monkeypatch):
                         {
                             "dimension_value": "Equity",
                             "market_value_reporting_currency": 0,
-                            "weight": 0,
+                            "weight": None,
                             "position_count": 0,
                             "contributor_count": 0,
                             "contributors": [],
