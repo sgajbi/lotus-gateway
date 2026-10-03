@@ -49,9 +49,7 @@ def _validate_bucket_qualification(
         )
 
 
-def _validate_measured_zero(
-    buckets: list[AllocationBucketLike], coverage_state: str
-) -> None:
+def _validate_measured_zero(buckets: list[AllocationBucketLike], coverage_state: str) -> None:
     if coverage_state == "MEASURED_ZERO" and any(
         value != ZERO
         for bucket in buckets
