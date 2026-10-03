@@ -9,6 +9,9 @@ from app.contracts.portfolio_workspace import (
     PortfolioOperationalReadiness,
     PortfolioWorkspaceResponse,
 )
+from app.services.portfolio_allocation_source_contract import (
+    AllocationValuationCoverageState,
+)
 from app.services.portfolio_workflow_definitions import (
     EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS,
     WORKFLOW_DEFINITIONS,
@@ -46,6 +49,7 @@ def build_readiness_indicators(
     workspace: PortfolioWorkspaceResponse,
     positions: list[PortfolioPositionView],
     allocation_views: list[PortfolioAllocationView],
+    allocation_coverage_state: AllocationValuationCoverageState | None = None,
     transaction_total: int,
     detailed_view: bool,
 ) -> list[PortfolioReadinessIndicator]:
@@ -57,6 +61,7 @@ def build_readiness_indicators(
         pricing_status=pricing_readiness_status(
             positions=positions,
             allocation_views=allocation_views,
+            allocation_coverage_state=allocation_coverage_state,
         ),
         transactions_status=transactions_readiness_status(
             transaction_total=transaction_total,
@@ -205,7 +210,12 @@ def pricing_readiness_status(
     *,
     positions: list[PortfolioPositionView],
     allocation_views: list[PortfolioAllocationView],
+    allocation_coverage_state: AllocationValuationCoverageState | None = None,
 ) -> str:
+    if allocation_coverage_state == "UNAVAILABLE":
+        return "Missing"
+    if allocation_coverage_state == "PARTIAL":
+        return "Partial"
     has_valued_holdings = any((position.market_value_base or 0) > 0 for position in positions)
     if has_valued_holdings and allocation_views:
         return "Ready"

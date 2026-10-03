@@ -72,6 +72,7 @@ def _portfolio_insight_statuses(sources: PortfolioInsightSources) -> PortfolioIn
         pricing=pricing_readiness_status(
             positions=positions,
             allocation_views=allocation_views,
+            allocation_coverage_state=(sources.allocations.valuation_coverage.coverage_state),
         ),
         transactions=transactions_readiness_status(
             transaction_total=sources.transactions.total,

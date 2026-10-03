@@ -14,6 +14,12 @@ AllocationValuationCoverageState = Literal[
     "PARTIAL",
     "UNAVAILABLE",
 ]
+TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES: frozenset[AllocationValuationCoverageState] = (
+    frozenset({"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD", "LOADED_EMPTY"})
+)
+DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES: frozenset[AllocationValuationCoverageState] = (
+    frozenset({"PARTIAL", "UNAVAILABLE"})
+)
 
 
 class SourceAllocationValuationCoverage(BaseModel):
@@ -78,6 +84,16 @@ class SourceAllocationEvidence(BaseModel):
     calculation_lineage: SourceCalculationLineage
 
     model_config = ConfigDict(extra="ignore")
+
+    @model_validator(mode="after")
+    def validate_total_matches_valuation_coverage(self) -> "SourceAllocationEvidence":
+        coverage_state = self.valuation_coverage.coverage_state
+        has_known_total = self.total_market_value_reporting_currency is not None
+        if coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES and has_known_total:
+            raise ValueError("degraded allocation valuation coverage requires an unknown total")
+        if coverage_state in TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES and not has_known_total:
+            raise ValueError("trusted allocation valuation coverage requires a known total")
+        return self
 
 
 class SourceAllocationContributor(BaseModel):
@@ -153,6 +169,8 @@ class SourceAllocationLookThrough(BaseModel):
 
 
 __all__ = [
+    "AllocationValuationCoverageState",
+    "DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES",
     "LookThroughMode",
     "SourceAllocationEvidence",
     "SourceAllocationBucket",
@@ -160,4 +178,5 @@ __all__ = [
     "SourceAllocationLookThrough",
     "SourceAllocationValuationCoverage",
     "SourceAllocationView",
+    "TRUSTED_ALLOCATION_VALUATION_COVERAGE_STATES",
 ]

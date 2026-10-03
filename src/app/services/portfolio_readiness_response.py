@@ -38,6 +38,7 @@ def build_portfolio_readiness_response(
         workspace=workspace,
         positions=positions.positions,
         allocation_views=allocations.views,
+        allocation_coverage_state=allocations.valuation_coverage.coverage_state,
         transaction_total=transactions.total,
         detailed_view=False,
     )

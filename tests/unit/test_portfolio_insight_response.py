@@ -61,7 +61,10 @@ def test_build_portfolio_insights_response_assembles_status_backed_sections(monk
             positions=[position],
             top_positions=[],
         ),
-        allocations=SimpleNamespace(views=[allocation_view]),
+        allocations=SimpleNamespace(
+            views=[allocation_view],
+            valuation_coverage=SimpleNamespace(coverage_state="COMPLETE"),
+        ),
         transactions=SimpleNamespace(total=0),
         activity=SimpleNamespace(buckets=[]),
     )
@@ -114,3 +117,50 @@ def test_build_portfolio_insights_response_assembles_status_backed_sections(monk
     assert readiness.reporting_status == "Partial"
     assert exception_kwargs["controls_blocking"] is True
     assert exception_kwargs["partial_failures"] == [partial_failure]
+
+
+def test_portfolio_insights_treat_partial_allocation_coverage_as_incomplete_pricing(
+    monkeypatch,
+):
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        portfolio_insight_response,
+        "build_portfolio_insights",
+        lambda **kwargs: captured.setdefault("insights", kwargs) and [],
+    )
+    monkeypatch.setattr(
+        portfolio_insight_response,
+        "build_portfolio_exception_summaries",
+        lambda **kwargs: captured.setdefault("exceptions", kwargs) and [],
+    )
+    sources = SimpleNamespace(
+        workspace=SimpleNamespace(
+            as_of_date="2026-03-27",
+            portfolio=SimpleNamespace(portfolio_id="PF_1001"),
+            summary=SimpleNamespace(position_count=1),
+            reporting=SimpleNamespace(status="READY", row_count=1),
+            operations=None,
+            partial_failures=[],
+        ),
+        positions=SimpleNamespace(
+            positions=[SimpleNamespace(market_value_base=250.0)],
+            top_positions=[],
+        ),
+        allocations=SimpleNamespace(
+            views=[SimpleNamespace()],
+            valuation_coverage=SimpleNamespace(coverage_state="PARTIAL"),
+        ),
+        transactions=SimpleNamespace(total=0),
+        activity=SimpleNamespace(buckets=[]),
+    )
+
+    portfolio_insight_response.build_portfolio_insights_response(
+        correlation_id="corr-insights",
+        contract_version="v1",
+        portfolio_id="PF_1001",
+        sources=sources,
+    )
+
+    assert captured["insights"]["pricing_status"] == "Partial"
+    assert captured["exceptions"]["readiness"].pricing_status == "Partial"

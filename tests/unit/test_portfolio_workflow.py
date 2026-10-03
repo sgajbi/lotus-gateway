@@ -4,6 +4,7 @@ from app.services.portfolio_workflow import (
     build_workflow_actions,
     build_workflow_cues,
     holdings_readiness_status,
+    pricing_readiness_status,
     reporting_status_label,
     transactions_readiness_status,
 )
@@ -122,3 +123,25 @@ def test_readiness_status_helpers_preserve_gateway_labels() -> None:
     assert reporting_status_label("UNKNOWN", row_count=0) == "Missing"
     assert transactions_readiness_status(transaction_total=1, operations=None) == "Ready"
     assert transactions_readiness_status(transaction_total=0, operations=None) == "Missing"
+
+
+def test_pricing_readiness_fails_closed_for_degraded_allocation_coverage() -> None:
+    positions = [type("Position", (), {"market_value_base": 100.0})()]
+    allocation_views = [object()]
+
+    assert (
+        pricing_readiness_status(
+            positions=positions,
+            allocation_views=allocation_views,
+            allocation_coverage_state="PARTIAL",
+        )
+        == "Partial"
+    )
+    assert (
+        pricing_readiness_status(
+            positions=positions,
+            allocation_views=allocation_views,
+            allocation_coverage_state="UNAVAILABLE",
+        )
+        == "Missing"
+    )
