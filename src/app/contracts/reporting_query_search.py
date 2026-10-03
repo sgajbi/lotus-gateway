@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.contracts.reporting_query_examples import (
     REPORT_JOB_LIST_FILTERS_EXAMPLE,
@@ -190,8 +190,13 @@ class ReportJobListItem(BaseModel):
 class ReportJobListResponse(BaseModel):
     count: int = Field(
         ...,
+        ge=0,
+        strict=True,
         alias="count",
-        description="Number of jobs returned in this bounded response.",
+        description=(
+            "Nonnegative number of returned jobs; must equal the items length, "
+            "not a total-match count."
+        ),
         examples=[1],
     )
     applied_filters: ReportJobListFilters = Field(
@@ -208,3 +213,9 @@ class ReportJobListResponse(BaseModel):
     )
 
     model_config = {"populate_by_name": True}
+
+    @model_validator(mode="after")
+    def validate_returned_count(self) -> Self:
+        if self.count != len(self.items):
+            raise ValueError("Report job count must equal the number of returned items.")
+        return self

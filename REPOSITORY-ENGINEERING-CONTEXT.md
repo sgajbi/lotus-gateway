@@ -1008,7 +1008,12 @@ Scope, admission, cache, and retry invariants delivered by the 2026-09-05 comple
    `services/reporting_search_scope.py`: the admitted `X-Tenant-Id`/`X-Region` are always sent
    upstream, a conflicting supplied `tenantId`/`region` filter is a bounded `400` before any
    source call, and the applied-filter echo plus every returned row is validated before
-   publication (`502` on violation). Cross-tenant reads need a separately authorized contract,
+   publication (`502` on violation). A nonempty requested `portfolioId` must match the applied
+   echo and belong to each returned row's well-formed `portfolio_ids` list; legitimate
+   multi-portfolio jobs are preserved, not reinterpreted as an entitlement grant. The bounded
+   response count is a strict nonnegative integer equal to returned items, never total matches;
+   contradictions are refused rather than filtered into manufactured completeness.
+   Cross-tenant reads need a separately authorized contract,
    never a filter value. The producer-side half is lotus-report#292; gateway#718 tracks it.
 2. Reporting source successes are admitted semantically by
    `services/reporting_response_admission.py`: each query and submission consumer binds exactly

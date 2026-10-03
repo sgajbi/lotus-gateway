@@ -53,6 +53,7 @@ def assert_search_result_within_scope(
     response: ReportJobListResponse,
     *,
     caller_headers: dict[str, str],
+    requested_portfolio_id: str | None = None,
 ) -> None:
     """Refuse a source result whose echo or rows leave the admitted fence."""
 
@@ -68,15 +69,29 @@ def assert_search_result_within_scope(
             if (getattr(item, row_field, "") or "").strip() != admitted:
                 _raise_scope_violation(axis, "returned row")
 
+    if requested_portfolio_id:
+        if response.applied_filters.portfolio_id != requested_portfolio_id:
+            _raise_scope_violation("portfolio", "applied-filter echo")
+        for item in response.items:
+            portfolio_ids = item.portfolio_scope.get("portfolio_ids")
+            if (
+                not isinstance(portfolio_ids, list)
+                or not portfolio_ids
+                or any(not isinstance(value, str) or not value.strip() for value in portfolio_ids)
+                or requested_portfolio_id not in portfolio_ids
+            ):
+                _raise_scope_violation("portfolio", "returned row")
+
 
 def _raise_scope_violation(axis: str, evidence: str) -> None:
+    boundary = "requested portfolio filter" if axis == "portfolio" else f"admitted {axis} scope"
     raise HTTPException(
         status_code=status.HTTP_502_BAD_GATEWAY,
         detail={
             "code": "report_job_source_scope_violation",
             "message": (
                 f"lotus-report returned a job search whose {evidence} is outside the "
-                f"admitted {axis} scope; the result is refused rather than published."
+                f"{boundary}; the result is refused rather than published."
             ),
         },
     )

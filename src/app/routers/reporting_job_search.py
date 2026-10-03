@@ -209,6 +209,10 @@ def build_report_job_search_filters(
         "applied-filter echo or rows leave the admitted fence is refused as a bounded 502 "
         "rather than published. A cross-tenant support read requires its own explicitly "
         "authorized contract."
+        " A supplied nonempty portfolioId must match the applied-filter echo and be included "
+        "in every returned row's well-formed portfolio scope; multi-portfolio jobs remain valid "
+        "when they include it. Missing or contradictory source scope is refused with 502. "
+        "The nonnegative count must equal the returned items length, not a total-match count."
     ),
     openapi_extra={
         "responses": {
@@ -235,7 +239,8 @@ def build_report_job_search_filters(
             example_key="report_job_source_scope_violation",
             description=(
                 "Returned when lotus-report is unavailable, returns an unsafe failure, or "
-                "returns a search result outside the admitted caller scope."
+                "returns a search result outside the admitted caller scope, contradicts the "
+                "requested portfolio filter, or supplies malformed scope or count evidence."
             ),
         ),
     },

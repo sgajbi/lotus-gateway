@@ -54,7 +54,11 @@ class ReportingJobQueryService:
             correlation_id=correlation_id,
         )
         response = admit_report_source_response(ReportJobListResponse, status_code, payload)
-        assert_search_result_within_scope(response, caller_headers=caller_headers)
+        assert_search_result_within_scope(
+            response,
+            caller_headers=caller_headers,
+            requested_portfolio_id=fenced_filters.get("portfolioId"),
+        )
         return response
 
     async def get_report_job_status(
