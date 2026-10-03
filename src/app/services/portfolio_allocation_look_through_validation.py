@@ -54,10 +54,19 @@ class _ViewLike(Protocol):
 
 class _LookThroughLike(Protocol):
     @property
+    def requested_mode(self) -> str: ...
+
+    @property
     def applied_mode(self) -> str: ...
 
     @property
+    def supported(self) -> bool: ...
+
+    @property
     def decomposed_position_count(self) -> int: ...
+
+    @property
+    def limitation_reason(self) -> str | None: ...
 
 
 def validate_allocation_contributor_identity(contributor: _ContributorLike) -> None:
@@ -103,13 +112,33 @@ def validate_allocation_contributor_identity(contributor: _ContributorLike) -> N
 def validate_look_through_content(
     views: Sequence[_ViewLike], look_through: _LookThroughLike | None
 ) -> None:
-    if look_through is None or look_through.applied_mode != "direct_only":
+    if look_through is None:
         return
-    has_decomposition = look_through.decomposed_position_count or any(
+    has_components = any(
         contributor.contributor_type == "look_through_component"
         for view in views
         for bucket in view.buckets
         for contributor in bucket.contributors
     )
-    if has_decomposition:
+    if look_through.applied_mode == "direct_only" and has_components:
         raise ValueError("direct-only allocation cannot contain look-through decomposition")
+    if look_through.applied_mode == "prefer_look_through" and not has_components:
+        raise ValueError("applied look-through requires component contributors")
+
+
+def validate_look_through_metadata(look_through: _LookThroughLike) -> None:
+    if look_through.requested_mode == "direct_only" and look_through.applied_mode != "direct_only":
+        raise ValueError("allocation applied look-through mode exceeds the requested mode")
+    if look_through.applied_mode == "prefer_look_through":
+        if not look_through.supported or look_through.decomposed_position_count < 1:
+            raise ValueError("applied look-through requires supported decomposition")
+    elif look_through.decomposed_position_count:
+        raise ValueError("direct-only allocation cannot report decomposed positions")
+    if (
+        look_through.requested_mode == "prefer_look_through"
+        and look_through.applied_mode == "direct_only"
+    ):
+        if look_through.supported or not (look_through.limitation_reason or "").strip():
+            raise ValueError("look-through fallback requires an unsupported limitation reason")
+    if look_through.limitation_reason is not None and not look_through.limitation_reason.strip():
+        raise ValueError("look-through limitation_reason must be nonblank")

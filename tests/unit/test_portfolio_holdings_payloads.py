@@ -38,8 +38,8 @@ def _reconciled_allocation_views(total: str | None) -> list[dict[str, object]]:
                         "dimension_value": "Other",
                         "market_value_reporting_currency": total,
                         "weight": "1",
-                        "position_count": 0,
-                        "contributor_count": 0,
+                        "position_count": 1,
+                        "contributor_count": 1,
                         "contributors": [],
                         "contributors_truncated": True,
                         "omitted_market_value_reporting_currency": total,
@@ -427,6 +427,8 @@ def test_parse_allocation_evidence_accepts_consistent_coverage_totals(
             "valued_position_count": 0,
         }
         if coverage_state in {"LOADED_EMPTY", "UNAVAILABLE"}
+        else {"valued_position_count": 0, "unvalued_position_count": 1}
+        if coverage_state == "PARTIAL"
         else {}
     )
     evidence = parse_allocation_evidence(
@@ -642,7 +644,7 @@ def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() ->
                             "position_count": 3,
                             "market_value_reporting_currency": "1234.567",
                             "weight": "0.345678",
-                            "contributor_count": 2,
+                            "contributor_count": 3,
                             "contributors": [
                                 {
                                     "contributor_type": "look_through_component",
@@ -692,7 +694,7 @@ def test_parse_allocation_views_quantizes_and_preserves_contributor_lineage() ->
     assert bucket.position_count == 3
     assert bucket.market_value_base == 1234.57
     assert bucket.weight_pct == 34.5678
-    assert bucket.contributor_count == 2
+    assert bucket.contributor_count == 3
     assert bucket.contributors_truncated is True
     assert bucket.omitted_market_value_reporting_currency == 100
     assert bucket.contributors[0].contributor_type == "look_through_component"

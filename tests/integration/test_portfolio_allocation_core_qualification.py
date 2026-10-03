@@ -133,6 +133,25 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
                 bucket["omitted_market_value_reporting_currency"] = "0"
                 bucket["contributors"][0]["market_value_reporting_currency"] = "0"
                 bucket["contributors"][0]["bucket_weight"] = None
+    elif scenario == "invalid-empty-trusted-view":
+        payload = _allocation_payload("measured-zero")
+        for view in payload["views"]:
+            view["buckets"] = []
+    elif scenario == "invalid-partial-complete-counts":
+        payload = _allocation_payload("unknown")
+        payload["valuation_coverage"]["valued_position_count"] = 2
+        payload["valuation_coverage"]["unvalued_position_count"] = 0
+    elif scenario == "invalid-measured-zero-offset":
+        payload = _allocation_payload("measured-zero")
+        equity_bucket, bond_bucket = payload["views"][0]["buckets"]
+        equity_bucket["market_value_reporting_currency"] = "1"
+        equity_bucket["contributors"][0]["market_value_reporting_currency"] = "1"
+        bond_bucket["market_value_reporting_currency"] = "-1"
+        bond_bucket["contributors"][0]["market_value_reporting_currency"] = "-1"
+    elif scenario == "invalid-truncation-flag":
+        payload["views"][0]["buckets"][0]["contributors_truncated"] = True
+    elif scenario == "invalid-zero-position-count":
+        payload["views"][0]["buckets"][0]["position_count"] = 0
     elif scenario == "wrong-scope":
         payload["scope"] = {"portfolio_id": "PF_OTHER"}
     elif scenario == "invalid-degraded-weight":
@@ -149,9 +168,11 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
     elif scenario == "invalid-applied-look-through-mode":
         payload["look_through"]["applied_mode"] = "prefer_look_through"
     elif scenario == "invalid-direct-only-component":
-        payload["views"][0]["buckets"][0]["contributors"][0]["contributor_type"] = (
-            "look_through_component"
+        payload = _allocation_payload("look-through")
+        payload["look_through"].update(
+            {"requested_mode": "direct_only", "applied_mode": "direct_only"}
         )
+        payload["look_through"]["decomposed_position_count"] = 0
     elif scenario == "invalid-direct-only-decomposition":
         payload["look_through"]["decomposed_position_count"] = 1
     elif scenario == "look-through":
@@ -176,9 +197,33 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
                     "component_source_record_id": "COMPONENT_501",
                 }
             )
+    elif scenario == "look-through-unavailable":
+        payload["look_through"].update(
+            {
+                "requested_mode": "prefer_look_through",
+                "applied_mode": "direct_only",
+                "supported": False,
+                "limitation_reason": "No complete component set was available.",
+            }
+        )
     elif scenario == "invalid-applied-unsupported":
         payload = _allocation_payload("look-through")
         payload["look_through"]["supported"] = False
+    elif scenario == "invalid-applied-without-components":
+        payload["look_through"].update(
+            {
+                "requested_mode": "prefer_look_through",
+                "applied_mode": "prefer_look_through",
+                "supported": True,
+                "decomposed_position_count": 1,
+            }
+        )
+    elif scenario == "invalid-fallback-supported":
+        payload = _allocation_payload("look-through-unavailable")
+        payload["look_through"]["supported"] = True
+    elif scenario == "invalid-fallback-without-reason":
+        payload = _allocation_payload("look-through-unavailable")
+        payload["look_through"]["limitation_reason"] = None
     elif scenario == "invalid-direct-contributor-identity":
         contributor = payload["views"][0]["buckets"][0]["contributors"][0]
         contributor["security_id"] = "EQ_COMPONENT_1"
@@ -364,7 +409,11 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
             if scenario
             in {
                 "look-through",
+                "look-through-unavailable",
                 "invalid-applied-unsupported",
+                "invalid-applied-without-components",
+                "invalid-fallback-supported",
+                "invalid-fallback-without-reason",
                 "invalid-component-contributor-identity",
             }
             else "direct_only"
@@ -385,6 +434,8 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     carry_forward = get_scenario("carry-forward").json()
     look_through_response = get_scenario("look-through")
     look_through = look_through_response.json()
+    look_through_unavailable_response = get_scenario("look-through-unavailable")
+    look_through_unavailable = look_through_unavailable_response.json()
     valid_numeric_policy_response = get_scenario("numeric-policy")
     valid_numeric_policy = valid_numeric_policy_response.json()
     contradictory = get_scenario("contradictory")
@@ -399,6 +450,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_direct_only_component = get_scenario("invalid-direct-only-component")
     invalid_direct_only_decomposition = get_scenario("invalid-direct-only-decomposition")
     invalid_applied_unsupported = get_scenario("invalid-applied-unsupported")
+    invalid_applied_without_components = get_scenario("invalid-applied-without-components")
+    invalid_fallback_supported = get_scenario("invalid-fallback-supported")
+    invalid_fallback_without_reason = get_scenario("invalid-fallback-without-reason")
     invalid_direct_contributor_identity = get_scenario("invalid-direct-contributor-identity")
     invalid_component_contributor_identity = get_scenario("invalid-component-contributor-identity")
     invalid_trusted_bucket_value = get_scenario("invalid-trusted-bucket-value")
@@ -416,6 +470,11 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     invalid_zero_rounding_policy = get_scenario("invalid-zero-rounding-policy")
     invalid_numeric_output_magnitude = get_scenario("invalid-numeric-output-magnitude")
     invalid_numeric_output_scale = get_scenario("invalid-numeric-output-scale")
+    invalid_empty_trusted_view = get_scenario("invalid-empty-trusted-view")
+    invalid_partial_complete_counts = get_scenario("invalid-partial-complete-counts")
+    invalid_measured_zero_offset = get_scenario("invalid-measured-zero-offset")
+    invalid_truncation_flag = get_scenario("invalid-truncation-flag")
+    invalid_zero_position_count = get_scenario("invalid-zero-position-count")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -447,6 +506,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     assert carry_forward["valuation_coverage"]["coverage_state"] == "CARRY_FORWARD"
     assert look_through_response.status_code == 200
     assert look_through["look_through"]["applied"] is True
+    assert look_through_unavailable_response.status_code == 200
+    assert look_through_unavailable["look_through"]["applied"] is False
+    assert look_through_unavailable["look_through"]["supported"] is False
     assert valid_numeric_policy_response.status_code == 200
     assert valid_numeric_policy["calculation_lineage"]["numeric_output_policy"]["scale"] == 8
     assert contradictory.status_code == 502
@@ -468,6 +530,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_direct_only_component,
         invalid_direct_only_decomposition,
         invalid_applied_unsupported,
+        invalid_applied_without_components,
+        invalid_fallback_supported,
+        invalid_fallback_without_reason,
         invalid_direct_contributor_identity,
         invalid_component_contributor_identity,
         invalid_trusted_bucket_value,
@@ -483,13 +548,18 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_zero_rounding_policy,
         invalid_numeric_output_magnitude,
         invalid_numeric_output_scale,
+        invalid_empty_trusted_view,
+        invalid_partial_complete_counts,
+        invalid_measured_zero_offset,
+        invalid_truncation_flag,
+        invalid_zero_position_count,
     ):
         assert invalid_response.status_code == 502
         assert (
             invalid_response.json()["detail"]["error_code"]
             == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
         )
-    assert len(allocation_requests) == 34
+    assert len(allocation_requests) == 43
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests
