@@ -200,6 +200,10 @@ under parent issue #586.
    to be numeric zero. Successful source envelopes must match the requested portfolio, effective
    date, reporting currency, and exact non-duplicated canonical dimension set. Coverage state fails
    pricing readiness closed (`PARTIAL` to partial, `UNAVAILABLE` and `LOADED_EMPTY` to missing).
+   `MEASURED_ZERO` is pricing-ready without a positive-value prerequisite. Coverage counts must
+   partition observed rows and obey state-specific producer invariants; degraded coverage cannot
+   expose numeric bucket weights; bucket values and omitted residuals must share null qualification
+   before known reconciliation.
    Gateway does not recalculate allocation,
    join
    direct positions to infer components, or invent target, benchmark, drift, suitability,

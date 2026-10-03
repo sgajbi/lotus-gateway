@@ -761,12 +761,18 @@ that aggregate exactly, including its null qualification. `MEASURED_ZERO` and `L
 require a numeric zero total. Gateway also verifies that the successful source envelope identifies
 the requested portfolio, effective as-of date, reporting currency, and exactly the four canonical
 dimensions without duplicates; any mismatch fails closed. Portfolio
+coverage counts are admitted as one invariant: valued and unvalued rows partition observed rows,
+trusted non-empty states have no unvalued or omitted expected rows, loaded-empty has zero counts,
+and unavailable has no observed rows. Degraded coverage cannot publish numeric bucket weights, and
+bucket value and omitted residual must share null qualification before known reconciliation.
+Portfolio
 insight and readiness fallbacks consume the same coverage state: partial maps to incomplete pricing and
 unavailable or loaded-empty maps to missing pricing evidence. Each bucket publishes typed direct-position or
 look-through-component contributors,
 booked/component identity, source snapshot and component-record lineage, reporting-currency value,
 component weight, and bounded truncation/residual metadata. `effective_mode` is Core's
 `applied_mode`; `applied` is true only when Core actually applied `prefer_look_through`.
+Trusted measured-zero coverage maps to pricing-ready even though no positive market value exists.
 
 `contributor_limit_per_bucket` is bounded to 1–250 and defaults to 50. When Core truncates the
 ordered contributor list, `contributors_truncated` and

@@ -32,6 +32,35 @@ class SourceAllocationValuationCoverage(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
+    @model_validator(mode="after")
+    def validate_count_coherence(self) -> "SourceAllocationValuationCoverage":
+        observed_partition = self.valued_position_count + self.unvalued_position_count
+        if observed_partition != self.snapshot_row_count:
+            raise ValueError("valued and unvalued counts must partition snapshot rows")
+        if self.coverage_state in {"COMPLETE", "MEASURED_ZERO", "CARRY_FORWARD"}:
+            if self.unvalued_position_count != 0:
+                raise ValueError(
+                    "complete allocation valuation coverage cannot contain unvalued rows"
+                )
+            if self.snapshot_row_count == 0:
+                raise ValueError("non-empty trusted allocation coverage requires snapshot rows")
+            if self.snapshot_row_count < self.expected_open_position_count:
+                raise ValueError("trusted allocation coverage cannot omit expected open positions")
+        if self.coverage_state == "LOADED_EMPTY" and any(
+            (
+                self.snapshot_row_count,
+                self.expected_open_position_count,
+                self.valued_position_count,
+                self.unvalued_position_count,
+            )
+        ):
+            raise ValueError("loaded-empty allocation coverage requires zero counts")
+        if self.coverage_state == "UNAVAILABLE" and any(
+            (self.snapshot_row_count, self.valued_position_count, self.unvalued_position_count)
+        ):
+            raise ValueError("unavailable allocation coverage cannot contain observed rows")
+        return self
+
 
 class SourceNumericOutputPolicyLineage(BaseModel):
     name: str = Field(min_length=1)
@@ -136,10 +165,15 @@ class SourceAllocationBucket(BaseModel):
             raise ValueError("contributors cannot exceed contributor_count")
         if not self.contributors_truncated and len(self.contributors) != self.contributor_count:
             raise ValueError("untruncated contributors must contain every source row")
-        if (
-            self.market_value_reporting_currency is not None
-            and self.omitted_market_value_reporting_currency is not None
-        ):
+        bucket_value_known = self.market_value_reporting_currency is not None
+        residual_known = self.omitted_market_value_reporting_currency is not None
+        if bucket_value_known != residual_known:
+            raise ValueError("bucket value and omitted residual must share null qualification")
+        if bucket_value_known and residual_known:
+            bucket_value = self.market_value_reporting_currency
+            omitted_residual = self.omitted_market_value_reporting_currency
+            assert bucket_value is not None
+            assert omitted_residual is not None
             retained_values = [item.market_value_reporting_currency for item in self.contributors]
             if any(value is None for value in retained_values):
                 raise ValueError("known bucket value cannot contain unknown contributor value")
@@ -147,9 +181,7 @@ class SourceAllocationBucket(BaseModel):
                 (value for value in retained_values if value is not None),
                 Decimal("0"),
             )
-            if retained_value + self.omitted_market_value_reporting_currency != (
-                self.market_value_reporting_currency
-            ):
+            if retained_value + omitted_residual != bucket_value:
                 raise ValueError("contributors and omitted residual must reconcile to bucket value")
         return self
 
@@ -206,6 +238,12 @@ class SourceAllocationPayload(SourceAllocationEvidence):
             for view in self.views or []
         ):
             raise ValueError("allocation view totals must match full-scope source evidence")
+        if self.valuation_coverage.coverage_state in DEGRADED_ALLOCATION_VALUATION_COVERAGE_STATES:
+            has_known_weight = any(
+                bucket.weight is not None for view in self.views or [] for bucket in view.buckets
+            )
+            if has_known_weight:
+                raise ValueError("degraded allocation valuation coverage requires unknown weights")
         return self
 
 

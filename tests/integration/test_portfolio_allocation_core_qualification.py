@@ -120,6 +120,13 @@ def _allocation_payload(scenario: str) -> dict[str, Any]:
     }
     if scenario == "wrong-scope":
         payload["scope"] = {"portfolio_id": "PF_OTHER"}
+    elif scenario == "invalid-degraded-weight":
+        payload = _allocation_payload("unknown")
+        payload["views"][0]["buckets"][0]["weight"] = "1"
+    elif scenario == "invalid-coverage-counts":
+        payload["valuation_coverage"]["unvalued_position_count"] = 1
+    elif scenario == "invalid-residual-qualification":
+        payload["views"][0]["buckets"][0]["omitted_market_value_reporting_currency"] = None
     return payload
 
 
@@ -202,6 +209,9 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
     contradictory = get_scenario("contradictory")
     wrong_scope = get_scenario("wrong-scope")
     invalid_measured_zero = get_scenario("invalid-measured-zero")
+    invalid_degraded_weight = get_scenario("invalid-degraded-weight")
+    invalid_coverage_counts = get_scenario("invalid-coverage-counts")
+    invalid_residual_qualification = get_scenario("invalid-residual-qualification")
 
     unknown_buckets = {item["bucket"]: item for item in unknown["views"][0]["buckets"]}
     assert unknown["valuation_coverage"]["coverage_state"] == "PARTIAL"
@@ -233,7 +243,17 @@ def test_registered_route_preserves_core_qualified_allocation_shapes(monkeypatch
         invalid_measured_zero.json()["detail"]["error_code"]
         == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
     )
-    assert len(allocation_requests) == 7
+    for invalid_response in (
+        invalid_degraded_weight,
+        invalid_coverage_counts,
+        invalid_residual_qualification,
+    ):
+        assert invalid_response.status_code == 502
+        assert (
+            invalid_response.json()["detail"]["error_code"]
+            == "PORTFOLIO_ALLOCATION_CONTRACT_INVALID"
+        )
+    assert len(allocation_requests) == 10
     assert all(
         request["dimensions"] == ["asset_class", "currency", "sector", "region"]
         for request in allocation_requests

@@ -216,6 +216,8 @@ def pricing_readiness_status(
         return "Missing"
     if allocation_coverage_state == "PARTIAL":
         return "Partial"
+    if allocation_coverage_state == "MEASURED_ZERO":
+        return "Ready"
     has_valued_holdings = any((position.market_value_base or 0) > 0 for position in positions)
     if has_valued_holdings and allocation_views:
         return "Ready"
