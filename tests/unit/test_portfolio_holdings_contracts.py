@@ -74,12 +74,15 @@ def test_portfolio_book_contract_accepts_extracted_core_and_holdings_models() ->
         allocation_views=[
             PortfolioAllocationView(
                 dimension="asset_class",
+                total_market_value_reporting_currency="900.0",
                 buckets=[
                     PortfolioAllocationBucket(
                         bucket="Equity",
                         position_count=1,
                         market_value_base=900.0,
+                        market_value_reporting_currency="900.0",
                         weight_pct=90.0,
+                        omitted_market_value_reporting_currency="0",
                     )
                 ],
             )

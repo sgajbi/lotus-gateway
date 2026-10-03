@@ -54,11 +54,34 @@ def test_portfolio_allocation_openapi_graph_is_closed_and_typed() -> None:
 
     assert visited == {
         "PortfolioAllocationBucket",
+        "PortfolioAllocationCalculationLineage",
         "PortfolioAllocationContributor",
         "PortfolioAllocationLookThroughCapability",
+        "PortfolioAllocationNumericOutputPolicy",
         "PortfolioAllocationResponse",
+        "PortfolioAllocationValuationCoverage",
         "PortfolioAllocationView",
     }
+    response_schema = schemas["PortfolioAllocationResponse"]
+    assert {
+        "total_market_value_reporting_currency",
+        "valuation_coverage",
+        "calculation_lineage",
+    }.issubset(response_schema["required"])
+    assert schemas["PortfolioAllocationValuationCoverage"]["properties"]["coverage_state"][
+        "enum"
+    ] == [
+        "COMPLETE",
+        "MEASURED_ZERO",
+        "CARRY_FORWARD",
+        "LOADED_EMPTY",
+        "PARTIAL",
+        "UNAVAILABLE",
+    ]
+    bucket_value = schemas["PortfolioAllocationBucket"]["properties"][
+        "market_value_reporting_currency"
+    ]
+    assert {item.get("type") for item in bucket_value["anyOf"]} == {"string", "null"}
 
 
 def test_portfolio_allocation_openapi_fitness_rejects_nested_free_form_objects() -> None:

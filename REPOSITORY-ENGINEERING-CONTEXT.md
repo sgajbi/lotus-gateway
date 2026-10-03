@@ -188,16 +188,22 @@ under parent issue #586.
 7. Current source-backed allocation reads are active at
    `/api/v1/portfolio/portfolios/{portfolio_id}/allocations`. Core owns allocation calculation,
    classification, look-through eligibility, contributor ordering, source lineage, bucket totals,
-   and bounded residuals. Gateway validates the Core contributor contract and publishes typed
+   bounded residuals, valuation coverage, and deterministic calculation lineage. Gateway validates
+   the Core source contract and publishes typed
    direct-position/look-through-component rows, preserving booked/component identity, source
-   snapshot and component-record lineage, reporting-currency contribution values, effective
-   look-through posture, and explicit truncation. Gateway does not recalculate allocation, join
+   snapshot and component-record lineage, reporting-currency contribution values, source-owned
+   full-scope/per-view totals, coverage state/reason/counts, nullable qualified values, effective
+   look-through posture, and explicit truncation. Reconciliation is enforced only when the source
+   bucket and residual are known; unknown valuation remains distinct from measured zero. Gateway
+   does not recalculate allocation, join
    direct positions to infer components, or invent target, benchmark, drift, suitability,
    recommendation, order, execution, or settlement truth. The route accepts only canonical
    `direct_only` and `prefer_look_through` modes and bounds contributor detail to 1–250 rows per
    bucket, default 50; malformed successful Core payloads fail closed with
-   `PORTFOLIO_ALLOCATION_CONTRACT_INVALID`. This is the bounded Gateway delivery for #496; Core
-   source-contract history remains tracked by lotus-core#801 and is not closed by Gateway. The
+   `PORTFOLIO_ALLOCATION_CONTRACT_INVALID`. Core allocation coverage is owned by Core #1184,
+   Gateway preservation by #822, and Workbench rendering by Workbench #1111. This is also the
+   bounded Gateway delivery for #496; Core source-contract history remains tracked by lotus-core#801
+   and is not closed by Gateway. The
    Gateway-owned `PortfolioAllocation*` response graph is closed in OpenAPI and recursively
    fitness-checked; Core source-reader models remain tolerant of additive fields.
 8. Repo-native RFC-0084 consumer declaration records five direct Core dependencies with required

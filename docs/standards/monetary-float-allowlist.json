@@ -340,13 +340,13 @@
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/portfolio_holdings.py:62:market_value_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio_allocation_response.py:24:market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/portfolio_holdings.py:67:weight_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio_allocation_response.py:37:weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"

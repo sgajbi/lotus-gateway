@@ -15,6 +15,7 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceResponse,
 )
 from app.main import app
+from tests.shared.portfolio_allocation_payload import allocation_evidence
 
 
 def test_portfolio_workspace_contract_shape() -> None:
@@ -181,12 +182,15 @@ def test_portfolio_book_contract_shape() -> None:
         allocation_views=[
             {
                 "dimension": "asset_class",
+                "total_market_value_reporting_currency": "900.0",
                 "buckets": [
                     {
                         "bucket": "Equity",
                         "position_count": 1,
                         "market_value_base": 900.0,
+                        "market_value_reporting_currency": "900.0",
                         "weight_pct": 90.0,
+                        "omitted_market_value_reporting_currency": "0",
                     }
                 ],
             }
@@ -240,6 +244,7 @@ def test_portfolio_modular_contract_shapes() -> None:
         ],
     )
     allocations = PortfolioAllocationResponse(
+        **allocation_evidence(),
         correlation_id="corr-4",
         contract_version="v1",
         portfolio_id="PF_1001",
@@ -248,7 +253,15 @@ def test_portfolio_modular_contract_shapes() -> None:
         views=[
             {
                 "dimension": "asset_class",
-                "buckets": [{"bucket": "Equity", "position_count": 1}],
+                "total_market_value_reporting_currency": "1000.0",
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_reporting_currency": "1000.0",
+                        "omitted_market_value_reporting_currency": "0",
+                    }
+                ],
             }
         ],
     )

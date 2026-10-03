@@ -751,7 +751,11 @@ The allocation response is a Gateway composition contract backed by Core's
 `POST /reporting/asset-allocation/query` response. Core owns allocation calculation, look-through
 eligibility, contributor ordering, source lineage, bucket totals, and residual values. Gateway
 validates and maps those fields without recomputing allocation or joining the separate positions
-response. Each bucket publishes typed direct-position or look-through-component contributors,
+response. The Gateway response preserves Core's `valuation_coverage`, full-scope and per-view
+totals, and deterministic calculation lineage. When Core reports partial or unavailable valuation,
+dependent totals, weights, bucket values, contributor values, and residuals remain null rather than
+being presented as measured zero. Genuine zero, signed exposure, carry-forward, and loaded-empty
+states remain distinct. Each bucket publishes typed direct-position or look-through-component contributors,
 booked/component identity, source snapshot and component-record lineage, reporting-currency value,
 component weight, and bounded truncation/residual metadata. `effective_mode` is Core's
 `applied_mode`; `applied` is true only when Core actually applied `prefer_look_through`.
@@ -759,7 +763,9 @@ component weight, and bounded truncation/residual metadata. `effective_mode` is 
 `contributor_limit_per_bucket` is bounded to 1–250 and defaults to 50. When Core truncates the
 ordered contributor list, `contributors_truncated` and
 `omitted_market_value_reporting_currency` remain explicit so consumers never infer completeness.
-Malformed successful Core allocation payloads fail closed with a typed `502` contract error.
+Contributor arithmetic is reconciled only when the bucket value and residual are both known; null
+valuation never removes contributor identity. Malformed successful Core allocation payloads fail
+closed with a typed `502` contract error.
 `full` is not a supported alias: callers must use the canonical `direct_only` or
 `prefer_look_through` vocabulary. Workbench consumes the Gateway route and does not call Core or
 reconstruct look-through contributors from booked positions.
@@ -768,6 +774,10 @@ The published Gateway-owned `PortfolioAllocation*` schemas are closed objects in
 (`additionalProperties: false`). Contract fitness traverses the allocation-owned nested graph so
 new free-form response objects cannot silently reach Workbench; the Core source reader remains
 tolerant of additive upstream fields.
+
+This is Gateway consumer delivery for `sgajbi/lotus-core#1184` and
+`sgajbi/lotus-gateway#822`. Workbench qualification rendering remains separately owned by
+`sgajbi/lotus-workbench#1111`; Gateway evidence alone is not UI acceptance.
 
 ### Performance summary
 
