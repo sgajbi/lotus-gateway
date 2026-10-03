@@ -4,6 +4,80 @@ from fastapi import HTTPException
 from app.services.reporting_job_query_service import ReportingJobQueryService
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "case",
+    [
+        "foreign_portfolio",
+        "wrong_echo",
+        "missing_echo",
+        "malformed_scope",
+        "count_zero",
+        "negative_count",
+        "foreign_tenant",
+        "foreign_region",
+    ],
+)
+async def test_job_search_refuses_contradictory_source_results(case):
+    client = _ReportingClient()
+    payload = _job_list_payload()
+    item = payload["items"][0]
+    if case == "foreign_portfolio":
+        item["portfolioScope"] = {"portfolio_ids": ["PRIVATE-OTHER"]}
+    elif case == "wrong_echo":
+        payload["appliedFilters"]["portfolioId"] = "PRIVATE-OTHER"
+    elif case == "missing_echo":
+        payload["appliedFilters"].pop("portfolioId")
+    elif case == "malformed_scope":
+        item["portfolioScope"] = {"portfolio_ids": "PB_SG_GLOBAL_BAL_001"}
+    elif case == "count_zero":
+        payload["count"] = 0
+    elif case == "negative_count":
+        payload["count"] = -1
+    else:
+        item["tenantId" if case == "foreign_tenant" else "region"] = "PRIVATE-OTHER"
+    client.list_response = (200, payload)
+    service = ReportingJobQueryService(reporting_client=client)
+    with pytest.raises(HTTPException) as exc:
+        await service.list_report_jobs(
+            filters={"portfolioId": "PB_SG_GLOBAL_BAL_001"},
+            caller_headers=_caller_headers(),
+            correlation_id="test-search",
+        )
+    assert exc.value.status_code == 502
+    assert exc.value.detail["code"] == (
+        "report_job_source_contract_invalid"
+        if "count" in case
+        else "report_job_source_scope_violation"
+    )
+    assert "PRIVATE-OTHER" not in str(exc.value.detail)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("case", ["multi", "empty", "no_portfolio_filter"])
+async def test_job_search_preserves_valid_bounded_results(case):
+    client = _ReportingClient()
+    payload = _job_list_payload()
+    filters = {"portfolioId": "PB_SG_GLOBAL_BAL_001"}
+    if case == "multi":
+        payload["items"][0]["portfolioScope"]["portfolio_ids"].append("PB_SG_GLOBAL_BAL_002")
+    elif case == "empty":
+        payload.update(count=0, items=[])
+    else:
+        filters = {"status": "accepted"}
+        payload["appliedFilters"].pop("portfolioId")
+    client.list_response = (200, payload)
+    response = await ReportingJobQueryService(reporting_client=client).list_report_jobs(
+        filters=filters, caller_headers=_caller_headers(), correlation_id="test-search"
+    )
+    assert response.count == len(payload["items"])
+    if case == "multi":
+        assert response.items[0].portfolio_scope["portfolio_ids"] == [
+            "PB_SG_GLOBAL_BAL_001",
+            "PB_SG_GLOBAL_BAL_002",
+        ]
+
+
 class _ReportingClient:
     def __init__(self) -> None:
         self.list_response: tuple[int, dict[str, object]] = (200, _job_list_payload())

@@ -282,7 +282,13 @@ for the registered-route proof.
 - report job search is fenced by the admitted caller scope: the effective tenant and region are
   the admitted `X-Tenant-Id`/`X-Region`, a conflicting `tenantId`/`region` filter is a bounded
   `400` before any source call, and a source result whose applied-filter echo or rows leave the
-  fence is refused as `report_job_source_scope_violation` (502) rather than published
+  fence is refused as `report_job_source_scope_violation` (502) rather than published.
+  A nonempty `portfolioId` also requires a matching applied-filter echo and a well-formed
+  `portfolioScope.portfolio_ids` list on every row that includes the requested portfolio;
+  matching multi-portfolio jobs remain accepted without changing entitlement policy. Missing
+  or contradictory source scope is a bounded `502`, never silently dropped. `count` is a strict
+  nonnegative integer equal to the returned `items` length (including valid empty results),
+  not total matching jobs; contradiction is `report_job_source_contract_invalid` (502).
 - reporting source successes are admitted semantically before publication: status, events,
   lineage, cancel, and snapshot responses must answer the requested job or snapshot, a
   submission handle must echo the caller's `Idempotency-Key` and name the same job in its
