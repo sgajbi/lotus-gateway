@@ -72,11 +72,20 @@ def workspace_context():
 
 
 @pytest.fixture
-def performance_transport(monkeypatch):
+def performance_transport(monkeypatch, request):
     requests = []
+    qualification = getattr(
+        request,
+        "param",
+        {"calculation_supportability": {"state": "ready", "freshness_bucket": "fresh"}},
+    )
     service = build_performance_workspace_service(build_workbench_service())
     monkeypatch.setattr(
         "app.routers.workbench_performance.performance_workspace_service",
+        lambda: service,
+    )
+    monkeypatch.setattr(
+        "app.routers.workbench_performance_details.performance_workspace_service",
         lambda: service,
     )
     # Own the shared app flag for this lifespan, then restore its prior state.
@@ -109,6 +118,7 @@ def performance_transport(monkeypatch):
                 200,
                 json={
                     "calculation_id": calculation,
+                    **qualification,
                     "results_by_period": {
                         "YTD": {
                             "portfolio_twr": {
@@ -125,6 +135,14 @@ def performance_transport(monkeypatch):
                 "status": "complete",
                 "stages": [],
                 "artifacts": {},
+                "upstream_snapshots": [
+                    {
+                        "upstream_endpoint": "portfolio_timeseries",
+                        "source_identifier": "PF_SHARED",
+                        "as_of_date": "2026-04-10",
+                        "retrieval_status": "200",
+                    }
+                ],
             },
         )
 
@@ -140,6 +158,78 @@ def performance_transport(monkeypatch):
     )
     yield requests
     service.clear_upstream_cache()
+
+
+@pytest.mark.parametrize(
+    "performance_transport,expected",
+    [
+        ({}, "partial"),
+        ({"calculation_supportability": None}, "partial"),
+        ({"calculation_supportability": []}, "partial"),
+        ({"calculation_supportability": {}}, "partial"),
+        ({"calculation_supportability": {"state": ""}}, "partial"),
+        (
+            {"calculation_supportability": {"state": "unrecognized", "reason": "PRIVATE-MARKER"}},
+            "partial",
+        ),
+        ({"calculation_supportability": {"state": 1}}, "partial"),
+        (
+            {"calculation_supportability": {"state": "ready", "freshness_bucket": "fresh"}},
+            "supported",
+        ),
+        (
+            {
+                "metadata": {
+                    "calculation_supportability": {"state": "ready", "freshness_bucket": "fresh"}
+                }
+            },
+            "supported",
+        ),
+        (
+            {"calculation_supportability": {"state": "blocked", "reason": "source_quality_issue"}},
+            "partial",
+        ),
+        (
+            {"calculation_supportability": {"state": "stale", "reason": "source_quality_issue"}},
+            "partial",
+        ),
+        (
+            {
+                "calculation_supportability": {
+                    "state": "unavailable",
+                    "reason": "source_quality_issue",
+                }
+            },
+            "unavailable",
+        ),
+    ],
+    indirect=["performance_transport"],
+)
+@pytest.mark.parametrize(
+    "route", [ROUTE, "/api/v1/workbench/PF_SHARED/performance/details?period=YTD"]
+)
+def test_completed_current_calculation_requires_explicit_qualification(
+    performance_transport, expected, route
+):
+    with TestClient(app) as client:
+        response = client.get(route, headers=CALLER)
+    assert response.status_code == 200
+    body = response.json()
+    evidence = body["evidence_view"]
+    assert evidence["state"] == expected, (evidence["reason"], evidence["source_supportability"])
+    assert body["capabilities"]["evidence"]["state"] == expected
+    if route == ROUTE:
+        assert body["net_performance"]["portfolio_return_pct"] == 3.25
+    assert evidence["input_freshness"]["performance"] == "fresh"
+    assert evidence["source_supportability"]
+    assert evidence["calculations"][0]["execution_status"] == "complete"
+    assert evidence["calculations"][0]["lineage_status"] == "complete"
+    assert evidence["calculations"][0]["upstream_snapshots"][0]["as_of_date"] == "2026-04-10"
+    assert "PRIVATE-MARKER" not in response.text
+    if expected != "supported":
+        assert evidence["reason"] == evidence["source_supportability"][0]["reason"]
+        assert evidence["limitations"] == [evidence["reason"]]
+        assert body["capabilities"]["evidence"]["reason"] == evidence["reason"]
 
 
 def test_summary_carries_admitted_authority_through_async_evidence_and_cache(performance_transport):

@@ -418,6 +418,14 @@ under parent issue #586.
     `top_position_weight_current`, `top_position_weight_proposed`, `top_position_weight_delta`,
     `top_position_current`, and `top_position_proposed`; `TOP_POSITION_WEIGHT` methodology truth
     remains owned by `lotus-risk`.
+    Performance evidence requires recognized calculation supportability on successful
+    workspace-summary, contribution, and attribution results (top-level or `metadata`). Missing
+    or invalid qualification, including legacy results, is explicit `partial` with an unverified
+    reason and `unknown` qualification freshness; a ready peer never hides it. Execution and
+    lineage completion are independent and remain unchanged. Execution, lineage, artifact reads,
+    failed results, and unrequested detail calculations do not require that block. The shared
+    Risk extractor retains its existing optional-field semantics; this admission requirement is
+    owned by Performance workspace evidence composition.
     Advisor-brief workflow-pack mapping preserves Lotus AI's source-recorded latest review actor,
     latest review event time, transition count, and history flag. Consumers must fail closed when
     that evidence is absent or malformed; terminal `review_state` is not sufficient evidence of a
