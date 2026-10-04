@@ -20,6 +20,21 @@ evidence exist.
 | Business, demo, and support | The feature sections below | Claims are implementation-backed only; degraded and unavailable source posture stays visible. |
 | Engineering and integration | The linked route, contract, and upstream authority notes | Gateway composes the client contract and does not replace domain calculation authority. |
 
+## Performance Evidence-Date Alignment
+
+Status: implementation-backed for the summary and details API evidence view.
+
+Portfolio and assigned benchmark inputs have independent `fresh`, `stale` or `unknown` labels.
+Only coherent, successfully retrieved canonical series snapshots can establish date alignment;
+missing evidence never means fresh, and one current snapshot cannot hide a stale required peer.
+No benchmark assignment means no benchmark label. Execution, source supportability and history
+coverage remain distinct: a supported execution is not a fresh-input or complete-history claim.
+
+See [semantics and bounded examples](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#performance-input-evidence-date-alignment)
+and [registered response controls](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_performance_caller_authority.py).
+This is not correction/calendar completeness, live-source, Workbench, production IAM or financial
+engine certification. Performance retains source and calculation authority.
+
 ## Composite Fact Selection Transport
 
 Status: implementation-backed for the existing composite TWR and inspection API routes.

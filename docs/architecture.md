@@ -142,6 +142,38 @@ Core reads. Gateway does not manufacture a tenant when a source refuses a reques
 transport tests do not certify the assembled canonical journey; that requires the separately pinned
 Core/Performance/Workbench runtime receipt tracked by issue #692.
 
+## Performance Input Evidence-Date Alignment
+
+Summary and details expose independent `evidence_view.input_freshness` entries. Performance uses
+the producer's `portfolio_timeseries` and `position_timeseries` snapshots; an assigned benchmark
+requires `benchmark_return_series` or `benchmark_market_series`, with any supplied benchmark
+definition/composition snapshots also checked. Reference-only or unknown endpoint families do
+not establish series freshness. Every included calculation must supply its required series family.
+All matching snapshots must have coherent source identity, recorded HTTP `200` retrieval and
+canonical ISO business dates. Registered responses bind portfolio identity to the requested
+portfolio and benchmark identity to the resolved benchmark code. Internal projections without
+request identity prove coherence only, not entitlement or requested-portfolio admission.
+
+`fresh` means all required recorded dates equal the resolved evidence business date. Any valid
+different date, including mixed current/older/future dates, yields `stale`; missing, invalid,
+failed or conflicting identity evidence yields `unknown`. No benchmark assignment omits the
+benchmark entry rather than inventing benchmark evidence. Neither a ready peer, complete
+execution/lineage nor current portfolio evidence can promote another family's missing or stale
+evidence. Execution posture, source supportability and history coverage remain separate fields.
+
+Examples bound by unit and registered summary/detail tests:
+
+| Recorded series evidence | Performance | Benchmark |
+| --- | --- | --- |
+| No snapshots, assigned benchmark | unknown | unknown |
+| Current portfolio, older benchmark | fresh | stale |
+| Older portfolio, current benchmark | stale | fresh |
+| All required series current / all older | fresh / stale | fresh / stale |
+
+These labels are evidence-date alignment, not producer correction/revision completeness, venue
+calendar coverage, independently measured source freshness, financial-calculation certification,
+joined live runtime or Workbench presentation proof. Numbers and source history remain unchanged.
+
 ## Performance History Qualification
 
 Summary and detail preserve Performance's named history contract at

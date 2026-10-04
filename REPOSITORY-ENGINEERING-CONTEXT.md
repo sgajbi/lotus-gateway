@@ -805,6 +805,16 @@ The retained fixture and registered-route tests prove original/latest and view/c
 over pinned Performance synthetic persisted facts; they do not certify live Core/Manage ingestion,
 Workbench, production IAM or model-fee implementation. See `docs/architecture.md`.
 
+Performance summary/detail input freshness is independent evidence-date alignment, not source
+supportability, execution or history qualification. Use canonical producer portfolio/position
+series and benchmark return/market series; reference-only evidence cannot establish freshness.
+Require a series family in every calculation, coherent identity, HTTP 200 and valid ISO dates;
+bind request portfolio and resolved benchmark identities at response assembly. Missing, invalid,
+failed or conflicting evidence is unknown; any valid different required date is stale. Never
+infer correction/calendar completeness, merge a ready peer over missing evidence, or replace
+source-owned numeric returns. The pure helper without request identity proves coherence only.
+See `docs/architecture.md` and registered caller-authority tests for bad and valid controls.
+
 Performance summary/detail preserve source-owned aggregate history in
 `evidence_view.source_supportability[].history_coverage`, bound to calculation role/id,
 actual period keys and selected basis. Do not interpret that aggregate window as separately

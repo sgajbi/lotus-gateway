@@ -6,6 +6,7 @@ import ast
 import json
 import sys
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -198,6 +199,58 @@ def _validate_documentation_alignment(
     return findings
 
 
+def _duplicate_metric_values(metrics: object, name: str) -> tuple[Decimal, Decimal]:
+    if not isinstance(metrics, dict) or not isinstance(metrics.get(name), dict):
+        raise ValueError(f"missing metric {name}")
+    values: list[Decimal] = []
+    for field in ("baseline", "threshold"):
+        raw_value = metrics[name].get(field)
+        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, Decimal)):
+            raise ValueError(f"invalid {name}.{field}")
+        value = Decimal(raw_value)
+        if not value.is_finite() or value < 0:
+            raise ValueError(f"invalid {name}.{field}")
+        if name != "duplicated_percentage" and value != value.to_integral_value():
+            raise ValueError(f"non-integer {name}.{field}")
+        if name == "duplicated_percentage" and value != value.quantize(Decimal("0.01")):
+            raise ValueError(f"unrepresentable percentage {name}.{field}")
+        values.append(value)
+    if values[0] > values[1]:
+        raise ValueError(f"{name} observation exceeds policy")
+    return values[0], values[1]
+
+
+def _duplicate_document_fragments(baseline_path: Path) -> dict[Path, tuple[tuple[str, str], ...]]:
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"), parse_float=Decimal)
+    if not isinstance(baseline, dict):
+        raise ValueError("baseline must be an object")
+    metrics = baseline.get("metrics")
+    measured_clones, clone_ceiling = _duplicate_metric_values(metrics, "clone_count")
+    measured_lines, line_ceiling = _duplicate_metric_values(metrics, "duplicated_lines")
+    measured_percentage, percentage_ceiling = _duplicate_metric_values(
+        metrics, "duplicated_percentage"
+    )
+    return {
+        Path("quality/ci_quality_gates.md"): (
+            (
+                "threshold",
+                "duplicate-code clone count must not exceed "
+                f"{clone_ceiling:,}, duplicated lines must not exceed {line_ceiling:,}, and "
+                f"duplicated percentage must not exceed {percentage_ceiling:.2f}%",
+            ),
+        ),
+        Path("quality/quality_scorecard.md"): (
+            (
+                "observation",
+                f"now measures {measured_clones} production clone findings, "
+                f"{measured_lines:,} duplicated lines, and "
+                f"{measured_percentage:.2f}% duplicated lines",
+            ),
+            ("policy", f"against the unchanged {percentage_ceiling:.2f}% ceiling"),
+        ),
+    }
+
+
 def _validate_duplicate_code_documentation_alignment(repo_root: Path) -> list[str]:
     if not DUPLICATE_CODE_DOCUMENTS:
         return []
@@ -205,34 +258,22 @@ def _validate_duplicate_code_documentation_alignment(repo_root: Path) -> list[st
     if not baseline_path.is_file():
         return [f"Missing duplicate-code baseline: {baseline_path}"]
 
-    metrics = json.loads(baseline_path.read_text(encoding="utf-8"))["metrics"]
-    clone_count = int(metrics["clone_count"]["threshold"])
-    duplicated_lines = int(metrics["duplicated_lines"]["threshold"])
-    duplicated_percentage = float(metrics["duplicated_percentage"]["threshold"])
-    required_fragments = {
-        Path("quality/ci_quality_gates.md"): (
-            "duplicate-code clone count must not exceed "
-            f"{clone_count:,}, duplicated lines must not exceed {duplicated_lines:,}, and "
-            f"duplicated percentage must not exceed {duplicated_percentage:.2f}%"
-        ),
-        Path("quality/quality_scorecard.md"): (
-            f"now measures {clone_count} production clone findings, "
-            f"{duplicated_lines:,} duplicated lines, and "
-            f"{duplicated_percentage:.2f}% duplicated lines"
-        ),
-    }
+    try:
+        required_fragments = _duplicate_document_fragments(baseline_path)
+    except (OSError, ValueError, InvalidOperation) as error:
+        return [f"Invalid duplicate-code measurement authority: {baseline_path}: {error}"]
     findings: list[str] = []
     for relative_path in DUPLICATE_CODE_DOCUMENTS:
         document_path = repo_root / relative_path
         if not document_path.is_file():
             findings.append(f"Missing duplicate-code quality document: {document_path}")
             continue
-        fragment = required_fragments[relative_path]
         document_text = " ".join(document_path.read_text(encoding="utf-8").split())
-        if fragment not in document_text:
-            findings.append(
-                f"{document_path} is missing current duplicate-code threshold fragment: {fragment}"
-            )
+        for kind, fragment in required_fragments[relative_path]:
+            if fragment not in document_text:
+                findings.append(
+                    f"{document_path} is missing current duplicate-code {kind} fragment: {fragment}"
+                )
     return findings
 
 

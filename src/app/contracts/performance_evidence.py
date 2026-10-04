@@ -99,10 +99,7 @@ class PerformanceEvidenceUpstreamSnapshotView(BaseModel):
         examples=["portfolio_timeseries"],
     )
     source_identifier: str = Field(
-        description=(
-            "Source identifier attached to the upstream snapshot, usually a "
-            "portfolio or benchmark id."
-        ),
+        description="Source portfolio or benchmark identity recorded by lotus-performance.",
         examples=["PB_SG_GLOBAL_BAL_001"],
     )
     as_of_date: str = Field(
@@ -262,8 +259,11 @@ class PerformanceEvidenceView(BaseModel):
     )
     input_freshness: dict[str, str] = Field(
         default_factory=dict,
-        description="Product-safe freshness posture for key upstream inputs.",
-        examples=[{"performance": "fresh"}],
+        description=(
+            "Evidence-date alignment: fresh/stale/unknown after identity/HTTP 200/date checks "
+            "per calculation; not supportability, execution, calendar/correction completeness."
+        ),
+        examples=[{"performance": "unknown"}],
     )
     methodology_references: list[str] = Field(
         default_factory=list,
