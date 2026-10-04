@@ -794,6 +794,14 @@ repository fails here rather than validating someone else's protection.
 
 ## Known Constraints And Implementation Notes
 
+Performance summary/detail preserve source-owned aggregate history in
+`evidence_view.source_supportability[].history_coverage`, bound to calculation role/id,
+actual period keys and selected basis. Do not interpret that aggregate window as separately
+attested coverage for each period. Keep partial returns numeric, preserve divergent peers,
+and never infer complete history from freshness/execution. Legacy absent/null history is
+optional but not complete; present malformed history remains partial/unverified through the
+existing source-supportability boundary. See `docs/architecture.md` for the evidence limits.
+
 Workbench drawdown episodes use the existing Risk DTO/mapper with required nullable `peak_date`,
 `days_to_trough`, and `total_days` for Risk's undated opening-wealth baseline. Preserve nulls,
 episode identity, depth, observed trough/recovery, source quality and existing depth ordering;

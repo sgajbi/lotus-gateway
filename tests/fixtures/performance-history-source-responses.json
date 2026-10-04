@@ -1,0 +1,2041 @@
+{
+  "complete": {
+    "calculation_id": "qa-history-complete",
+    "portfolio_id": "QA_HISTORY_543_workspace-stateless-EXPLICIT",
+    "input_mode": "stateless",
+    "results_by_period": {
+      "EXPLICIT": {
+        "portfolio_twr": {
+          "net": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "gross": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "benchmark": null,
+        "active": null,
+        "money_weighted_return": {
+          "input_mode": "stateless",
+          "method": "XIRR",
+          "period_return": 8480.716285771352,
+          "cumulative_return": 8480.716285771352,
+          "annualized_return": 8480.716285771352,
+          "economics": {
+            "begin_market_value": 100.0,
+            "end_market_value": 105.0,
+            "beginning_cash_flow": 0.0,
+            "ending_cash_flow": 0.0,
+            "fees": 0.0,
+            "net_cash_flow": 0.0,
+            "flow_adjusted_end_market_value": 105.0
+          },
+          "start_date": "2026-01-05",
+          "end_date": "2026-01-09",
+          "notes": [
+            "XIRR calculation successful."
+          ]
+        }
+      }
+    },
+    "currency_evidence": {
+      "portfolio_base_currency": "USD",
+      "requested_report_ccy": null,
+      "applied_report_ccy": "USD",
+      "restated": false,
+      "currency_mode_applied": "BASE_ONLY",
+      "fx_source": "none",
+      "fx_coverage": "none",
+      "fixing_policy": "EOD_EXACT_PRIOR_AND_CURRENT",
+      "applied_pairs": [],
+      "reason": "PORTFOLIO_BASE_CURRENCY_APPLIED"
+    },
+    "calculation_supportability": {
+      "state": "ready",
+      "reason": "calculation_complete",
+      "freshness_bucket": "current",
+      "input_row_count": 5,
+      "resolved_period_count": 1,
+      "benchmark_row_count": 0,
+      "source_quality_evidence": null,
+      "history_coverage": {
+        "status": "complete",
+        "calculation_basis": "requested_window",
+        "requested_start_date": "2026-01-05",
+        "requested_end_date": "2026-01-09",
+        "covered_start_date": "2026-01-05",
+        "covered_end_date": "2026-01-09",
+        "effective_start_date": "2026-01-05",
+        "effective_end_date": "2026-01-09",
+        "calendar_basis": "natural_days",
+        "missing_required_observation_count": 0,
+        "missing_required_observation_dates_sample": [],
+        "reason_codes": [
+          "covered_window_matches_requested_window"
+        ]
+      },
+      "metric_labels": [
+        "operation",
+        "supportability_state",
+        "reason",
+        "freshness_bucket"
+      ]
+    },
+    "meta": {
+      "calculation_id": "74ee7a49-ecb6-467d-8279-bba7138bdac5",
+      "engine_version": "lotus-performance-calculation-engine.v8",
+      "precision_mode": "FLOAT64",
+      "annualization": {
+        "enabled": true,
+        "basis": "ACT/365",
+        "periods_per_year": null
+      },
+      "calendar": {
+        "type": "NATURAL",
+        "trading_calendar": null
+      },
+      "periods": {
+        "requested": [
+          "EXPLICIT"
+        ],
+        "master_start": "2026-01-05",
+        "master_end": "2026-01-09"
+      },
+      "input_fingerprint": "sha256:8d5f0dfee85f237f5dcbff2d83707378c41604c8c4f24c16a7259efbe6446844",
+      "calculation_hash": "sha256:344f19921083ef27c727f056fa85988fa2b5765fcb6474412506622dba887f90",
+      "report_ccy": null
+    },
+    "diagnostics": {
+      "nip_days": 0,
+      "nip_rule_delta_days": 0,
+      "reset_days": 0,
+      "nctrl4_reset_days": 0,
+      "nctrl4_exclusive_reset_days": 0,
+      "account_reset_shadow_days": 0,
+      "sod_reset_shadow_days": 0,
+      "shadow_reset_overlap_days": 0,
+      "shadow_only_candidate_reset_days": 0,
+      "active_reset_with_shadow_days": 0,
+      "candidate_canonical_reset_days": 0,
+      "reset_delta_days": 0,
+      "nip_days_since_last_reset": 0,
+      "valid_days_since_last_reset": 5,
+      "effective_period_start": "2026-01-05",
+      "notes": [],
+      "policy": {
+        "overrides": {
+          "applied_mv_count": 0,
+          "applied_cf_count": 0
+        },
+        "ignored_days_count": 0,
+        "outliers": {
+          "flagged_rows": 0
+        }
+      },
+      "samples": {
+        "outliers": [],
+        "methodology_shadows": [
+          {
+            "date": "2026-01-05",
+            "active_nip": 0,
+            "nip_rule_v1": 0,
+            "nip_rule_v2": 0,
+            "active_perf_reset": 0,
+            "candidate_canonical_perf_reset": 0,
+            "sod_reset_shadow": 0,
+            "account_reset_shadow": 0,
+            "previous_sign_zero": 1,
+            "initial_sign": 1,
+            "final_sign": 1,
+            "active_reset_reason_codes": [],
+            "candidate_canonical_reset_reason_codes": []
+          }
+        ]
+      }
+    },
+    "audit": {
+      "sum_of_parts_vs_total_bp": null,
+      "residual_applied_bp": null,
+      "counts": {
+        "input_rows": 5,
+        "periods_resolved": 1,
+        "portfolio_chunk_count": 0,
+        "portfolio_page_count": 0,
+        "benchmark_chunk_count": 0
+      }
+    }
+  },
+  "partial": {
+    "calculation_id": "qa-history-partial",
+    "portfolio_id": "QA_HISTORY_543_workspace-stateless-1Y",
+    "input_mode": "stateless",
+    "results_by_period": {
+      "1Y": {
+        "portfolio_twr": {
+          "net": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "gross": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "benchmark": null,
+        "active": null,
+        "money_weighted_return": {
+          "input_mode": "stateless",
+          "method": "XIRR",
+          "period_return": 5.0140750140366785,
+          "cumulative_return": 5.0140750140366785,
+          "annualized_return": 5.0140750140366785,
+          "economics": {
+            "begin_market_value": 100.0,
+            "end_market_value": 105.0,
+            "beginning_cash_flow": 0.0,
+            "ending_cash_flow": 0.0,
+            "fees": 0.0,
+            "net_cash_flow": 0.0,
+            "flow_adjusted_end_market_value": 105.0
+          },
+          "start_date": "2025-01-10",
+          "end_date": "2026-01-09",
+          "notes": [
+            "XIRR calculation successful."
+          ]
+        }
+      }
+    },
+    "currency_evidence": {
+      "portfolio_base_currency": "USD",
+      "requested_report_ccy": null,
+      "applied_report_ccy": "USD",
+      "restated": false,
+      "currency_mode_applied": "BASE_ONLY",
+      "fx_source": "none",
+      "fx_coverage": "none",
+      "fixing_policy": "EOD_EXACT_PRIOR_AND_CURRENT",
+      "applied_pairs": [],
+      "reason": "PORTFOLIO_BASE_CURRENCY_APPLIED"
+    },
+    "calculation_supportability": {
+      "state": "degraded",
+      "reason": "partial_history_coverage",
+      "freshness_bucket": "current",
+      "input_row_count": 5,
+      "resolved_period_count": 1,
+      "benchmark_row_count": 0,
+      "source_quality_evidence": null,
+      "history_coverage": {
+        "status": "partial",
+        "calculation_basis": "available_window",
+        "requested_start_date": "2025-01-10",
+        "requested_end_date": "2026-01-09",
+        "covered_start_date": "2026-01-05",
+        "covered_end_date": "2026-01-09",
+        "effective_start_date": "2026-01-05",
+        "effective_end_date": "2026-01-09",
+        "calendar_basis": "natural_days",
+        "missing_required_observation_count": 360,
+        "missing_required_observation_dates_sample": [
+          "2025-01-10",
+          "2025-01-11",
+          "2025-01-12",
+          "2025-01-13",
+          "2025-01-14",
+          "2025-01-15",
+          "2025-01-16",
+          "2025-01-17",
+          "2025-01-18",
+          "2025-01-19"
+        ],
+        "reason_codes": [
+          "leading_history_missing"
+        ]
+      },
+      "metric_labels": [
+        "operation",
+        "supportability_state",
+        "reason",
+        "freshness_bucket"
+      ]
+    },
+    "meta": {
+      "calculation_id": "34f4db08-3d59-45b1-96c4-eb82cce02fb5",
+      "engine_version": "lotus-performance-calculation-engine.v8",
+      "precision_mode": "FLOAT64",
+      "annualization": {
+        "enabled": true,
+        "basis": "ACT/365",
+        "periods_per_year": null
+      },
+      "calendar": {
+        "type": "NATURAL",
+        "trading_calendar": null
+      },
+      "periods": {
+        "requested": [
+          "1Y"
+        ],
+        "master_start": "2025-01-10",
+        "master_end": "2026-01-09"
+      },
+      "input_fingerprint": "sha256:347c5526f36a892cd5c3ee91907c662b165bb05e5b7738800b1360abf2276065",
+      "calculation_hash": "sha256:1e6ff51bdbe089b638eb42f5f56d2f3fcf47250cfd82d7692254639f4869f111",
+      "report_ccy": null
+    },
+    "diagnostics": {
+      "nip_days": 0,
+      "nip_rule_delta_days": 0,
+      "reset_days": 0,
+      "nctrl4_reset_days": 0,
+      "nctrl4_exclusive_reset_days": 0,
+      "account_reset_shadow_days": 0,
+      "sod_reset_shadow_days": 0,
+      "shadow_reset_overlap_days": 0,
+      "shadow_only_candidate_reset_days": 0,
+      "active_reset_with_shadow_days": 0,
+      "candidate_canonical_reset_days": 0,
+      "reset_delta_days": 0,
+      "nip_days_since_last_reset": 0,
+      "valid_days_since_last_reset": 5,
+      "effective_period_start": "2026-01-05",
+      "notes": [],
+      "policy": {
+        "overrides": {
+          "applied_mv_count": 0,
+          "applied_cf_count": 0
+        },
+        "ignored_days_count": 0,
+        "outliers": {
+          "flagged_rows": 0
+        }
+      },
+      "samples": {
+        "outliers": [],
+        "methodology_shadows": [
+          {
+            "date": "2026-01-05",
+            "active_nip": 0,
+            "nip_rule_v1": 0,
+            "nip_rule_v2": 0,
+            "active_perf_reset": 0,
+            "candidate_canonical_perf_reset": 0,
+            "sod_reset_shadow": 0,
+            "account_reset_shadow": 0,
+            "previous_sign_zero": 1,
+            "initial_sign": 1,
+            "final_sign": 1,
+            "active_reset_reason_codes": [],
+            "candidate_canonical_reset_reason_codes": []
+          }
+        ]
+      }
+    },
+    "audit": {
+      "sum_of_parts_vs_total_bp": null,
+      "residual_applied_bp": null,
+      "counts": {
+        "input_rows": 5,
+        "periods_resolved": 1,
+        "portfolio_chunk_count": 0,
+        "portfolio_page_count": 0,
+        "benchmark_chunk_count": 0
+      }
+    }
+  },
+  "unknown": {
+    "calculation_id": "qa-history-unknown",
+    "portfolio_id": "QA_HISTORY_543_workspace-stateless-EXPLICIT",
+    "input_mode": "stateless",
+    "results_by_period": {
+      "EXPLICIT": {
+        "portfolio_twr": {
+          "net": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "gross": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "benchmark": null,
+        "active": null,
+        "money_weighted_return": {
+          "input_mode": "stateless",
+          "method": "XIRR",
+          "period_return": 8480.716285771352,
+          "cumulative_return": 8480.716285771352,
+          "annualized_return": 8480.716285771352,
+          "economics": {
+            "begin_market_value": 100.0,
+            "end_market_value": 105.0,
+            "beginning_cash_flow": 0.0,
+            "ending_cash_flow": 0.0,
+            "fees": 0.0,
+            "net_cash_flow": 0.0,
+            "flow_adjusted_end_market_value": 105.0
+          },
+          "start_date": "2026-01-05",
+          "end_date": "2026-01-09",
+          "notes": [
+            "XIRR calculation successful."
+          ]
+        }
+      }
+    },
+    "currency_evidence": {
+      "portfolio_base_currency": "USD",
+      "requested_report_ccy": null,
+      "applied_report_ccy": "USD",
+      "restated": false,
+      "currency_mode_applied": "BASE_ONLY",
+      "fx_source": "none",
+      "fx_coverage": "none",
+      "fixing_policy": "EOD_EXACT_PRIOR_AND_CURRENT",
+      "applied_pairs": [],
+      "reason": "PORTFOLIO_BASE_CURRENCY_APPLIED"
+    },
+    "calculation_supportability": {
+      "state": "degraded",
+      "reason": "unknown_history_coverage",
+      "freshness_bucket": "current",
+      "input_row_count": 4,
+      "resolved_period_count": 1,
+      "benchmark_row_count": 0,
+      "source_quality_evidence": null,
+      "history_coverage": {
+        "status": "unknown",
+        "calculation_basis": "available_window",
+        "requested_start_date": "2026-01-05",
+        "requested_end_date": "2026-01-09",
+        "covered_start_date": "2026-01-05",
+        "covered_end_date": "2026-01-09",
+        "effective_start_date": "2026-01-05",
+        "effective_end_date": "2026-01-09",
+        "calendar_basis": "business_weekdays",
+        "missing_required_observation_count": 1,
+        "missing_required_observation_dates_sample": [
+          "2026-01-07"
+        ],
+        "reason_codes": [
+          "interior_history_missing",
+          "venue_calendar_not_attested"
+        ]
+      },
+      "metric_labels": [
+        "operation",
+        "supportability_state",
+        "reason",
+        "freshness_bucket"
+      ]
+    },
+    "meta": {
+      "calculation_id": "74ee7a49-ecb6-467d-8279-bba7138bdac5",
+      "engine_version": "lotus-performance-calculation-engine.v8",
+      "precision_mode": "FLOAT64",
+      "annualization": {
+        "enabled": true,
+        "basis": "ACT/365",
+        "periods_per_year": null
+      },
+      "calendar": {
+        "type": "NATURAL",
+        "trading_calendar": null
+      },
+      "periods": {
+        "requested": [
+          "EXPLICIT"
+        ],
+        "master_start": "2026-01-05",
+        "master_end": "2026-01-09"
+      },
+      "input_fingerprint": "sha256:8d5f0dfee85f237f5dcbff2d83707378c41604c8c4f24c16a7259efbe6446844",
+      "calculation_hash": "sha256:344f19921083ef27c727f056fa85988fa2b5765fcb6474412506622dba887f90",
+      "report_ccy": null
+    },
+    "diagnostics": {
+      "nip_days": 0,
+      "nip_rule_delta_days": 0,
+      "reset_days": 0,
+      "nctrl4_reset_days": 0,
+      "nctrl4_exclusive_reset_days": 0,
+      "account_reset_shadow_days": 0,
+      "sod_reset_shadow_days": 0,
+      "shadow_reset_overlap_days": 0,
+      "shadow_only_candidate_reset_days": 0,
+      "active_reset_with_shadow_days": 0,
+      "candidate_canonical_reset_days": 0,
+      "reset_delta_days": 0,
+      "nip_days_since_last_reset": 0,
+      "valid_days_since_last_reset": 5,
+      "effective_period_start": "2026-01-05",
+      "notes": [],
+      "policy": {
+        "overrides": {
+          "applied_mv_count": 0,
+          "applied_cf_count": 0
+        },
+        "ignored_days_count": 0,
+        "outliers": {
+          "flagged_rows": 0
+        }
+      },
+      "samples": {
+        "outliers": [],
+        "methodology_shadows": [
+          {
+            "date": "2026-01-05",
+            "active_nip": 0,
+            "nip_rule_v1": 0,
+            "nip_rule_v2": 0,
+            "active_perf_reset": 0,
+            "candidate_canonical_perf_reset": 0,
+            "sod_reset_shadow": 0,
+            "account_reset_shadow": 0,
+            "previous_sign_zero": 1,
+            "initial_sign": 1,
+            "final_sign": 1,
+            "active_reset_reason_codes": [],
+            "candidate_canonical_reset_reason_codes": []
+          }
+        ]
+      }
+    },
+    "audit": {
+      "sum_of_parts_vs_total_bp": null,
+      "residual_applied_bp": null,
+      "counts": {
+        "input_rows": 5,
+        "periods_resolved": 1,
+        "portfolio_chunk_count": 0,
+        "portfolio_page_count": 0,
+        "benchmark_chunk_count": 0
+      }
+    }
+  },
+  "missing": {
+    "calculation_id": "qa-history-missing",
+    "portfolio_id": "QA_HISTORY_543_workspace-stateless-EXPLICIT",
+    "input_mode": "stateless",
+    "results_by_period": {
+      "EXPLICIT": {
+        "portfolio_twr": {
+          "net": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          },
+          "gross": {
+            "summary": {
+              "period_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "cumulative_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "annualized_return": {
+                "base": 4.999999568714464,
+                "local": 4.999999568714464,
+                "fx": 0.0
+              },
+              "economics": {
+                "begin_market_value": 100.0,
+                "end_market_value": 105.0,
+                "beginning_cash_flow": 0.0,
+                "ending_cash_flow": 0.0,
+                "fees": 0.0,
+                "net_cash_flow": 0.0,
+                "flow_adjusted_end_market_value": 105.0
+              }
+            },
+            "breakdowns": {
+              "daily": [
+                {
+                  "period": "2026-01-05",
+                  "period_start": "2026-01-05",
+                  "period_end": "2026-01-05",
+                  "economics": {
+                    "begin_market_value": 100.0,
+                    "end_market_value": 101.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 101.0
+                  },
+                  "period_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.0000000000000009,
+                    "local": 1.0000000000000009,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-06",
+                  "period_start": "2026-01-06",
+                  "period_end": "2026-01-06",
+                  "economics": {
+                    "begin_market_value": 101.0,
+                    "end_market_value": 102.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 102.0
+                  },
+                  "period_return": {
+                    "base": 0.9900989999999998,
+                    "local": 0.9900989999999998,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 1.999999990000001,
+                    "local": 1.999999990000001,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-07",
+                  "period_start": "2026-01-07",
+                  "period_end": "2026-01-07",
+                  "economics": {
+                    "begin_market_value": 102.0,
+                    "end_market_value": 103.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 103.0
+                  },
+                  "period_return": {
+                    "base": 0.9803919999999966,
+                    "local": 0.9803919999999966,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 2.999999829901956,
+                    "local": 2.999999829901956,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-08",
+                  "period_start": "2026-01-08",
+                  "period_end": "2026-01-08",
+                  "economics": {
+                    "begin_market_value": 103.0,
+                    "end_market_value": 104.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 104.0
+                  },
+                  "period_return": {
+                    "base": 0.9708739999999993,
+                    "local": 0.9708739999999993,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.000000048250518,
+                    "local": 4.000000048250518,
+                    "fx": 0.0
+                  }
+                },
+                {
+                  "period": "2026-01-09",
+                  "period_start": "2026-01-09",
+                  "period_end": "2026-01-09",
+                  "economics": {
+                    "begin_market_value": 104.0,
+                    "end_market_value": 105.0,
+                    "beginning_cash_flow": 0.0,
+                    "ending_cash_flow": 0.0,
+                    "fees": 0.0,
+                    "net_cash_flow": 0.0,
+                    "flow_adjusted_end_market_value": 105.0
+                  },
+                  "period_return": {
+                    "base": 0.9615380000000062,
+                    "local": 0.9615380000000062,
+                    "fx": 0.0
+                  },
+                  "cumulative_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  },
+                  "annualized_return": {
+                    "base": 4.999999568714464,
+                    "local": 4.999999568714464,
+                    "fx": 0.0
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "benchmark": null,
+        "active": null,
+        "money_weighted_return": {
+          "input_mode": "stateless",
+          "method": "XIRR",
+          "period_return": 8480.716285771352,
+          "cumulative_return": 8480.716285771352,
+          "annualized_return": 8480.716285771352,
+          "economics": {
+            "begin_market_value": 100.0,
+            "end_market_value": 105.0,
+            "beginning_cash_flow": 0.0,
+            "ending_cash_flow": 0.0,
+            "fees": 0.0,
+            "net_cash_flow": 0.0,
+            "flow_adjusted_end_market_value": 105.0
+          },
+          "start_date": "2026-01-05",
+          "end_date": "2026-01-09",
+          "notes": [
+            "XIRR calculation successful."
+          ]
+        }
+      }
+    },
+    "currency_evidence": {
+      "portfolio_base_currency": "USD",
+      "requested_report_ccy": null,
+      "applied_report_ccy": "USD",
+      "restated": false,
+      "currency_mode_applied": "BASE_ONLY",
+      "fx_source": "none",
+      "fx_coverage": "none",
+      "fixing_policy": "EOD_EXACT_PRIOR_AND_CURRENT",
+      "applied_pairs": [],
+      "reason": "PORTFOLIO_BASE_CURRENCY_APPLIED"
+    },
+    "meta": {
+      "calculation_id": "74ee7a49-ecb6-467d-8279-bba7138bdac5",
+      "engine_version": "lotus-performance-calculation-engine.v8",
+      "precision_mode": "FLOAT64",
+      "annualization": {
+        "enabled": true,
+        "basis": "ACT/365",
+        "periods_per_year": null
+      },
+      "calendar": {
+        "type": "NATURAL",
+        "trading_calendar": null
+      },
+      "periods": {
+        "requested": [
+          "EXPLICIT"
+        ],
+        "master_start": "2026-01-05",
+        "master_end": "2026-01-09"
+      },
+      "input_fingerprint": "sha256:8d5f0dfee85f237f5dcbff2d83707378c41604c8c4f24c16a7259efbe6446844",
+      "calculation_hash": "sha256:344f19921083ef27c727f056fa85988fa2b5765fcb6474412506622dba887f90",
+      "report_ccy": null
+    },
+    "diagnostics": {
+      "nip_days": 0,
+      "nip_rule_delta_days": 0,
+      "reset_days": 0,
+      "nctrl4_reset_days": 0,
+      "nctrl4_exclusive_reset_days": 0,
+      "account_reset_shadow_days": 0,
+      "sod_reset_shadow_days": 0,
+      "shadow_reset_overlap_days": 0,
+      "shadow_only_candidate_reset_days": 0,
+      "active_reset_with_shadow_days": 0,
+      "candidate_canonical_reset_days": 0,
+      "reset_delta_days": 0,
+      "nip_days_since_last_reset": 0,
+      "valid_days_since_last_reset": 5,
+      "effective_period_start": "2026-01-05",
+      "notes": [],
+      "policy": {
+        "overrides": {
+          "applied_mv_count": 0,
+          "applied_cf_count": 0
+        },
+        "ignored_days_count": 0,
+        "outliers": {
+          "flagged_rows": 0
+        }
+      },
+      "samples": {
+        "outliers": [],
+        "methodology_shadows": [
+          {
+            "date": "2026-01-05",
+            "active_nip": 0,
+            "nip_rule_v1": 0,
+            "nip_rule_v2": 0,
+            "active_perf_reset": 0,
+            "candidate_canonical_perf_reset": 0,
+            "sod_reset_shadow": 0,
+            "account_reset_shadow": 0,
+            "previous_sign_zero": 1,
+            "initial_sign": 1,
+            "final_sign": 1,
+            "active_reset_reason_codes": [],
+            "candidate_canonical_reset_reason_codes": []
+          }
+        ]
+      }
+    },
+    "audit": {
+      "sum_of_parts_vs_total_bp": null,
+      "residual_applied_bp": null,
+      "counts": {
+        "input_rows": 5,
+        "periods_resolved": 1,
+        "portfolio_chunk_count": 0,
+        "portfolio_page_count": 0,
+        "benchmark_chunk_count": 0
+      }
+    }
+  }
+}

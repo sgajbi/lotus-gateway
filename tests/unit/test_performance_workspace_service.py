@@ -1254,7 +1254,19 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     }
     assert response.evidence_view.fallbacks == []
     assert response.evidence_view.limitations == []
-    assert [item.state for item in response.evidence_view.source_supportability] == ["supported"]
+    qualification = response.evidence_view.source_supportability
+    assert [item.state for item in qualification] == ["supported"] * 3
+    assert [item.calculation_role for item in qualification] == [
+        "workspace_summary",
+        "contribution",
+        "attribution",
+    ]
+    assert [item.calculation_id for item in qualification] == [
+        "calc-workspace-summary",
+        "calc-contribution",
+        "calc-attribution",
+    ]
+    assert all(item.history_coverage is None for item in qualification)
     assert (
         response.evidence_view.calculations[0]
         .artifacts[0]
@@ -1502,6 +1514,11 @@ async def test_performance_workspace_summary_preserves_source_calculation_suppor
     assert response.capabilities.evidence.state == "partial"
     assert response.capabilities.evidence.reason == "Source data window stale"
     assert response.evidence_view.source_supportability[0].model_dump() == {
+        "calculation_role": "workspace_summary",
+        "calculation_id": "calc-workspace-summary",
+        "period_keys": ["YTD"],
+        "metric_basis": "NET",
+        "history_coverage": None,
         "key": "source_calculation",
         "state": "partial",
         "reason": "Source data window stale",

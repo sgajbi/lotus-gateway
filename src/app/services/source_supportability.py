@@ -4,6 +4,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import ValidationError
+
+from app.contracts.performance_evidence import PerformanceHistoryCoverageView
+
 
 @dataclass(frozen=True)
 class SourceCalculationSupportability:
@@ -11,6 +15,7 @@ class SourceCalculationSupportability:
     reason: str | None
     freshness_bucket: str | None
     source_service: str | None
+    history_coverage: PerformanceHistoryCoverageView | None = None
 
     @property
     def risk_contract_state(self) -> str:
@@ -24,10 +29,12 @@ class SourceCalculationSupportability:
 
     @property
     def performance_evidence_state(self) -> str:
-        if self.state in {"ready", "supported"}:
-            return "supported"
         if self.state in {"unavailable", "error"}:
             return "unavailable"
+        if self.history_coverage is not None and self.history_coverage.status != "complete":
+            return "partial"
+        if self.state in {"ready", "supported"}:
+            return "supported"
         return "partial"
 
 
@@ -47,11 +54,20 @@ def extract_calculation_supportability(
     if state is None:
         return None
 
+    history = raw.get("history_coverage")
+    try:
+        history_coverage = (
+            PerformanceHistoryCoverageView.model_validate(history) if history is not None else None
+        )
+    except ValidationError:
+        return None
+
     return SourceCalculationSupportability(
         state=state,
         reason=_safe_text(raw.get("reason") or raw.get("message")),
         freshness_bucket=_safe_text(raw.get("freshness_bucket")),
         source_service=_safe_text(raw.get("source_service")),
+        history_coverage=history_coverage,
     )
 
 
