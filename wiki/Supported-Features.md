@@ -20,6 +20,22 @@ evidence exist.
 | Business, demo, and support | The feature sections below | Claims are implementation-backed only; degraded and unavailable source posture stays visible. |
 | Engineering and integration | The linked route, contract, and upstream authority notes | Gateway composes the client contract and does not replace domain calculation authority. |
 
+## Composite Fact Selection Transport
+
+Status: implementation-backed for the existing composite TWR and inspection API routes.
+
+Both routes preserve explicit immutable sequence, fee-view and reporting-currency selectors.
+Omission delegates source defaults/latest selection; unknown inputs fail closed. Complete source
+results, inspection artifacts, lineage and existing typed error posture are preserved.
+The pinned isolated persisted-fact controls distinguish original 1% from latest 9%, gross USD 3%
+and net EUR 5%; [registered replay tests](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_composite_performance_caller_authority.py)
+bind those source responses to Gateway transport.
+
+This does not establish live Core/Manage materialization, Workbench controls, production IAM,
+model-fee calculation or the full composite programme. Performance remains calculation/selection
+authority. See [semantics and limitations](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#composite-fact-selectors)
+and the [API request example](API-Surface#composite-selection-requests).
+
 ## Workbench Snapshot Date Semantics
 
 Status: implementation-backed for the Workbench overview and portfolio-360 routes.

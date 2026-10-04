@@ -157,6 +157,33 @@ certify production IAM. See [Performance caller authority](https://github.com/sg
 for ownership and [transport regressions](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_performance_caller_authority.py)
 for the registered-route proof.
 
+### Composite Selection Requests
+
+Use the existing `POST /api/v1/performance/composites/twr` or `/inspect` with the required
+actor/tenant/region headers and this body (replace the identifiers with your source-owned values):
+
+```json
+{
+  "composite_id": "PB_GLOBAL_BALANCED_USD",
+  "period_start": "2026-01-01",
+  "period_end": "2026-01-31",
+  "restatement_sequence": 1,
+  "return_view": "GROSS",
+  "reporting_currency": "USD"
+}
+```
+
+Sequence omission/null delegates latest qualified selection to Performance. Return-view omission
+delegates `NET_ACTUAL`; explicit null or another vocabulary is invalid. Currency omission/null
+uses the source composite definition currency; three ASCII letters are uppercased without trimming.
+Unknown fields and malformed selectors return `422` before source I/O. A producer selection
+conflict retains Gateway's existing `502` mapping with `upstream_status=409`, not fallback selection.
+
+See [selector semantics and worked numbers](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#composite-fact-selectors)
+and [actual producer response replay](https://github.com/sgajbi/lotus-gateway/blob/main/tests/integration/test_composite_performance_caller_authority.py).
+The proof is isolated persisted synthetic facts, not live materialization or Workbench acceptance;
+`NET_MODEL_FEE` transport does not certify model-fee calculation.
+
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. The overview
   also accepts additive `include_performance_snapshot` and `include_rebalance_snapshot` controls,
   both defaulting to `true`; source-evidence consumers can set both to `false` to isolate confirmed

@@ -5,6 +5,9 @@ Gateway composes source-owned services for Workbench-facing contracts; it does n
 domain authority for portfolio, performance, risk, advisory, management, reporting, archive, idea,
 or AI truth.
 
+Current scope: implementation-backed Gateway transport and composition. Source ownership is not
+live integration certification; use the linked validation evidence before making a readiness claim.
+
 ## Reader Map
 
 | Reader | Use This Page For | Evidence Boundary |
@@ -24,6 +27,13 @@ or AI truth.
   portfolio, lookups, ingestion, simulation, and supportability
 - `lotus-performance`
   performance workspace analytics and evidence lineage
+  plus existing composite TWR/inspection reads over persisted member facts. Gateway forwards
+  explicit restatement sequence, governed fee view and reporting currency while preserving
+  source defaults, caller authority and complete source results/artifacts. Performance owns fact
+  selection, publication completeness and arithmetic; Manage owns membership/policy, and Core or
+  registered external producers own actual source facts. See
+  [composite selector boundary](https://github.com/sgajbi/lotus-gateway/blob/main/docs/architecture.md#composite-fact-selectors).
+  Isolated producer-response replay is not live Core/Manage integration or model-fee certification.
 - `lotus-risk`
   stateful risk workspace analytics
 - `lotus-advise`

@@ -794,6 +794,17 @@ repository fails here rather than validating someone else's protection.
 
 ## Known Constraints And Implementation Notes
 
+Composite TWR/inspection request DTOs share closed source-compatible fact selectors:
+positive `restatement_sequence`, `GROSS|NET_ACTUAL|NET_MODEL_FEE` return view, and three-letter
+ASCII reporting currency normalized to uppercase without whitespace trimming. Serialize with
+`exclude_none=True, exclude_unset=True` so omission delegates defaults/latest selection to
+Performance rather than inventing Gateway selection authority. Explicit null is permitted only
+for sequence/currency, not return view. Unknown request fields fail before upstream I/O.
+Preserve the existing service/client, caller-bound polling and source payload/error projection.
+The retained fixture and registered-route tests prove original/latest and view/currency selection
+over pinned Performance synthetic persisted facts; they do not certify live Core/Manage ingestion,
+Workbench, production IAM or model-fee implementation. See `docs/architecture.md`.
+
 Performance summary/detail preserve source-owned aggregate history in
 `evidence_view.source_supportability[].history_coverage`, bound to calculation role/id,
 actual period keys and selected basis. Do not interpret that aggregate window as separately

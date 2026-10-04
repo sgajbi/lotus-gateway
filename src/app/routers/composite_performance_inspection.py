@@ -22,7 +22,7 @@ async def _inspect_composite_performance(
 ) -> CompositePerformanceGatewayResponse:
     correlation_id = correlation_id_var.get()
     return await composite_performance_service().inspect(
-        payload=request.model_dump(exclude_none=True),
+        payload=request.model_dump(exclude_none=True, exclude_unset=True),
         correlation_id=correlation_id,
         caller_context=composite_caller_context(caller_headers),
     )
