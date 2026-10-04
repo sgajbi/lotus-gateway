@@ -108,6 +108,26 @@ Core reads. Gateway does not manufacture a tenant when a source refuses a reques
 transport tests do not certify the assembled canonical journey; that requires the separately pinned
 Core/Performance/Workbench runtime receipt tracked by issue #692.
 
+## Performance History Qualification
+
+Summary and detail preserve Performance's named history contract at
+`evidence_view.source_supportability[].history_coverage`, alongside calculation role/id,
+actual result period keys and the selected metric basis. Requested, covered and effective
+dates, calculation/calendar basis, missing count/sample and bounded reasons remain source-owned.
+The current workspace source qualifies its aggregate calculation window, not each period
+independently; Gateway does not manufacture finer period coverage or venue-calendar attestation.
+
+Partial available-window returns remain numeric. For example, the retained one-year control
+has a 5.0% return over January 5–9, 2026, with 360 missing observations and `available_window`.
+These controls are source-derived synthetic fixtures, not a fresh live Performance run.
+Complete execution, freshness or a ready peer cannot make partial/unknown history complete.
+Distinct peer calculations retain their own qualification rather than merging on posture alone.
+
+Absent/null history is optional for legacy and analytics families that do not publish it,
+and never means complete history. Present malformed history uses the existing missing/invalid
+source-qualification boundary: partial/unverified evidence with no invented coverage. Gateway
+does not calculate performance, fill observation gaps or certify downstream presentation.
+
 ## Quality Baseline
 
 The current architecture baseline is documented in:

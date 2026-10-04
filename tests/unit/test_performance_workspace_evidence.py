@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from fastapi import HTTPException
 
@@ -277,7 +280,6 @@ def test_build_source_supportability_deduplicates_upstream_posture():
     ]
 
     items = build_source_supportability(source_results)
-
     assert [item.model_dump() for item in items] == [
         {
             "key": "source_calculation",
@@ -285,8 +287,85 @@ def test_build_source_supportability_deduplicates_upstream_posture():
             "reason": "Source data window stale",
             "freshness_bucket": "stale",
             "source_service": "lotus-performance",
+            "calculation_role": None,
+            "calculation_id": None,
+            "period_keys": [],
+            "metric_basis": None,
+            "history_coverage": None,
         }
     ]
+
+
+@pytest.mark.parametrize("case", ["complete", "partial", "unknown"])
+def test_source_history_projection_retains_full_supported_response(case, history_responses):
+    source = history_responses[case]
+    items = build_source_supportability(
+        [(200, source)],
+        calculations=[("workspace_summary", source["calculation_id"])],
+        metric_basis="NET",
+    )
+    assert len(items) == 1
+    item = items[0]
+    assert (
+        item.history_coverage.model_dump(mode="json")
+        == source["calculation_supportability"]["history_coverage"]
+    )
+    assert item.calculation_role == "workspace_summary"
+    assert item.calculation_id == source["calculation_id"]
+    assert item.period_keys == list(source["results_by_period"])
+    assert item.metric_basis == "NET"
+    assert item.state == ("supported" if case == "complete" else "partial")
+
+
+def test_divergent_peer_histories_survive_equal_supportability_posture(history_responses):
+    partial, unknown = history_responses["partial"], history_responses["unknown"]
+    for source in (partial, unknown):
+        source["calculation_supportability"]["reason"] = "calculation_quality_issue"
+    items = build_source_supportability(
+        [(200, partial), (200, unknown)],
+        calculations=[
+            ("workspace_summary", partial["calculation_id"]),
+            ("attribution", unknown["calculation_id"]),
+        ],
+        metric_basis="NET",
+    )
+    assert len(items) == 2
+    assert [item.history_coverage.status for item in items] == ["partial", "unknown"]
+    assert [item.calculation_role for item in items] == ["workspace_summary", "attribution"]
+    assert [item.history_coverage.missing_required_observation_count for item in items] == [360, 1]
+
+
+@pytest.fixture
+def history_responses():
+    return json.loads(
+        (
+            Path(__file__).parents[1] / "fixtures" / "performance-history-source-responses.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def test_source_history_keeps_multiple_period_scope_without_inventing_period_windows(
+    history_responses,
+):
+    source = history_responses["partial"]
+    source["results_by_period"]["YTD"] = source["results_by_period"]["1Y"]
+    item = build_source_supportability([(200, source)])[0]
+    assert item.period_keys == ["1Y", "YTD"]
+    assert (
+        item.history_coverage.model_dump(mode="json")
+        == source["calculation_supportability"]["history_coverage"]
+    )
+
+
+@pytest.mark.parametrize("case", ["partial", "unknown"])
+def test_ready_source_does_not_override_explicit_incomplete_history(case, history_responses):
+    source = history_responses[case]
+    source["calculation_supportability"]["state"] = "ready"
+    items = build_source_supportability([(200, history_responses["complete"]), (200, source)])
+    assert [item.state for item in items] == ["supported", "partial"]
+    assert (
+        resolve_evidence_state(evidence_state="supported", source_supportability=items) == "partial"
+    )
 
 
 def _evidence_request_context() -> EvidenceViewRequestContext:

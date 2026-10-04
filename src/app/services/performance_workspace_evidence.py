@@ -113,7 +113,9 @@ async def fetch_evidence_view_state(
     poll_interval_seconds: float = DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
 ) -> EvidenceViewFetchState:
     requested_items = build_evidence_requested_items(context.calculations)
-    source_supportability = build_source_supportability(context.source_results)
+    source_supportability = build_source_supportability(
+        context.source_results, calculations=context.calculations, metric_basis=context.basis
+    )
     if not requested_items:
         return EvidenceViewFetchState(
             source_supportability=source_supportability,

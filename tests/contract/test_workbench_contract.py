@@ -8,6 +8,39 @@ from app.contracts.workbench import (
 from app.main import app
 
 
+def test_performance_history_is_named_nullable_and_shared_by_public_surfaces() -> None:
+    from app.contracts.performance_evidence import PerformanceHistoryCoverageView
+
+    schemas = app.openapi()["components"]["schemas"]
+    history = schemas["PerformanceHistoryCoverageView"]
+    assert set(history["required"]) == set(history["properties"])
+    assert history["properties"]["status"]["enum"] == ["complete", "partial", "unknown"]
+    assert history["properties"]["missing_required_observation_count"]["minimum"] == 0
+    assert history["properties"]["missing_required_observation_dates_sample"]["maxItems"] == 10
+    example = history["example"]
+    assert PerformanceHistoryCoverageView.model_validate(example).model_dump(mode="json") == example
+    source = schemas["PerformanceSourceSupportabilityView"]["properties"]
+    assert source["history_coverage"]["anyOf"] == [
+        {"$ref": "#/components/schemas/PerformanceHistoryCoverageView"},
+        {"type": "null"},
+    ]
+    assert source["history_coverage"]["examples"] == [example]
+    assert {"calculation_role", "calculation_id", "period_keys", "metric_basis"} <= set(source)
+    evidence = schemas["PerformanceEvidenceView"]["properties"]
+    assert evidence["source_supportability"]["items"]["$ref"].endswith(
+        "/PerformanceSourceSupportabilityView"
+    )
+    for path in (
+        "/api/v1/workbench/{portfolio_id}/performance/summary",
+        "/api/v1/workbench/{portfolio_id}/performance/details",
+    ):
+        response = app.openapi()["paths"][path]["get"]["responses"]["200"]
+        name = response["content"]["application/json"]["schema"]["$ref"].split("/")[-1]
+        assert schemas[name]["properties"]["evidence_view"]["anyOf"][0]["$ref"].endswith(
+            "/PerformanceEvidenceView"
+        )
+
+
 def test_workbench_response_model_contract_shape() -> None:
     payload = WorkbenchOverviewResponse(
         correlation_id="corr_1",

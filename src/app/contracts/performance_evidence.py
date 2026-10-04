@@ -1,4 +1,64 @@
+from datetime import date
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+
+class PerformanceHistoryCoverageView(BaseModel):
+    """Source-owned calculation-window evidence, not freshness or calendar attestation."""
+
+    status: Literal["complete", "partial", "unknown"] = Field(description="Source history status.")
+    calculation_basis: Literal["requested_window", "available_window"] = Field(
+        description="Source calculation window basis; absent dates never imply zero returns."
+    )
+    requested_start_date: date = Field(description="Source-requested calculation start.")
+    requested_end_date: date = Field(description="Source-requested calculation end.")
+    covered_start_date: date | None = Field(description="Earliest supplied source observation.")
+    covered_end_date: date | None = Field(description="Latest supplied source observation.")
+    effective_start_date: date | None = Field(description="First observation used in the window.")
+    effective_end_date: date | None = Field(description="Last observation used in the window.")
+    calendar_basis: Literal["natural_days", "business_weekdays"] = Field(
+        description="Source observation calendar basis, not proof of venue holiday coverage."
+    )
+    missing_required_observation_count: int = Field(
+        ge=0,
+        strict=True,
+        description="Source-reported missing observation count, not a Gateway estimate.",
+    )
+    missing_required_observation_dates_sample: list[date] = Field(
+        max_length=10, description="Source's bounded sample of missing observation dates."
+    )
+    reason_codes: list[
+        Literal[
+            "covered_window_matches_requested_window",
+            "no_observations_in_requested_window",
+            "leading_history_missing",
+            "interior_history_missing",
+            "trailing_history_missing",
+            "venue_calendar_not_attested",
+            "explicit_ignored_dates_applied",
+            "beginning_market_value_baseline_applied",
+        ]
+    ] = Field(description="Bounded source reasons retained without interpreting gaps locally.")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "partial",
+                "calculation_basis": "available_window",
+                "requested_start_date": "2025-01-10",
+                "requested_end_date": "2026-01-09",
+                "covered_start_date": "2026-01-05",
+                "covered_end_date": "2026-01-09",
+                "effective_start_date": "2026-01-05",
+                "effective_end_date": "2026-01-09",
+                "calendar_basis": "natural_days",
+                "missing_required_observation_count": 360,
+                "missing_required_observation_dates_sample": ["2025-01-10"],
+                "reason_codes": ["leading_history_missing"],
+            }
+        }
+    }
 
 
 class PerformanceEvidenceArtifactView(BaseModel):
@@ -56,6 +116,22 @@ class PerformanceEvidenceUpstreamSnapshotView(BaseModel):
 
 
 class PerformanceSourceSupportabilityView(BaseModel):
+    calculation_role: str | None = Field(default=None, description="Gateway calculation role.")
+    calculation_id: str | None = Field(default=None, description="Source calculation identity.")
+    period_keys: list[str] = Field(
+        default_factory=list,
+        description="Source result period keys; aggregate history is not per-period certification.",
+    )
+    metric_basis: str | None = Field(default=None, description="Selected Gateway review basis.")
+    history_coverage: PerformanceHistoryCoverageView | None = Field(
+        default=None,
+        examples=[PerformanceHistoryCoverageView.model_json_schema()["example"]],
+        description=(
+            "Source-owned requested/covered/effective history. Null means no valid history "
+            "evidence was supplied, including legacy and non-publishing analytics families; "
+            "it never implies complete history. Present malformed history is unverified/partial."
+        ),
+    )
     key: str = Field(
         description="Gateway-owned key for the source supportability posture.",
         examples=["source_calculation"],

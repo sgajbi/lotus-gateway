@@ -110,6 +110,18 @@ consumer migration remain tracked by parent issue #569.
 
 ## Current contract notes
 
+Performance summary and detail expose named source-owned history at
+`evidence_view.source_supportability[].history_coverage`: complete/partial/unknown status,
+requested/covered/effective dates, calculation/calendar basis, missing observation count/sample
+and bounded reasons. Each entry retains its calculation role/id, actual period keys and selected
+metric basis; divergent peer histories remain separate. The current workspace coverage is
+aggregate, not independent certification for each result period. Partial available-window returns
+remain numeric; freshness, execution success and ready peers cannot imply complete history.
+Absent/null history remains optional for legacy/non-publishing sources and never implies complete
+coverage. Present malformed history yields the existing partial/unverified source qualification.
+Retained source-derived synthetic HTTP controls prove Gateway transport/contract behavior only,
+not a live producer run, Workbench acceptance or banking certification.
+
 All five stateful Workbench Risk routes (summary, concentration, drawdown, rolling and
 attribution) require one nonblank `X-Tenant-Id`. Gateway refuses an absent or ambiguous tenant
 before source I/O, forwards the admitted tenant to Risk, and isolates cached answers by tenant.
