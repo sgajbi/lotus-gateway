@@ -8,6 +8,7 @@ from app.contracts import performance_workspace
 from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceUpstreamSnapshotView,
+    PerformanceEvidenceView,
     PerformanceSourceSupportabilityView,
 )
 from app.services import performance_calculation_evidence, performance_workspace_evidence
@@ -33,9 +34,149 @@ from app.services.performance_workspace_evidence import (
     resolve_evidence_state,
     resolve_evidence_view_response,
 )
+from app.services.performance_workspace_evidence_response import build_evidence_input_freshness
 from app.services.performance_workspace_evidence_supportability import (
     UNVERIFIED_CALCULATION_REASON,
 )
+
+
+def test_internal_freshness_example_never_promotes_missing_evidence():
+    assert (
+        build_evidence_input_freshness(
+            as_of_date="2026-03-27", benchmark_code=None, calculations=[]
+        )
+        == PerformanceEvidenceView.model_json_schema()["properties"]["input_freshness"]["examples"][
+            0
+        ]
+        == {"performance": "unknown"}
+    )
+
+
+@pytest.mark.parametrize("missing_peer", [True, False])
+def test_source_freshness_requires_every_calculation_and_valid_requested_date(missing_peer):
+    snapshot = PerformanceEvidenceUpstreamSnapshotView(
+        upstream_endpoint="position_timeseries",
+        source_identifier="PORT-1",
+        as_of_date="2026-03-27",
+        retrieval_status="200",
+    )
+    calculations = [
+        PerformanceCalculationEvidenceView(
+            calculation_role=role,
+            calculation_id=role,
+            upstream_snapshots=[] if missing_peer and role == "contribution" else [snapshot],
+        )
+        for role in ("workspace_summary", "contribution")
+    ]
+    assert build_evidence_input_freshness(
+        as_of_date="2026-03-27", benchmark_code=None, calculations=calculations
+    ) == {"performance": "unknown" if missing_peer else "fresh"}
+    assert build_evidence_input_freshness(
+        as_of_date="2026-02-30", benchmark_code=None, calculations=calculations
+    ) == {"performance": "unknown"}
+
+
+@pytest.mark.parametrize(
+    "snapshots,expected",
+    [
+        ([], {"performance": "unknown", "benchmark": "unknown"}),
+        (
+            [("portfolio_timeseries", "PORT-1", "2026-03-27", "200")],
+            {"performance": "fresh", "benchmark": "unknown"},
+        ),
+        (
+            [("portfolio_timeseries", "PORT-1", "2026-03-27", "503")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [("unknown_family", "PORT-1", "2026-03-27", "200")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-27", "200"),
+                ("benchmark_return_series", "BMK-1", "2026-03-26", "200"),
+            ],
+            {"performance": "fresh", "benchmark": "stale"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-26", "200"),
+                ("benchmark_market_series", "BMK-1", "2026-03-27", "200"),
+            ],
+            {"performance": "stale", "benchmark": "fresh"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-27", "200"),
+                ("portfolio_timeseries", "PORT-1", "2026-03-26", "200"),
+            ],
+            {"performance": "stale", "benchmark": "unknown"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-27", "200"),
+                ("portfolio_timeseries", "OTHER", "2026-03-27", "200"),
+            ],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [("portfolio_timeseries", "", "2026-03-27", "200")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [("portfolio_timeseries", "PORT-1", "2026-02-30", "200")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [("portfolio_timeseries", "PORT-1", "20260327", "200")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [("benchmark_return_series", "OTHER", "2026-03-27", "200")],
+            {"performance": "unknown", "benchmark": "unknown"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-27", "200"),
+                ("benchmark_return_series", "BMK-1", "2026-03-27", "200"),
+            ],
+            {"performance": "fresh", "benchmark": "fresh"},
+        ),
+        (
+            [
+                ("portfolio_timeseries", "PORT-1", "2026-03-26", "200"),
+                ("benchmark_return_series", "BMK-1", "2026-03-26", "200"),
+            ],
+            {"performance": "stale", "benchmark": "stale"},
+        ),
+    ],
+)
+def test_source_family_freshness_requires_coherent_successful_evidence(snapshots, expected):
+    items = [
+        PerformanceEvidenceUpstreamSnapshotView(
+            upstream_endpoint=family,
+            source_identifier=identity,
+            as_of_date=day,
+            retrieval_status=status,
+        )
+        for family, identity, day, status in snapshots
+    ]
+    for ordered in (items, list(reversed(items))):
+        calculation = PerformanceCalculationEvidenceView(
+            calculation_role="workspace_summary",
+            calculation_id="calc-1",
+            execution_status="complete",
+            lineage_status="complete",
+            upstream_snapshots=ordered,
+        )
+        assert (
+            build_evidence_input_freshness(
+                as_of_date="2026-03-27", benchmark_code="BMK-1", calculations=[calculation]
+            )
+            == expected
+        )
+        assert calculation.execution_status == calculation.lineage_status == "complete"
 
 
 @pytest.mark.parametrize(
@@ -860,7 +1001,7 @@ def test_build_performance_evidence_view_marks_stale_source_dates():
 
     assert evidence.input_freshness == {
         "performance": "stale",
-        "benchmark": "stale",
+        "benchmark": "unknown",
     }
     assert evidence.report_start_date == "2026-01-01"
     assert evidence.report_end_date == "2026-03-27"

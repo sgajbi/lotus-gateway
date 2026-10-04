@@ -13,15 +13,15 @@
   },
   "metrics": {
     "clone_count": {
-      "baseline": 65,
-      "threshold": 65
+      "baseline": 64,
+      "threshold": 64
     },
     "duplicated_lines": {
-      "baseline": 1296,
-      "threshold": 1296
+      "baseline": 1281,
+      "threshold": 1281
     },
     "duplicated_percentage": {
-      "baseline": 1.35,
+      "baseline": 1.32,
       "threshold": 1.35
     }
   },
@@ -75,7 +75,6 @@
     "b6b9e1fad31e8f3e696cebaeed400a9c1bae1c648409390a2c3a9825158aa811",
     "be050f28ef68eeb2f2dcc3376d18dd98cd5edbe44fdf11bdea6eba0493fc5924",
     "beaab636123599774ead68b0e9fe231f185a38ed4fab17e4bfe5b4eecef5de6a",
-    "c14b0defa4a8abcaee712445ea631a0262b5c4bcca3b416d7741f3917096cd9a",
     "c1a20e05d347f656b97d983455056996b5398dcf2383257a5c540433bc7cc8a6",
     "c2a18975e3e73587e2f295bb8c92c4f7ad839facfb1fd8a24d09672a7b83c3d8",
     "ca4eba0a4abcc46db6e522f5be730b9c266b8ecb6493cf1ecf78ef1496573b6a",

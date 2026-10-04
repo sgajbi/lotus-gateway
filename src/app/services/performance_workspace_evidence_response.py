@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 
 from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
@@ -66,16 +67,10 @@ def build_empty_evidence_view_response(
     context: EvidenceViewRequestContext,
     source_supportability: Sequence[PerformanceSourceSupportabilityView],
 ) -> PerformanceEvidenceView:
-    return build_performance_evidence_view(
+    return build_context_evidence_view(
+        context=context,
         state="unavailable",
         reason="No durable calculation evidence is available for the current selection.",
-        as_of_date=context.as_of_date,
-        period=context.period,
-        report_start_date=context.report_start_date,
-        report_end_date=context.report_end_date,
-        basis=context.basis,
-        benchmark_code=context.benchmark_code,
-        contract_version=context.contract_version,
         limitations=["No durable calculation evidence is available."],
         calculations=[],
         source_supportability=source_supportability,
@@ -88,16 +83,10 @@ def build_unavailable_evidence_view_response(
     fetch_state: EvidenceViewFetchState,
 ) -> PerformanceEvidenceView:
     reason = "Gateway could not resolve execution or lineage evidence from lotus-performance."
-    return build_performance_evidence_view(
+    return build_context_evidence_view(
+        context=context,
         state="unavailable",
         reason=reason,
-        as_of_date=context.as_of_date,
-        period=context.period,
-        report_start_date=context.report_start_date,
-        report_end_date=context.report_end_date,
-        basis=context.basis,
-        benchmark_code=context.benchmark_code,
-        contract_version=context.contract_version,
         limitations=[reason],
         calculations=fetch_state.evidence_items,
         source_supportability=fetch_state.source_supportability,
@@ -121,16 +110,10 @@ def build_supported_evidence_view_response(
         ),
         source_supportability=fetch_state.source_supportability,
     )
-    return build_performance_evidence_view(
+    return build_context_evidence_view(
+        context=context,
         state=evidence_state,
         reason=evidence_reason,
-        as_of_date=context.as_of_date,
-        period=context.period,
-        report_start_date=context.report_start_date,
-        report_end_date=context.report_end_date,
-        basis=context.basis,
-        benchmark_code=context.benchmark_code,
-        contract_version=context.contract_version,
         limitations=[] if evidence_state == "supported" else [evidence_reason],
         calculations=fetch_state.evidence_items,
         source_supportability=fetch_state.source_supportability,
@@ -146,16 +129,10 @@ def build_partial_evidence_view_response(
         "One or more performance calculations still have pending, failed, "
         "or unavailable lineage evidence."
     )
-    return build_performance_evidence_view(
+    return build_context_evidence_view(
+        context=context,
         state="partial",
         reason=reason,
-        as_of_date=context.as_of_date,
-        period=context.period,
-        report_start_date=context.report_start_date,
-        report_end_date=context.report_end_date,
-        basis=context.basis,
-        benchmark_code=context.benchmark_code,
-        contract_version=context.contract_version,
         limitations=[reason],
         calculations=fetch_state.evidence_items,
         source_supportability=fetch_state.source_supportability,
@@ -180,6 +157,32 @@ def record_partial_evidence_view(
     )
 
 
+def build_context_evidence_view(
+    *,
+    context: EvidenceViewRequestContext,
+    state: str,
+    reason: str,
+    limitations: list[str],
+    calculations: Sequence[PerformanceCalculationEvidenceView],
+    source_supportability: Sequence[PerformanceSourceSupportabilityView],
+) -> PerformanceEvidenceView:
+    return build_performance_evidence_view(
+        portfolio_id=context.portfolio_id,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        report_start_date=context.report_start_date,
+        report_end_date=context.report_end_date,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        state=state,
+        reason=reason,
+        limitations=limitations,
+        calculations=calculations,
+        source_supportability=source_supportability,
+    )
+
+
 def build_performance_evidence_view(
     *,
     state: str,
@@ -194,6 +197,7 @@ def build_performance_evidence_view(
     limitations: list[str],
     calculations: Sequence[PerformanceCalculationEvidenceView],
     source_supportability: Sequence[PerformanceSourceSupportabilityView],
+    portfolio_id: str | None = None,
 ) -> PerformanceEvidenceView:
     return PerformanceEvidenceView(
         state=state,
@@ -209,6 +213,7 @@ def build_performance_evidence_view(
             source_supportability=source_supportability,
         ),
         input_freshness=build_evidence_input_freshness(
+            portfolio_id=portfolio_id,
             as_of_date=as_of_date,
             benchmark_code=benchmark_code,
             calculations=calculations,
@@ -233,10 +238,10 @@ def build_evidence_source_services(
     calculations: Sequence[PerformanceCalculationEvidenceView],
     source_supportability: Sequence[PerformanceSourceSupportabilityView],
 ) -> list[str]:
-    return sorted(
-        {service for service in ["lotus-performance"] if calculations}
-        | {item.source_service for item in source_supportability if item.source_service is not None}
-    )
+    services = {
+        item.source_service for item in source_supportability if item.source_service is not None
+    }
+    return sorted(services | ({"lotus-performance"} if calculations else set()))
 
 
 def build_evidence_input_freshness(
@@ -244,19 +249,39 @@ def build_evidence_input_freshness(
     as_of_date: str,
     benchmark_code: str | None,
     calculations: Sequence[PerformanceCalculationEvidenceView],
+    portfolio_id: str | None = None,
 ) -> dict[str, str]:
-    upstream_dates = {
-        snapshot.as_of_date
-        for item in calculations
-        for snapshot in item.upstream_snapshots
-        if snapshot.as_of_date
-    }
-    performance_freshness = (
-        "fresh" if as_of_date in upstream_dates or not upstream_dates else "stale"
-    )
-    input_freshness = {"performance": performance_freshness}
+    def qualify(primary: set[str], related: set[str], identity: str | None) -> str:
+        groups = [
+            [s for s in item.upstream_snapshots if s.upstream_endpoint in related]
+            for item in calculations
+        ]
+        if not groups or any(not any(s.upstream_endpoint in primary for s in g) for g in groups):
+            return "unknown"
+        snapshots = [s for group in groups for s in group]
+        identifiers = {s.source_identifier for s in snapshots}
+        if len(identifiers) != 1 or any(
+            not value.strip() or value == "None" for value in identifiers
+        ):
+            return "unknown"
+        if (identity is not None and identifiers != {identity}) or any(
+            s.retrieval_status != "200" for s in snapshots
+        ):
+            return "unknown"
+        try:
+            dates = {s.as_of_date for s in snapshots} | {as_of_date}
+            if any(date.fromisoformat(day).isoformat() != day for day in dates):
+                return "unknown"
+        except ValueError:
+            return "unknown"
+        return "fresh" if all(s.as_of_date == as_of_date for s in snapshots) else "stale"
+
+    portfolio = {"portfolio_timeseries", "position_timeseries"}
+    benchmark = {"benchmark_return_series", "benchmark_market_series"}
+    input_freshness = {"performance": qualify(portfolio, portfolio, portfolio_id)}
     if benchmark_code:
-        input_freshness["benchmark"] = input_freshness["performance"]
+        related = benchmark | {"benchmark_definition", "benchmark_composition_window"}
+        input_freshness["benchmark"] = qualify(benchmark, related, benchmark_code)
     return input_freshness
 
 
@@ -275,15 +300,11 @@ def build_evidence_calculation_versions(
 
 
 def build_evidence_coverage() -> dict[str, list[str]]:
+    dimensions = set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
     return {
-        "supported_dimensions": sorted(
-            set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
-        ),
+        "supported_dimensions": sorted(dimensions),
         "unsupported_dimensions": [
-            dimension
-            for dimension in ("issuer",)
-            if dimension not in SUPPORTED_CONTRIBUTION_DIMENSIONS
-            and dimension not in SUPPORTED_ATTRIBUTION_DIMENSIONS
+            dimension for dimension in ("issuer",) if dimension not in dimensions
         ],
     }
 

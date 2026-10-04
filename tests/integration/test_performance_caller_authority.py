@@ -105,7 +105,7 @@ def performance_transport(monkeypatch, request):
                 effective_period=next(iter(source["results_by_period"])),
                 benchmark_code="BMK_CONTROL" if qualification.get("peer_responses") else None,
             )
-        return workspace_context()
+        return replace(workspace_context(), benchmark_code=qualification.get("benchmark_code"))
 
     def respond(request):
         requests.append(request)
@@ -162,14 +162,17 @@ def performance_transport(monkeypatch, request):
                 "status": "complete",
                 "stages": [],
                 "artifacts": {},
-                "upstream_snapshots": [
-                    {
-                        "upstream_endpoint": "portfolio_timeseries",
-                        "source_identifier": "PF_SHARED",
-                        "as_of_date": "2026-04-10",
-                        "retrieval_status": "200",
-                    }
-                ],
+                "upstream_snapshots": qualification.get(
+                    "upstream_snapshots",
+                    [
+                        {
+                            "upstream_endpoint": "portfolio_timeseries",
+                            "source_identifier": "PF_SHARED",
+                            "as_of_date": "2026-04-10",
+                            "retrieval_status": "200",
+                        }
+                    ],
+                ),
             },
         )
 
@@ -466,3 +469,117 @@ def test_served_performance_contract_has_one_required_context_definition():
             for name in ("X-Actor-Id", "X-Tenant-Id", "X-Region"):
                 assert by_name[name]["required"] is True, (path, name)
                 assert by_name[name]["schema"]["pattern"] == r".*\S.*"
+
+
+def _freshness_snapshot(
+    family="portfolio_timeseries", identity="PF_SHARED", day="2026-04-10", status="200"
+):
+    return {
+        "upstream_endpoint": family,
+        "source_identifier": identity,
+        "as_of_date": day,
+        "retrieval_status": status,
+    }
+
+
+_FRESHNESS_CASES = [
+    ([], {"performance": "unknown", "benchmark": "unknown"}),
+    ([_freshness_snapshot()], {"performance": "fresh", "benchmark": "unknown"}),
+    ([_freshness_snapshot(status="503")], {"performance": "unknown", "benchmark": "unknown"}),
+    (
+        [_freshness_snapshot(family="unrecognized")],
+        {"performance": "unknown", "benchmark": "unknown"},
+    ),
+    ([_freshness_snapshot(day="invalid")], {"performance": "unknown", "benchmark": "unknown"}),
+    ([_freshness_snapshot(identity="FOREIGN")], {"performance": "unknown", "benchmark": "unknown"}),
+    (
+        [_freshness_snapshot(), _freshness_snapshot(day="2026-04-09")],
+        {"performance": "stale", "benchmark": "unknown"},
+    ),
+    (
+        [
+            _freshness_snapshot(),
+            _freshness_snapshot("benchmark_return_series", "BMK_CONTROL", "2026-04-09"),
+        ],
+        {"performance": "fresh", "benchmark": "stale"},
+    ),
+    (
+        [
+            _freshness_snapshot(day="2026-04-09"),
+            _freshness_snapshot("benchmark_market_series", "BMK_CONTROL"),
+        ],
+        {"performance": "stale", "benchmark": "fresh"},
+    ),
+    (
+        [_freshness_snapshot(), _freshness_snapshot("benchmark_return_series", "BMK_CONTROL")],
+        {"performance": "fresh", "benchmark": "fresh"},
+    ),
+    (
+        [
+            _freshness_snapshot(day="2026-04-09"),
+            _freshness_snapshot("benchmark_return_series", "BMK_CONTROL", "2026-04-09"),
+        ],
+        {"performance": "stale", "benchmark": "stale"},
+    ),
+]
+
+
+@pytest.mark.parametrize("surface", ["summary", "details"])
+@pytest.mark.parametrize(
+    "performance_transport,snapshots,expected",
+    [
+        (
+            {
+                "benchmark_code": "BMK_CONTROL",
+                "upstream_snapshots": snapshots,
+                "calculation_supportability": {"state": "ready", "freshness_bucket": "fresh"},
+            },
+            snapshots,
+            expected,
+        )
+        for snapshots, expected in _FRESHNESS_CASES
+    ],
+    indirect=["performance_transport"],
+)
+def test_registered_source_freshness_is_independent_of_completed_ready_calculation(
+    performance_transport, snapshots, expected, surface
+):
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/workbench/PF_SHARED/performance/{surface}", headers=CALLER)
+    assert response.status_code == 200
+    body = response.json()
+    evidence = body["evidence_view"]
+    assert evidence["input_freshness"] == expected
+    assert evidence["state"] == "supported"  # Execution/supportability, not input-date authority.
+    assert all(
+        item["freshness_bucket"] == "fresh" and item["history_coverage"] is None
+        for item in evidence["source_supportability"]
+    )
+    assert all(
+        item["execution_status"] == item["lineage_status"] == "complete"
+        and item["upstream_snapshots"] == snapshots
+        for item in evidence["calculations"]
+    )
+    if surface == "summary":
+        assert body["net_performance"]["portfolio_return_pct"] == 3.25
+    assert all(request.headers["X-Tenant-Id"] == "tenant-a" for request in performance_transport)
+
+
+@pytest.mark.parametrize(
+    "performance_transport",
+    [{"upstream_snapshots": [], "calculation_supportability": {"state": "ready"}}],
+    indirect=True,
+)
+@pytest.mark.parametrize("surface", ["summary", "details"])
+def test_client_freshness_example_matches_registered_unknown_response(
+    performance_transport, surface
+):
+    example = app.openapi()["components"]["schemas"]["PerformanceEvidenceView"]["properties"][
+        "input_freshness"
+    ]["examples"][0]
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/workbench/PF_SHARED/performance/{surface}", headers=CALLER)
+    assert response.status_code == 200
+    assert (
+        response.json()["evidence_view"]["input_freshness"] == example == {"performance": "unknown"}
+    )

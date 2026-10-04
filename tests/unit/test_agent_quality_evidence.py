@@ -1,5 +1,8 @@
 import json
+from decimal import Decimal
 from pathlib import Path
+
+import pytest
 
 from scripts.check_agent_quality_evidence import (
     DUPLICATE_CODE_DOCUMENTS,
@@ -98,35 +101,45 @@ def test_validate_agent_quality_evidence_reports_missing_documentation_truth(
     ]
 
 
-def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path) -> None:
+def _duplicate_documents(tmp_path: Path, observed: float = 1.32) -> dict:
     baseline_path = tmp_path / "quality" / "duplicate_code_baseline.json"
     baseline_path.parent.mkdir()
-    baseline_path.write_text(
-        json.dumps(
-            {
-                "metrics": {
-                    "clone_count": {"threshold": 86},
-                    "duplicated_lines": {"threshold": 1720},
-                    "duplicated_percentage": {"threshold": 1.98},
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
+    baseline = {
+        "metrics": {
+            "clone_count": {"baseline": 64, "threshold": 64},
+            "duplicated_lines": {"baseline": 1281, "threshold": 1281},
+            "duplicated_percentage": {"baseline": observed, "threshold": 1.35},
+        }
+    }
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
     ci_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[0]
     scorecard_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[1]
     ci_document.write_text(
-        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720,\n"
-        "and duplicated percentage must not exceed 1.98%",
+        "duplicate-code clone count must not exceed 64, duplicated lines must not exceed 1,281,\n"
+        "and duplicated percentage must not exceed 1.35%",
         encoding="utf-8",
     )
     scorecard_document.write_text(
-        "now measures 86 production clone findings, 1,720 duplicated lines, and "
-        "1.98% duplicated lines",
+        "now measures 64 production clone findings, 1,281 duplicated lines, and "
+        f"{observed:.2f}% duplicated lines against the unchanged 1.35% ceiling",
         encoding="utf-8",
     )
 
+    return baseline
+
+
+@pytest.mark.parametrize("observed", [1.32, 1.35])
+def test_duplicate_documents_separate_observation_from_policy(
+    tmp_path: Path, observed: float
+) -> None:
+    _duplicate_documents(tmp_path, observed)
     assert _validate_duplicate_code_documentation_alignment(tmp_path) == []
+
+
+def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path) -> None:
+    _duplicate_documents(tmp_path)
+    ci_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[0]
+    scorecard_document = tmp_path / DUPLICATE_CODE_DOCUMENTS[1]
 
     ci_document.write_text("stale duplicate-code threshold", encoding="utf-8")
 
@@ -134,13 +147,13 @@ def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path)
 
     assert findings == [
         f"{ci_document} is missing current duplicate-code threshold fragment: "
-        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
-        "and duplicated percentage must not exceed 1.98%"
+        "duplicate-code clone count must not exceed 64, duplicated lines must not exceed 1,281, "
+        "and duplicated percentage must not exceed 1.35%"
     ]
 
     ci_document.write_text(
-        "duplicate-code clone count must not exceed 86, duplicated lines must not exceed 1,720, "
-        "and duplicated percentage must not exceed 1.98%",
+        "duplicate-code clone count must not exceed 64, duplicated lines must not exceed 1,281, "
+        "and duplicated percentage must not exceed 1.35%",
         encoding="utf-8",
     )
     scorecard_document.write_text("stale duplicate-code threshold", encoding="utf-8")
@@ -148,7 +161,123 @@ def test_duplicate_code_documentation_tracks_enforced_thresholds(tmp_path: Path)
     findings = _validate_duplicate_code_documentation_alignment(tmp_path)
 
     assert findings == [
-        f"{scorecard_document} is missing current duplicate-code threshold fragment: "
-        "now measures 86 production clone findings, 1,720 duplicated lines, and "
-        "1.98% duplicated lines"
+        f"{scorecard_document} is missing current duplicate-code observation fragment: "
+        "now measures 64 production clone findings, 1,281 duplicated lines, and "
+        "1.32% duplicated lines",
+        f"{scorecard_document} is missing current duplicate-code policy fragment: "
+        "against the unchanged 1.35% ceiling",
     ]
+
+
+@pytest.mark.parametrize("document", DUPLICATE_CODE_DOCUMENTS)
+def test_duplicate_documents_reject_missing_document(tmp_path: Path, document: Path) -> None:
+    _duplicate_documents(tmp_path)
+    (tmp_path / document).unlink()
+    assert f"Missing duplicate-code quality document: {tmp_path / document}" in (
+        _validate_duplicate_code_documentation_alignment(tmp_path)
+    )
+
+
+@pytest.mark.parametrize("replacement", ["1.35%", "1.31%", "nan%", "unknown%"])
+def test_duplicate_scorecard_rejects_false_or_malformed_observation(
+    tmp_path: Path, replacement: str
+) -> None:
+    _duplicate_documents(tmp_path)
+    path = tmp_path / DUPLICATE_CODE_DOCUMENTS[1]
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("1.32%", replacement), encoding="utf-8"
+    )
+    assert any(
+        "observation fragment" in item
+        for item in (_validate_duplicate_code_documentation_alignment(tmp_path))
+    )
+
+
+@pytest.mark.parametrize("document", DUPLICATE_CODE_DOCUMENTS)
+def test_duplicate_documents_reject_wrong_policy(tmp_path: Path, document: Path) -> None:
+    _duplicate_documents(tmp_path)
+    path = tmp_path / document
+    path.write_text(path.read_text(encoding="utf-8").replace("1.35%", "1.32%"), encoding="utf-8")
+    assert _validate_duplicate_code_documentation_alignment(tmp_path)
+
+
+@pytest.mark.parametrize("name", ["clone_count", "duplicated_lines", "duplicated_percentage"])
+@pytest.mark.parametrize("field", ["baseline", "threshold"])
+@pytest.mark.parametrize("value", [None, "1.32", True, -1, float("nan"), float("inf")])
+def test_duplicate_authority_rejects_invalid_required_metric(
+    tmp_path: Path, name: str, field: str, value: object
+) -> None:
+    baseline = _duplicate_documents(tmp_path)
+    baseline["metrics"][name][field] = value
+    path = tmp_path / "quality/duplicate_code_baseline.json"
+    path.write_text(json.dumps(baseline), encoding="utf-8")
+    assert any(
+        "Invalid duplicate-code measurement authority" in item
+        for item in (_validate_duplicate_code_documentation_alignment(tmp_path))
+    )
+
+
+@pytest.mark.parametrize("field", ["baseline", "threshold"])
+def test_duplicate_authority_rejects_absent_observation_or_policy(
+    tmp_path: Path, field: str
+) -> None:
+    baseline = _duplicate_documents(tmp_path)
+    del baseline["metrics"]["duplicated_percentage"][field]
+    (tmp_path / "quality/duplicate_code_baseline.json").write_text(
+        json.dumps(baseline), encoding="utf-8"
+    )
+    assert _validate_duplicate_code_documentation_alignment(tmp_path)
+
+
+@pytest.mark.parametrize("raw", ["{", "[]", '{"metrics": []}', '{"metrics": {}}'])
+def test_duplicate_authority_rejects_malformed_structure(tmp_path: Path, raw: str) -> None:
+    _duplicate_documents(tmp_path)
+    (tmp_path / "quality/duplicate_code_baseline.json").write_text(raw, encoding="utf-8")
+    assert _validate_duplicate_code_documentation_alignment(tmp_path)
+
+
+def test_duplicate_authority_rejects_missing_file(tmp_path: Path) -> None:
+    _duplicate_documents(tmp_path)
+    path = tmp_path / "quality/duplicate_code_baseline.json"
+    path.unlink()
+    assert _validate_duplicate_code_documentation_alignment(tmp_path) == [
+        f"Missing duplicate-code baseline: {path}"
+    ]
+
+
+@pytest.mark.parametrize("name", ["clone_count", "duplicated_lines"])
+@pytest.mark.parametrize("field", ["baseline", "threshold"])
+def test_duplicate_authority_rejects_fractional_counts(
+    tmp_path: Path, name: str, field: str
+) -> None:
+    baseline = _duplicate_documents(tmp_path)
+    baseline["metrics"][name][field] = 1.5
+    (tmp_path / "quality/duplicate_code_baseline.json").write_text(
+        json.dumps(baseline), encoding="utf-8"
+    )
+    assert _validate_duplicate_code_documentation_alignment(tmp_path)
+
+
+def test_duplicate_authority_rejects_observed_above_ceiling(tmp_path: Path) -> None:
+    _duplicate_documents(tmp_path, observed=1.36)
+    assert any(
+        "observation exceeds policy" in item
+        for item in (_validate_duplicate_code_documentation_alignment(tmp_path))
+    )
+
+
+def test_existing_native_ratchet_rejects_actual_report_above_ceiling() -> None:
+    from scripts.check_duplicate_code_ratchet import DETECTOR_POLICY, DuplicateReport, evaluate
+
+    baseline = {
+        "schema_version": 1,
+        "detector": DETECTOR_POLICY,
+        "allowed_fingerprints": [],
+        "metrics": {
+            "clone_count": {"baseline": 0, "threshold": 0},
+            "duplicated_lines": {"baseline": 0, "threshold": 0},
+            "duplicated_percentage": {"baseline": Decimal("1.32"), "threshold": Decimal("1.35")},
+        },
+    }
+    report = DuplicateReport((), 0, Decimal("1.36"))
+    assert not evaluate(report, baseline, 0).passed
