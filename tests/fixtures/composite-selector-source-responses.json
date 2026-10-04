@@ -1,0 +1,776 @@
+{
+  "source_service": "lotus-performance",
+  "source_revision": "4ffad93e7c57789d3521ace5205bf682a6513995",
+  "evidence_class": "registered-API isolated SQLite persisted synthetic fact reader",
+  "source_helpers": "tests/integration/test_composites_api.py:_seed_definition/_seed_fact/_complete_publication",
+  "boundaries": [
+    "not live Core/Manage ingestion",
+    "not production IAM",
+    "not model-fee implementation",
+    "not Workbench acceptance"
+  ],
+  "cases": [
+    {
+      "case": "original",
+      "operation": "twr",
+      "tenant_id": "tenant-version",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "restatement_sequence": 1
+      },
+      "expected_return": "0.010000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.010000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.010000000000",
+            "cumulative_return": "0.010000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "101.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "NET_ACTUAL",
+            "reporting_currency": "USD",
+            "source_fingerprints": [
+              "sha256:P1-NET_ACTUAL-1"
+            ],
+            "restatement_versions": [
+              "v1"
+            ],
+            "restatement_sequence": 1,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.010000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.010000000000",
+                "source_snapshot_id": "snapshot-P1-NET_ACTUAL-1",
+                "source_fingerprint": "sha256:P1-NET_ACTUAL-1",
+                "restatement_version": "v1",
+                "restatement_sequence": 1,
+                "calculation_id": "calc-P1-NET_ACTUAL-1"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "latest",
+      "operation": "twr",
+      "tenant_id": "tenant-version",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31"
+      },
+      "expected_return": "0.090000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.090000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.090000000000",
+            "cumulative_return": "0.090000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "109.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "NET_ACTUAL",
+            "reporting_currency": "USD",
+            "source_fingerprints": [
+              "sha256:P1-NET_ACTUAL-2"
+            ],
+            "restatement_versions": [
+              "v2"
+            ],
+            "restatement_sequence": 2,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.090000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.090000000000",
+                "source_snapshot_id": "snapshot-P1-NET_ACTUAL-2",
+                "source_fingerprint": "sha256:P1-NET_ACTUAL-2",
+                "restatement_version": "v2",
+                "restatement_sequence": 2,
+                "calculation_id": "calc-P1-NET_ACTUAL-2"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "null-defaults",
+      "operation": "twr",
+      "tenant_id": "tenant-version",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "restatement_sequence": null,
+        "reporting_currency": null
+      },
+      "expected_return": "0.090000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.090000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.090000000000",
+            "cumulative_return": "0.090000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "109.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "NET_ACTUAL",
+            "reporting_currency": "USD",
+            "source_fingerprints": [
+              "sha256:P1-NET_ACTUAL-2"
+            ],
+            "restatement_versions": [
+              "v2"
+            ],
+            "restatement_sequence": 2,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.090000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.090000000000",
+                "source_snapshot_id": "snapshot-P1-NET_ACTUAL-2",
+                "source_fingerprint": "sha256:P1-NET_ACTUAL-2",
+                "restatement_version": "v2",
+                "restatement_sequence": 2,
+                "calculation_id": "calc-P1-NET_ACTUAL-2"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "net-usd",
+      "operation": "twr",
+      "tenant_id": "tenant-view",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "NET_ACTUAL",
+        "reporting_currency": "usd"
+      },
+      "expected_return": "0.010000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.010000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.010000000000",
+            "cumulative_return": "0.010000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "101.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "NET_ACTUAL",
+            "reporting_currency": "USD",
+            "source_fingerprints": [
+              "sha256:P1-NET_ACTUAL-1"
+            ],
+            "restatement_versions": [
+              "v1"
+            ],
+            "restatement_sequence": 1,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.010000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.010000000000",
+                "source_snapshot_id": "snapshot-P1-NET_ACTUAL-1",
+                "source_fingerprint": "sha256:P1-NET_ACTUAL-1",
+                "restatement_version": "v1",
+                "restatement_sequence": 1,
+                "calculation_id": "calc-P1-NET_ACTUAL-1"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "gross-usd",
+      "operation": "twr",
+      "tenant_id": "tenant-view",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "GROSS",
+        "reporting_currency": "usd"
+      },
+      "expected_return": "0.030000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.030000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.030000000000",
+            "cumulative_return": "0.030000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "103.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "GROSS",
+            "reporting_currency": "USD",
+            "source_fingerprints": [
+              "sha256:P1-GROSS-1"
+            ],
+            "restatement_versions": [
+              "v1"
+            ],
+            "restatement_sequence": 1,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.030000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.030000000000",
+                "source_snapshot_id": "snapshot-P1-GROSS-1",
+                "source_fingerprint": "sha256:P1-GROSS-1",
+                "restatement_version": "v1",
+                "restatement_sequence": 1,
+                "calculation_id": "calc-P1-GROSS-1"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "net-eur",
+      "operation": "twr",
+      "tenant_id": "tenant-view",
+      "request": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "NET_ACTUAL",
+        "reporting_currency": "eur"
+      },
+      "expected_return": "0.050000000000",
+      "status_code": 200,
+      "response": {
+        "calculation_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "status": "READY",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "cumulative_return": "0.050000000000",
+        "reason_codes": [],
+        "periods": [
+          {
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "status": "READY",
+            "return_value": "0.050000000000",
+            "cumulative_return": "0.050000000000",
+            "beginning_market_value": "100.000000",
+            "ending_market_value": "105.000000",
+            "member_count": 1,
+            "excluded_member_count": 0,
+            "dispersion_equal_weight": null,
+            "return_view": "NET_ACTUAL",
+            "reporting_currency": "EUR",
+            "source_fingerprints": [
+              "sha256:P1-NET_ACTUAL-1"
+            ],
+            "restatement_versions": [
+              "v1"
+            ],
+            "restatement_sequence": 1,
+            "reason_codes": [],
+            "member_contributions": [
+              {
+                "portfolio_id": "P1",
+                "period_start": "2026-01-01",
+                "period_end": "2026-01-31",
+                "return_value": "0.050000000000",
+                "beginning_market_value": "100.000000",
+                "beginning_asset_weight": "1.000000000000",
+                "contribution": "0.050000000000",
+                "source_snapshot_id": "snapshot-P1-NET_ACTUAL-1",
+                "source_fingerprint": "sha256:P1-NET_ACTUAL-1",
+                "restatement_version": "v1",
+                "restatement_sequence": 1,
+                "calculation_id": "calc-P1-NET_ACTUAL-1"
+              }
+            ]
+          }
+        ],
+        "methodology": "persisted_member_return_asset_weighted_twr_v1"
+      }
+    },
+    {
+      "case": "original",
+      "operation": "inspect",
+      "tenant_id": "tenant-version",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "restatement_sequence": 1
+      },
+      "expected_return": "0.010000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,NET_ACTUAL,0.01,100,101.00,USD,READY,,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.010000000000,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,NET_ACTUAL,USD,0.010000000000,0.010000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [1], \"restatement_versions\": [\"v1\"], \"source_fingerprints\": [\"sha256:P1-NET_ACTUAL-1\"], \"tenant_id\": \"tenant-version\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-version\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    },
+    {
+      "case": "latest",
+      "operation": "inspect",
+      "tenant_id": "tenant-version",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31"
+      },
+      "expected_return": "0.090000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,NET_ACTUAL,0.09,100,109.00,USD,READY,,sha256:P1-NET_ACTUAL-2,v2,2\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.090000000000,sha256:P1-NET_ACTUAL-2,v2,2\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,NET_ACTUAL,USD,0.090000000000,0.090000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [2], \"restatement_versions\": [\"v2\"], \"source_fingerprints\": [\"sha256:P1-NET_ACTUAL-2\"], \"tenant_id\": \"tenant-version\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-version\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    },
+    {
+      "case": "null-defaults",
+      "operation": "inspect",
+      "tenant_id": "tenant-version",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "restatement_sequence": null,
+        "reporting_currency": null
+      },
+      "expected_return": "0.090000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,NET_ACTUAL,0.09,100,109.00,USD,READY,,sha256:P1-NET_ACTUAL-2,v2,2\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.090000000000,sha256:P1-NET_ACTUAL-2,v2,2\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,NET_ACTUAL,USD,0.090000000000,0.090000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [2], \"restatement_versions\": [\"v2\"], \"source_fingerprints\": [\"sha256:P1-NET_ACTUAL-2\"], \"tenant_id\": \"tenant-version\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-version\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    },
+    {
+      "case": "net-usd",
+      "operation": "inspect",
+      "tenant_id": "tenant-view",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "NET_ACTUAL",
+        "reporting_currency": "usd"
+      },
+      "expected_return": "0.010000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,NET_ACTUAL,0.01,100,101.00,USD,READY,,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.010000000000,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,NET_ACTUAL,USD,0.010000000000,0.010000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [1], \"restatement_versions\": [\"v1\"], \"source_fingerprints\": [\"sha256:P1-NET_ACTUAL-1\"], \"tenant_id\": \"tenant-view\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-view\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    },
+    {
+      "case": "gross-usd",
+      "operation": "inspect",
+      "tenant_id": "tenant-view",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "GROSS",
+        "reporting_currency": "usd"
+      },
+      "expected_return": "0.030000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,GROSS,0.03,100,103.00,USD,READY,,sha256:P1-GROSS-1,v1,1\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.030000000000,sha256:P1-GROSS-1,v1,1\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,GROSS,USD,0.030000000000,0.030000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [1], \"restatement_versions\": [\"v1\"], \"source_fingerprints\": [\"sha256:P1-GROSS-1\"], \"tenant_id\": \"tenant-view\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-view\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    },
+    {
+      "case": "net-eur",
+      "operation": "inspect",
+      "tenant_id": "tenant-view",
+      "request": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "return_view": "NET_ACTUAL",
+        "reporting_currency": "eur"
+      },
+      "expected_return": "0.050000000000",
+      "status_code": 200,
+      "response": {
+        "inspection_id": "7f2b08b0-58e5-49be-b3ef-7a9cfb0321ce",
+        "composite_id": "PB_GLOBAL_BALANCED_USD",
+        "period_start": "2026-01-01",
+        "period_end": "2026-01-31",
+        "status": "complete",
+        "verdict": "supportable",
+        "findings": [],
+        "evidence_summary": {
+          "member_return_fact_count": 1,
+          "period_count": 1,
+          "calculation_status": "READY",
+          "reason_codes": [],
+          "artifact_count": 5
+        },
+        "artifacts": [
+          {
+            "artifact_name": "member_inputs.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "composite_id,portfolio_id,period_start,period_end,return_view,return_value,beginning_market_value,ending_market_value,reporting_currency,status,reason_codes,source_fingerprint,restatement_version,restatement_sequence\nPB_GLOBAL_BALANCED_USD,P1,2026-01-01,2026-01-31,NET_ACTUAL,0.05,100,105.00,EUR,READY,,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "period_weights.csv",
+            "content_type": "text/csv",
+            "access_classification": "operator_only",
+            "artifact_content": "portfolio_id,period_start,period_end,beginning_asset_weight,contribution,source_fingerprint,restatement_version,restatement_sequence\nP1,2026-01-01,2026-01-31,1.000000000000,0.050000000000,sha256:P1-NET_ACTUAL-1,v1,1\n"
+          },
+          {
+            "artifact_name": "composite_returns.csv",
+            "content_type": "text/csv",
+            "access_classification": "customer_consumable",
+            "artifact_content": "period_start,period_end,status,return_view,reporting_currency,return_value,cumulative_return,member_count,excluded_member_count,dispersion_equal_weight,reason_codes\n2026-01-01,2026-01-31,READY,NET_ACTUAL,EUR,0.050000000000,0.050000000000,1,0,,\n"
+          },
+          {
+            "artifact_name": "lineage_manifest.json",
+            "content_type": "application/json",
+            "access_classification": "operator_only",
+            "artifact_content": "{\"calculation_status\": \"READY\", \"composite_id\": \"PB_GLOBAL_BALANCED_USD\", \"restatement_sequences\": [1], \"restatement_versions\": [\"v1\"], \"source_fingerprints\": [\"sha256:P1-NET_ACTUAL-1\"], \"tenant_id\": \"tenant-view\"}"
+          },
+          {
+            "artifact_name": "support_brief.md",
+            "content_type": "text/markdown",
+            "access_classification": "operator_only",
+            "artifact_content": "# Composite Inspection Brief\n\n- Tenant: tenant-view\n- Composite: PB_GLOBAL_BALANCED_USD\n- Status: READY\n- Periods inspected: 1\n- Member-return facts inspected: 1\n- Reason codes: none\n"
+          }
+        ]
+      }
+    }
+  ]
+}

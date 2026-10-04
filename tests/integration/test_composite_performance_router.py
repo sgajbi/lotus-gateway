@@ -215,6 +215,15 @@ def test_composite_performance_openapi_contract_registered():
     assert request_schema["properties"]["composite_id"]["description"]
     assert request_schema["properties"]["period_start"]["examples"] == ["2026-01-01"]
     assert inspect_request_schema["properties"]["inspection_id"]["description"]
+    for schema in (request_schema, inspect_request_schema):
+        assert schema["additionalProperties"] is False
+        fields = schema["properties"]
+        assert fields["return_view"]["enum"] == ["GROSS", "NET_ACTUAL", "NET_MODEL_FEE"]
+        assert fields["return_view"]["default"] == "NET_ACTUAL"
+        assert fields["restatement_sequence"]["anyOf"][0]["minimum"] == 1
+        currency = fields["reporting_currency"]["anyOf"][0]
+        assert currency["pattern"] == r"^[A-Z]{3}$"
+        assert currency["minLength"] == currency["maxLength"] == 3
     assert response_schema["properties"]["data"]["description"]
     assert (
         "source-owned composite payload"

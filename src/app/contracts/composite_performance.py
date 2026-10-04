@@ -1,9 +1,57 @@
-from typing import Any
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 
-class CompositePerformanceTwrRequest(BaseModel):
+def _normalize_reporting_currency(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    if value != value.strip():
+        raise ValueError("reporting_currency must not contain leading or trailing whitespace")
+    if not value.isascii() or not value.isalpha():
+        raise ValueError("reporting_currency must contain exactly three ASCII letters")
+    return value.upper()
+
+
+CompositeReportingCurrency = Annotated[
+    str,
+    Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$"),
+    BeforeValidator(_normalize_reporting_currency),
+]
+
+
+class CompositePerformanceSelectors(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    restatement_sequence: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Explicit immutable member-return fact sequence. Omission or null delegates latest "
+            "qualified numeric sequence selection to lotus-performance."
+        ),
+        examples=[1],
+    )
+    return_view: Literal["GROSS", "NET_ACTUAL", "NET_MODEL_FEE"] = Field(
+        default="NET_ACTUAL",
+        description=(
+            "Source-owned fee-view identity for persisted facts. Omission delegates the "
+            "NET_ACTUAL default to lotus-performance; selection does not calculate model fees."
+        ),
+        examples=["NET_ACTUAL"],
+    )
+    reporting_currency: CompositeReportingCurrency | None = Field(
+        default=None,
+        description=(
+            "Persisted reporting-currency identity: exactly three ASCII letters, normalized "
+            "to uppercase without trimming. Omission or null uses the source composite "
+            "definition currency; Gateway performs no FX conversion."
+        ),
+        examples=["USD"],
+    )
+
+
+class CompositePerformanceTwrRequest(CompositePerformanceSelectors):
     calculation_id: str | None = Field(
         default=None,
         description=(
@@ -28,7 +76,7 @@ class CompositePerformanceTwrRequest(BaseModel):
     )
 
 
-class CompositePerformanceInspectionRequest(BaseModel):
+class CompositePerformanceInspectionRequest(CompositePerformanceSelectors):
     inspection_id: str | None = Field(
         default=None,
         description=(

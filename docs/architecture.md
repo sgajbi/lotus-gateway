@@ -77,6 +77,40 @@ contract proof, not live Risk, browser, IAM or banking certification.
 
 ## Performance Caller Authority
 
+### Composite Fact Selectors
+
+The existing `POST /api/v1/performance/composites/twr` and `/inspect` routes preserve
+`restatement_sequence`, `return_view` and `reporting_currency` through the registered DTO,
+service and concrete Performance HTTP client. Both request DTOs reject unknown fields before
+source I/O; body returns, fee rates, publication assertions and selector aliases are not accepted.
+
+An explicit positive `restatement_sequence` selects that immutable source generation. Omission
+or null leaves latest qualified numeric-sequence selection to Performance. `return_view` accepts
+only `GROSS`, `NET_ACTUAL` or `NET_MODEL_FEE`; omission leaves the source default `NET_ACTUAL`,
+while explicit null is invalid. `reporting_currency` accepts three ASCII letters and normalizes
+case to uppercase without trimming; omission or null delegates to the source definition currency.
+Gateway does not derive a currency from fact rows, perform FX conversion or calculate fees.
+
+Source failures retain the existing product-safe error mapping: a source selection conflict is
+Gateway `502`, with `upstream_status=409` and bounded detail `COMPOSITE_FACT_SELECTION_INCOMPLETE`.
+Gateway does not fall back to a different generation, view or currency after source refusal.
+
+The named `test_registered_composite_replays_complete_persisted_producer_selection` controls
+retain complete actual registered Performance responses at
+`4ffad93e7c57789d3521ace5205bf682a6513995` in
+`tests/fixtures/composite-selector-source-responses.json`. In the isolated synthetic fixture,
+sequence 1 returns 1%; latest returns 9%; gross USD returns 3%; net EUR returns 5%.
+Inspection retains the corresponding member inputs, weights, returns and tenant-bound lineage
+artifacts. These are independent fixed expected figures over persisted synthetic publications,
+not evidence of live Core/Manage materialization, production IAM or Workbench presentation.
+`NET_MODEL_FEE` selection transport is not model-fee producer implementation or certification.
+
+The source reader owns publication completeness and default/latest semantics. Manage remains
+definition/membership/policy authority; Core and registered external producers own source facts;
+Performance owns admitted member facts and calculations. Neither Gateway nor Workbench acquires
+financial, eligibility or publication authority. The full composite programme remains under
+Platform #923/#924; annual dispersion and model fees are distinct Performance #608/#609 scopes.
+
 The Workbench Performance summary, details, horizon comparison, attribution trend, Advisor Brief
 and evidence-download routes, the portfolio performance snapshot, and the composite TWR and
 inspection routes admit the trusted actor, tenant and region before source I/O. Missing/blank
