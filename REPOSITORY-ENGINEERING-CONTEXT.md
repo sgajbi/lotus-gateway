@@ -29,6 +29,14 @@ It does not replace domain authority in upstream services.
 
 ### Compose image provenance
 
+Protected PR/main workflows first resolve three exact source/distribution inputs through the
+existing Platform image-acquisition validator. `LOTUS_PLATFORM_GOVERNANCE_SHA` is a repository
+Actions variable set only to a qualified immutable Platform main revision admitting these tuples.
+Successful outputs supply the Python Docker build/CI-local Compose argument and the Trivy/Syft
+commands. The Python default is the admitted linux/amd64 e529 single manifest; the audit versions
+remain Trivy0.72.0 and Syft1.42.3. Hosted pulls and image inspection artifacts record actual
+acquisition separately from public manifest identity. See `docs/qualified-image-acquisition.md`.
+
 `make docker-up`, `make e2e-up`, and `make ci-local-docker` derive build provenance from the
 checkout each Compose build actually uses. The helper records a dirty source tree by suffixing its
 own revision with `-dirty`, preserves literal environment overrides without shell evaluation, and

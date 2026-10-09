@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
@@ -219,8 +220,20 @@ def test_main_releasability_gate_remains_dispatchable_and_main_bound() -> None:
     assert f"EVALUATED_SHA: {evaluated_ref}" in text
     assert "WORKFLOW_DEFINITION_SHA: ${{ github.sha }}" in text
     assert f"IMAGE_TAG: {evaluated_ref}" in text
-    assert text.count("uses: actions/checkout@v6") == 8
-    assert text.count(f"ref: {evaluated_ref}") == 8
+    jobs = yaml.safe_load(text)["jobs"]
+    checkouts = [
+        step["with"]
+        for job in jobs.values()
+        for step in job.get("steps", [])
+        if step.get("uses") == "actions/checkout@v6"
+    ]
+    gateway_checkouts = [checkout for checkout in checkouts if "repository" not in checkout]
+    assert len(gateway_checkouts) == 8
+    assert all(checkout["ref"] == evaluated_ref for checkout in gateway_checkouts)
+    policy_checkouts = [checkout for checkout in checkouts if "repository" in checkout]
+    assert len(policy_checkouts) == 1
+    assert policy_checkouts[0]["repository"] == "sgajbi/lotus-platform"
+    assert policy_checkouts[0]["ref"] == "${{ vars.LOTUS_PLATFORM_GOVERNANCE_SHA }}"
     assert 'git merge-base --is-ancestor "$EXPECTED_SHA" FETCH_HEAD' in text
     assert "Workflow definition SHA: ${GITHUB_SHA}" in text
     assert '--build-arg LOTUS_GIT_BRANCH="${LOTUS_RELEASE_SOURCE_BRANCH}"' in text
@@ -241,7 +254,7 @@ def test_operator_guidance_explains_source_pinned_dispatch() -> None:
     text = (REPO_ROOT / "wiki" / "Validation-and-CI.md").read_text(encoding="utf-8")
 
     assert "isolated by the evaluated source SHA" in text
-    assert "every checkout is pinned to `expected_sha`" in text
+    assert "every Gateway checkout is pinned to `expected_sha`" in text
     assert "workflow-definition SHA" in text
 
 

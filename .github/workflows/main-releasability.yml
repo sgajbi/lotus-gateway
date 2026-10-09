@@ -38,10 +38,83 @@ env:
   WORKFLOW_DEFINITION_SHA: ${{ github.sha }}
   IMAGE_TAG: ${{ inputs.expected_sha || github.sha }}
   LOTUS_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch || github.ref_name }}
-  SYFT_IMAGE: anchore/syft:v1.42.3
-  TRIVY_IMAGE: aquasec/trivy:0.72.0
 
 jobs:
+  image-acquisition:
+    needs: [exact-revision-assertion]
+    name: Image Acquisition / Exact Distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      base: ${{ steps.base.outputs.image }}
+      trivy: ${{ steps.trivy.outputs.image }}
+      syft: ${{ steps.syft.outputs.image }}
+    steps:
+      - name: Require immutable qualified governance source
+        shell: bash
+        env:
+          GOVERNANCE_SHA: ${{ vars.LOTUS_PLATFORM_GOVERNANCE_SHA }}
+        run: '[[ "$GOVERNANCE_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@v6
+        with:
+          repository: sgajbi/lotus-platform
+          ref: ${{ vars.LOTUS_PLATFORM_GOVERNANCE_SHA }}
+          persist-credentials: false
+          path: .lotus-platform
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Verify admitted base distribution
+        id: base
+        shell: bash
+        env:
+          SOURCE_IMAGE: docker.io/library/python@sha256:e529028263dbe6910a2d96f7d2b8f5266385e917fd45d286ef166977c094a51e
+          DISTRIBUTION_IMAGE: public.ecr.aws/docker/library/python@sha256:e529028263dbe6910a2d96f7d2b8f5266385e917fd45d286ef166977c094a51e
+        run: >-
+          python .lotus-platform/automation/validate_technology_governance_policy.py
+          --source-image "$SOURCE_IMAGE"
+          --distribution-image "$DISTRIBUTION_IMAGE"
+          --platform linux/amd64
+          --verify-distribution
+          --github-output "$GITHUB_OUTPUT"
+          --acquisition-evidence "$RUNNER_TEMP/image-acquisition-evidence/base"
+      - name: Verify admitted trivy distribution
+        id: trivy
+        shell: bash
+        env:
+          SOURCE_IMAGE: docker.io/aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+          DISTRIBUTION_IMAGE: ghcr.io/aquasecurity/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+        run: >-
+          python .lotus-platform/automation/validate_technology_governance_policy.py
+          --source-image "$SOURCE_IMAGE"
+          --distribution-image "$DISTRIBUTION_IMAGE"
+          --platform linux/amd64
+          --verify-distribution
+          --github-output "$GITHUB_OUTPUT"
+          --acquisition-evidence "$RUNNER_TEMP/image-acquisition-evidence/trivy"
+      - name: Verify admitted syft distribution
+        id: syft
+        shell: bash
+        env:
+          SOURCE_IMAGE: docker.io/anchore/syft@sha256:5999d209a342e55e9edf70bf8930fb5b86d8f2a783fa401178372c50e21b1d36
+          DISTRIBUTION_IMAGE: ghcr.io/anchore/syft@sha256:5999d209a342e55e9edf70bf8930fb5b86d8f2a783fa401178372c50e21b1d36
+        run: >-
+          python .lotus-platform/automation/validate_technology_governance_policy.py
+          --source-image "$SOURCE_IMAGE"
+          --distribution-image "$DISTRIBUTION_IMAGE"
+          --platform linux/amd64
+          --verify-distribution
+          --github-output "$GITHUB_OUTPUT"
+          --acquisition-evidence "$RUNNER_TEMP/image-acquisition-evidence/syft"
+      - name: Preserve failed public manifest responses
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-acquisition-failures-${{ github.workflow }}
+          path: ${{ runner.temp }}/image-acquisition-evidence
+          if-no-files-found: ignore
+          retention-days: 14
+
   exact-revision-assertion:
     name: Main Releasability / Exact Revision Assertion
     runs-on: ubuntu-latest
@@ -215,8 +288,12 @@ jobs:
           if-no-files-found: error
 
   docker-build:
+    env:
+      GATEWAY_BASE_IMAGE: ${{ needs.image-acquisition.outputs.base }}
+      SYFT_IMAGE: ${{ needs.image-acquisition.outputs.syft }}
+      TRIVY_IMAGE: ${{ needs.image-acquisition.outputs.trivy }}
     name: Main Releasability / Validate Docker Build
-    needs: [integration, coverage, duplicate-code]
+    needs: [integration, coverage, duplicate-code, image-acquisition]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -229,7 +306,10 @@ jobs:
           mkdir -p output/container-security
           BUILD_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           echo "LOTUS_BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
-          docker build \
+          docker pull --platform linux/amd64 "${GATEWAY_BASE_IMAGE}"
+          docker image inspect "${GATEWAY_BASE_IMAGE}" > output/container-security/base-acquired.json
+          docker build --platform linux/amd64 \
+            --build-arg GATEWAY_BASE_IMAGE="${GATEWAY_BASE_IMAGE}" \
             -t "${IMAGE_NAME}:${IMAGE_TAG}" \
             -t lotus-gateway:ci-test \
             --build-arg LOTUS_APP_VERSION=0.1.0 \
@@ -241,6 +321,8 @@ jobs:
             .
       - name: Generate SBOM
         run: |
+          docker pull --platform linux/amd64 "${SYFT_IMAGE}"
+          docker image inspect "${SYFT_IMAGE}" > output/container-security/syft-acquired.json
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${PWD}/output/container-security:/output" \
@@ -248,6 +330,8 @@ jobs:
             -o spdx-json=/output/sbom.spdx.json
       - name: Vulnerability Scan
         run: |
+          docker pull --platform linux/amd64 "${TRIVY_IMAGE}"
+          docker image inspect "${TRIVY_IMAGE}" > output/container-security/trivy-acquired.json
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${PWD}/output/container-security:/output" \
@@ -391,8 +475,10 @@ jobs:
           if-no-files-found: error
 
   ci-local-docker:
+    env:
+      GATEWAY_BASE_IMAGE: ${{ needs.image-acquisition.outputs.base }}
     name: Main Releasability / CI Local Docker Parity
-    needs: [integration, coverage]
+    needs: [integration, coverage, image-acquisition]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -400,7 +486,18 @@ jobs:
         with:
           ref: ${{ inputs.expected_sha || github.sha }}
       - name: Dockerized local CI parity
-        run: make ci-local-docker
+        run: |
+          mkdir -p output/image-acquisition-parity
+          docker pull --platform linux/amd64 "${GATEWAY_BASE_IMAGE}"
+          docker image inspect "${GATEWAY_BASE_IMAGE}" > output/image-acquisition-parity/base-acquired.json
+          make ci-local-docker
       - name: Cleanup
         if: always()
         run: make ci-local-docker-down
+      - name: Preserve parity base acquisition evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-acquisition-parity-${{ github.workflow }}
+          path: output/image-acquisition-parity/
+          if-no-files-found: error
