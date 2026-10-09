@@ -1,5 +1,20 @@
 # Validation and CI
 
+## Exact image acquisition
+
+Gateway #835 composes Platform #945's existing finite prerequisite into protected PR and main
+Docker lanes. The repository Actions variable `LOTUS_PLATFORM_GOVERNANCE_SHA` must identify a
+qualified immutable Platform main revision admitting the exact Python, Trivy0.72.0 and
+Syft1.42.3 tuples. Missing/refused admission stops before Docker acquisition; mutable fallback is
+not supported. Successful outputs supply the actual Dockerfile/CI-local Compose base argument
+and scanner/SBOM commands. Hosted image-inspection receipts accompany existing container release
+evidence and parity artifacts. Manifest identity, hosted acquisition and release validation are
+distinct evidence boundaries.
+
+Source/distribution digests, operator setup and focused positive/refusal controls are documented
+in [qualified image acquisition](https://github.com/sgajbi/lotus-gateway/blob/main/docs/qualified-image-acquisition.md).
+No scanner downgrade, severity exception, coverage reduction or financial capability is introduced.
+
 This page is the current operator and engineering map for `lotus-gateway` validation lanes,
 release evidence, and progressive enterprise-hardening gates. It records implementation-backed
 checks and the current measured quality baseline; it is not a replacement for GitHub check truth.
@@ -228,7 +243,8 @@ automatic post-merge path and does not race or cancel a duplicate push-triggered
 dispatches intentionally have no `source_branch` default; release metadata inherits the selected
 workflow ref unless an operator explicitly provides a source branch override. Concurrency is
 isolated by the evaluated source SHA. The merged-PR dispatcher starts the workflow from `main` so
-Actions reads the governed workflow definition, while every checkout is pinned to `expected_sha`.
+Actions reads the governed workflow definition, while every Gateway checkout is pinned to `expected_sha`.
+The separate Platform policy checkout is pinned to the qualified `LOTUS_PLATFORM_GOVERNANCE_SHA`.
 The first job proves that source SHA remains an ancestor of freshly fetched `main`; its receipt
 records the evaluated source SHA separately from the workflow-definition SHA. Only runs evaluating
 the same source revision may supersede one another.

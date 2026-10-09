@@ -273,12 +273,12 @@ def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None
         "    needs: [lint-typecheck-unit]"
     ) in workflow
     assert (
-        "  docker-build:\n    name: Main Releasability / Validate Docker Build\n"
-        "    needs: [integration, coverage, duplicate-code]"
+        "    name: Main Releasability / Validate Docker Build\n"
+        "    needs: [integration, coverage, duplicate-code, image-acquisition]"
     ) in workflow
     assert (
-        "  ci-local-docker:\n    name: Main Releasability / CI Local Docker Parity\n"
-        "    needs: [integration, coverage]"
+        "    name: Main Releasability / CI Local Docker Parity\n"
+        "    needs: [integration, coverage, image-acquisition]"
     ) in workflow
 
 
@@ -294,8 +294,8 @@ def test_main_releasability_retains_release_and_container_evidence() -> None:
         "openapi.json",
         "python scripts/check_main_release_evidence.py",
         "name: main-container-release-evidence",
-        "SYFT_IMAGE: anchore/syft:v1.42.3",
-        "TRIVY_IMAGE: aquasec/trivy:0.72.0",
+        "SYFT_IMAGE: ${{ needs.image-acquisition.outputs.syft }}",
+        "TRIVY_IMAGE: ${{ needs.image-acquisition.outputs.trivy }}",
         "--ignore-unfixed",
         "sigstore/cosign-installer@v4.1.0",
         'set -o pipefail\n          cosign sign --yes "${LOTUS_IMAGE_REF}"',
@@ -354,8 +354,8 @@ def test_pr_merge_gate_builds_sha_tagged_scanned_unsigned_container_evidence() -
 
     for fragment in (
         "IMAGE_TAG: ${{ github.sha }}",
-        "SYFT_IMAGE: anchore/syft:v1.42.3",
-        "TRIVY_IMAGE: aquasec/trivy:0.72.0",
+        "SYFT_IMAGE: ${{ needs.image-acquisition.outputs.syft }}",
+        "TRIVY_IMAGE: ${{ needs.image-acquisition.outputs.trivy }}",
         '-t "${IMAGE_NAME}:${IMAGE_TAG}"',
         '--build-arg LOTUS_GIT_COMMIT_SHA="${GITHUB_SHA}"',
         '"${SYFT_IMAGE}" "${IMAGE_NAME}:${IMAGE_TAG}"',
