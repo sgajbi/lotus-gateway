@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "lotus-gateway for Advisor Workbench"
 requires-python = ">=3.11"
 dependencies = [
+  "cryptography>=46.0.3",
   "fastapi>=0.129.0,<0.136.3",
   # anyio 4.15.0 deprecates the anyio.abc.BlockingPortal alias that starlette (<=1.6.0)
   # still evaluates when importing starlette.testclient, tripping the warnings-as-errors

@@ -12,6 +12,7 @@ bounded degraded states, source-preserving evidence mediation, and protocol-back
 | Use cases | Services may compose upstream truth but must not become source systems for portfolio, risk, performance, report, archive, manage, advise, idea, or AI domains. | `README.md` |
 | Client access | Only service factory/provider modules should import concrete clients. | `tests/unit/test_service_layer_boundaries.py` |
 | Protocols | Prefer local protocol/port types for upstream behavior consumed by services. | `tests/unit/test_service_layer_boundaries.py` |
+| Principal authority | `principal_authority/` verifies signed callers through injected identity ports; financial relationships never supply IAM grants. | `docs/verified-principal-pilot.md` |
 | Supportability | Preserve partial, unavailable, permission-blocked, and degraded states with bounded product-safe details. | `REPOSITORY-ENGINEERING-CONTEXT.md` |
 
 ## Validation
