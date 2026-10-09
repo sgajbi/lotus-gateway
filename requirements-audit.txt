@@ -1,4 +1,5 @@
 # Production dependency audit only. Test and lint tooling are verified separately in CI.
+cryptography>=46.0.3
 fastapi>=0.129.0,<0.136.3
 uvicorn>=0.35.0
 pydantic>=2.12.0

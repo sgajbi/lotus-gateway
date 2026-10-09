@@ -17,6 +17,7 @@
 - [Troubleshooting](Troubleshooting)
 
 ### Boundaries
+- [Verified Principal Pilot](Verified-Principal-Pilot)
 - [Integrations](Integrations)
 - [Security and Governance](Security-and-Governance)
 - [RFC Index](RFC-Index)

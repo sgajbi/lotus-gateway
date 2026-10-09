@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query
 from app.contracts.portfolio_holdings import PortfolioPositionBookResponse
 from app.contracts.portfolio_tax_lots import PortfolioTaxLotResponse
 from app.middleware.correlation import correlation_id_var
+from app.routers.portfolio_principal import PortfolioPrincipal
 from app.services.portfolio_service_provider import portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
@@ -90,11 +91,21 @@ async def get_portfolio_positions(
         "The response preserves Core lot identity, acquisition, quantity, cost, and lineage "
         "fields. Gateway does not calculate holding periods, lot valuation, unrealized P&L, "
         "or reporting-currency restatement; use the source contract for those future semantics."
+        " Deployment-selected verified pilot requires a signed Bearer credential, tenant "
+        "membership, portfolio.read capability and this exact portfolio in scope. Delegated "
+        "authority intersects person/application grants. Identity headers confer no authority. "
+        "Header-trust is permitted only in local/dev; this pilot does not protect other routes."
     ),
+    responses={
+        401: {"description": "Credential refused; safe denial class only."},
+        403: {"description": "Principal lacks admission; no resource existence disclosed."},
+        503: {"description": "Authoritative identity/grant lookup unavailable."},
+    },
 )
 async def get_portfolio_position_lots(
     portfolio_id: str,
     security_id: str,
+    principal: PortfolioPrincipal,
 ) -> PortfolioTaxLotResponse:
     return await _get_portfolio_position_lots(
         portfolio_id=portfolio_id,

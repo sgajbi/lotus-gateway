@@ -27,6 +27,22 @@ It does not replace domain authority in upstream services.
 
 ## Current-State Summary
 
+### Verified principal consumer pilot
+
+Gateway #834 adds an app-owned Ed25519 verifier and typed injected `PrincipalGrantResolver`,
+`GrantStore` and `RevocationStore` under `services/principal_authority/`. Only the existing exact
+portfolio/security tax-lot GET opts into `PORTFOLIO_TAX_LOT_PRINCIPAL_POSTURE=verified`.
+It requires tenant membership, `portfolio.read` and exact portfolio scope; delegated authority
+intersects person/application capabilities and portfolios. Identity headers never widen verified
+authority. The async route dependency binds/releases the verified tenant in the existing Core read
+fence, preserving concrete client/cache isolation without inventing role, region or legal entity.
+Deployment injects `app.state.principal_grant_resolver`; missing trust, revocation or grant adapters
+refuse with `grant_store_unavailable`. Header-trust on this pilot is local/dev only. Other routes
+are not promoted to verified posture. No persistent grant store, new identity service, production
+identity certification or composite membership authority is supplied. Details and runnable proof
+commands from this repository root are in `docs/verified-principal-pilot.md`; focused registered
+route tests are `tests/integration/test_portfolio_principal.py`.
+
 ### Compose image provenance
 
 Protected PR/main workflows first resolve three exact source/distribution inputs through the
