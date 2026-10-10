@@ -214,11 +214,13 @@ per Gateway process by default and applies one 30-second queued-plus-active dead
 requested date window remains in order with a `completed`, `failed`, or `timed_out` disposition;
 failed windows retain null financial values rather than fabricated zero effects. Deployment-wide
 source admission is the configured process bound multiplied by the Gateway replica count. These
-controls do not yet provide restart-safe accepted-job recovery. Performance attribution
-submission has no caller-stable idempotency key, and Gateway does not persist accepted
-calculation handles; a retry after cancellation may submit again. A process-local cache is not
-claimed as durable recovery. Source delivery is tracked by `sgajbi/lotus-performance#563`, and
-Gateway `#812` remains open through consumer and controlled live recovery acceptance. These routes
+controls now pair each bucket with a caller-stable idempotency key derived from admitted tenant
+and complete outbound material. Identical retries recover the original Performance-owned handle;
+Gateway does not persist accepted handles or use a process-local cache. Restart-safe recovery
+depends on source retention; unchanged material replays the original result, without inferring
+current-source recalculation. Missing explicit tenant refuses before HTTP; source errors never
+fall back to unkeyed submission. Gateway `#812` remains open through controlled live recovery and
+capacity acceptance. These routes
 do not claim source-applied currency evidence. The
 advisor-brief read and review-action routes accept the same controls, forward them to the shared
 performance workspace, and publish requested/effective date and currency context plus

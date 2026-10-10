@@ -463,15 +463,18 @@ under parent issue #586.
     response order with a typed completed, failed, or timed-out disposition and null financial
     values when source evidence is unavailable. Total deployment admission equals this limit times
     the Gateway replica count; horizontal scaling is not independent source capacity proof.
-    This bound does not complete accepted-job recovery: attribution submission and polling are one
-    client call, so cancellation after source acceptance can discard the `result_path`, while the
-    public Workbench GET has no caller-stable replay key and Gateway owns no durable job store.
-    Do not add a process-memory cache or shielded task and call it recovery. The required next
-    contract is tenant-scoped Performance idempotent submission with payload-conflict detection
-    and durable replay of the same `calculation_id` and authorized `result_path`, plus Gateway
-    admission and propagation of that caller-stable key. Source delivery is tracked by
-    `sgajbi/lotus-performance#563`; Gateway issue `#812` remains open through consumer and live
-    recovery acceptance.
+    Trend buckets opt into Performance's delivered durable submission contract using an
+    idempotency key derived from explicitly admitted tenant and canonical complete outbound
+    material (`gateway-attribution-v1:` plus SHA-256). Correlation/actor changes do not alter
+    identity; material changes do. Replay recovers the original `calculation_id` and `result_path`
+    after cancellation/client replacement. Missing tenant refuses before HTTP; no unkeyed fallback.
+    Gateway owns no durable job store, process-memory cache or shielded task. Restart-safe recovery
+    depends on source retention and does not infer corrected-source recalculation for unchanged
+    material. Gateway #812 stays open through controlled live recovery and capacity qualification.
+    From this repository root, run `python -m pytest tests/unit/test_attribution_durable_replay.py
+    tests/unit/test_performance_attribution_trend_orchestration.py -q` on Windows PowerShell or
+    POSIX shells for HTTP-adapter double plus bounded orchestration proof. No runtime split or
+    migration is introduced; Performance retains durable job and financial calculation ownership.
     Submission and result reads are limited to the remaining budget both through HTTPX
     per-operation timeouts and a complete-await cancellation guard. Typed transient transport
     failures continue through the outer elapsed-time polling loop while actual upstream HTTP

@@ -80,9 +80,12 @@ class LotusAnalyticsClient(
         async_poll_attempts: int | None = 10,
         async_poll_interval_seconds: float = 0.35,
         async_poll_timeout_seconds: float | None = None,
+        idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         headers = build_upstream_headers(correlation_id, caller_headers=self._caller_headers)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
         resolved_operation = operation or path.strip("/").replace("/", ".")
         poll_budget = AnalyticsPollBudget.from_timeout(async_poll_timeout_seconds)
         status_code, response_payload = await self._post_observed_analytics_request(

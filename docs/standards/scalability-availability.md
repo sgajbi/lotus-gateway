@@ -40,17 +40,24 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
   null financial values rather than becoming zero effects. Deployment-wide source admission is
   the per-process limit multiplied by the number of Gateway replicas, so replica changes must be
   reconciled with the Performance admission budget.
-- Durable accepted-job recovery is not yet provided for attribution history. The current
-  Performance client combines submission and polling and exposes `result_path` only in its final
-  response; cancellation after a source `202` can therefore lose that handle, and a later
-  Workbench GET has no stable replay key with which to recover it. Gateway has no durable
-  calculation-job store, so a process-local cache or shielded background task would not survive a
-  restart and is not a valid recovery control. The smallest follow-up contract is a
-  tenant-scoped, caller-stable idempotency key accepted by Performance attribution submission,
-  payload-mismatch rejection, and a durable accepted response that replays the same
-  `calculation_id` and authorized `result_path` for the source-declared retention period. Gateway
-  must accept and forward that key before retry/disconnect recovery can be claimed. The
-  source-owned contract is tracked by `sgajbi/lotus-performance#563`.
+- Attribution-history buckets opt into Performance's durable submission contract delivered by
+  `sgajbi/lotus-performance#563`. Gateway derives an idempotency key from canonical JSON of the
+  explicitly admitted tenant and the complete outbound bucket payload, prefixed
+  `gateway-attribution-v1:` and SHA-256 hashed. Portfolio, dates, period, basis, benchmark,
+  grouping and currency are material; correlation and actor identifiers are not. Window order
+  is preserved by the existing orchestrator, while identity follows dates rather than array index.
+  Missing explicit tenant refuses before HTTP; ambient headers cannot supply authority.
+- A later identical GET replays that key to recover the source's original `calculation_id` and
+  authorized `result_path`, including after cancellation before the accepted response arrives.
+  Performance owns job registration, conflicts, retention and result truth. Gateway has no
+  durable calculation-job store, process-local cache or shielded background task. Restart-safe
+  recovery therefore depends on Performance's retained durable replay contract. A changed material
+  payload gets a different key; an unchanged request does not imply recalculation against corrected
+  current source data. Source refusal is terminal and never triggers an unkeyed fallback.
+- Consumer HTTP-adapter tests use a controlled durable-source double for 12/240 buckets, concurrent
+  callers and cancellation/replacement. They are not live Performance, capacity, PostgreSQL or
+  physical process-death evidence. Gateway #812 remains open through controlled joined recovery
+  and multi-client capacity qualification.
 - Submission and result reads use the smaller of the per-request timeout and the remaining
   completion budget. Gateway also wraps each complete HTTP await in the remaining monotonic
   budget, so multiple transport phases and slow response-byte trickles cannot extend the

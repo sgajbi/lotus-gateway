@@ -201,6 +201,7 @@ class PerformanceWorkspaceAnalyticsClient(WorkbenchPerformanceClient, Protocol):
         dimension: str,
         correlation_id: str,
         reporting_currency: str | None = None,
+        durable_replay: bool = False,
     ) -> tuple[int, dict[str, Any]]: ...
 
     async def get_execution(

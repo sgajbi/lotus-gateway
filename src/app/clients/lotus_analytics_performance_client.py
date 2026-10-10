@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import httpx
 
+from app.clients import lotus_analytics_attribution_payloads as attribution
 from app.clients.lotus_analytics_workspace_payloads import build_workspace_summary_payload
 from app.clients.upstream_headers import build_upstream_headers
 
@@ -33,6 +34,7 @@ class LotusAnalyticsPerformanceClientMixin:
         async_poll_attempts: int | None = 10,
         async_poll_interval_seconds: float = 0.35,
         async_poll_timeout_seconds: float | None = None,
+        idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         raise NotImplementedError
 
@@ -248,35 +250,33 @@ class LotusAnalyticsPerformanceClientMixin:
         dimension: str,
         correlation_id: str,
         reporting_currency: str | None = None,
+        durable_replay: bool = False,
     ) -> tuple[int, dict[str, Any]]:
-        stateful_dimensions = [] if dimension == "currency" else [dimension]
-        payload: dict[str, Any] = {
-            "input_mode": "stateful",
-            "portfolio_id": portfolio_id,
-            "report_start_date": report_start_date,
-            "report_end_date": report_end_date,
-            "analyses": [{"period": period, "frequencies": ["monthly"]}],
-            "mode": "by_instrument",
-            "frequency": "monthly",
-            "group_by": [dimension],
-            "model": "BF",
-            "linking": "carino",
-            "stateful_input": {
-                "metric_basis": metric_basis,
-                "dimensions": stateful_dimensions,
-                "include_cash_flows": True,
-            },
-        }
-        if benchmark_id:
-            payload["stateful_input"]["benchmark_id"] = benchmark_id
-        if reporting_currency:
-            payload["currency_mode"] = "BOTH"
-            payload["report_ccy"] = reporting_currency
+        payload = attribution.build_attribution_payload(
+            portfolio_id=portfolio_id,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            period=period,
+            metric_basis=metric_basis,
+            benchmark_id=benchmark_id,
+            dimension=dimension,
+            reporting_currency=reporting_currency,
+        )
+        idempotency_key = None
+        if durable_replay:
+            tenant = self._caller_headers.get("X-Tenant-Id", "")
+            if not tenant or tenant != tenant.strip():
+                return 503, {
+                    "error_code": "ATTRIBUTION_TREND_TENANT_REQUIRED",
+                    "detail": "Durable attribution recovery requires an admitted tenant.",
+                }
+            idempotency_key = attribution.attribution_replay_key(tenant=tenant, payload=payload)
         return await self._post_analytics_request(
             path="/performance/attribution",
             payload=payload,
             correlation_id=correlation_id,
             async_poll_attempts=40,
+            idempotency_key=idempotency_key,
         )
 
     async def get_workspace_summary(
