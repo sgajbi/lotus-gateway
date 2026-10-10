@@ -99,11 +99,13 @@ state roadmap.
     one ordered completed, failed, or timed-out disposition per requested date window; unavailable
     source facts remain null and are never converted into zero effects. Deployment operators must
     multiply the process bound by the Gateway replica count when setting the Performance admission
-    budget. Accepted attribution jobs are not cached in Gateway memory: the current source
-    contract lacks a caller-stable idempotency key and Gateway has no durable calculation-job
-    store, so restart-safe recovery remains a Performance contract plus Gateway propagation slice.
-    The source contract is tracked by `sgajbi/lotus-performance#563`; Gateway `#812` remains open
-    through consumer and controlled live recovery acceptance.
+    budget. Accepted attribution jobs are not cached in Gateway memory. Each bucket opts into
+    Performance's durable submission contract with a caller-stable idempotency key hashed from
+    explicitly admitted tenant and complete outbound material. Replacing a canceled client replays
+    the source-owned handle without creating a new job; restart-safe recovery depends on source
+    retention. Gateway owns no durable calculation-job store and does not infer corrected-source
+    recalculation from unchanged material. Missing tenant refuses before HTTP, with no unkeyed
+    fallback. Gateway `#812` remains open through controlled live recovery and capacity acceptance.
 15. portfolio workspace source/analytics assembly, response-component assembly, and position
     parsing, performance workspace
     summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,

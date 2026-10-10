@@ -1,14 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 
-def test_health_live_and_ready_endpoints():
-    client = TestClient(app)
-    assert client.get("/health/live").json() == {"status": "live"}
-    assert client.get("/health/ready").json() == {"status": "ready"}
+@pytest.mark.parametrize("previously_draining", [False, True])
+def test_health_live_and_ready_endpoints(monkeypatch, previously_draining):
+    monkeypatch.setattr(app.state, "is_draining", previously_draining, raising=False)
+    # Readiness belongs to a started application, including after a previous shutdown.
+    with TestClient(app) as client:
+        assert client.get("/health/live").json() == {"status": "live"}
+        assert client.get("/health/ready").json() == {"status": "ready"}
 
 
 def test_unhandled_exception_handler_returns_problem_json(monkeypatch):

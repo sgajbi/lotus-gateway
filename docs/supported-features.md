@@ -184,11 +184,14 @@ Gateway process by default and applies one 30-second queued-plus-active deadline
 window remains in order with a `completed`, `failed`, or `timed_out` disposition; failed windows
 carry null financial values, never fabricated zero effects. Both controls are validated deployment
 settings, and total source admission scales with the Gateway replica count. The attribution-trend
-route does not yet provide restart-safe accepted-job recovery: the source
-contract has no caller-stable idempotency key and Gateway does not persist accepted calculation
-handles. A retry after cancellation may therefore submit again; no process-local cache is treated
-as durable recovery. Source delivery is tracked by `sgajbi/lotus-performance#563`; Gateway issue
-`#812` remains open until that contract is consumed and recovery is proven. The advisor-brief read
+route sends a caller-stable idempotency key derived from the admitted tenant and complete outbound
+bucket material. Identical retries recover the original source-owned handle through Performance's
+durable submission contract; correlation changes do not create a new job. Gateway does not persist
+accepted handles or use a process-local cache. Restart-safe recovery depends on source retention;
+unchanged material replays the original result rather than requesting current-source recalculation.
+Missing admitted tenant fails before HTTP and source refusals never fall back to unkeyed submission.
+Gateway issue `#812` remains open through controlled real-source recovery and capacity acceptance.
+The advisor-brief read
 and review-action routes accept the same
 controls, forward them to the shared performance workspace, and publish requested/effective date
 and currency context plus `reporting_currency_state`; source links retain the selected controls

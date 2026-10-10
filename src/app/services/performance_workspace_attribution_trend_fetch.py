@@ -62,6 +62,7 @@ async def fetch_attribution_trend_results(
             dimension=context.attribution_dimension,
             correlation_id=correlation_id,
             reporting_currency=context.requested_reporting_currency,
+            durable_replay=True,
         )
 
     return await orchestrator.run(window_count=len(window_pairs), operation=fetch_window)
