@@ -16,7 +16,14 @@ class SourceReportConfigurationField(ReportOrderingSourceModel):
     field_id: str
     business_label: str
     description: str
-    input_type: Literal["business_date", "currency", "benchmark", "multi_select", "text"]
+    input_type: Literal[
+        "business_date",
+        "currency",
+        "benchmark",
+        "multi_select",
+        "text",
+        "pinned_source_selection",
+    ]
     requirement: Literal["required", "optional", "conditional"]
     defaulting_policy: str
     value_source: Literal[
@@ -44,15 +51,16 @@ class SourceReportOrderingMode(ReportOrderingSourceModel):
         "explicit_portfolio_batch",
         "governed_schedule",
         "source_workflow",
+        "single_composite",
     ]
     business_label: str
     description: str
-    default_output_format: Literal["json", "pdf"]
+    default_output_format: Literal["json", "pdf", "xlsx"]
     interactive: bool
 
 
 class SourceReportOutputFormat(ReportOrderingSourceModel):
-    format_id: Literal["json", "pdf"]
+    format_id: Literal["json", "pdf", "xlsx"]
     business_label: str
     use_posture: Literal["system_integration", "governed_document"]
     state: Literal["ready", "partial", "unavailable"]

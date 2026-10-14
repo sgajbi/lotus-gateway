@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check pr-issue-lifecycle demo-certification duplicate-code duplicate-code-protected openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence folder-guides testclient-dependency proposal-decision-vocabulary-gate proposal-decision-vocabulary-snapshot-check pr-issue-lifecycle demo-certification duplicate-code duplicate-code-protected openapi-gate report-ordering-catalogue-contract-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 COMPOSE_WITH_PROVENANCE = python scripts/compose_provenance.py
 
@@ -51,6 +51,9 @@ typecheck:
 
 openapi-gate:
 	python -m pytest tests/contract/test_workbench_contract.py -q
+
+report-ordering-catalogue-contract-gate:
+	python -m pytest tests/contract/test_report_ordering_catalogue_contract.py -q
 
 migration-smoke:
 	python scripts/migration_contract_check.py --mode no-schema

@@ -181,7 +181,12 @@ Current repository posture:
    lifecycle route families,
 4. source-backed report ordering configuration and selected-scope eligibility are active under
    `/api/v1/report-ordering/options`; `lotus-report` remains catalogue authority, Gateway publishes
-   only implemented submission paths, and client/book scopes do not imply portfolio membership,
+   only implemented submission paths, and client/book scopes do not imply portfolio membership.
+   The strict compatibility vocabulary includes Report-owned `single_composite`, `xlsx`, and
+   `pinned_source_selection`; the composite mode remains explicitly unsupported with
+   `gateway_submission_not_supported` and no Gateway submission capability. Its deployment is
+   gated on a separate Workbench consumer change. The retained producer fixture is captured
+   evidence, not an automatic cross-repository drift detector,
 5. authenticated advisor own-book discovery, bounded own-book value summary, Advise-backed
    own-book action items, and the primary own-book workspace composition are active under
    `/api/v1/advisor-book/portfolios`, `/api/v1/advisor-book/summary`,
