@@ -24,6 +24,7 @@ IMAGES = {
         "5999d209a342e55e9edf70bf8930fb5b86d8f2a783fa401178372c50e21b1d36",
     ),
 }
+ORIGINAL_SOURCE_FALLBACK = "--allow-original-source-fallback"
 
 
 def assert_bindings(workflow: dict) -> None:
@@ -42,6 +43,8 @@ def assert_bindings(workflow: dict) -> None:
         assert "--verify-distribution" in step["run"]
         assert "--platform linux/amd64" in step["run"]
         assert '--github-output "$GITHUB_OUTPUT"' in step["run"]
+        fallback_count = step["run"].split().count(ORIGINAL_SOURCE_FALLBACK)
+        assert fallback_count == (1 if kind == "base" else 0)
         assert admission["outputs"][kind] == f"${{{{ steps.{kind}.outputs.image }}}}"
     for job_name in ("docker-build", "ci-local-docker"):
         job = jobs[job_name]
@@ -76,7 +79,23 @@ def test_protected_acquisition_uses_admitted_outputs(workflow: dict) -> None:
     assert_bindings(workflow)
 
 
-@pytest.mark.parametrize("fault", ["dependency", "scanner", "base", "verify", "digest", "ref"])
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "dependency",
+        "scanner",
+        "base",
+        "verify",
+        "digest",
+        "ref",
+        "missing-python-opt-in",
+        "duplicate-python-opt-in",
+        "trivy-opt-in",
+        "syft-opt-in",
+        "mutable-python-source",
+        "wrong-python-distribution",
+    ],
+)
 def test_binding_guard_refuses_acquisition_bypasses(workflow: dict, fault: str) -> None:
     invalid = deepcopy(workflow)
     jobs = invalid["jobs"]
@@ -93,8 +112,28 @@ def test_binding_guard_refuses_acquisition_bypasses(workflow: dict, fault: str) 
     elif fault == "digest":
         step = next(step for step in steps if step.get("id") == "trivy")
         step["env"]["DISTRIBUTION_IMAGE"] = "ghcr.io/aquasecurity/trivy:latest"
-    else:
+    elif fault == "ref":
         steps[1]["with"]["ref"] = "main"
+    elif fault == "missing-python-opt-in":
+        step = next(step for step in steps if step.get("id") == "base")
+        step["run"] = step["run"].replace(ORIGINAL_SOURCE_FALLBACK, "")
+    elif fault == "duplicate-python-opt-in":
+        step = next(step for step in steps if step.get("id") == "base")
+        step["run"] = f"{step['run']} {ORIGINAL_SOURCE_FALLBACK}"
+    elif fault == "trivy-opt-in":
+        step = next(step for step in steps if step.get("id") == "trivy")
+        step["run"] = f"{step['run']} {ORIGINAL_SOURCE_FALLBACK}"
+    elif fault == "syft-opt-in":
+        step = next(step for step in steps if step.get("id") == "syft")
+        step["run"] = f"{step['run']} {ORIGINAL_SOURCE_FALLBACK}"
+    elif fault == "mutable-python-source":
+        step = next(step for step in steps if step.get("id") == "base")
+        step["env"]["SOURCE_IMAGE"] = "docker.io/library/python:3.11-slim"
+    else:
+        step = next(step for step in steps if step.get("id") == "base")
+        step["env"]["DISTRIBUTION_IMAGE"] = (
+            f"public.ecr.aws/docker/library/python-wrong@sha256:{IMAGES['base'][2]}"
+        )
     with pytest.raises(AssertionError):
         assert_bindings(invalid)
 
@@ -111,3 +150,22 @@ def test_base_output_reaches_dockerfile_and_compose() -> None:
     assert service["build"]["args"]["GATEWAY_BASE_IMAGE"] == (
         f"${{GATEWAY_BASE_IMAGE:-{distribution}}}"
     )
+
+
+def test_recovery_documentation_preserves_scope_and_evidence_boundaries() -> None:
+    operator_doc = " ".join(
+        (ROOT / "docs" / "qualified-image-acquisition.md").read_text(encoding="utf-8").split()
+    )
+    context = " ".join(
+        (ROOT / "REPOSITORY-ENGINEERING-CONTEXT.md").read_text(encoding="utf-8").split()
+    )
+    wiki = " ".join((ROOT / "wiki" / "Validation-and-CI.md").read_text(encoding="utf-8").split())
+
+    assert "--allow-original-source-fallback" in operator_doc
+    assert "Trivy and Syft remain distribution-only" in operator_doc
+    assert "did not include the HTTP status" in operator_doc
+    assert "never hard-codes the central revision" in operator_doc
+    assert "Only the Python step opts into" in context
+    assert "unknown-status refusal" in context
+    assert "Only Python opts into" in wiki
+    assert "without an observed HTTP status" in wiki
