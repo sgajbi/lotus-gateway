@@ -119,6 +119,16 @@ context returns `400 missing_caller_context`; repeated identity headers return
 development/trusted-service headers are not production IAM grants.
 
 Routes bind the admitted context through `with_caller_headers` on request-specific service/client
+views. The legacy Workbench overview applies that seam only when
+`include_performance_snapshot=true`, requiring actor, tenant and region. When
+`include_rebalance_snapshot=true`, it also validates actor, tenant and role (region optional)
+and binds the existing Manage read-authority context for the overview's lifetime. Repeated caller
+headers are refused before service I/O. Manage reads receive only admitted audit context and
+correlation; browser workload identity and capabilities are excluded. Both flags false preserves
+source-only reads with no new identity requirement or optional producer I/O. Producer refusals
+remain typed partial failures rather than fabricated snapshot data.
+
+Dedicated workspace routes bind the admitted context through request-specific service/client
 views. Composite operations create an equivalently bound client view for each call. The shared
 provider is never mutated. The bound Performance adapter snapshots the admitted headers for
 submission, result polling, execution, lineage and artifacts, including late completions.

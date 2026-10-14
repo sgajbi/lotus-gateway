@@ -323,7 +323,17 @@ def _certify_health(client: TestClient, evidence: CertificationEvidence) -> None
 
 def _certify_workbench_overview(client: TestClient, evidence: CertificationEvidence) -> None:
     path = f"/api/v1/workbench/{CANONICAL_PORTFOLIO_ID}/overview"
-    response = client.get(path, headers={"X-Correlation-Id": CORRELATION_ID})
+    # Synthetic identity for this deterministic, mocked certification request.
+    response = client.get(
+        path,
+        headers={
+            "X-Correlation-Id": CORRELATION_ID,
+            "X-Actor-Id": "gateway-demo-certifier",
+            "X-Tenant-Id": "tenant-demo-certification",
+            "X-Region": "APAC",
+            "X-Role": "PORTFOLIO_MANAGER",
+        },
+    )
     evidence.record_endpoint(method="GET", path=path, status_code=response.status_code)
     body = response.json()
     evidence.expect("overview.status_code", response.status_code, 200)
