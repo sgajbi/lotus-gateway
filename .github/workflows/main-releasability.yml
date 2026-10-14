@@ -76,6 +76,7 @@ jobs:
           --distribution-image "$DISTRIBUTION_IMAGE"
           --platform linux/amd64
           --verify-distribution
+          --allow-original-source-fallback
           --github-output "$GITHUB_OUTPUT"
           --acquisition-evidence "$RUNNER_TEMP/image-acquisition-evidence/base"
       - name: Verify admitted trivy distribution

@@ -5,11 +5,15 @@
 Gateway #835 composes Platform #945's existing finite prerequisite into protected PR and main
 Docker lanes. The repository Actions variable `LOTUS_PLATFORM_GOVERNANCE_SHA` must identify a
 qualified immutable Platform main revision admitting the exact Python, Trivy0.72.0 and
-Syft1.42.3 tuples. Missing/refused admission stops before Docker acquisition; mutable fallback is
-not supported. Successful outputs supply the actual Dockerfile/CI-local Compose base argument
-and scanner/SBOM commands. Hosted image-inspection receipts accompany existing container release
-evidence and parity artifacts. Manifest identity, hosted acquisition and release validation are
-distinct evidence boundaries.
+Syft1.42.3 tuples. Only Python opts into Platform's exact reviewed original-source recovery, and
+only for its identical immutable tuple after admitted distribution HTTP availability failures;
+Trivy and Syft remain distribution-only. Missing or refused policy/identity verification still
+stops before Docker acquisition, and mutable or generic fallback is not supported. Successful
+validator output supplies the actual Dockerfile/CI-local Compose base argument and scanner/SBOM
+commands without a second Gateway picker. Hosted image-inspection receipts accompany existing
+container release evidence and parity artifacts. Manifest identity, hosted acquisition and release
+validation are distinct evidence boundaries. A historical refusal without an observed HTTP status
+does not prove that recovery would have applied.
 
 Source/distribution digests, operator setup and focused positive/refusal controls are documented
 in [qualified image acquisition](https://github.com/sgajbi/lotus-gateway/blob/main/docs/qualified-image-acquisition.md).
