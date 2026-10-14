@@ -187,7 +187,13 @@ The proof is isolated persisted synthetic facts, not live materialization or Wor
 - Workbench overview and portfolio-360 accept an optional requested `as_of_date`. The overview
   also accepts additive `include_performance_snapshot` and `include_rebalance_snapshot` controls,
   both defaulting to `true`; source-evidence consumers can set both to `false` to isolate confirmed
-  portfolio valuation facts from optional analytics or workflow availability. Their response
+  portfolio valuation facts from optional analytics or workflow availability. The overview
+  requires trusted actor, tenant and region when performance is included, and actor, tenant and
+  role when rebalance is included (region is forwarded if supplied). Repeated caller headers are
+  refused before service I/O. Manage receives admitted audit context without browser workload
+  identity or `manage.write`; Performance uses the existing request-specific caller view.
+  Both flags false adds no identity requirement and makes no optional producer calls. Source
+  refusals remain partial failures. The overview response
   publishes `requested_as_of_date`, `effective_as_of_date`, and `as_of_state`; the legacy
   top-level `as_of_date` is the effective source date or `null`. For an explicit request, top-level
   Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`. When the request is

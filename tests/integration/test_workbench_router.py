@@ -123,7 +123,12 @@ def test_workbench_router_propagates_optional_enrichment_controls(
         _overview,
     )
 
-    response = TestClient(app).get(f"/api/v1/workbench/PB_SG_GLOBAL_BAL_001/overview{query}")
+    response = TestClient(app).get(
+        f"/api/v1/workbench/PB_SG_GLOBAL_BAL_001/overview{query}",
+        headers=CALLER_CONTEXT_HEADERS
+        if include_performance_snapshot or include_rebalance_snapshot
+        else {},
+    )
 
     assert response.status_code == 200
     assert observed == [
@@ -228,6 +233,13 @@ def test_workbench_router_success(monkeypatch):
         _performance,
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm)
+
+    async def _supportability(*args, **kwargs):
+        return 200, {}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_supportability_summary", _supportability
+    )
 
     client = TestClient(app)
     response = client.get(
@@ -335,8 +347,15 @@ def test_workbench_router_partial_failure(monkeypatch):
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm)
 
+    async def _supportability(*args, **kwargs):
+        return 503, {"detail": "paused"}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_supportability_summary", _supportability
+    )
+
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/overview")
+    response = client.get("/api/v1/workbench/PF_1001/overview", headers=CALLER_CONTEXT_HEADERS)
     assert response.status_code == 200
     body = response.json()
     assert body["performance_snapshot"] is None

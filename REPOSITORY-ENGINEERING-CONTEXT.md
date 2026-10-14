@@ -27,6 +27,18 @@ It does not replace domain authority in upstream services.
 
 ## Current-State Summary
 
+### Legacy overview optional-enrichment caller admission
+
+`GET /api/v1/workbench/{portfolio_id}/overview` admits authority only for requested
+enrichments. Performance inclusion requires unambiguous trusted actor, tenant and region and
+uses a request-specific `with_caller_headers` service view. Rebalance inclusion requires validated
+actor, tenant and role, with optional region, and binds the existing Manage read-authority scope
+until the overview finishes. Admission occurs before service I/O; repeated caller headers are
+refused. Manage receives caller audit context and correlation, never browser workload identity or
+`manage.write`. Producer errors retain the existing partial-failure response. Both include flags
+false retains source-only behavior without a new identity requirement or optional producer calls.
+These trusted-service headers are admitted context, not production IAM grants.
+
 ### Verified principal consumer pilot
 
 Gateway #834 adds an app-owned Ed25519 verifier and typed injected `PrincipalGrantResolver`,
