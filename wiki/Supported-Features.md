@@ -460,7 +460,9 @@ Business outcome:
 2. the response distinguishes source catalogue availability from caller and selected-scope
    eligibility, so a temporarily unavailable PDF does not hide a ready structured-data option,
 3. only implemented Gateway submission paths are returned, preventing the UI from presenting
-   schedule or source-workflow actions that it cannot execute.
+   schedule, source-workflow, or composite actions that it cannot execute,
+4. Report-owned `xlsx` availability and `pinned_source_selection` configuration metadata are
+   preserved without implying that Gateway can submit the associated composite order.
 
 Supported route:
 
@@ -492,7 +494,12 @@ Authority and boundary:
    source evidence, keeping fabricated and out-of-scope identifiers indistinguishable apart from
    the echoed identifier,
 7. known Report ordering-validation codes remain actionable `422` responses; unknown upstream
-   details fail closed behind a product-safe Gateway error.
+   details fail closed behind a product-safe Gateway error,
+8. `single_composite` is a known non-submittable mode: Gateway returns unsupported eligibility with
+   `gateway_submission_not_supported` and no submission capability. Deployment remains gated on a
+   separate Workbench consumer update and is not end-to-end UI readiness. The pinned producer
+   fixture proves the captured contract only; it does not automatically detect future Report
+   source drift.
 
 ## Idea Opportunity BFF
 

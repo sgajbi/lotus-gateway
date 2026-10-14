@@ -75,9 +75,14 @@ class ReportConfigurationField(ReportOrderingModel):
     field_id: str = Field(alias="fieldId")
     business_label: str = Field(alias="businessLabel")
     description: str
-    input_type: Literal["business_date", "currency", "benchmark", "multi_select", "text"] = Field(
-        alias="inputType"
-    )
+    input_type: Literal[
+        "business_date",
+        "currency",
+        "benchmark",
+        "multi_select",
+        "text",
+        "pinned_source_selection",
+    ] = Field(alias="inputType")
     requirement: Literal["required", "optional", "conditional"]
     defaulting_policy: str = Field(alias="defaultingPolicy")
     value_source: Literal[
@@ -146,7 +151,7 @@ class ReportSection(ReportOrderingModel):
 
 
 class ReportOutputFormat(ReportOrderingModel):
-    format_id: Literal["json", "pdf"] = Field(alias="formatId")
+    format_id: Literal["json", "pdf", "xlsx"] = Field(alias="formatId")
     business_label: str = Field(alias="businessLabel")
     use_posture: Literal["system_integration", "governed_document"] = Field(alias="usePosture")
     state: ReportAvailabilityState
@@ -159,10 +164,11 @@ class ReportOrderingMode(ReportOrderingModel):
         "explicit_portfolio_batch",
         "governed_schedule",
         "source_workflow",
+        "single_composite",
     ] = Field(alias="modeId")
     business_label: str = Field(alias="businessLabel")
     description: str
-    default_output_format: Literal["json", "pdf"] = Field(alias="defaultOutputFormat")
+    default_output_format: Literal["json", "pdf", "xlsx"] = Field(alias="defaultOutputFormat")
     interactive: bool
     eligibility: ReportOrderingEligibility
     submission: ReportSubmissionCapability | None = None

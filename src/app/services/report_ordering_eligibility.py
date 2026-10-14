@@ -103,6 +103,12 @@ def mode_eligibility(
 ) -> ReportOrderingEligibility:
     if eligible_family.state != "ready":
         return eligible_family
+    if mode.mode_id == "single_composite":
+        return _eligibility(
+            "unsupported",
+            "gateway_submission_not_supported",
+            "Gateway does not publish a submission path for this Report-owned mode.",
+        )
     if family.report_family_id != "portfolio_review" or mode.mode_id == "source_workflow":
         return _eligibility(
             "unsupported",
