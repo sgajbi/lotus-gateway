@@ -319,7 +319,13 @@ posture, and only implemented submission paths. `lotus-report` remains the catal
 lifecycle authority. Gateway applies trusted caller role and explicit portfolio, client, or advisor
 book scope without expanding membership. Client- and book-scoped batch choices remain partial until
 an authoritative portfolio list is supplied. Ordering eligibility does not grant client
-distribution, prove PDF generation, or claim archive completion. Batch status preserves the
+distribution, prove PDF generation, or claim archive completion. The strict projection recognizes
+Report's `single_composite` mode, `xlsx` format, and `pinned_source_selection` input type. It
+preserves Report's source-owned format state and pinned configuration metadata, while publishing
+`single_composite` as unsupported with `gateway_submission_not_supported` and no submission
+capability. Deployment remains gated on a separate Workbench consumer update; this Gateway slice is
+not end-to-end UI readiness. The pinned producer fixture proves compatibility with the captured
+contract but does not automatically detect future `lotus-report` drift. Batch status preserves the
 directly linked Report job and archive identity, and publishes an available/pending/unavailable
 archive posture with bounded reasons. Gateway-controlled metadata/download links appear only for a
 confirmed archived source document; the existing archive routes re-check caller scope and no raw

@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -96,6 +98,46 @@ async def test_service_projects_valid_source_catalogue() -> None:
     assert response.scope_eligibility.state == "ready"
     assert response.report_families[0].report_family_id == "portfolio_review"
     assert client.calls == ["corr-ordering"]
+
+
+@pytest.mark.asyncio
+async def test_service_projects_the_pinned_five_family_producer_catalogue() -> None:
+    fixture_path = (
+        Path(__file__).resolve().parents[2]
+        / "contracts"
+        / "upstream"
+        / "lotus-report-ordering-catalogue.v1.json"
+    )
+    client = StubReportingCatalogueClient(
+        payload=json.loads(fixture_path.read_text(encoding="utf-8"))
+    )
+    service = ReportOrderingService(reporting_client=client)
+
+    response = await service.get_ordering_options(
+        selection=ReportScopeSelection(
+            scope_type="portfolio",
+            scope_id="PB_SG_GLOBAL_BAL_001",
+        ),
+        caller_headers={
+            "X-Role": "portfolio_manager",
+            "X-Caller-Portfolio-Ids": "PB_SG_GLOBAL_BAL_001",
+        },
+        correlation_id="corr-producer-contract",
+    )
+
+    assert [family.report_family_id for family in response.report_families] == [
+        "portfolio_review",
+        "proof_pack",
+        "rebalance_wave",
+        "outcome_review",
+        "composite_review",
+    ]
+    composite = response.report_families[-1]
+    assert composite.ordering_modes[0].eligibility.reason_code == (
+        "gateway_submission_not_supported"
+    )
+    assert composite.ordering_modes[0].submission is None
+    assert client.calls == ["corr-producer-contract"]
 
 
 @pytest.mark.asyncio

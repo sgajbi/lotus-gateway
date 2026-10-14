@@ -313,7 +313,10 @@ The proof is isolated persisted synthetic facts, not live materialization or Wor
   availability while applying trusted caller role and explicit portfolio, client, or advisor-book
   scope. The response publishes only implemented Gateway submission paths. Client/book scope does
   not expand portfolio membership, and ordering eligibility is not client-distribution approval or
-  proof of document/archive completion
+  proof of document/archive completion. The closed contract accepts Report-owned
+  `single_composite`, `xlsx`, and `pinned_source_selection` values; composite eligibility is
+  `unsupported` with reason `gateway_submission_not_supported` and carries no submission object.
+  A separate Workbench consumer update is required before deployment can claim end-to-end support
 - `POST /api/v1/report-batches/preflight` accepts the same validated explicit batch setup as batch
   creation without an idempotency key or mutation. Gateway reads Core's
   `PortfolioManagerBookMembership:v1` once and the Report ordering catalogue once, preserves

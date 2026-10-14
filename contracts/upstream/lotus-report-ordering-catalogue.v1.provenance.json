@@ -1,0 +1,37 @@
+{
+  "contractId": "lotus-report-ordering-catalogue",
+  "version": "1.0.0",
+  "sourceAuthority": "lotus-report",
+  "sourceContractVersion": "report-ordering-catalogue.v1",
+  "sourceRoute": "/integration/report-ordering-catalogue",
+  "capture": {
+    "capturedAtUtc": "2026-10-14T05:22:41.052385+00:00",
+    "httpStatus": 200,
+    "requestCount": 1,
+    "retryCount": 0,
+    "bodyBytes": 13837,
+    "bodySha256": "adbdcb811a8fd5d3d254837eb411a17b8714f9fe3186ebde70a9bd258c84e88a",
+    "credentialBearingHeadersSent": false
+  },
+  "fixtureStorage": {
+    "normalization": "source_control_trailing_lf_only",
+    "normalizedBodyBytes": 13837,
+    "normalizedBodySha256": "adbdcb811a8fd5d3d254837eb411a17b8714f9fe3186ebde70a9bd258c84e88a"
+  },
+  "observedRuntime": {
+    "containerId": "9cf7c4f61ccbd5352f441114cfea3927ad51c7df478e88ddae366e71e661e993",
+    "imageId": "sha256:6980cd814850a18177d4952ac12d3fe6b138db677cd63b449ce392dba02cf7a7",
+    "imageCreatedAt": "2026-10-13T07:26:16.090624664Z",
+    "revisionLabel": "11fe4981a856a078cd0ed0ada881935cc803a214",
+    "imageContentsVerified": false
+  },
+  "consumer": {
+    "repository": "sgajbi/lotus-gateway",
+    "issue": 841
+  },
+  "limitations": [
+    "The revision label is an observed runtime label, not verified image-content provenance.",
+    "The committed fixture guards Gateway behavior for this captured producer contract; it does not automatically detect future lotus-report source drift.",
+    "This source contract does not prove current Workbench consumer compatibility or end-to-end readiness."
+  ]
+}
