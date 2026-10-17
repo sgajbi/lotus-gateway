@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 import logging
 
 import httpx
@@ -20,6 +22,7 @@ OPERATIONS = {
     "preview": "core.ingest.uploads.preview",
     "commit": "core.ingest.uploads.commit",
 }
+URL_OPERATIONS = {**OPERATIONS, "control-plane": "core.integration.capabilities"}
 
 
 def metric_counts(operation):
@@ -50,7 +53,7 @@ def install_transport(monkeypatch, receive):
     )
 
 
-async def call_core(operation, enabled, backoff_seconds=0.001):
+async def call_core(operation, enabled, backoff_seconds=0.001, base_url="https://core.invalid"):
     authority = (
         CoreExecutionAuthority(
             key_id="synthetic-key",
@@ -71,11 +74,15 @@ async def call_core(operation, enabled, backoff_seconds=0.001):
     }
     token = admit_caller_tenant("tenant-a")
     try:
-        if operation == "query":
+        if operation == "control-plane":
             return await LotusCoreQueryClient(
-                "https://core.invalid", 1, **options
-            ).list_instruments(2, "observability")
-        client = LotusCoreIngestionClient("https://core.invalid", 1, **options)
+                "https://query-only.invalid", 1, control_plane_base_url=base_url, **options
+            ).get_capabilities("consumer", "tenant-a", "observability")
+        if operation == "query":
+            return await LotusCoreQueryClient(base_url, 1, **options).list_instruments(
+                2, "observability"
+            )
+        client = LotusCoreIngestionClient(base_url, 1, **options)
         admitted = {"X-Tenant-Id": "tenant-a"}
         if operation == "bundle":
             return await client.ingest_portfolio_bundle({}, "observability", "replay", admitted)
@@ -95,7 +102,7 @@ def assert_final_observation(caplog, operation, before, status):
         record.extra_fields
         for record in caplog.records
         if hasattr(record, "extra_fields")
-        and record.extra_fields.get("operation") == OPERATIONS[operation]
+        and record.extra_fields.get("operation") == URL_OPERATIONS[operation]
     ]
     assert len(records) == 1
     event = records[0]
@@ -109,10 +116,140 @@ def assert_final_observation(caplog, operation, before, status):
     assert event.get("reason") == (
         "upstream_unavailable" if status >= 500 else "upstream_error" if degraded else None
     )
-    after = metric_counts(OPERATIONS[operation])
+    after = metric_counts(URL_OPERATIONS[operation])
     for key in ("2xx", "3xx", "4xx", "5xx"):
         assert after[key] - before[key] == int(key == status_class)
     assert after["degraded"] - before["degraded"] == int(degraded)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", list(URL_OPERATIONS))
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://url-user:url-password@core.invalid",
+        "https://url-user@core.invalid",
+        "https://:url-password@core.invalid",
+        "https://url%40user:url%3Apassword@core.invalid",
+        "https://@core.invalid",
+        "core.invalid",
+        "ftp://core.invalid",
+        "https:///missing-host",
+        "https://core.invalid:bad-port",
+        "https://[invalid-ipv6",
+        "https://core.invalid/line\nbreak",
+        "https://core.invalid:65536",
+        "https://core.invalid:999999",
+    ],
+)
+async def test_signed_core_target_refused_before_signing_or_wire(
+    monkeypatch, caplog, operation, base_url
+):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    requests = []
+    signs = []
+    original = CoreExecutionAuthority.sign
+
+    def sign(authority, headers):
+        signs.append(True)
+        return original(authority, headers)
+
+    def receive(request):
+        requests.append(request)
+        return httpx.Response(200, json={"source": "ready"})
+
+    monkeypatch.setattr(CoreExecutionAuthority, "sign", sign)
+    install_transport(monkeypatch, receive)
+    before = metric_counts(URL_OPERATIONS[operation])
+    result = await call_core(operation, True, base_url=base_url)
+    assert result[0] == 503
+    assert_final_observation(caplog, operation, before, 503)
+    assert requests == [] and signs == []
+    assert "core execution target refused" in str(result[1])
+    for sensitive in (base_url, "url-user", "url-password", "bad-port", "invalid-ipv6"):
+        assert sensitive not in str(result) + caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", list(URL_OPERATIONS))
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://core.invalid",
+        "https://core.invalid:0",
+        "https://core.invalid:65535",
+        "http://core.invalid:8080/base",
+        "https://[::1]:8443",
+    ],
+)
+async def test_valid_core_targets_preserve_wire_context_and_final_observation(
+    monkeypatch, caplog, operation, enabled, base_url
+):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    requests = []
+
+    def receive(request):
+        requests.append(request)
+        assert "authorization" not in request.headers
+        assert request.headers["x-tenant-id"] == "tenant-a"
+        assert ("x-enterprise-auth-signature" in request.headers) == enabled
+        if enabled:
+            canonical = "\n".join(
+                (
+                    "lotus-enterprise-auth-context-v1",
+                    "synthetic-key",
+                    "synthetic-service",
+                    "synthetic-actor",
+                    "tenant-a",
+                    "synthetic-role",
+                    "observability",
+                    request.headers["x-enterprise-auth-timestamp"],
+                    "core.source.read,ingestion.portfolio_bundle.write",
+                )
+            )
+            expected = hmac.new(bytes(range(32)).hex().encode(), canonical.encode(), hashlib.sha256)
+            assert hmac.compare_digest(
+                request.headers["x-enterprise-auth-signature"], expected.hexdigest()
+            )
+        return httpx.Response(200, json={"source": "ready"})
+
+    install_transport(monkeypatch, receive)
+    before = metric_counts(URL_OPERATIONS[operation])
+    assert (await call_core(operation, enabled, base_url=base_url))[0] == 200
+    assert len(requests) == 1
+    assert_final_observation(caplog, operation, before, 200)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", list(URL_OPERATIONS))
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://url-user:url-password@core.invalid",
+        "https://core.invalid:65536",
+        "https://core.invalid:999999",
+    ],
+)
+async def test_disabled_core_retains_legacy_target_transport(
+    monkeypatch, caplog, operation, base_url
+):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    requests = []
+
+    def receive(request):
+        requests.append(request)
+        assert ("authorization" in request.headers) == ("url-user" in base_url)
+        if "authorization" in request.headers:
+            assert request.headers["authorization"].startswith("Basic ")
+        assert "x-enterprise-auth-signature" not in request.headers
+        return httpx.Response(200, json={"source": "ready"})
+
+    install_transport(monkeypatch, receive)
+    before = metric_counts(URL_OPERATIONS[operation])
+    result = await call_core(operation, False, base_url=base_url)
+    assert result[0] == 200 and len(requests) == 1
+    assert_final_observation(caplog, operation, before, 200)
 
 
 @pytest.mark.asyncio

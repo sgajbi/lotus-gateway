@@ -95,6 +95,15 @@ retains its separate intake caller/capability admission. Browser identity/privil
 never become signed service authority, and no route manufactures a Core capability.
 
 Enabled Core calls use private signed request context, a 290-second total deadline and strict
+target validation before signing or transport. Query, control-plane and ingestion targets
+must be absolute HTTP or HTTPS URLs with a host and no user information; empty or encoded
+URL credentials and malformed targets are refused. The existing communication-failure
+503 uses the bounded reason `core execution target refused`, omits the target/parser details
+and records one final degraded observation. HTTPX URL-derived Basic Authorization must
+not accompany signed service authority; operators supply authority through the admitted
+execution settings. Disabled legacy and generic upstream behavior remain unchanged.
+
+Enabled Core calls also enforce strict
 redirect refusal. No second request follows a Core redirect, including to the same origin or
 an HTTPS downgrade; the response is the existing communication-failure response (503) with the
 bounded reason `core upstream redirect refused`. Retries retain the same request-local
