@@ -17,6 +17,10 @@ from app.routers.trusted_caller_context import (
 from app.routers.trusted_caller_context import (
     trusted_caller_context_dependency as workbench_caller_context_dependency,
 )
+from app.services.dpm_manage_request_authority import (
+    DpmManageRequestAuthority,
+    build_dpm_manage_request_authority,
+)
 
 WORKBENCH_CALLER_OPENAPI = {
     "parameters": [
@@ -54,6 +58,21 @@ def require_unambiguous_workbench_caller_context(request: Request) -> dict[str, 
     )
 
 
+def require_workbench_enrichment_authority(
+    request: Request,
+) -> tuple[dict[str, str], DpmManageRequestAuthority]:
+    """Admit the shared Performance and Manage authority for a full enrichment read."""
+
+    caller_headers = require_unambiguous_workbench_caller_context(request)
+    authority = build_dpm_manage_request_authority(
+        actor_id=request.headers.get("X-Actor-Id"),
+        tenant_id=request.headers.get("X-Tenant-Id"),
+        role=request.headers.get("X-Role"),
+        region=request.headers.get("X-Region"),
+    )
+    return caller_headers, authority
+
+
 UnambiguousWorkbenchCallerContext = Annotated[
     dict[str, str], Depends(require_unambiguous_workbench_caller_context)
 ]
@@ -64,5 +83,6 @@ __all__ = [
     "WORKBENCH_CALLER_OPENAPI",
     "require_workbench_caller_context",
     "require_unambiguous_workbench_caller_context",
+    "require_workbench_enrichment_authority",
     "workbench_caller_context_dependency",
 ]

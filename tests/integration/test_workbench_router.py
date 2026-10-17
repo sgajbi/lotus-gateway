@@ -429,7 +429,7 @@ def test_workbench_portfolio_360_router_resolves_latest_business_date(monkeypatc
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/portfolio-360")
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360", headers=CALLER_CONTEXT_HEADERS)
 
     assert response.status_code == 200
     body = response.json()
@@ -500,7 +500,10 @@ def test_workbench_portfolio_360_router(monkeypatch):
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?as_of_date=2026-04-10")
+    response = client.get(
+        "/api/v1/workbench/PF_1001/portfolio-360?as_of_date=2026-04-10",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
@@ -571,7 +574,8 @@ def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
 
     client = TestClient(app)
     response = client.get(
-        "/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1&as_of_date=2026-08-23"
+        "/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1&as_of_date=2026-08-23",
+        headers=CALLER_CONTEXT_HEADERS,
     )
 
     assert response.status_code == 200

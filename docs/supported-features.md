@@ -19,6 +19,18 @@ Stateful risk workspace reads require one nonblank `X-Tenant-Id`. Gateway forwar
 tenant to Risk, isolates its response cache by tenant, and uses the same scope for any composed
 Manage mandate evidence. The header is a source selection boundary, not proof of IAM entitlement.
 
+The portfolio-360 route always requests its optional Performance and Manage enrichments, so it
+requires one unambiguous trusted `X-Actor-Id`, `X-Tenant-Id`, `X-Region`, and `X-Role` before any
+service I/O. Gateway forwards the admitted Workbench caller view to Performance and binds the
+existing Manage read-authority scope for rebalance runs and supportability. Browser-supplied
+service identity, capabilities, authorization, and unrelated headers are not forwarded. Producer
+refusals remain typed partial failures; Gateway does not invent a tenant, role, run, or snapshot.
+When `X-Caller-Application` is omitted or blank, the admitted Performance caller view uses the
+existing `lotus-gateway` default. `X-Booking-Center-Code` remains optional and is forwarded only
+when provided.
+The overview route retains its conditional include flags and headerless source-only compatibility
+when both optional enrichments are disabled.
+
 ## Workbench Snapshot Date Semantics
 
 Status: implementation-backed for the Workbench overview and portfolio-360 routes.

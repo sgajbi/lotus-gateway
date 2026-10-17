@@ -1114,7 +1114,17 @@ reporting unit from portfolio base currency.
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,
     workflow posture, and error code. Gateway remains the product-facing composition boundary and
-    does not calculate supportability, workflow state, or error semantics locally.
+    does not calculate supportability, workflow state, or error semantics locally. Portfolio-360
+    always executes both optional enrichment seams and must admit one unambiguous trusted actor,
+    tenant, region, and role before service I/O. Bind Performance through the request-specific
+    `WorkbenchService.with_caller_headers` view and Manage through
+    `dpm_manage_request_authority_scope`; never mutate the cached service/client or forward browser
+    service identity, capabilities, authorization, or unrelated headers. Missing, repeated, blank,
+    or invalid authority is a bounded `400`; valid producer refusal remains a typed partial failure.
+    The optional caller-application value uses the existing `lotus-gateway` default when omitted or
+    blank, while booking-center context is forwarded only when present.
+    Overview retains its conditional include flags and headerless source-only compatibility when
+    both enrichments are disabled.
 19. RFC-0028 bank-demo proof Gateway routes are active under
     `/api/v1/advisory/bank-demo-proof/*`. Gateway forwards scenario-contract, supported-claim
     register, and proof-pack capture requests to `lotus-advise`, preserves Advise-owned

@@ -221,8 +221,14 @@ The proof is isolated persisted synthetic facts, not live materialization or Wor
   role when rebalance is included (region is forwarded if supplied). Repeated caller headers are
   refused before service I/O. Manage receives admitted audit context without browser workload
   identity or `manage.write`; Performance uses the existing request-specific caller view.
-  Both flags false adds no identity requirement and makes no optional producer calls. Source
-  refusals remain partial failures. The overview response
+  Portfolio-360 always requests both enrichments and therefore requires one unambiguous
+  `X-Actor-Id`, `X-Tenant-Id`, `X-Region`, and `X-Role`. The admitted Performance view defaults an
+  omitted or blank `X-Caller-Application` to `lotus-gateway`; optional `X-Booking-Center-Code` is
+  forwarded only when provided. It binds the same Manage read-authority scope as overview and never
+  forwards browser service identity,
+  capabilities, authorization, or unrelated headers. Both overview flags false adds no identity
+  requirement and makes no optional producer calls. Source refusals remain partial failures. The
+  overview response
   publishes `requested_as_of_date`, `effective_as_of_date`, and `as_of_state`; the legacy
   top-level `as_of_date` is the effective source date or `null`. For an explicit request, top-level
   Core `freshness_status=CURRENT` confirms the valid top-level `as_of_date`. When the request is
