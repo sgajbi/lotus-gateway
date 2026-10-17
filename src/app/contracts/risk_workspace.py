@@ -120,7 +120,7 @@ class WorkbenchRiskMetric(BaseModel):
         description="Advisor-facing display label for the metric.",
         examples=["Volatility"],
     )
-    value: float | None = Field(
+    value: float | None = Field(  # monetary-float-allow: Non-monetary risk statistic.
         default=None,
         description="Numeric metric value when the measure was produced successfully.",
         examples=[0.12],
