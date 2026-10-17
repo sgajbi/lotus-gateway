@@ -203,6 +203,16 @@ is returned. Generic upstream callers and disabled legacy Core calls retain thei
 existing redirect behavior.
 
 Existing retries reuse that request-local signature and retain existing retry policy.
+Enabled Core query, control-plane and ingestion targets must be absolute HTTP or HTTPS
+URLs with a host and no URL user information, including empty, username-only or encoded
+credentials. Malformed targets are also refused before signing or transport. HTTPX can
+otherwise derive Basic Authorization from URL credentials alongside the HMAC context.
+Refusal returns the existing communication-failure 503 with reason
+`core execution target refused`, without the target or parser diagnostic, and emits one
+final degraded observation. Configure service authority through the admitted execution
+settings rather than URL credentials. Disabled legacy and generic upstream behavior
+remain unchanged.
+
 Separate calls get current timestamps. Core's native 300-second age window remains enforced:
 an expired retry returns Core's stale-context refusal without unsigned fallback. Enabled
 Core calls have a 290-second total `asyncio.timeout` boundary covering signing, all
