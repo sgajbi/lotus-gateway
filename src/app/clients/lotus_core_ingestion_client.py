@@ -1,8 +1,10 @@
 import logging
 from typing import Any
 
+from app.clients.core_auth_context import request_core_with_execution_authority
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
+from app.core_execution_authority import CoreExecutionAuthority
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -14,11 +16,13 @@ class LotusCoreIngestionClient:
         timeout_seconds: float,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
+        execution_authority: CoreExecutionAuthority | None = None,
     ):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
+        self._execution_authority = execution_authority
 
     async def ingest_portfolio_bundle(
         self,
@@ -37,7 +41,9 @@ class LotusCoreIngestionClient:
             extras={"X-Idempotency-Key": idempotency_key} if idempotency_key else None,
             caller_headers=caller_headers,
         )
-        return await request_observed_fanout(
+        return await request_core_with_execution_authority(
+            authority=self._execution_authority,
+            send=request_observed_fanout,
             logger=LOGGER,
             service="lotus-core",
             operation="core.ingest.portfolio-bundle.create",
@@ -106,7 +112,9 @@ class LotusCoreIngestionClient:
             if path.endswith("/preview")
             else "core.ingest.uploads.commit"
         )
-        return await request_observed_fanout(
+        return await request_core_with_execution_authority(
+            authority=self._execution_authority,
+            send=request_observed_fanout,
             logger=LOGGER,
             service="lotus-core",
             operation=operation,

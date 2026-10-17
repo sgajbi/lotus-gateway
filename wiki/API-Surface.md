@@ -85,6 +85,26 @@ or governed ingress endpoints without embedding environment-specific hostnames i
 - `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
+## Core service execution authority
+
+Core-backed routes can opt into operator-configured service execution authority through
+`CORE_EXECUTION_ENABLED=true`. Deployment operators must separately admit the existing Core
+key, registered execution service, audit actor/role, exact tenant allowlist and native
+capabilities. The request tenant must already be present and allowed; ingestion additionally
+retains its separate intake caller/capability admission. Browser identity/privilege headers
+never become signed service authority, and no route manufactures a Core capability.
+
+Enabled Core calls use private signed request context, a 290-second total deadline and strict
+redirect refusal. No second request follows a Core redirect, including to the same origin or
+an HTTPS downgrade; the response is the existing communication-failure response (503) with the
+bounded reason `core upstream redirect refused`. Retries retain the same request-local
+signature, while separate logical calls get current timestamps. Native stale-context 403 and other
+Core refusals remain authoritative, with no unsigned fallback. Disabled mode preserves
+legacy behavior. Clock synchronization and Core's configured freshness window require
+operator qualification; these source tests do not grant source/financial authority or prove
+live deployment acceptance. Configuration details and runnable source proof commands are in
+[the operations runbook](https://github.com/sgajbi/lotus-gateway/blob/main/docs/operations-runbook.md#core-service-execution-context).
+
 ## Portfolio transaction temporal contract
 
 The transaction ledger, income-summary, and activity-summary routes preserve Core ownership of
