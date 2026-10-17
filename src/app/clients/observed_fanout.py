@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from functools import partial
+from typing import Any, Awaitable, Callable
 
 from app.clients.http_json_resilience import request_with_retry_outcome
 from app.clients.http_resilience import request_binary_with_retry
@@ -11,6 +12,8 @@ from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
     gateway_analytics_fanout_timer,
 )
+
+_CoreExecution = Callable[..., Awaitable[tuple[int, dict[str, Any]]]]
 
 
 async def _request_with_optional_total_deadline(
@@ -46,6 +49,8 @@ async def request_observed_fanout(
     retry_timeout_exceptions: bool = True,
     retry_ambiguous_request_errors: bool = True,
     total_deadline_seconds: float | None = None,
+    follow_redirects: bool | None = None,
+    core_execution: _CoreExecution | None = None,
 ) -> tuple[int, dict[str, Any]]:
     started_at = gateway_analytics_fanout_timer()
     request_kwargs: dict[str, Any] = {
@@ -63,10 +68,37 @@ async def request_observed_fanout(
         "retry_timeout_exceptions": retry_timeout_exceptions,
         "retry_ambiguous_request_errors": retry_ambiguous_request_errors,
     }
-    status_code, payload = await _request_with_optional_total_deadline(
+    if follow_redirects is not None:
+        request_kwargs["follow_redirects"] = follow_redirects
+    return await _execute_observed_json_request(
+        logger=logger,
+        service=service,
+        operation=operation,
+        started_at=started_at,
         request_kwargs=request_kwargs,
         total_deadline_seconds=total_deadline_seconds,
+        core_execution=core_execution,
     )
+
+
+async def _execute_observed_json_request(
+    *,
+    logger: logging.Logger,
+    service: str,
+    operation: str,
+    started_at: float,
+    request_kwargs: dict[str, Any],
+    total_deadline_seconds: float | None,
+    core_execution: _CoreExecution | None,
+) -> tuple[int, dict[str, Any]]:
+    send = partial(
+        _request_with_optional_total_deadline,
+        total_deadline_seconds=total_deadline_seconds,
+    )
+    if core_execution is None:
+        status_code, payload = await send(request_kwargs=request_kwargs)
+    else:
+        status_code, payload = await core_execution(request_kwargs=request_kwargs, send=send)
     emit_gateway_analytics_fanout_log(
         logger=logger,
         started_at=started_at,

@@ -27,6 +27,35 @@ It does not replace domain authority in upstream services.
 
 ## Current-State Summary
 
+### Core operator-configured service execution authority
+
+`app.core_execution_authority` owns pure operator configuration, context validation and native
+HMAC signing without runtime-layer dependencies. Core client factories load that authority;
+`app.clients.core_auth_context` owns only the Core HTTP wrapper, deadline and redirect refusal.
+
+Core query and ingestion clients opt into the existing Core HMAC context with
+`CORE_EXECUTION_ENABLED=true`. The Core-only factory seam requires an independently admitted
+existing key ID/secret, registered service identity, service execution actor/role, exact tenant
+allowlist and native Core capability set. Enabled incomplete configuration fails locally;
+disabled mode preserves legacy transport. The signer never impersonates the requesting user
+or derives grants from routes/browser privilege headers. Queries retain the existing request
+tenant fence; ingestion uses only the explicitly admitted intake tenant, with its separate
+Gateway caller admission and idempotency behavior intact. Native Core remains the owner of
+capability rules, source grants and financial authority.
+
+Each enabled logical Core request signs private final normalized headers inside a 290-second
+total deadline covering attempts and backoff. Retries reuse that request-local signature;
+separate calls receive current timestamps. Enabled Core calls refuse redirects, including
+same-origin, cross-origin and HTTPS downgrade redirects, before any second request, because
+the native signature does not bind method/path/origin. A redirect returns the bounded existing
+communication-failure response (503) without redirect target or producer payload. Generic and
+disabled legacy redirect/retry behavior remain unchanged. Native stale-context 403 remains visible
+without unsigned fallback. The deadline assumes Core's default 300-second verifier window,
+synchronized wall clocks within the remaining margin and cooperative event-loop scheduling.
+See `docs/operations-runbook.md#core-service-execution-context` for configuration and source
+proof commands. Source protocol tests do not certify deployed identity, full native middleware,
+route capability maps, source grants or canonical live workflow acceptance.
+
 ### Legacy overview optional-enrichment caller admission
 
 `GET /api/v1/workbench/{portfolio_id}/overview` admits authority only for requested

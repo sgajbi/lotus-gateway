@@ -157,6 +157,84 @@ output/demo-certification/gateway-demo-certification.json
 Use it as Gateway API evidence only. Full populated Workbench proof still requires the governed
 Workbench canonical runtime and platform QA evidence.
 
+## Core service execution context
+
+Core query and ingestion clients support opt-in operator-configured service execution
+authority using Core's existing `lotus-enterprise-auth-context-v1` HMAC protocol.
+`CORE_EXECUTION_ENABLED` defaults to `false`, preserving the existing base/development
+transport. Enable it explicitly with `true` only after the deployment owner admits the
+existing Core key, registered service identity, execution actor/role, tenant scope and
+capabilities. This does not impersonate the requesting user or grant source/financial
+authority. Intake still requires its separate Gateway caller admission.
+
+Supply these server environment variables through the deployment's existing secret/config
+delivery process; never put secrets in commands, browser headers, source, logs or tickets:
+
+| Variable | Required enabled-mode input |
+| --- | --- |
+| `CORE_EXECUTION_KEY_ID` | Existing Core verifier key identifier |
+| `CORE_EXECUTION_SECRET` | Existing matching Core HMAC secret, delivered as a secret |
+| `CORE_EXECUTION_SERVICE_IDENTITY` | Independently registered execution service |
+| `CORE_EXECUTION_ACTOR_ID` | Explicit service execution audit actor |
+| `CORE_EXECUTION_ROLE` | Explicit admitted service execution role |
+| `CORE_EXECUTION_ALLOWED_TENANTS` | JSON array of exact allowed tenant IDs; no wildcard |
+| `CORE_EXECUTION_CAPABILITIES` | JSON array of independently admitted native Core capabilities |
+
+Enabled but missing/invalid configuration fails locally with a bounded
+`CoreAuthorityError`; it never falls back to unsigned transport. Identity fields are
+normalized and bounded to 128 ASCII characters without controls. The request's existing
+tenant must be present and match the exact configured allowlist. Query calls retain their
+request tenant fence; ingestion uses only the explicitly admitted intake tenant and never
+the ambient query fence. Browser actor, role, service, capability and signature fields do
+not become the signed execution authority. Native Core capability checks remain authoritative;
+the signer does not infer grants from routes, including unsupported QCP capability rules.
+
+Each logical Core call signs a private final normalized header map immediately before
+transport. Correlation, trace and idempotency context are retained. Configuration changes
+participate in existing client cache signatures, including key rotation without exposing
+the secret in their representations. Other upstream clients receive no Core auth context.
+
+Enabled Core calls refuse every redirect before sending another request, including
+same-origin, cross-origin and HTTPS downgrade redirects. Core's native signature does
+not bind the target method/path/origin, so following redirects could disclose replayable
+service authority. A 3xx response becomes the bounded communication-failure response (503)
+with reason `core upstream redirect refused`; neither redirect target nor producer body
+is returned. Generic upstream callers and disabled legacy Core calls retain their
+existing redirect behavior.
+
+Existing retries reuse that request-local signature and retain existing retry policy.
+Separate calls get current timestamps. Core's native 300-second age window remains enforced:
+an expired retry returns Core's stale-context refusal without unsigned fallback. Enabled
+Core calls have a 290-second total `asyncio.timeout` boundary covering signing, all
+transport attempts and backoff; expiration returns the existing communication-failure
+503 shape. HTTPX phase timeouts and retry policy remain unchanged. Disabled legacy calls
+retain their prior timeout behavior. The 10-second margin against Core's native default
+300-second window assumes synchronized Gateway/Core wall clocks and a responsive event
+loop. Operators must admit that clock-skew budget and Core's configured age window; a
+shorter verifier window or larger skew can still cause an earlier native stale refusal.
+An event-loop stall can delay cooperative cancellation, so this is an application total
+deadline rather than an external hard real-time guarantee.
+
+Source protocol qualification can run against an explicitly supplied reviewed Core checkout
+without installing Core as a Gateway runtime dependency. From the `lotus-gateway` root:
+
+```powershell
+$env:CORE_PROTOCOL_SOURCE_ROOT = "<workspace-root>/worktrees/lotus-core-source-admission-1227"
+python -m pytest tests/unit/test_core_execution_authority.py tests/integration/test_core_native_execution_context.py -q
+```
+
+```bash
+CORE_PROTOCOL_SOURCE_ROOT="<workspace-root>/worktrees/lotus-core-source-admission-1227" \
+  python -m pytest tests/unit/test_core_execution_authority.py tests/integration/test_core_native_execution_context.py -q
+```
+
+The native test pack verifies Core commit `ceba793a4e538688723938e4f85bd9a0d117dc8f`
+and committed source bytes, then executes its unchanged pure verifier and capability-check
+definitions against actual Gateway HTTPX mock transport requests. Without an explicit Core
+source root these optional tests skip. This is source contract evidence, not live Core
+middleware, deployment credential, route capability-map, source-grant or financial acceptance.
+Canonical live API and workflow qualification remains a separate operator-owned gate.
+
 ## Incident Notes
 
 1. Preserve correlation IDs when escalating gateway issues.

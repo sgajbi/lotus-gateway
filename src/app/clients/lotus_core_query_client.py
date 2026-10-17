@@ -1,12 +1,14 @@
 import logging
 from typing import Any
 
+from app.clients.core_auth_context import request_core_with_execution_authority
 from app.clients.lotus_core_lookup_client import LotusCoreLookupClientMixin
 from app.clients.lotus_core_portfolio_query_client import LotusCorePortfolioQueryClientMixin
 from app.clients.lotus_core_reporting_summary_client import LotusCoreReportingSummaryClientMixin
 from app.clients.lotus_core_simulation_client import LotusCoreSimulationClientMixin
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import build_core_upstream_headers
+from app.core_execution_authority import CoreExecutionAuthority
 from app.middleware.caller_identity import admitted_tenant_cache_scope
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
@@ -25,12 +27,14 @@ class LotusCoreQueryClient(
         control_plane_base_url: str | None = None,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
+        execution_authority: CoreExecutionAuthority | None = None,
     ):
         self._query_base_url = base_url.rstrip("/")
         self._control_plane_base_url = (control_plane_base_url or base_url).rstrip("/")
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
+        self._execution_authority = execution_authority
 
     async def _get_query_resource(
         self,
@@ -280,7 +284,9 @@ class LotusCoreQueryClient(
         headers: dict[str, str] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        return await request_observed_fanout(
+        return await request_core_with_execution_authority(
+            authority=self._execution_authority,
+            send=request_observed_fanout,
             logger=LOGGER,
             service="lotus-core",
             operation=operation,
