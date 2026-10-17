@@ -30,6 +30,17 @@ CANONICAL_BENCHMARK = "BMK_PB_GLOBAL_BALANCED_60_40"
 CORRELATION_ID = "demo-cert-gateway-001"
 
 
+def _certification_caller_headers() -> dict[str, str]:
+    """Return explicit synthetic authority for deterministic in-process route proof."""
+    return {
+        "X-Correlation-Id": CORRELATION_ID,
+        "X-Actor-Id": "gateway-demo-certifier",
+        "X-Tenant-Id": "tenant-demo-certification",
+        "X-Region": "APAC",
+        "X-Role": "PORTFOLIO_MANAGER",
+    }
+
+
 @dataclass(frozen=True)
 class CertificationAssertion:
     name: str
@@ -324,16 +335,7 @@ def _certify_health(client: TestClient, evidence: CertificationEvidence) -> None
 def _certify_workbench_overview(client: TestClient, evidence: CertificationEvidence) -> None:
     path = f"/api/v1/workbench/{CANONICAL_PORTFOLIO_ID}/overview"
     # Synthetic identity for this deterministic, mocked certification request.
-    response = client.get(
-        path,
-        headers={
-            "X-Correlation-Id": CORRELATION_ID,
-            "X-Actor-Id": "gateway-demo-certifier",
-            "X-Tenant-Id": "tenant-demo-certification",
-            "X-Region": "APAC",
-            "X-Role": "PORTFOLIO_MANAGER",
-        },
-    )
+    response = client.get(path, headers=_certification_caller_headers())
     evidence.record_endpoint(method="GET", path=path, status_code=response.status_code)
     body = response.json()
     evidence.expect("overview.status_code", response.status_code, 200)
@@ -368,7 +370,7 @@ def _certify_workbench_overview(client: TestClient, evidence: CertificationEvide
 
 def _certify_portfolio_360(client: TestClient, evidence: CertificationEvidence) -> None:
     path = f"/api/v1/workbench/{CANONICAL_PORTFOLIO_ID}/portfolio-360?session_id=sess_demo_001"
-    response = client.get(path, headers={"X-Correlation-Id": CORRELATION_ID})
+    response = client.get(path, headers=_certification_caller_headers())
     evidence.record_endpoint(method="GET", path=path, status_code=response.status_code)
     body = response.json()
     evidence.expect("portfolio_360.status_code", response.status_code, 200)

@@ -239,6 +239,22 @@ def test_workbench_openapi_contract_registered() -> None:
     assert portfolio_360_parameters["session_id"]["description"]
     assert portfolio_360_parameters["as_of_date"]["description"]
     assert portfolio_360_parameters["as_of_date"]["schema"]["examples"] == ["2026-08-23"]
+    for header in ("X-Actor-Id", "X-Tenant-Id", "X-Region", "X-Role"):
+        assert portfolio_360_parameters[header]["required"] is True
+        assert portfolio_360_parameters[header]["description"]
+        assert portfolio_360_parameters[header]["schema"]["minLength"] == 1
+        assert portfolio_360_parameters[header]["schema"]["pattern"]
+    for header in ("X-Caller-Application", "X-Booking-Center-Code"):
+        assert portfolio_360_parameters[header]["required"] is False
+    assert "lotus-gateway" in portfolio_360_parameters["X-Caller-Application"]["description"]
+    assert portfolio_360_parameters["X-Caller-Application"]["schema"]["minLength"] == 0
+    assert "pattern" not in portfolio_360_parameters["X-Caller-Application"]["schema"]
+    assert "only when provided" in portfolio_360_parameters["X-Booking-Center-Code"]["description"]
+    assert "lotus-gateway" in portfolio_360_operation["description"]
+    assert (
+        "optional performance and rebalance enrichments" in portfolio_360_operation["description"]
+    )
+    assert "400" in portfolio_360_operation["responses"]
     assert analytics_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "risk proxy" in analytics_operation["description"].lower()
     assert analytics_parameters["portfolio_id"]["description"]

@@ -73,6 +73,16 @@ tracked by `lotus-workbench#814`. Composed performance workspace consumers fail 
 `WORKBENCH_AS_OF_DATE_UNAVAILABLE` when neither an explicit report end nor a usable Workbench date
 is available.
 
+Portfolio-360 always requests Performance and Manage enrichment. Before any producer or service
+I/O, Gateway therefore requires one unambiguous trusted actor, tenant, region, and role. The
+admitted Workbench caller view scopes Performance; the existing request-local Manage authority
+scopes rebalance-run and supportability reads. Repeated, missing, blank, or invalid authority is a
+bounded `400`, while valid upstream refusal remains a typed partial failure. Gateway does not
+invent caller scope or substitute an outcome-review run. The optional caller application defaults
+to `lotus-gateway` when omitted or blank; booking-center context is forwarded only when provided.
+The sibling overview route keeps its
+conditional include flags and still permits a headerless source-only read when both are false.
+
 ## Portfolio Transaction Temporal Contract
 
 Status: implementation-backed for the transaction ledger, income-summary, and activity-summary
@@ -1542,9 +1552,11 @@ flowchart LR
 
 Operational behavior:
 
-1. Gateway returns partial failures and warnings if manage is unavailable,
-2. recent run detail is bounded to keep the Workbench contract product-safe,
-3. Workbench remains Gateway-first and must not call `lotus-manage` directly.
+1. Gateway returns partial failures and warnings if Manage is unavailable,
+2. portfolio-360 binds admitted actor, tenant, region, and role before its Performance and Manage
+   reads; repeated or missing authority is refused before optional producer I/O,
+3. recent run detail is bounded to keep the Workbench contract product-safe,
+4. Workbench remains Gateway-first and must not call `lotus-manage` directly.
 
 ## DPM Command Center Outcome Reviews
 
